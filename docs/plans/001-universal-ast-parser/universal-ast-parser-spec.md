@@ -1,6 +1,8 @@
 # Universal AST Parser with Generic Hierarchy
 
-ℹ️ Consider running `/plan-1a-explore` for deeper codebase understanding (no prior research exists)
+**Mode**: Simple
+
+📚 This specification incorporates findings from `tree-sitter-research.md`
 
 ## Summary
 
@@ -93,32 +95,39 @@
 
 ## Open Questions
 
-1. **[NEEDS CLARIFICATION: Naming]** What should we call the generic structural elements? Options considered:
-   - "Nodes" (tree-sitter native, but very generic)
-   - "Symbols" (common in IDE terminology)
-   - "Elements" (neutral)
-   - "Blocks" (implies containment)
-   - "Entities" (semantic weight)
+### Resolved by Research
 
-2. **[NEEDS CLARIFICATION: Hierarchy representation]** Should the hierarchy be:
-   - Nested objects (parent contains children array)
-   - Flat list with parent references
-   - Both (flexible output format)
+1. **~~[Naming]~~** → Use **"nodes"** (tree-sitter native) with `category` field for taxonomy classification. Keep `raw_kind` for debugging.
 
-3. **[NEEDS CLARIFICATION: Content inclusion]** Should each node include:
-   - Full source content (memory intensive for large files)
-   - Just line ranges (requires re-reading file)
-   - Optional/configurable
+2. **~~[Hierarchy representation]~~** → **Nested objects** with `children[]` array. This matches tree-sitter's natural structure.
 
-4. **[NEEDS CLARIFICATION: Signature format]** For callable entities (functions/methods), what signature format?
-   - Raw string: `def foo(x: int, y: str) -> bool`
-   - Parsed structure: `{params: [{name: 'x', type: 'int'}, ...], returns: 'bool'}`
-   - Both
+3. **~~[Content inclusion]~~** → **Store byte ranges only**; extract text lazily via `source[start_byte:end_byte]`. Avoids memory bloat.
 
-5. **[NEEDS CLARIFICATION: Unknown node types]** When tree-sitter returns node types we don't explicitly handle:
-   - Include them as-is with generic representation
-   - Filter them out
-   - Log warning and include
+4. **~~[Signature format]~~** → Use **tree-sitter's field structure** (`name`, `parameters`, `body` fields). Already parsed by grammar.
+
+5. **~~[Unknown node types]~~** → **Include as-is** with `category: "other"` and preserve `raw_kind`. No filtering, no warnings.
+
+### To Validate During Exploration
+
+- Does the proposed taxonomy (`document`, `section`, `container`, `callable`, `declaration`, `block`, `mapping`, `sequence`, `directive`, `other`) cover all formats adequately?
+- Do heuristics based on `is_named` + type name patterns work across grammars, or do we need `node-types.json` metadata?
+- How do Markdown grammars handle section hierarchy (flat headings vs nested sections)?
+
+## Testing Strategy
+
+- **Approach**: Manual Only
+- **Rationale**: Research/exploration phase—not production code. Experiments drive understanding.
+- **Focus Areas**: Verify tree-sitter outputs across formats via interactive scripts
+- **Excluded**: Automated test suites (deferred to production implementation phase)
+- **Verification Method**: Run scripts, inspect output, document findings in READMEs
+
+## Documentation Strategy
+
+- **Location**: `./initial_exploration/` (co-located with code)
+- **Rationale**: Self-contained exploration folder with scripts, samples, and documentation together
+- **Content**: README.md (setup/usage), findings documentation, output examples
+- **Target Audience**: Future implementers building the production parser
+- **Maintenance**: Updated as experiments reveal new insights
 
 ## ADR Seeds (Optional)
 
@@ -141,6 +150,24 @@
 
 ---
 
-*Spec Version: 1.0.0*
+## Clarifications
+
+### Session 2025-01-26
+
+**Q1: Workflow Mode**
+- **Selected**: Simple (A)
+- **Rationale**: Greenfield project, exploration-focused, no existing code constraints. Single-phase approach allows faster iteration during discovery.
+
+**Q2: Testing Strategy**
+- **Selected**: Manual Only (D)
+- **Rationale**: This is a research/exploration phase, not production implementation. We're experimenting with tree-sitter to understand outputs across formats. Deliverables will be exploratory scripts and documentation that inform the actual implementation later.
+
+**Q3: Documentation Location**
+- **Selected**: `./initial_exploration/` (co-located with scripts and samples)
+- **Rationale**: Keep all exploration artifacts together—scripts, sample files, README, and findings. Self-contained experimentation folder.
+
+---
+
+*Spec Version: 1.2.0*
 *Created: Initial exploration phase*
-*Status: DRAFT - Awaiting clarification*
+*Status: READY - Clarification complete*
