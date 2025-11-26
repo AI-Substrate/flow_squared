@@ -1,0 +1,232 @@
+# Sample TOML file for tree-sitter exploration
+# pyproject.toml style configuration
+
+[project]
+name = "sample-project"
+version = "1.0.0"
+description = "A sample project for tree-sitter exploration"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Developer", email = "dev@example.com" },
+    { name = "Another Dev", email = "another@example.com" },
+]
+maintainers = [
+    { name = "Maintainer", email = "maintainer@example.com" },
+]
+keywords = ["sample", "tree-sitter", "parsing"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+# Dynamic fields
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://example.com"
+Documentation = "https://docs.example.com"
+Repository = "https://github.com/example/sample"
+Changelog = "https://github.com/example/sample/blob/main/CHANGELOG.md"
+
+[project.scripts]
+sample-cli = "sample.cli:main"
+sample-server = "sample.server:run"
+
+[project.gui-scripts]
+sample-gui = "sample.gui:launch"
+
+[project.entry-points."sample.plugins"]
+builtin = "sample.plugins.builtin:BuiltinPlugin"
+external = "sample.plugins.external:ExternalPlugin"
+
+# Dependencies
+[project.dependencies]
+requests = ">=2.28.0"
+pydantic = ">=2.0.0"
+click = ">=8.0.0"
+rich = ">=13.0.0"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+docs = [
+    "sphinx>=6.0.0",
+    "sphinx-rtd-theme>=1.0.0",
+]
+all = [
+    "sample-project[dev]",
+    "sample-project[docs]",
+]
+
+# Build system
+[build-system]
+requires = ["hatchling>=1.18.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/sample/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+]
+exclude = [
+    "*.pyc",
+    "__pycache__",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sample"]
+
+# Tool configurations
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long
+    "B008",  # function calls in argument defaults
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**" = ["S101"]
+
+[tool.ruff.isort]
+known-first-party = ["sample"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --cov=sample --cov-report=term-missing"
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src/sample"]
+omit = ["*/tests/*", "*/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+
+# Custom application configuration
+[app]
+name = "Sample Application"
+debug = false
+log_level = "info"
+
+[app.server]
+host = "0.0.0.0"
+port = 8000
+workers = 4
+
+[app.database]
+url = "postgresql://localhost/sample"
+pool_size = 10
+echo = false
+
+[[app.database.replicas]]
+url = "postgresql://replica1/sample"
+weight = 1
+
+[[app.database.replicas]]
+url = "postgresql://replica2/sample"
+weight = 2
+
+[app.cache]
+backend = "redis"
+url = "redis://localhost:6379/0"
+ttl = 3600
+
+[app.features]
+new_dashboard = { enabled = true, rollout = 0.5 }
+dark_mode = { enabled = true, default = false }
+
+# Inline tables
+[app.metadata]
+created = 2024-01-15T10:30:00Z
+tags = ["production", "v1"]
+stats = { views = 1000, users = 50 }
+
+# Array of tables
+[[app.services]]
+name = "auth"
+url = "https://auth.example.com"
+timeout = 30
+
+[[app.services]]
+name = "api"
+url = "https://api.example.com"
+timeout = 60
+retries = 3
+
+# Different value types demonstration
+[values]
+string = "Hello, World!"
+multiline = """
+This is a
+multiline string
+with preserved newlines."""
+literal = 'C:\Users\example\path'
+
+integer = 42
+negative = -17
+hex = 0xDEADBEEF
+octal = 0o755
+binary = 0b11010110
+
+float = 3.14159
+scientific = 6.022e23
+infinity = inf
+nan = nan
+
+boolean_true = true
+boolean_false = false
+
+datetime = 2024-01-15T10:30:00Z
+date = 2024-01-15
+time = 10:30:00
+
+array = [1, 2, 3]
+nested_array = [[1, 2], [3, 4]]
+mixed_array = ["string", 42, true, 2024-01-15]

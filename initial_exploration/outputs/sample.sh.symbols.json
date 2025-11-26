@@ -1,0 +1,383 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/shell/sample.sh",
+    "language": "bash",
+    "format_family": "shell"
+  },
+  "root": {
+    "id": "file:sample_repo/shell/sample.sh",
+    "category": "file",
+    "kind": "program",
+    "name": "sample.sh",
+    "qualified_name": "sample.sh",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 444,
+      "start_byte": 0,
+      "end_byte": 9655
+    },
+    "content": "#!/usr/bin/env bash\n# Sample shell script for tree-sitter exploration\n# Includes various Bash constructs and idioms\n\n# ==================================\n# Script Configuration\n# ==================================\n\n# Strict mode\nset -euo pipefail\nIFS=$'\\n\\t'\n\n# Script directory\nSCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\nreadonly SCRIPT_DIR\n\n# Constants\nreadonly VERSION=\"1.0.0\"\nreadonly CONFIG_FILE=\"${HOME}/.config/sample/config\"\nreadonly LOG_FILE=\"/var/log/sample.log\"\nreadonly MAX_RETRIES=3\n\n# Default values\nDEBUG=${DEBUG:-false}\nVERBOSE=${VERBOSE:-false}\n\n# ==================================\n# Functions\n# ==================================\n\n# Logging function\nlog() {\n    local level=\"$1\"\n    shift\n    local message=\"$*\"\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] [${level}] ${message}\" >&2\n}\n\ninfo() { log \"INFO\" \"$@\"; }\nwarn() { log \"WARN\" \"$@\"; }\nerror() { log \"ERROR\" \"$@\"; }\ndebug() { [[ \"$DEBUG\" == \"true\" ]] && log \"DEBUG\" \"$@\" || true; }\n\n# Error handling\ndie() {\n    error \"$@\"\n    exit 1\n}\n\n# Cleanup function (trap handler)\ncleanup() {\n    local exit_code=$?\n    info \"Cleaning up...\"\n    # Remove temporary files\n    rm -rf \"${TMP_DIR:-/tmp/sample-$$}\" 2>/dev/null || true\n    exit \"$exit_code\"\n}\n\n# Set up traps\ntrap cleanup EXIT\ntrap 'die \"Interrupted\"' INT TERM\n\n# Usage function\nusage() {\n    cat <<EOF\nUsage: $(basename \"$0\") [OPTIONS] COMMAND [ARGS...]\n\nSample script demonstrating various Bash constructs.\n\nCommands:\n    init        Initialize the environment\n    run         Run the main process\n    status      Check status\n    cleanup     Clean up resources\n\nOptions:\n    -h, --help      Show this help message\n    -v, --version   Show version\n    -d, --debug     Enable debug mode\n    -V, --verbose   Enable verbose output\n    -c, --config    Path to config file\n    -n, --dry-run   Dry run mode\n\nExamples:\n    $(basename \"$0\") init\n    $(basename \"$0\") -d run --input file.txt\n    $(basename \"$0\") --config /path/to/config run\n\nEOF\n}\n\n# Version function\nversion() {\n    echo \"sample.sh version ${VERSION}\"\n}\n\n# ==================================\n# Helper Functions\n# ==================================\n\n# Check if command exists\ncommand_exists() {\n    command -v \"$1\" &>/dev/null\n}\n\n# Require a command\nrequire_command() {\n    local cmd=\"$1\"\n    command_exists \"$cmd\" || die \"Required command not found: ${cmd}\"\n}\n\n# Check if running as root\nis_root() {\n    [[ $EUID -eq 0 ]]\n}\n\n# Retry a command\nretry() {\n    local max_attempts=\"$1\"\n    local delay=\"$2\"\n    shift 2\n    local cmd=(\"$@\")\n    local attempt=1\n\n    while ((attempt <= max_attempts)); do\n        if \"${cmd[@]}\"; then\n            return 0\n        fi\n        warn \"Attempt ${attempt}/${max_attempts} failed, retrying in ${delay}s...\"\n        sleep \"$delay\"\n        ((attempt++))\n    done\n\n    error \"All ${max_attempts} attempts failed\"\n    return 1\n}\n\n# Read config file\nload_config() {\n    local config_file=\"${1:-$CONFIG_FILE}\"\n\n    if [[ -f \"$config_file\" ]]; then\n        info \"Loading config from ${config_file}\"\n        # shellcheck source=/dev/null\n        source \"$config_file\"\n    else\n        warn \"Config file not found: ${config_file}\"\n    fi\n}\n\n# Validate input\nvalidate_input() {\n    local input=\"$1\"\n\n    [[ -z \"$input\" ]] && die \"Input cannot be empty\"\n    [[ -f \"$input\" ]] || die \"Input file not found: ${input}\"\n    [[ -r \"$input\" ]] || die \"Input file not readable: ${input}\"\n}\n\n# ==================================\n# Command Functions\n# ==================================\n\n# Initialize command\ncmd_init() {\n    info \"Initializing...\"\n\n    # Create directories\n    mkdir -p \"${HOME}/.config/sample\"\n    mkdir -p \"${HOME}/.local/share/sample\"\n\n    # Create default config if not exists\n    if [[ ! -f \"$CONFIG_FILE\" ]]; then\n        cat > \"$CONFIG_FILE\" <<'CONF'\n# Sample configuration file\nSAMPLE_VAR=\"default_value\"\nSAMPLE_ENABLED=true\nCONF\n        info \"Created default config at ${CONFIG_FILE}\"\n    fi\n\n    info \"Initialization complete\"\n}\n\n# Run command\ncmd_run() {\n    local input=\"\"\n    local output=\"\"\n\n    # Parse subcommand arguments\n    while [[ $# -gt 0 ]]; do\n        case \"$1\" in\n            -i|--input)\n                input=\"$2\"\n                shift 2\n                ;;\n            -o|--output)\n                output=\"$2\"\n                shift 2\n                ;;\n            *)\n                die \"Unknown option: $1\"\n                ;;\n        esac\n    done\n\n    # Validate\n    [[ -n \"$input\" ]] || die \"Input file required\"\n    validate_input \"$input\"\n\n    # Process\n    info \"Processing ${input}...\"\n\n    # Create temp directory\n    TMP_DIR=$(mktemp -d)\n\n    # Example: process file line by line\n    local line_count=0\n    while IFS= read -r line; do\n        ((line_count++))\n        debug \"Processing line ${line_count}: ${line:0:50}...\"\n\n        # Example processing with parameter expansion\n        local processed=\"${line^^}\"  # Uppercase\n        processed=\"${processed// /_}\"  # Replace spaces\n\n        echo \"$processed\" >> \"${TMP_DIR}/processed.txt\"\n    done < \"$input\"\n\n    # Output results\n    if [[ -n \"$output\" ]]; then\n        mv \"${TMP_DIR}/processed.txt\" \"$output\"\n        info \"Output written to ${output}\"\n    else\n        cat \"${TMP_DIR}/processed.txt\"\n    fi\n\n    info \"Processed ${line_count} lines\"\n}\n\n# Status command\ncmd_status() {\n    echo \"=== System Status ===\"\n    echo \"User: $(whoami)\"\n    echo \"Host: $(hostname)\"\n    echo \"Date: $(date)\"\n    echo \"Uptime: $(uptime -p 2>/dev/null || uptime)\"\n    echo \"\"\n    echo \"=== Script Status ===\"\n    echo \"Version: ${VERSION}\"\n    echo \"Config: ${CONFIG_FILE}\"\n    echo \"Debug: ${DEBUG}\"\n    echo \"\"\n    echo \"=== Dependencies ===\"\n\n    local deps=(bash grep sed awk curl jq)\n    for dep in \"${deps[@]}\"; do\n        if command_exists \"$dep\"; then\n            local ver\n            ver=$(\"$dep\" --version 2>&1 | head -1) || ver=\"unknown\"\n            printf \"  %-10s %s\\n\" \"$dep:\" \"installed ($ver)\"\n        else\n            printf \"  %-10s %s\\n\" \"$dep:\" \"NOT FOUND\"\n        fi\n    done\n}\n\n# Cleanup command\ncmd_cleanup() {\n    info \"Cleaning up resources...\"\n\n    # Remove temp files\n    find /tmp -name \"sample-*\" -mtime +1 -delete 2>/dev/null || true\n\n    # Clear cache\n    rm -rf \"${HOME}/.cache/sample\" 2>/dev/null || true\n\n    info \"Cleanup complete\"\n}\n\n# ==================================\n# Demonstration of Bash Features\n# ==================================\n\ndemo_features() {\n    # Arrays\n    local -a array=(\"one\" \"two\" \"three\")\n    local -A assoc_array=([\"key1\"]=\"value1\" [\"key2\"]=\"value2\")\n\n    # Array operations\n    echo \"Array length: ${#array[@]}\"\n    echo \"Array elements: ${array[*]}\"\n    echo \"Assoc value: ${assoc_array[key1]}\"\n\n    # Arithmetic\n    local x=5 y=3\n    local sum=$((x + y))\n    local product=$((x * y))\n    echo \"Sum: ${sum}, Product: ${product}\"\n\n    # String operations\n    local str=\"Hello, World!\"\n    echo \"Length: ${#str}\"\n    echo \"Substring: ${str:0:5}\"\n    echo \"Replace: ${str/World/Bash}\"\n    echo \"Uppercase: ${str^^}\"\n    echo \"Lowercase: ${str,,}\"\n\n    # Conditionals\n    if [[ \"$str\" == *\"World\"* ]]; then\n        echo \"Contains 'World'\"\n    fi\n\n    # Case statement\n    local status=\"active\"\n    case \"$status\" in\n        active)\n            echo \"Status is active\"\n            ;;\n        inactive|disabled)\n            echo \"Status is not active\"\n            ;;\n        *)\n            echo \"Unknown status\"\n            ;;\n    esac\n\n    # Loops\n    for item in \"${array[@]}\"; do\n        echo \"Item: $item\"\n    done\n\n    for i in {1..5}; do\n        echo \"Number: $i\"\n    done\n\n    local counter=0\n    while ((counter < 3)); do\n        echo \"Counter: $counter\"\n        ((counter++))\n    done\n\n    # Process substitution\n    diff <(echo \"a\") <(echo \"b\") || true\n\n    # Command substitution\n    local files\n    files=$(ls -la)\n\n    # Here document\n    cat <<EOF\nThis is a here document.\nVariable expansion: ${VERSION}\nEOF\n\n    # Here string\n    grep \"pattern\" <<< \"pattern matching\"\n}\n\n# ==================================\n# Main Entry Point\n# ==================================\n\nmain() {\n    local config_file=\"$CONFIG_FILE\"\n    local dry_run=false\n\n    # Parse global options\n    while [[ $# -gt 0 ]]; do\n        case \"$1\" in\n            -h|--help)\n                usage\n                exit 0\n                ;;\n            -v|--version)\n                version\n                exit 0\n                ;;\n            -d|--debug)\n                DEBUG=true\n                shift\n                ;;\n            -V|--verbose)\n                VERBOSE=true\n                shift\n                ;;\n            -c|--config)\n                config_file=\"$2\"\n                shift 2\n                ;;\n            -n|--dry-run)\n                dry_run=true\n                shift\n                ;;\n            -*)\n                die \"Unknown option: $1\"\n                ;;\n            *)\n                break\n                ;;\n        esac\n    done\n\n    # Load configuration\n    load_config \"$config_file\"\n\n    # Get command\n    local command=\"${1:-}\"\n    shift || true\n\n    # Execute command\n    case \"$command\" in\n        init)\n            cmd_init \"$@\"\n            ;;\n        run)\n            cmd_run \"$@\"\n            ;;\n        status)\n            cmd_status \"$@\"\n            ;;\n        cleanup)\n            cmd_cleanup \"$@\"\n            ;;\n        demo)\n            demo_features \"$@\"\n            ;;\n        \"\")\n            usage\n            exit 1\n            ;;\n        *)\n            die \"Unknown command: ${command}\"\n            ;;\n    esac\n}\n\n# Run main if not sourced\nif [[ \"${BASH_SOURCE[0]}\" == \"${0}\" ]]; then\n    main \"$@\"\nfi\n",
+    "children": [
+      {
+        "id": "callable:sample_repo/shell/sample.sh:log",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "log",
+        "qualified_name": "log",
+        "signature": "log() {",
+        "doc": null,
+        "location": {
+          "start_line": 32,
+          "end_line": 39,
+          "start_byte": 685,
+          "end_byte": 863
+        },
+        "content": "log() {\n    local level=\"$1\"\n    shift\n    local message=\"$*\"\n    local timestamp\n    timestamp=$(date '+%Y-%m-%d %H:%M:%S')\n    echo \"[${timestamp}] [${level}] ${message}\" >&2\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:info",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "info",
+        "qualified_name": "info",
+        "signature": "info() {",
+        "doc": null,
+        "location": {
+          "start_line": 41,
+          "end_line": 41,
+          "start_byte": 865,
+          "end_byte": 892
+        },
+        "content": "info() { log \"INFO\" \"$@\"; }",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:warn",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "warn",
+        "qualified_name": "warn",
+        "signature": "warn() {",
+        "doc": null,
+        "location": {
+          "start_line": 42,
+          "end_line": 42,
+          "start_byte": 893,
+          "end_byte": 920
+        },
+        "content": "warn() { log \"WARN\" \"$@\"; }",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:error",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "error",
+        "qualified_name": "error",
+        "signature": "error() {",
+        "doc": null,
+        "location": {
+          "start_line": 43,
+          "end_line": 43,
+          "start_byte": 921,
+          "end_byte": 950
+        },
+        "content": "error() { log \"ERROR\" \"$@\"; }",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:debug",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "debug",
+        "qualified_name": "debug",
+        "signature": "debug() {",
+        "doc": null,
+        "location": {
+          "start_line": 44,
+          "end_line": 44,
+          "start_byte": 951,
+          "end_byte": 1016
+        },
+        "content": "debug() { [[ \"$DEBUG\" == \"true\" ]] && log \"DEBUG\" \"$@\" || true; }",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:die",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "die",
+        "qualified_name": "die",
+        "signature": "die() {",
+        "doc": null,
+        "location": {
+          "start_line": 47,
+          "end_line": 50,
+          "start_byte": 1035,
+          "end_byte": 1070
+        },
+        "content": "die() {\n    error \"$@\"\n    exit 1\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:cleanup",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "cleanup",
+        "qualified_name": "cleanup",
+        "signature": "cleanup() {",
+        "doc": null,
+        "location": {
+          "start_line": 53,
+          "end_line": 59,
+          "start_byte": 1106,
+          "end_byte": 1279
+        },
+        "content": "cleanup() {\n    local exit_code=$?\n    info \"Cleaning up...\"\n    # Remove temporary files\n    rm -rf \"${TMP_DIR:-/tmp/sample-$$}\" 2>/dev/null || true\n    exit \"$exit_code\"\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:usage",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "usage",
+        "qualified_name": "usage",
+        "signature": "usage() {",
+        "doc": null,
+        "location": {
+          "start_line": 66,
+          "end_line": 92,
+          "start_byte": 1366,
+          "end_byte": 2028
+        },
+        "content": "usage() {\n    cat <<EOF\nUsage: $(basename \"$0\") [OPTIONS] COMMAND [ARGS...]\n\nSample script demonstrating various Bash constructs.\n\nCommands:\n    init        Initialize the environment\n    run         Run the main process\n    status      Check status\n    cleanup     Clean up resources\n\nOptions:\n    -h, --help      Show this help message\n    -v, --version   Show version\n    -d, --debug     Enable debug mode\n    -V, --verbose   Enable verbose output\n    -c, --config    Path to config file\n    -n, --dry-run   Dry run mode\n\nExamples:\n    $(basename \"$0\") init\n    $(basename \"$0\") -d run --input file.txt\n    $(basename \"$0\") --config /path/to/config run\n\nEOF\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:version",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "version",
+        "qualified_name": "version",
+        "signature": "version() {",
+        "doc": null,
+        "location": {
+          "start_line": 95,
+          "end_line": 97,
+          "start_byte": 2049,
+          "end_byte": 2102
+        },
+        "content": "version() {\n    echo \"sample.sh version ${VERSION}\"\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:command_exists",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "command_exists",
+        "qualified_name": "command_exists",
+        "signature": "command_exists() {",
+        "doc": null,
+        "location": {
+          "start_line": 104,
+          "end_line": 106,
+          "start_byte": 2224,
+          "end_byte": 2276
+        },
+        "content": "command_exists() {\n    command -v \"$1\" &>/dev/null\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:require_command",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "require_command",
+        "qualified_name": "require_command",
+        "signature": "require_command() {",
+        "doc": null,
+        "location": {
+          "start_line": 109,
+          "end_line": 112,
+          "start_byte": 2298,
+          "end_byte": 2408
+        },
+        "content": "require_command() {\n    local cmd=\"$1\"\n    command_exists \"$cmd\" || die \"Required command not found: ${cmd}\"\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:is_root",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "is_root",
+        "qualified_name": "is_root",
+        "signature": "is_root() {",
+        "doc": null,
+        "location": {
+          "start_line": 115,
+          "end_line": 117,
+          "start_byte": 2437,
+          "end_byte": 2472
+        },
+        "content": "is_root() {\n    [[ $EUID -eq 0 ]]\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:retry",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "retry",
+        "qualified_name": "retry",
+        "signature": "retry() {",
+        "doc": null,
+        "location": {
+          "start_line": 120,
+          "end_line": 138,
+          "start_byte": 2492,
+          "end_byte": 2908
+        },
+        "content": "retry() {\n    local max_attempts=\"$1\"\n    local delay=\"$2\"\n    shift 2\n    local cmd=(\"$@\")\n    local attempt=1\n\n    while ((attempt <= max_attempts)); do\n        if \"${cmd[@]}\"; then\n            return 0\n        fi\n        warn \"Attempt ${attempt}/${max_attempts} failed, retrying in ${delay}s...\"\n        sleep \"$delay\"\n        ((attempt++))\n    done\n\n    error \"All ${max_attempts} attempts failed\"\n    return 1\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:load_config",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "load_config",
+        "qualified_name": "load_config",
+        "signature": "load_config() {",
+        "doc": null,
+        "location": {
+          "start_line": 141,
+          "end_line": 151,
+          "start_byte": 2929,
+          "end_byte": 3214
+        },
+        "content": "load_config() {\n    local config_file=\"${1:-$CONFIG_FILE}\"\n\n    if [[ -f \"$config_file\" ]]; then\n        info \"Loading config from ${config_file}\"\n        # shellcheck source=/dev/null\n        source \"$config_file\"\n    else\n        warn \"Config file not found: ${config_file}\"\n    fi\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:validate_input",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "validate_input",
+        "qualified_name": "validate_input",
+        "signature": "validate_input() {",
+        "doc": null,
+        "location": {
+          "start_line": 154,
+          "end_line": 160,
+          "start_byte": 3233,
+          "end_byte": 3455
+        },
+        "content": "validate_input() {\n    local input=\"$1\"\n\n    [[ -z \"$input\" ]] && die \"Input cannot be empty\"\n    [[ -f \"$input\" ]] || die \"Input file not found: ${input}\"\n    [[ -r \"$input\" ]] || die \"Input file not readable: ${input}\"\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:cmd_init",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "cmd_init",
+        "qualified_name": "cmd_init",
+        "signature": "cmd_init() {",
+        "doc": null,
+        "location": {
+          "start_line": 167,
+          "end_line": 185,
+          "start_byte": 3573,
+          "end_byte": 4020
+        },
+        "content": "cmd_init() {\n    info \"Initializing...\"\n\n    # Create directories\n    mkdir -p \"${HOME}/.config/sample\"\n    mkdir -p \"${HOME}/.local/share/sample\"\n\n    # Create default config if not exists\n    if [[ ! -f \"$CONFIG_FILE\" ]]; then\n        cat > \"$CONFIG_FILE\" <<'CONF'\n# Sample configuration file\nSAMPLE_VAR=\"default_value\"\nSAMPLE_ENABLED=true\nCONF\n        info \"Created default config at ${CONFIG_FILE}\"\n    fi\n\n    info \"Initialization complete\"\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:cmd_run",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "cmd_run",
+        "qualified_name": "cmd_run",
+        "signature": "cmd_run() {",
+        "doc": null,
+        "location": {
+          "start_line": 188,
+          "end_line": 241,
+          "start_byte": 4036,
+          "end_byte": 5321
+        },
+        "content": "cmd_run() {\n    local input=\"\"\n    local output=\"\"\n\n    # Parse subcommand arguments\n    while [[ $# -gt 0 ]]; do\n        case \"$1\" in\n            -i|--input)\n                input=\"$2\"\n                shift 2\n                ;;\n            -o|--output)\n                output=\"$2\"\n                shift 2\n                ;;\n            *)\n                die \"Unknown option: $1\"\n                ;;\n        esac\n    done\n\n    # Validate\n    [[ -n \"$input\" ]] || die \"Input file required\"\n    validate_input \"$input\"\n\n    # Process\n    info \"Processing ${input}...\"\n\n    # Create temp directory\n    TMP_DIR=$(mktemp -d)\n\n    # Example: process file line by line\n    local line_count=0\n    while IFS= read -r line; do\n        ((line_count++))\n        debug \"Processing line ${line_count}: ${line:0:50}...\"\n\n        # Example processing with parameter expansion\n        local processed=\"${line^^}\"  # Uppercase\n        processed=\"${processed// /_}\"  # Replace spaces\n\n        echo \"$processed\" >> \"${TMP_DIR}/processed.txt\"\n    done < \"$input\"\n\n    # Output results\n    if [[ -n \"$output\" ]]; then\n        mv \"${TMP_DIR}/processed.txt\" \"$output\"\n        info \"Output written to ${output}\"\n    else\n        cat \"${TMP_DIR}/processed.txt\"\n    fi\n\n    info \"Processed ${line_count} lines\"\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:cmd_status",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "cmd_status",
+        "qualified_name": "cmd_status",
+        "signature": "cmd_status() {",
+        "doc": null,
+        "location": {
+          "start_line": 244,
+          "end_line": 268,
+          "start_byte": 5340,
+          "end_byte": 6058
+        },
+        "content": "cmd_status() {\n    echo \"=== System Status ===\"\n    echo \"User: $(whoami)\"\n    echo \"Host: $(hostname)\"\n    echo \"Date: $(date)\"\n    echo \"Uptime: $(uptime -p 2>/dev/null || uptime)\"\n    echo \"\"\n    echo \"=== Script Status ===\"\n    echo \"Version: ${VERSION}\"\n    echo \"Config: ${CONFIG_FILE}\"\n    echo \"Debug: ${DEBUG}\"\n    echo \"\"\n    echo \"=== Dependencies ===\"\n\n    local deps=(bash grep sed awk curl jq)\n    for dep in \"${deps[@]}\"; do\n        if command_exists \"$dep\"; then\n            local ver\n            ver=$(\"$dep\" --version 2>&1 | head -1) || ver=\"unknown\"\n            printf \"  %-10s %s\\n\" \"$dep:\" \"installed ($ver)\"\n        else\n            printf \"  %-10s %s\\n\" \"$dep:\" \"NOT FOUND\"\n        fi\n    done\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:cmd_cleanup",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "cmd_cleanup",
+        "qualified_name": "cmd_cleanup",
+        "signature": "cmd_cleanup() {",
+        "doc": null,
+        "location": {
+          "start_line": 271,
+          "end_line": 281,
+          "start_byte": 6078,
+          "end_byte": 6328
+        },
+        "content": "cmd_cleanup() {\n    info \"Cleaning up resources...\"\n\n    # Remove temp files\n    find /tmp -name \"sample-*\" -mtime +1 -delete 2>/dev/null || true\n\n    # Clear cache\n    rm -rf \"${HOME}/.cache/sample\" 2>/dev/null || true\n\n    info \"Cleanup complete\"\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:demo_features",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "demo_features",
+        "qualified_name": "demo_features",
+        "signature": "demo_features() {",
+        "doc": null,
+        "location": {
+          "start_line": 287,
+          "end_line": 360,
+          "start_byte": 6438,
+          "end_byte": 8002
+        },
+        "content": "demo_features() {\n    # Arrays\n    local -a array=(\"one\" \"two\" \"three\")\n    local -A assoc_array=([\"key1\"]=\"value1\" [\"key2\"]=\"value2\")\n\n    # Array operations\n    echo \"Array length: ${#array[@]}\"\n    echo \"Array elements: ${array[*]}\"\n    echo \"Assoc value: ${assoc_array[key1]}\"\n\n    # Arithmetic\n    local x=5 y=3\n    local sum=$((x + y))\n    local product=$((x * y))\n    echo \"Sum: ${sum}, Product: ${product}\"\n\n    # String operations\n    local str=\"Hello, World!\"\n    echo \"Length: ${#str}\"\n    echo \"Substring: ${str:0:5}\"\n    echo \"Replace: ${str/World/Bash}\"\n    echo \"Uppercase: ${str^^}\"\n    echo \"Lowercase: ${str,,}\"\n\n    # Conditionals\n    if [[ \"$str\" == *\"World\"* ]]; then\n        echo \"Contains 'World'\"\n    fi\n\n    # Case statement\n    local status=\"active\"\n    case \"$status\" in\n        active)\n            echo \"Status is active\"\n            ;;\n        inactive|disabled)\n            echo \"Status is not active\"\n            ;;\n        *)\n            echo \"Unknown status\"\n            ;;\n    esac\n\n    # Loops\n    for item in \"${array[@]}\"; do\n        echo \"Item: $item\"\n    done\n\n    for i in {1..5}; do\n        echo \"Number: $i\"\n    done\n\n    local counter=0\n    while ((counter < 3)); do\n        echo \"Counter: $counter\"\n        ((counter++))\n    done\n\n    # Process substitution\n    diff <(echo \"a\") <(echo \"b\") || true\n\n    # Command substitution\n    local files\n    files=$(ls -la)\n\n    # Here document\n    cat <<EOF\nThis is a here document.\nVariable expansion: ${VERSION}\nEOF\n\n    # Here string\n    grep \"pattern\" <<< \"pattern matching\"\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/shell/sample.sh:main",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "main",
+        "qualified_name": "main",
+        "signature": "main() {",
+        "doc": null,
+        "location": {
+          "start_line": 366,
+          "end_line": 438,
+          "start_byte": 8098,
+          "end_byte": 9565
+        },
+        "content": "main() {\n    local config_file=\"$CONFIG_FILE\"\n    local dry_run=false\n\n    # Parse global options\n    while [[ $# -gt 0 ]]; do\n        case \"$1\" in\n            -h|--help)\n                usage\n                exit 0\n                ;;\n            -v|--version)\n                version\n                exit 0\n                ;;\n            -d|--debug)\n                DEBUG=true\n                shift\n                ;;\n            -V|--verbose)\n                VERBOSE=true\n                shift\n                ;;\n            -c|--config)\n                config_file=\"$2\"\n                shift 2\n                ;;\n            -n|--dry-run)\n                dry_run=true\n                shift\n                ;;\n            -*)\n                die \"Unknown option: $1\"\n                ;;\n            *)\n                break\n                ;;\n        esac\n    done\n\n    # Load configuration\n    load_config \"$config_file\"\n\n    # Get command\n    local command=\"${1:-}\"\n    shift || true\n\n    # Execute command\n    case \"$command\" in\n        init)\n            cmd_init \"$@\"\n            ;;\n        run)\n            cmd_run \"$@\"\n            ;;\n        status)\n            cmd_status \"$@\"\n            ;;\n        cleanup)\n            cmd_cleanup \"$@\"\n            ;;\n        demo)\n            demo_features \"$@\"\n            ;;\n        \"\")\n            usage\n            exit 1\n            ;;\n        *)\n            die \"Unknown command: ${command}\"\n            ;;\n    esac\n}",
+        "children": []
+      }
+    ]
+  }
+}

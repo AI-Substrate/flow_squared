@@ -14,8 +14,24 @@ RUN apt-get update && apt-get upgrade -y \
         ca-certificates \
         locales \
         sudo \
+        openssh-server \
+        openssh-client \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Configure SSH server for remote access
+RUN mkdir -p /var/run/sshd && \
+    sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
+    echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+
+# Create SSH auto-start script
+RUN echo '#!/bin/bash\nif [ ! -f /var/run/sshd.pid ]; then\n    sudo service ssh start\nfi' > /usr/local/share/ssh-init.sh && \
+    chmod +x /usr/local/share/ssh-init.sh
+
+# Allow vscode user to start SSH without password
+RUN echo "vscode ALL=(ALL) NOPASSWD: /usr/sbin/service ssh start" >> /etc/sudoers.d/vscode-ssh && \
+    chmod 0440 /etc/sudoers.d/vscode-ssh
 
 # Install Node.js 20.x (LTS) from NodeSource
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \

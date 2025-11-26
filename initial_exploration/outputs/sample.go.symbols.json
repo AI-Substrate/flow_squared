@@ -1,0 +1,366 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/go/sample.go",
+    "language": "go",
+    "format_family": "code_systems"
+  },
+  "root": {
+    "id": "file:sample_repo/go/sample.go",
+    "category": "file",
+    "kind": "source_file",
+    "name": "sample.go",
+    "qualified_name": "sample.go",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 171,
+      "start_byte": 0,
+      "end_byte": 2982
+    },
+    "content": "// Package sample demonstrates Go constructs for tree-sitter exploration.\npackage sample\n\nimport (\n\t\"context\"\n\t\"errors\"\n\t\"fmt\"\n\t\"sync\"\n)\n\n// Constants\nconst (\n\tMaxSize    = 100\n\tDefaultTTL = 3600\n)\n\n// Type alias\ntype ID = string\n\n// Custom type\ntype Status int\n\nconst (\n\tPending Status = iota\n\tActive\n\tInactive\n)\n\n// Interface definition\ntype Repository interface {\n\tFind(ctx context.Context, id ID) (*User, error)\n\tSave(ctx context.Context, user *User) error\n\tDelete(ctx context.Context, id ID) error\n}\n\n// Struct definition\ntype User struct {\n\tID        ID\n\tName      string\n\tEmail     string\n\tStatus    Status\n\tmetadata  map[string]any // unexported field\n}\n\n// Constructor function\nfunc NewUser(id ID, name string) *User {\n\treturn &User{\n\t\tID:       id,\n\t\tName:     name,\n\t\tStatus:   Pending,\n\t\tmetadata: make(map[string]any),\n\t}\n}\n\n// Method with pointer receiver\nfunc (u *User) SetEmail(email string) {\n\tu.Email = email\n}\n\n// Method with value receiver\nfunc (u User) FullName() string {\n\treturn u.Name\n}\n\n// Struct embedding (composition)\ntype AdminUser struct {\n\tUser\n\tPermissions []string\n}\n\n// Generic struct (Go 1.18+)\ntype Cache[K comparable, V any] struct {\n\tmu    sync.RWMutex\n\titems map[K]V\n}\n\n// Generic method\nfunc (c *Cache[K, V]) Get(key K) (V, bool) {\n\tc.mu.RLock()\n\tdefer c.mu.RUnlock()\n\tval, ok := c.items[key]\n\treturn val, ok\n}\n\nfunc (c *Cache[K, V]) Set(key K, value V) {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\tc.items[key] = value\n}\n\n// Generic function\nfunc Map[T, U any](slice []T, f func(T) U) []U {\n\tresult := make([]U, len(slice))\n\tfor i, v := range slice {\n\t\tresult[i] = f(v)\n\t}\n\treturn result\n}\n\n// Interface implementation check\nvar _ Repository = (*InMemoryRepo)(nil)\n\n// Implementing interface\ntype InMemoryRepo struct {\n\tusers map[ID]*User\n\tmu    sync.RWMutex\n}\n\nfunc (r *InMemoryRepo) Find(ctx context.Context, id ID) (*User, error) {\n\tr.mu.RLock()\n\tdefer r.mu.RUnlock()\n\n\tuser, ok := r.users[id]\n\tif !ok {\n\t\treturn nil, errors.New(\"user not found\")\n\t}\n\treturn user, nil\n}\n\nfunc (r *InMemoryRepo) Save(ctx context.Context, user *User) error {\n\tr.mu.Lock()\n\tdefer r.mu.Unlock()\n\tr.users[user.ID] = user\n\treturn nil\n}\n\nfunc (r *InMemoryRepo) Delete(ctx context.Context, id ID) error {\n\tr.mu.Lock()\n\tdefer r.mu.Unlock()\n\tdelete(r.users, id)\n\treturn nil\n}\n\n// Goroutine and channel example\nfunc ProcessAsync(items []string) <-chan string {\n\tout := make(chan string)\n\tgo func() {\n\t\tdefer close(out)\n\t\tfor _, item := range items {\n\t\t\tout <- fmt.Sprintf(\"processed: %s\", item)\n\t\t}\n\t}()\n\treturn out\n}\n\n// Select statement\nfunc ProcessWithTimeout(ctx context.Context, ch <-chan string) (string, error) {\n\tselect {\n\tcase val := <-ch:\n\t\treturn val, nil\n\tcase <-ctx.Done():\n\t\treturn \"\", ctx.Err()\n\t}\n}\n\n// Defer, panic, recover\nfunc SafeExecute(f func()) (err error) {\n\tdefer func() {\n\t\tif r := recover(); r != nil {\n\t\t\terr = fmt.Errorf(\"panic recovered: %v\", r)\n\t\t}\n\t}()\n\tf()\n\treturn nil\n}\n\n// Init function\nfunc init() {\n\tfmt.Println(\"Package initialized\")\n}\n",
+    "children": [
+      {
+        "id": "type:sample_repo/go/sample.go:ID",
+        "category": "type",
+        "kind": "type_declaration",
+        "name": "ID",
+        "qualified_name": "ID",
+        "signature": "type ID = string",
+        "doc": null,
+        "location": {
+          "start_line": 18,
+          "end_line": 18,
+          "start_byte": 213,
+          "end_byte": 229
+        },
+        "content": "type ID = string",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/go/sample.go:Status",
+        "category": "type",
+        "kind": "type_declaration",
+        "name": "Status",
+        "qualified_name": "Status",
+        "signature": "type Status int",
+        "doc": null,
+        "location": {
+          "start_line": 21,
+          "end_line": 21,
+          "start_byte": 246,
+          "end_byte": 261
+        },
+        "content": "type Status int",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/go/sample.go:Repository",
+        "category": "type",
+        "kind": "type_declaration",
+        "name": "Repository",
+        "qualified_name": "Repository",
+        "signature": "type Repository interface {",
+        "doc": null,
+        "location": {
+          "start_line": 30,
+          "end_line": 34,
+          "start_byte": 339,
+          "end_byte": 504
+        },
+        "content": "type Repository interface {\n\tFind(ctx context.Context, id ID) (*User, error)\n\tSave(ctx context.Context, user *User) error\n\tDelete(ctx context.Context, id ID) error\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/go/sample.go:User",
+        "category": "type",
+        "kind": "type_declaration",
+        "name": "User",
+        "qualified_name": "User",
+        "signature": "type User struct {",
+        "doc": null,
+        "location": {
+          "start_line": 37,
+          "end_line": 43,
+          "start_byte": 527,
+          "end_byte": 661
+        },
+        "content": "type User struct {\n\tID        ID\n\tName      string\n\tEmail     string\n\tStatus    Status\n\tmetadata  map[string]any // unexported field\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:NewUser",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "NewUser",
+        "qualified_name": "NewUser",
+        "signature": "func NewUser(id ID, name string) *User {",
+        "doc": null,
+        "location": {
+          "start_line": 46,
+          "end_line": 53,
+          "start_byte": 687,
+          "end_byte": 836
+        },
+        "content": "func NewUser(id ID, name string) *User {\n\treturn &User{\n\t\tID:       id,\n\t\tName:     name,\n\t\tStatus:   Pending,\n\t\tmetadata: make(map[string]any),\n\t}\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:SetEmail",
+        "category": "callable",
+        "kind": "method_declaration",
+        "name": "SetEmail",
+        "qualified_name": "SetEmail",
+        "signature": "func (u *User) SetEmail(email string) {",
+        "doc": null,
+        "location": {
+          "start_line": 56,
+          "end_line": 58,
+          "start_byte": 870,
+          "end_byte": 928
+        },
+        "content": "func (u *User) SetEmail(email string) {\n\tu.Email = email\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:FullName",
+        "category": "callable",
+        "kind": "method_declaration",
+        "name": "FullName",
+        "qualified_name": "FullName",
+        "signature": "func (u User) FullName() string {",
+        "doc": null,
+        "location": {
+          "start_line": 61,
+          "end_line": 63,
+          "start_byte": 960,
+          "end_byte": 1010
+        },
+        "content": "func (u User) FullName() string {\n\treturn u.Name\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/go/sample.go:AdminUser",
+        "category": "type",
+        "kind": "type_declaration",
+        "name": "AdminUser",
+        "qualified_name": "AdminUser",
+        "signature": "type AdminUser struct {",
+        "doc": null,
+        "location": {
+          "start_line": 66,
+          "end_line": 69,
+          "start_byte": 1046,
+          "end_byte": 1099
+        },
+        "content": "type AdminUser struct {\n\tUser\n\tPermissions []string\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/go/sample.go:Cache",
+        "category": "type",
+        "kind": "type_declaration",
+        "name": "Cache",
+        "qualified_name": "Cache",
+        "signature": "type Cache[K comparable, V any] struct {",
+        "doc": null,
+        "location": {
+          "start_line": 72,
+          "end_line": 75,
+          "start_byte": 1130,
+          "end_byte": 1207
+        },
+        "content": "type Cache[K comparable, V any] struct {\n\tmu    sync.RWMutex\n\titems map[K]V\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:Get",
+        "category": "callable",
+        "kind": "method_declaration",
+        "name": "Get",
+        "qualified_name": "Get",
+        "signature": "func (c *Cache[K, V]) Get(key K) (V, bool) {",
+        "doc": null,
+        "location": {
+          "start_line": 78,
+          "end_line": 83,
+          "start_byte": 1227,
+          "end_byte": 1350
+        },
+        "content": "func (c *Cache[K, V]) Get(key K) (V, bool) {\n\tc.mu.RLock()\n\tdefer c.mu.RUnlock()\n\tval, ok := c.items[key]\n\treturn val, ok\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:Set",
+        "category": "callable",
+        "kind": "method_declaration",
+        "name": "Set",
+        "qualified_name": "Set",
+        "signature": "func (c *Cache[K, V]) Set(key K, value V) {",
+        "doc": null,
+        "location": {
+          "start_line": 85,
+          "end_line": 89,
+          "start_byte": 1352,
+          "end_byte": 1453
+        },
+        "content": "func (c *Cache[K, V]) Set(key K, value V) {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\tc.items[key] = value\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:Map",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "Map",
+        "qualified_name": "Map",
+        "signature": "func Map[T, U any](slice []T, f func(T) U) []U {",
+        "doc": null,
+        "location": {
+          "start_line": 92,
+          "end_line": 98,
+          "start_byte": 1475,
+          "end_byte": 1622
+        },
+        "content": "func Map[T, U any](slice []T, f func(T) U) []U {\n\tresult := make([]U, len(slice))\n\tfor i, v := range slice {\n\t\tresult[i] = f(v)\n\t}\n\treturn result\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/go/sample.go:InMemoryRepo",
+        "category": "type",
+        "kind": "type_declaration",
+        "name": "InMemoryRepo",
+        "qualified_name": "InMemoryRepo",
+        "signature": "type InMemoryRepo struct {",
+        "doc": null,
+        "location": {
+          "start_line": 104,
+          "end_line": 107,
+          "start_byte": 1725,
+          "end_byte": 1793
+        },
+        "content": "type InMemoryRepo struct {\n\tusers map[ID]*User\n\tmu    sync.RWMutex\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:Find",
+        "category": "callable",
+        "kind": "method_declaration",
+        "name": "Find",
+        "qualified_name": "Find",
+        "signature": "func (r *InMemoryRepo) Find(ctx context.Context, id ID) (*User, error) {",
+        "doc": null,
+        "location": {
+          "start_line": 109,
+          "end_line": 118,
+          "start_byte": 1795,
+          "end_byte": 2005
+        },
+        "content": "func (r *InMemoryRepo) Find(ctx context.Context, id ID) (*User, error) {\n\tr.mu.RLock()\n\tdefer r.mu.RUnlock()\n\n\tuser, ok := r.users[id]\n\tif !ok {\n\t\treturn nil, errors.New(\"user not found\")\n\t}\n\treturn user, nil\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:Save",
+        "category": "callable",
+        "kind": "method_declaration",
+        "name": "Save",
+        "qualified_name": "Save",
+        "signature": "func (r *InMemoryRepo) Save(ctx context.Context, user *User) error {",
+        "doc": null,
+        "location": {
+          "start_line": 120,
+          "end_line": 125,
+          "start_byte": 2007,
+          "end_byte": 2148
+        },
+        "content": "func (r *InMemoryRepo) Save(ctx context.Context, user *User) error {\n\tr.mu.Lock()\n\tdefer r.mu.Unlock()\n\tr.users[user.ID] = user\n\treturn nil\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:Delete",
+        "category": "callable",
+        "kind": "method_declaration",
+        "name": "Delete",
+        "qualified_name": "Delete",
+        "signature": "func (r *InMemoryRepo) Delete(ctx context.Context, id ID) error {",
+        "doc": null,
+        "location": {
+          "start_line": 127,
+          "end_line": 132,
+          "start_byte": 2150,
+          "end_byte": 2284
+        },
+        "content": "func (r *InMemoryRepo) Delete(ctx context.Context, id ID) error {\n\tr.mu.Lock()\n\tdefer r.mu.Unlock()\n\tdelete(r.users, id)\n\treturn nil\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:ProcessAsync",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "ProcessAsync",
+        "qualified_name": "ProcessAsync",
+        "signature": "func ProcessAsync(items []string) <-chan string {",
+        "doc": null,
+        "location": {
+          "start_line": 135,
+          "end_line": 144,
+          "start_byte": 2319,
+          "end_byte": 2525
+        },
+        "content": "func ProcessAsync(items []string) <-chan string {\n\tout := make(chan string)\n\tgo func() {\n\t\tdefer close(out)\n\t\tfor _, item := range items {\n\t\t\tout <- fmt.Sprintf(\"processed: %s\", item)\n\t\t}\n\t}()\n\treturn out\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:ProcessWithTimeout",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "ProcessWithTimeout",
+        "qualified_name": "ProcessWithTimeout",
+        "signature": "func ProcessWithTimeout(ctx context.Context, ch <-chan string) (string, error) {",
+        "doc": null,
+        "location": {
+          "start_line": 147,
+          "end_line": 154,
+          "start_byte": 2547,
+          "end_byte": 2722
+        },
+        "content": "func ProcessWithTimeout(ctx context.Context, ch <-chan string) (string, error) {\n\tselect {\n\tcase val := <-ch:\n\t\treturn val, nil\n\tcase <-ctx.Done():\n\t\treturn \"\", ctx.Err()\n\t}\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:SafeExecute",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "SafeExecute",
+        "qualified_name": "SafeExecute",
+        "signature": "func SafeExecute(f func()) (err error) {",
+        "doc": null,
+        "location": {
+          "start_line": 157,
+          "end_line": 165,
+          "start_byte": 2749,
+          "end_byte": 2911
+        },
+        "content": "func SafeExecute(f func()) (err error) {\n\tdefer func() {\n\t\tif r := recover(); r != nil {\n\t\t\terr = fmt.Errorf(\"panic recovered: %v\", r)\n\t\t}\n\t}()\n\tf()\n\treturn nil\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:init",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "init",
+        "qualified_name": "init",
+        "signature": "func init() {",
+        "doc": null,
+        "location": {
+          "start_line": 168,
+          "end_line": 170,
+          "start_byte": 2930,
+          "end_byte": 2981
+        },
+        "content": "func init() {\n\tfmt.Println(\"Package initialized\")\n}",
+        "children": []
+      }
+    ]
+  }
+}

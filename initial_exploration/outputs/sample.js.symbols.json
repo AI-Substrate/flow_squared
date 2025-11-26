@@ -1,0 +1,266 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/javascript/sample.js",
+    "language": "javascript",
+    "format_family": "code_oop"
+  },
+  "root": {
+    "id": "file:sample_repo/javascript/sample.js",
+    "category": "file",
+    "kind": "program",
+    "name": "sample.js",
+    "qualified_name": "sample.js",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 107,
+      "start_byte": 0,
+      "end_byte": 2122
+    },
+    "content": "/**\n * Sample JavaScript file for tree-sitter exploration.\n * Includes ES6+ features.\n */\n\n// Module imports\nimport { something } from './module.js';\nexport const CONSTANT = 42;\n\n// Traditional function\nfunction traditionalFunction(a, b) {\n    return a + b;\n}\n\n// Arrow functions\nconst arrowFunction = (x) => x * 2;\nconst arrowWithBlock = (x, y) => {\n    const sum = x + y;\n    return sum;\n};\n\n// Class definition\nclass Calculator {\n    #privateField = 0;\n    static staticField = 'static';\n\n    constructor(name) {\n        this.name = name;\n        this.value = 0;\n    }\n\n    add(a, b) {\n        return a + b;\n    }\n\n    static multiply(a, b) {\n        return a * b;\n    }\n\n    get currentValue() {\n        return this.value;\n    }\n\n    set currentValue(val) {\n        this.value = val;\n    }\n\n    async fetchData(url) {\n        const response = await fetch(url);\n        return response.json();\n    }\n\n    *generator() {\n        yield 1;\n        yield 2;\n    }\n}\n\n// Inheritance\nclass AdvancedCalculator extends Calculator {\n    constructor(name, precision) {\n        super(name);\n        this.precision = precision;\n    }\n\n    add(a, b) {\n        return super.add(a, b).toFixed(this.precision);\n    }\n}\n\n// Destructuring\nconst { x, y, ...rest } = { x: 1, y: 2, z: 3, w: 4 };\nconst [first, second, ...others] = [1, 2, 3, 4, 5];\n\n// Template literals\nconst template = `Hello ${name}, value is ${value}`;\n\n// Spread and rest\nconst merged = { ...obj1, ...obj2 };\nfunction withRest(...args) {\n    return args.reduce((a, b) => a + b, 0);\n}\n\n// Promises and async/await\nconst promise = new Promise((resolve, reject) => {\n    setTimeout(() => resolve('done'), 1000);\n});\n\nasync function asyncFunction() {\n    try {\n        const result = await promise;\n        return result;\n    } catch (error) {\n        console.error(error);\n    }\n}\n\n// Higher-order functions\nconst numbers = [1, 2, 3, 4, 5];\nconst doubled = numbers.map(n => n * 2);\nconst sum = numbers.reduce((acc, n) => acc + n, 0);\nconst evens = numbers.filter(n => n % 2 === 0);\n\n// Export\nexport { Calculator, traditionalFunction };\nexport default AdvancedCalculator;\n",
+    "children": [
+      {
+        "id": "callable:sample_repo/javascript/sample.js:traditionalFunction",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "traditionalFunction",
+        "qualified_name": "traditionalFunction",
+        "signature": "function traditionalFunction(a, b) {",
+        "doc": null,
+        "location": {
+          "start_line": 11,
+          "end_line": 13,
+          "start_byte": 203,
+          "end_byte": 259
+        },
+        "content": "function traditionalFunction(a, b) {\n    return a + b;\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/javascript/sample.js:Calculator",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "Calculator",
+        "qualified_name": "Calculator",
+        "signature": "class Calculator {",
+        "doc": null,
+        "location": {
+          "start_line": 23,
+          "end_line": 57,
+          "start_byte": 414,
+          "end_byte": 964
+        },
+        "content": "class Calculator {\n    #privateField = 0;\n    static staticField = 'static';\n\n    constructor(name) {\n        this.name = name;\n        this.value = 0;\n    }\n\n    add(a, b) {\n        return a + b;\n    }\n\n    static multiply(a, b) {\n        return a * b;\n    }\n\n    get currentValue() {\n        return this.value;\n    }\n\n    set currentValue(val) {\n        this.value = val;\n    }\n\n    async fetchData(url) {\n        const response = await fetch(url);\n        return response.json();\n    }\n\n    *generator() {\n        yield 1;\n        yield 2;\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/javascript/sample.js:Calculator.constructor",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "constructor",
+            "qualified_name": "Calculator.constructor",
+            "signature": "constructor(name) {",
+            "doc": null,
+            "location": {
+              "start_line": 27,
+              "end_line": 30,
+              "start_byte": 496,
+              "end_byte": 571
+            },
+            "content": "constructor(name) {\n        this.name = name;\n        this.value = 0;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/javascript/sample.js:Calculator.add",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "add",
+            "qualified_name": "Calculator.add",
+            "signature": "add(a, b) {",
+            "doc": null,
+            "location": {
+              "start_line": 32,
+              "end_line": 34,
+              "start_byte": 577,
+              "end_byte": 616
+            },
+            "content": "add(a, b) {\n        return a + b;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/javascript/sample.js:Calculator.multiply",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "multiply",
+            "qualified_name": "Calculator.multiply",
+            "signature": "static multiply(a, b) {",
+            "doc": null,
+            "location": {
+              "start_line": 36,
+              "end_line": 38,
+              "start_byte": 622,
+              "end_byte": 673
+            },
+            "content": "static multiply(a, b) {\n        return a * b;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/javascript/sample.js:Calculator.currentValue",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "currentValue",
+            "qualified_name": "Calculator.currentValue",
+            "signature": "get currentValue() {",
+            "doc": null,
+            "location": {
+              "start_line": 40,
+              "end_line": 42,
+              "start_byte": 679,
+              "end_byte": 732
+            },
+            "content": "get currentValue() {\n        return this.value;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/javascript/sample.js:Calculator.currentValue",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "currentValue",
+            "qualified_name": "Calculator.currentValue",
+            "signature": "set currentValue(val) {",
+            "doc": null,
+            "location": {
+              "start_line": 44,
+              "end_line": 46,
+              "start_byte": 738,
+              "end_byte": 793
+            },
+            "content": "set currentValue(val) {\n        this.value = val;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/javascript/sample.js:Calculator.fetchData",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "fetchData",
+            "qualified_name": "Calculator.fetchData",
+            "signature": "async fetchData(url) {",
+            "doc": null,
+            "location": {
+              "start_line": 48,
+              "end_line": 51,
+              "start_byte": 799,
+              "end_byte": 902
+            },
+            "content": "async fetchData(url) {\n        const response = await fetch(url);\n        return response.json();\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/javascript/sample.js:Calculator.generator",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "generator",
+            "qualified_name": "Calculator.generator",
+            "signature": "*generator() {",
+            "doc": null,
+            "location": {
+              "start_line": 53,
+              "end_line": 56,
+              "start_byte": 908,
+              "end_byte": 962
+            },
+            "content": "*generator() {\n        yield 1;\n        yield 2;\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/javascript/sample.js:AdvancedCalculator",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "AdvancedCalculator",
+        "qualified_name": "AdvancedCalculator",
+        "signature": "class AdvancedCalculator extends Calculator {",
+        "doc": null,
+        "location": {
+          "start_line": 60,
+          "end_line": 69,
+          "start_byte": 981,
+          "end_byte": 1205
+        },
+        "content": "class AdvancedCalculator extends Calculator {\n    constructor(name, precision) {\n        super(name);\n        this.precision = precision;\n    }\n\n    add(a, b) {\n        return super.add(a, b).toFixed(this.precision);\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/javascript/sample.js:AdvancedCalculator.constructor",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "constructor",
+            "qualified_name": "AdvancedCalculator.constructor",
+            "signature": "constructor(name, precision) {",
+            "doc": null,
+            "location": {
+              "start_line": 61,
+              "end_line": 64,
+              "start_byte": 1031,
+              "end_byte": 1124
+            },
+            "content": "constructor(name, precision) {\n        super(name);\n        this.precision = precision;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/javascript/sample.js:AdvancedCalculator.add",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "add",
+            "qualified_name": "AdvancedCalculator.add",
+            "signature": "add(a, b) {",
+            "doc": null,
+            "location": {
+              "start_line": 66,
+              "end_line": 68,
+              "start_byte": 1130,
+              "end_byte": 1203
+            },
+            "content": "add(a, b) {\n        return super.add(a, b).toFixed(this.precision);\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/javascript/sample.js:withRest",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "withRest",
+        "qualified_name": "withRest",
+        "signature": "function withRest(...args) {",
+        "doc": null,
+        "location": {
+          "start_line": 80,
+          "end_line": 82,
+          "start_byte": 1462,
+          "end_byte": 1536
+        },
+        "content": "function withRest(...args) {\n    return args.reduce((a, b) => a + b, 0);\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/javascript/sample.js:asyncFunction",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "asyncFunction",
+        "qualified_name": "asyncFunction",
+        "signature": "async function asyncFunction() {",
+        "doc": null,
+        "location": {
+          "start_line": 89,
+          "end_line": 96,
+          "start_byte": 1667,
+          "end_byte": 1830
+        },
+        "content": "async function asyncFunction() {\n    try {\n        const result = await promise;\n        return result;\n    } catch (error) {\n        console.error(error);\n    }\n}",
+        "children": []
+      }
+    ]
+  }
+}

@@ -28,7 +28,17 @@
 	},
 
 	// Run post-install script after the container is created
-	"postCreateCommand": "/usr/local/bin/post-install.sh",
+	"postCreateCommand": "/usr/local/share/ssh-init.sh && /usr/local/bin/post-install.sh",
+	"postStartCommand": "/usr/local/share/ssh-init.sh",
+
+	// Forward SSH port (container 22 -> host 2225)
+	"forwardPorts": [2225],
+	"portsAttributes": {
+		"2225": {
+			"label": "SSH",
+			"onAutoForward": "notify"
+		}
+	},
 	"mounts": [
 		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
 		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/history.jsonl,target=/home/vscode/.claude/history.jsonl,type=bind,consistency=cached",

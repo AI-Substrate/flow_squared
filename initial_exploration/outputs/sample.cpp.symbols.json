@@ -1,0 +1,711 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/cpp/sample.cpp",
+    "language": "cpp",
+    "format_family": "code_systems"
+  },
+  "root": {
+    "id": "file:sample_repo/cpp/sample.cpp",
+    "category": "file",
+    "kind": "translation_unit",
+    "name": "sample.cpp",
+    "qualified_name": "sample.cpp",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 214,
+      "start_byte": 0,
+      "end_byte": 4900
+    },
+    "content": "/**\n * Sample C++ file for tree-sitter exploration.\n * Includes modern C++ constructs.\n */\n\n#include <iostream>\n#include <memory>\n#include <vector>\n#include <string>\n#include <functional>\n#include <optional>\n#include <map>\n\nnamespace sample {\n\n// Forward declaration\nclass User;\n\n// Type alias\nusing ID = std::string;\nusing UserPtr = std::shared_ptr<User>;\n\n// Enum class\nenum class Status {\n    Pending,\n    Active,\n    Inactive\n};\n\n// Template class\ntemplate<typename T>\nclass Repository {\npublic:\n    virtual ~Repository() = default;\n    virtual std::optional<T> find(const ID& id) = 0;\n    virtual void save(const T& item) = 0;\n    virtual bool remove(const ID& id) = 0;\n};\n\n// Class definition\nclass User {\npublic:\n    // Constructors\n    User() = default;\n    User(ID id, std::string name)\n        : id_(std::move(id)), name_(std::move(name)), status_(Status::Pending) {}\n\n    // Copy and move\n    User(const User&) = default;\n    User(User&&) noexcept = default;\n    User& operator=(const User&) = default;\n    User& operator=(User&&) noexcept = default;\n\n    // Destructor\n    virtual ~User() = default;\n\n    // Getters\n    [[nodiscard]] const ID& id() const { return id_; }\n    [[nodiscard]] const std::string& name() const { return name_; }\n    [[nodiscard]] Status status() const { return status_; }\n    [[nodiscard]] const std::optional<std::string>& email() const { return email_; }\n\n    // Setters\n    void set_name(std::string name) { name_ = std::move(name); }\n    void set_status(Status status) { status_ = status; }\n    void set_email(std::string email) { email_ = std::move(email); }\n\n    // Operator overload\n    bool operator==(const User& other) const {\n        return id_ == other.id_;\n    }\n\n    // Friend function\n    friend std::ostream& operator<<(std::ostream& os, const User& user);\n\nprivate:\n    ID id_;\n    std::string name_;\n    Status status_{Status::Pending};\n    std::optional<std::string> email_;\n};\n\n// Friend function definition\nstd::ostream& operator<<(std::ostream& os, const User& user) {\n    os << \"User{id=\" << user.id_ << \", name=\" << user.name_ << \"}\";\n    return os;\n}\n\n// Inheritance\nclass AdminUser : public User {\npublic:\n    AdminUser(ID id, std::string name, std::vector<std::string> permissions)\n        : User(std::move(id), std::move(name))\n        , permissions_(std::move(permissions)) {}\n\n    [[nodiscard]] const std::vector<std::string>& permissions() const {\n        return permissions_;\n    }\n\n    void add_permission(std::string permission) {\n        permissions_.push_back(std::move(permission));\n    }\n\nprivate:\n    std::vector<std::string> permissions_;\n};\n\n// Template specialization\ntemplate<>\nclass Repository<User> {\npublic:\n    std::optional<User> find(const ID& id) {\n        auto it = users_.find(id);\n        if (it != users_.end()) {\n            return it->second;\n        }\n        return std::nullopt;\n    }\n\n    void save(const User& user) {\n        users_[user.id()] = user;\n    }\n\n    bool remove(const ID& id) {\n        return users_.erase(id) > 0;\n    }\n\nprivate:\n    std::map<ID, User> users_;\n};\n\n// Variadic template\ntemplate<typename... Args>\nvoid log(Args&&... args) {\n    (std::cout << ... << args) << std::endl;\n}\n\n// Constexpr function\nconstexpr int factorial(int n) {\n    return n <= 1 ? 1 : n * factorial(n - 1);\n}\n\n// Lambda examples\ninline auto create_greeter(const std::string& greeting) {\n    return [greeting](const std::string& name) {\n        return greeting + \", \" + name + \"!\";\n    };\n}\n\n// Concepts (C++20)\ntemplate<typename T>\nconcept Printable = requires(T t) {\n    { std::cout << t } -> std::same_as<std::ostream&>;\n};\n\ntemplate<Printable T>\nvoid print(const T& value) {\n    std::cout << value << std::endl;\n}\n\n// RAII wrapper\nclass FileHandle {\npublic:\n    explicit FileHandle(const std::string& filename)\n        : filename_(filename), open_(true) {\n        std::cout << \"Opening: \" << filename_ << std::endl;\n    }\n\n    ~FileHandle() {\n        if (open_) {\n            std::cout << \"Closing: \" << filename_ << std::endl;\n        }\n    }\n\n    // Non-copyable\n    FileHandle(const FileHandle&) = delete;\n    FileHandle& operator=(const FileHandle&) = delete;\n\n    // Moveable\n    FileHandle(FileHandle&& other) noexcept\n        : filename_(std::move(other.filename_)), open_(other.open_) {\n        other.open_ = false;\n    }\n\nprivate:\n    std::string filename_;\n    bool open_;\n};\n\n} // namespace sample\n\n// Main function\nint main() {\n    using namespace sample;\n\n    auto user = User(\"1\", \"Alice\");\n    user.set_email(\"alice@example.com\");\n\n    Repository<User> repo;\n    repo.save(user);\n\n    if (auto found = repo.find(\"1\")) {\n        log(\"Found user: \", found->name());\n    }\n\n    constexpr int fact5 = factorial(5);\n    static_assert(fact5 == 120, \"Factorial of 5 should be 120\");\n\n    auto greeter = create_greeter(\"Hello\");\n    std::cout << greeter(\"World\") << std::endl;\n\n    return 0;\n}\n",
+    "children": [
+      {
+        "id": "type:sample_repo/cpp/sample.cpp:User",
+        "category": "type",
+        "kind": "class_specifier",
+        "name": "User",
+        "qualified_name": "User",
+        "signature": "class User",
+        "doc": null,
+        "location": {
+          "start_line": 17,
+          "end_line": 17,
+          "start_byte": 267,
+          "end_byte": 277
+        },
+        "content": "class User",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/cpp/sample.cpp:Status",
+        "category": "type",
+        "kind": "enum_specifier",
+        "name": "Status",
+        "qualified_name": "Status",
+        "signature": "enum class Status {",
+        "doc": null,
+        "location": {
+          "start_line": 24,
+          "end_line": 28,
+          "start_byte": 372,
+          "end_byte": 431
+        },
+        "content": "enum class Status {\n    Pending,\n    Active,\n    Inactive\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/cpp/sample.cpp:Repository",
+        "category": "type",
+        "kind": "class_specifier",
+        "name": "Repository",
+        "qualified_name": "Repository",
+        "signature": "class Repository {",
+        "doc": null,
+        "location": {
+          "start_line": 32,
+          "end_line": 38,
+          "start_byte": 473,
+          "end_byte": 676
+        },
+        "content": "class Repository {\npublic:\n    virtual ~Repository() = default;\n    virtual std::optional<T> find(const ID& id) = 0;\n    virtual void save(const T& item) = 0;\n    virtual bool remove(const ID& id) = 0;\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:Repository.Repository",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "Repository",
+            "qualified_name": "Repository.Repository",
+            "signature": "virtual ~Repository() = default;",
+            "doc": null,
+            "location": {
+              "start_line": 34,
+              "end_line": 34,
+              "start_byte": 504,
+              "end_byte": 536
+            },
+            "content": "virtual ~Repository() = default;",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/cpp/sample.cpp:User",
+        "category": "type",
+        "kind": "class_specifier",
+        "name": "User",
+        "qualified_name": "User",
+        "signature": "class User {",
+        "doc": null,
+        "location": {
+          "start_line": 41,
+          "end_line": 81,
+          "start_byte": 699,
+          "end_byte": 1934
+        },
+        "content": "class User {\npublic:\n    // Constructors\n    User() = default;\n    User(ID id, std::string name)\n        : id_(std::move(id)), name_(std::move(name)), status_(Status::Pending) {}\n\n    // Copy and move\n    User(const User&) = default;\n    User(User&&) noexcept = default;\n    User& operator=(const User&) = default;\n    User& operator=(User&&) noexcept = default;\n\n    // Destructor\n    virtual ~User() = default;\n\n    // Getters\n    [[nodiscard]] const ID& id() const { return id_; }\n    [[nodiscard]] const std::string& name() const { return name_; }\n    [[nodiscard]] Status status() const { return status_; }\n    [[nodiscard]] const std::optional<std::string>& email() const { return email_; }\n\n    // Setters\n    void set_name(std::string name) { name_ = std::move(name); }\n    void set_status(Status status) { status_ = status; }\n    void set_email(std::string email) { email_ = std::move(email); }\n\n    // Operator overload\n    bool operator==(const User& other) const {\n        return id_ == other.id_;\n    }\n\n    // Friend function\n    friend std::ostream& operator<<(std::ostream& os, const User& user);\n\nprivate:\n    ID id_;\n    std::string name_;\n    Status status_{Status::Pending};\n    std::optional<std::string> email_;\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.User",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "User",
+            "qualified_name": "User.User",
+            "signature": "User() = default;",
+            "doc": null,
+            "location": {
+              "start_line": 44,
+              "end_line": 44,
+              "start_byte": 744,
+              "end_byte": 761
+            },
+            "content": "User() = default;",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.User",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "User",
+            "qualified_name": "User.User",
+            "signature": "User(ID id, std:",
+            "doc": null,
+            "location": {
+              "start_line": 45,
+              "end_line": 46,
+              "start_byte": 766,
+              "end_byte": 877
+            },
+            "content": "User(ID id, std::string name)\n        : id_(std::move(id)), name_(std::move(name)), status_(Status::Pending) {}",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.User",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "User",
+            "qualified_name": "User.User",
+            "signature": "User(const User&) = default;",
+            "doc": null,
+            "location": {
+              "start_line": 49,
+              "end_line": 49,
+              "start_byte": 904,
+              "end_byte": 932
+            },
+            "content": "User(const User&) = default;",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.User",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "User",
+            "qualified_name": "User.User",
+            "signature": "User(User&&) noexcept = default;",
+            "doc": null,
+            "location": {
+              "start_line": 50,
+              "end_line": 50,
+              "start_byte": 937,
+              "end_byte": 969
+            },
+            "content": "User(User&&) noexcept = default;",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.User",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "User",
+            "qualified_name": "User.User",
+            "signature": "User& operator=(const User&) = default;",
+            "doc": null,
+            "location": {
+              "start_line": 51,
+              "end_line": 51,
+              "start_byte": 974,
+              "end_byte": 1013
+            },
+            "content": "User& operator=(const User&) = default;",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.User",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "User",
+            "qualified_name": "User.User",
+            "signature": "User& operator=(User&&) noexcept = default;",
+            "doc": null,
+            "location": {
+              "start_line": 52,
+              "end_line": 52,
+              "start_byte": 1018,
+              "end_byte": 1061
+            },
+            "content": "User& operator=(User&&) noexcept = default;",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.User",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "User",
+            "qualified_name": "User.User",
+            "signature": "virtual ~User() = default;",
+            "doc": null,
+            "location": {
+              "start_line": 55,
+              "end_line": 55,
+              "start_byte": 1085,
+              "end_byte": 1111
+            },
+            "content": "virtual ~User() = default;",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.ID",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "ID",
+            "qualified_name": "User.ID",
+            "signature": "[[nodiscard]] const ID& id() const {",
+            "doc": null,
+            "location": {
+              "start_line": 58,
+              "end_line": 58,
+              "start_byte": 1132,
+              "end_byte": 1182
+            },
+            "content": "[[nodiscard]] const ID& id() const { return id_; }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.function_definition_59",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_59",
+            "qualified_name": "User.function_definition_59",
+            "signature": "[[nodiscard]] const std::string& name() const {",
+            "doc": null,
+            "location": {
+              "start_line": 59,
+              "end_line": 59,
+              "start_byte": 1187,
+              "end_byte": 1250
+            },
+            "content": "[[nodiscard]] const std::string& name() const { return name_; }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.Status",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "Status",
+            "qualified_name": "User.Status",
+            "signature": "[[nodiscard]] Status status() const {",
+            "doc": null,
+            "location": {
+              "start_line": 60,
+              "end_line": 60,
+              "start_byte": 1255,
+              "end_byte": 1310
+            },
+            "content": "[[nodiscard]] Status status() const { return status_; }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.function_definition_61",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_61",
+            "qualified_name": "User.function_definition_61",
+            "signature": "[[nodiscard]] const std::optional<std::string>& email() const {",
+            "doc": null,
+            "location": {
+              "start_line": 61,
+              "end_line": 61,
+              "start_byte": 1315,
+              "end_byte": 1395
+            },
+            "content": "[[nodiscard]] const std::optional<std::string>& email() const { return email_; }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.function_definition_64",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_64",
+            "qualified_name": "User.function_definition_64",
+            "signature": "void set_name(std::string name) {",
+            "doc": null,
+            "location": {
+              "start_line": 64,
+              "end_line": 64,
+              "start_byte": 1416,
+              "end_byte": 1476
+            },
+            "content": "void set_name(std::string name) { name_ = std::move(name); }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.function_definition_65",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_65",
+            "qualified_name": "User.function_definition_65",
+            "signature": "void set_status(Status status) {",
+            "doc": null,
+            "location": {
+              "start_line": 65,
+              "end_line": 65,
+              "start_byte": 1481,
+              "end_byte": 1533
+            },
+            "content": "void set_status(Status status) { status_ = status; }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.function_definition_66",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_66",
+            "qualified_name": "User.function_definition_66",
+            "signature": "void set_email(std::string email) {",
+            "doc": null,
+            "location": {
+              "start_line": 66,
+              "end_line": 66,
+              "start_byte": 1538,
+              "end_byte": 1602
+            },
+            "content": "void set_email(std::string email) { email_ = std::move(email); }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:User.function_definition_69",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_69",
+            "qualified_name": "User.function_definition_69",
+            "signature": "bool operator==(const User& other) const {",
+            "doc": null,
+            "location": {
+              "start_line": 69,
+              "end_line": 71,
+              "start_byte": 1633,
+              "end_byte": 1714
+            },
+            "content": "bool operator==(const User& other) const {\n        return id_ == other.id_;\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/cpp/sample.cpp:function_definition_84",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "function_definition_84",
+        "qualified_name": "function_definition_84",
+        "signature": "std::ostream& operator<<(std::ostream& os, const User& user) {",
+        "doc": null,
+        "location": {
+          "start_line": 84,
+          "end_line": 87,
+          "start_byte": 1967,
+          "end_byte": 2114
+        },
+        "content": "std::ostream& operator<<(std::ostream& os, const User& user) {\n    os << \"User{id=\" << user.id_ << \", name=\" << user.name_ << \"}\";\n    return os;\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/cpp/sample.cpp:AdminUser",
+        "category": "type",
+        "kind": "class_specifier",
+        "name": "AdminUser",
+        "qualified_name": "AdminUser",
+        "signature": "class AdminUser : public User {",
+        "doc": null,
+        "location": {
+          "start_line": 90,
+          "end_line": 106,
+          "start_byte": 2131,
+          "end_byte": 2619
+        },
+        "content": "class AdminUser : public User {\npublic:\n    AdminUser(ID id, std::string name, std::vector<std::string> permissions)\n        : User(std::move(id), std::move(name))\n        , permissions_(std::move(permissions)) {}\n\n    [[nodiscard]] const std::vector<std::string>& permissions() const {\n        return permissions_;\n    }\n\n    void add_permission(std::string permission) {\n        permissions_.push_back(std::move(permission));\n    }\n\nprivate:\n    std::vector<std::string> permissions_;\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:AdminUser.AdminUser",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "AdminUser",
+            "qualified_name": "AdminUser.AdminUser",
+            "signature": "AdminUser(ID id, std:",
+            "doc": null,
+            "location": {
+              "start_line": 92,
+              "end_line": 94,
+              "start_byte": 2175,
+              "end_byte": 2344
+            },
+            "content": "AdminUser(ID id, std::string name, std::vector<std::string> permissions)\n        : User(std::move(id), std::move(name))\n        , permissions_(std::move(permissions)) {}",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:AdminUser.function_definition_96",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_96",
+            "qualified_name": "AdminUser.function_definition_96",
+            "signature": "[[nodiscard]] const std::vector<std::string>& permissions() const {",
+            "doc": null,
+            "location": {
+              "start_line": 96,
+              "end_line": 98,
+              "start_byte": 2350,
+              "end_byte": 2452
+            },
+            "content": "[[nodiscard]] const std::vector<std::string>& permissions() const {\n        return permissions_;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:AdminUser.function_definition_100",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_100",
+            "qualified_name": "AdminUser.function_definition_100",
+            "signature": "void add_permission(std::string permission) {",
+            "doc": null,
+            "location": {
+              "start_line": 100,
+              "end_line": 102,
+              "start_byte": 2458,
+              "end_byte": 2564
+            },
+            "content": "void add_permission(std::string permission) {\n        permissions_.push_back(std::move(permission));\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/cpp/sample.cpp:Repository<User>",
+        "category": "type",
+        "kind": "class_specifier",
+        "name": "Repository<User>",
+        "qualified_name": "Repository<User>",
+        "signature": "class Repository<User> {",
+        "doc": null,
+        "location": {
+          "start_line": 110,
+          "end_line": 130,
+          "start_byte": 2660,
+          "end_byte": 3076
+        },
+        "content": "class Repository<User> {\npublic:\n    std::optional<User> find(const ID& id) {\n        auto it = users_.find(id);\n        if (it != users_.end()) {\n            return it->second;\n        }\n        return std::nullopt;\n    }\n\n    void save(const User& user) {\n        users_[user.id()] = user;\n    }\n\n    bool remove(const ID& id) {\n        return users_.erase(id) > 0;\n    }\n\nprivate:\n    std::map<ID, User> users_;\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:Repository<User>.function_definition_112",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_112",
+            "qualified_name": "Repository<User>.function_definition_112",
+            "signature": "std::optional<User> find(const ID& id) {",
+            "doc": null,
+            "location": {
+              "start_line": 112,
+              "end_line": 118,
+              "start_byte": 2697,
+              "end_byte": 2882
+            },
+            "content": "std::optional<User> find(const ID& id) {\n        auto it = users_.find(id);\n        if (it != users_.end()) {\n            return it->second;\n        }\n        return std::nullopt;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:Repository<User>.function_definition_120",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_120",
+            "qualified_name": "Repository<User>.function_definition_120",
+            "signature": "void save(const User& user) {",
+            "doc": null,
+            "location": {
+              "start_line": 120,
+              "end_line": 122,
+              "start_byte": 2888,
+              "end_byte": 2957
+            },
+            "content": "void save(const User& user) {\n        users_[user.id()] = user;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:Repository<User>.function_definition_124",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "function_definition_124",
+            "qualified_name": "Repository<User>.function_definition_124",
+            "signature": "bool remove(const ID& id) {",
+            "doc": null,
+            "location": {
+              "start_line": 124,
+              "end_line": 126,
+              "start_byte": 2963,
+              "end_byte": 3033
+            },
+            "content": "bool remove(const ID& id) {\n        return users_.erase(id) > 0;\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/cpp/sample.cpp:log",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "log",
+        "qualified_name": "log",
+        "signature": "void log(Args&&... args) {",
+        "doc": null,
+        "location": {
+          "start_line": 134,
+          "end_line": 136,
+          "start_byte": 3127,
+          "end_byte": 3200
+        },
+        "content": "void log(Args&&... args) {\n    (std::cout << ... << args) << std::endl;\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/cpp/sample.cpp:factorial",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "factorial",
+        "qualified_name": "factorial",
+        "signature": "constexpr int factorial(int n) {",
+        "doc": null,
+        "location": {
+          "start_line": 139,
+          "end_line": 141,
+          "start_byte": 3224,
+          "end_byte": 3304
+        },
+        "content": "constexpr int factorial(int n) {\n    return n <= 1 ? 1 : n * factorial(n - 1);\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/cpp/sample.cpp:create_greeter",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "create_greeter",
+        "qualified_name": "create_greeter",
+        "signature": "inline auto create_greeter(const std::string& greeting) {",
+        "doc": null,
+        "location": {
+          "start_line": 144,
+          "end_line": 148,
+          "start_byte": 3325,
+          "end_byte": 3485
+        },
+        "content": "inline auto create_greeter(const std::string& greeting) {\n    return [greeting](const std::string& name) {\n        return greeting + \", \" + name + \"!\";\n    };\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/cpp/sample.cpp:print",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "print",
+        "qualified_name": "print",
+        "signature": "void print(const T& value) {",
+        "doc": null,
+        "location": {
+          "start_line": 157,
+          "end_line": 159,
+          "start_byte": 3645,
+          "end_byte": 3712
+        },
+        "content": "void print(const T& value) {\n    std::cout << value << std::endl;\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/cpp/sample.cpp:FileHandle",
+        "category": "type",
+        "kind": "class_specifier",
+        "name": "FileHandle",
+        "qualified_name": "FileHandle",
+        "signature": "class FileHandle {",
+        "doc": null,
+        "location": {
+          "start_line": 162,
+          "end_line": 188,
+          "start_byte": 3730,
+          "end_byte": 4383
+        },
+        "content": "class FileHandle {\npublic:\n    explicit FileHandle(const std::string& filename)\n        : filename_(filename), open_(true) {\n        std::cout << \"Opening: \" << filename_ << std::endl;\n    }\n\n    ~FileHandle() {\n        if (open_) {\n            std::cout << \"Closing: \" << filename_ << std::endl;\n        }\n    }\n\n    // Non-copyable\n    FileHandle(const FileHandle&) = delete;\n    FileHandle& operator=(const FileHandle&) = delete;\n\n    // Moveable\n    FileHandle(FileHandle&& other) noexcept\n        : filename_(std::move(other.filename_)), open_(other.open_) {\n        other.open_ = false;\n    }\n\nprivate:\n    std::string filename_;\n    bool open_;\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:FileHandle.FileHandle",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "FileHandle",
+            "qualified_name": "FileHandle.FileHandle",
+            "signature": "explicit FileHandle(const std:",
+            "doc": null,
+            "location": {
+              "start_line": 164,
+              "end_line": 167,
+              "start_byte": 3761,
+              "end_byte": 3920
+            },
+            "content": "explicit FileHandle(const std::string& filename)\n        : filename_(filename), open_(true) {\n        std::cout << \"Opening: \" << filename_ << std::endl;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:FileHandle.FileHandle",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "FileHandle",
+            "qualified_name": "FileHandle.FileHandle",
+            "signature": "~FileHandle() {",
+            "doc": null,
+            "location": {
+              "start_line": 169,
+              "end_line": 173,
+              "start_byte": 3926,
+              "end_byte": 4042
+            },
+            "content": "~FileHandle() {\n        if (open_) {\n            std::cout << \"Closing: \" << filename_ << std::endl;\n        }\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:FileHandle.FileHandle",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "FileHandle",
+            "qualified_name": "FileHandle.FileHandle",
+            "signature": "FileHandle(const FileHandle&) = delete;",
+            "doc": null,
+            "location": {
+              "start_line": 176,
+              "end_line": 176,
+              "start_byte": 4068,
+              "end_byte": 4107
+            },
+            "content": "FileHandle(const FileHandle&) = delete;",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:FileHandle.FileHandle",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "FileHandle",
+            "qualified_name": "FileHandle.FileHandle",
+            "signature": "FileHandle& operator=(const FileHandle&) = delete;",
+            "doc": null,
+            "location": {
+              "start_line": 177,
+              "end_line": 177,
+              "start_byte": 4112,
+              "end_byte": 4162
+            },
+            "content": "FileHandle& operator=(const FileHandle&) = delete;",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/cpp/sample.cpp:FileHandle.FileHandle",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "FileHandle",
+            "qualified_name": "FileHandle.FileHandle",
+            "signature": "FileHandle(FileHandle&& other) noexcept",
+            "doc": null,
+            "location": {
+              "start_line": 180,
+              "end_line": 183,
+              "start_byte": 4184,
+              "end_byte": 4328
+            },
+            "content": "FileHandle(FileHandle&& other) noexcept\n        : filename_(std::move(other.filename_)), open_(other.open_) {\n        other.open_ = false;\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/cpp/sample.cpp:main",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "main",
+        "qualified_name": "main",
+        "signature": "int main() {",
+        "doc": null,
+        "location": {
+          "start_line": 193,
+          "end_line": 213,
+          "start_byte": 4426,
+          "end_byte": 4899
+        },
+        "content": "int main() {\n    using namespace sample;\n\n    auto user = User(\"1\", \"Alice\");\n    user.set_email(\"alice@example.com\");\n\n    Repository<User> repo;\n    repo.save(user);\n\n    if (auto found = repo.find(\"1\")) {\n        log(\"Found user: \", found->name());\n    }\n\n    constexpr int fact5 = factorial(5);\n    static_assert(fact5 == 120, \"Factorial of 5 should be 120\");\n\n    auto greeter = create_greeter(\"Hello\");\n    std::cout << greeter(\"World\") << std::endl;\n\n    return 0;\n}",
+        "children": []
+      }
+    ]
+  }
+}

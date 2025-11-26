@@ -1,0 +1,577 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/terraform/sample.tf",
+    "language": "hcl",
+    "format_family": "iac"
+  },
+  "root": {
+    "id": "file:sample_repo/terraform/sample.tf",
+    "category": "file",
+    "kind": "config_file",
+    "name": "sample.tf",
+    "qualified_name": "sample.tf",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 230,
+      "start_byte": 0,
+      "end_byte": 4893
+    },
+    "content": "# Sample Terraform file for tree-sitter exploration (HCL syntax)\n\nterraform {\n  required_version = \">= 1.0.0\"\n\n  required_providers {\n    aws = {\n      source  = \"hashicorp/aws\"\n      version = \"~> 5.0\"\n    }\n    random = {\n      source  = \"hashicorp/random\"\n      version = \"~> 3.0\"\n    }\n  }\n\n  backend \"s3\" {\n    bucket         = \"my-terraform-state\"\n    key            = \"prod/terraform.tfstate\"\n    region         = \"us-east-1\"\n    encrypt        = true\n    dynamodb_table = \"terraform-locks\"\n  }\n}\n\n# Provider configuration\nprovider \"aws\" {\n  region = var.aws_region\n\n  default_tags {\n    tags = {\n      Environment = var.environment\n      Project     = var.project_name\n      ManagedBy   = \"Terraform\"\n    }\n  }\n}\n\n# Variables\nvariable \"aws_region\" {\n  description = \"AWS region for resources\"\n  type        = string\n  default     = \"us-east-1\"\n}\n\nvariable \"environment\" {\n  description = \"Environment name\"\n  type        = string\n\n  validation {\n    condition     = contains([\"dev\", \"staging\", \"prod\"], var.environment)\n    error_message = \"Environment must be dev, staging, or prod.\"\n  }\n}\n\nvariable \"project_name\" {\n  description = \"Project name for tagging\"\n  type        = string\n}\n\nvariable \"instance_config\" {\n  description = \"EC2 instance configuration\"\n  type = object({\n    instance_type = string\n    volume_size   = number\n    enable_monitoring = bool\n  })\n  default = {\n    instance_type     = \"t3.micro\"\n    volume_size       = 20\n    enable_monitoring = true\n  }\n}\n\nvariable \"allowed_cidrs\" {\n  description = \"List of allowed CIDR blocks\"\n  type        = list(string)\n  default     = [\"10.0.0.0/8\"]\n}\n\nvariable \"tags\" {\n  description = \"Additional tags\"\n  type        = map(string)\n  default     = {}\n}\n\n# Locals\nlocals {\n  name_prefix = \"${var.project_name}-${var.environment}\"\n\n  common_tags = merge(var.tags, {\n    Name = local.name_prefix\n  })\n\n  is_production = var.environment == \"prod\"\n}\n\n# Data sources\ndata \"aws_availability_zones\" \"available\" {\n  state = \"available\"\n}\n\ndata \"aws_ami\" \"amazon_linux\" {\n  most_recent = true\n  owners      = [\"amazon\"]\n\n  filter {\n    name   = \"name\"\n    values = [\"amzn2-ami-hvm-*-x86_64-gp2\"]\n  }\n\n  filter {\n    name   = \"virtualization-type\"\n    values = [\"hvm\"]\n  }\n}\n\n# Resources\nresource \"random_id\" \"suffix\" {\n  byte_length = 4\n}\n\nresource \"aws_vpc\" \"main\" {\n  cidr_block           = \"10.0.0.0/16\"\n  enable_dns_hostnames = true\n  enable_dns_support   = true\n\n  tags = merge(local.common_tags, {\n    Name = \"${local.name_prefix}-vpc\"\n  })\n}\n\nresource \"aws_subnet\" \"public\" {\n  count = length(data.aws_availability_zones.available.names)\n\n  vpc_id                  = aws_vpc.main.id\n  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)\n  availability_zone       = data.aws_availability_zones.available.names[count.index]\n  map_public_ip_on_launch = true\n\n  tags = merge(local.common_tags, {\n    Name = \"${local.name_prefix}-public-${count.index + 1}\"\n    Type = \"Public\"\n  })\n}\n\nresource \"aws_security_group\" \"web\" {\n  name        = \"${local.name_prefix}-web-sg\"\n  description = \"Security group for web servers\"\n  vpc_id      = aws_vpc.main.id\n\n  dynamic \"ingress\" {\n    for_each = [80, 443]\n    content {\n      from_port   = ingress.value\n      to_port     = ingress.value\n      protocol    = \"tcp\"\n      cidr_blocks = var.allowed_cidrs\n    }\n  }\n\n  egress {\n    from_port   = 0\n    to_port     = 0\n    protocol    = \"-1\"\n    cidr_blocks = [\"0.0.0.0/0\"]\n  }\n\n  tags = local.common_tags\n\n  lifecycle {\n    create_before_destroy = true\n  }\n}\n\nresource \"aws_instance\" \"web\" {\n  count = local.is_production ? 3 : 1\n\n  ami                    = data.aws_ami.amazon_linux.id\n  instance_type          = var.instance_config.instance_type\n  subnet_id              = aws_subnet.public[count.index % length(aws_subnet.public)].id\n  vpc_security_group_ids = [aws_security_group.web.id]\n  monitoring             = var.instance_config.enable_monitoring\n\n  root_block_device {\n    volume_size = var.instance_config.volume_size\n    volume_type = \"gp3\"\n    encrypted   = true\n  }\n\n  tags = merge(local.common_tags, {\n    Name = \"${local.name_prefix}-web-${count.index + 1}\"\n    Role = \"WebServer\"\n  })\n\n  depends_on = [aws_security_group.web]\n}\n\n# Module usage\nmodule \"s3_bucket\" {\n  source = \"./modules/s3\"\n\n  bucket_name = \"${local.name_prefix}-assets-${random_id.suffix.hex}\"\n  environment = var.environment\n\n  tags = local.common_tags\n}\n\n# Outputs\noutput \"vpc_id\" {\n  description = \"The ID of the VPC\"\n  value       = aws_vpc.main.id\n}\n\noutput \"public_subnet_ids\" {\n  description = \"List of public subnet IDs\"\n  value       = aws_subnet.public[*].id\n}\n\noutput \"web_instance_ids\" {\n  description = \"IDs of web server instances\"\n  value       = aws_instance.web[*].id\n}\n\noutput \"web_instance_ips\" {\n  description = \"Public IPs of web servers\"\n  value       = aws_instance.web[*].public_ip\n  sensitive   = false\n}\n",
+    "children": [
+      {
+        "id": "block:sample_repo/terraform/sample.tf:terraform",
+        "category": "block",
+        "kind": "block",
+        "name": "terraform",
+        "qualified_name": "terraform",
+        "signature": "terraform {",
+        "doc": null,
+        "location": {
+          "start_line": 3,
+          "end_line": 24,
+          "start_byte": 66,
+          "end_byte": 503
+        },
+        "content": "terraform {\n  required_version = \">= 1.0.0\"\n\n  required_providers {\n    aws = {\n      source  = \"hashicorp/aws\"\n      version = \"~> 5.0\"\n    }\n    random = {\n      source  = \"hashicorp/random\"\n      version = \"~> 3.0\"\n    }\n  }\n\n  backend \"s3\" {\n    bucket         = \"my-terraform-state\"\n    key            = \"prod/terraform.tfstate\"\n    region         = \"us-east-1\"\n    encrypt        = true\n    dynamodb_table = \"terraform-locks\"\n  }\n}",
+        "children": [
+          {
+            "id": "block:sample_repo/terraform/sample.tf:terraform.required_providers",
+            "category": "block",
+            "kind": "block",
+            "name": "required_providers",
+            "qualified_name": "terraform.required_providers",
+            "signature": "required_providers {",
+            "doc": null,
+            "location": {
+              "start_line": 6,
+              "end_line": 15,
+              "start_byte": 113,
+              "end_byte": 293
+            },
+            "content": "required_providers {\n    aws = {\n      source  = \"hashicorp/aws\"\n      version = \"~> 5.0\"\n    }\n    random = {\n      source  = \"hashicorp/random\"\n      version = \"~> 3.0\"\n    }\n  }",
+            "children": []
+          },
+          {
+            "id": "block:sample_repo/terraform/sample.tf:terraform.backend",
+            "category": "block",
+            "kind": "block",
+            "name": "backend",
+            "qualified_name": "terraform.backend",
+            "signature": "backend \"s3\" {",
+            "doc": null,
+            "location": {
+              "start_line": 17,
+              "end_line": 23,
+              "start_byte": 297,
+              "end_byte": 501
+            },
+            "content": "backend \"s3\" {\n    bucket         = \"my-terraform-state\"\n    key            = \"prod/terraform.tfstate\"\n    region         = \"us-east-1\"\n    encrypt        = true\n    dynamodb_table = \"terraform-locks\"\n  }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:provider",
+        "category": "block",
+        "kind": "block",
+        "name": "provider",
+        "qualified_name": "provider",
+        "signature": "provider \"aws\" {",
+        "doc": null,
+        "location": {
+          "start_line": 27,
+          "end_line": 37,
+          "start_byte": 530,
+          "end_byte": 720
+        },
+        "content": "provider \"aws\" {\n  region = var.aws_region\n\n  default_tags {\n    tags = {\n      Environment = var.environment\n      Project     = var.project_name\n      ManagedBy   = \"Terraform\"\n    }\n  }\n}",
+        "children": [
+          {
+            "id": "block:sample_repo/terraform/sample.tf:provider.default_tags",
+            "category": "block",
+            "kind": "block",
+            "name": "default_tags",
+            "qualified_name": "provider.default_tags",
+            "signature": "default_tags {",
+            "doc": null,
+            "location": {
+              "start_line": 30,
+              "end_line": 36,
+              "start_byte": 576,
+              "end_byte": 718
+            },
+            "content": "default_tags {\n    tags = {\n      Environment = var.environment\n      Project     = var.project_name\n      ManagedBy   = \"Terraform\"\n    }\n  }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:variable",
+        "category": "block",
+        "kind": "block",
+        "name": "variable",
+        "qualified_name": "variable",
+        "signature": "variable \"aws_region\" {",
+        "doc": null,
+        "location": {
+          "start_line": 40,
+          "end_line": 44,
+          "start_byte": 734,
+          "end_byte": 853
+        },
+        "content": "variable \"aws_region\" {\n  description = \"AWS region for resources\"\n  type        = string\n  default     = \"us-east-1\"\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:variable",
+        "category": "block",
+        "kind": "block",
+        "name": "variable",
+        "qualified_name": "variable",
+        "signature": "variable \"environment\" {",
+        "doc": null,
+        "location": {
+          "start_line": 46,
+          "end_line": 54,
+          "start_byte": 855,
+          "end_byte": 1098
+        },
+        "content": "variable \"environment\" {\n  description = \"Environment name\"\n  type        = string\n\n  validation {\n    condition     = contains([\"dev\", \"staging\", \"prod\"], var.environment)\n    error_message = \"Environment must be dev, staging, or prod.\"\n  }\n}",
+        "children": [
+          {
+            "id": "block:sample_repo/terraform/sample.tf:variable.validation",
+            "category": "block",
+            "kind": "block",
+            "name": "validation",
+            "qualified_name": "variable.validation",
+            "signature": "validation {",
+            "doc": null,
+            "location": {
+              "start_line": 50,
+              "end_line": 53,
+              "start_byte": 941,
+              "end_byte": 1096
+            },
+            "content": "validation {\n    condition     = contains([\"dev\", \"staging\", \"prod\"], var.environment)\n    error_message = \"Environment must be dev, staging, or prod.\"\n  }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:variable",
+        "category": "block",
+        "kind": "block",
+        "name": "variable",
+        "qualified_name": "variable",
+        "signature": "variable \"project_name\" {",
+        "doc": null,
+        "location": {
+          "start_line": 56,
+          "end_line": 59,
+          "start_byte": 1100,
+          "end_byte": 1193
+        },
+        "content": "variable \"project_name\" {\n  description = \"Project name for tagging\"\n  type        = string\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:variable",
+        "category": "block",
+        "kind": "block",
+        "name": "variable",
+        "qualified_name": "variable",
+        "signature": "variable \"instance_config\" {",
+        "doc": null,
+        "location": {
+          "start_line": 61,
+          "end_line": 73,
+          "start_byte": 1195,
+          "end_byte": 1485
+        },
+        "content": "variable \"instance_config\" {\n  description = \"EC2 instance configuration\"\n  type = object({\n    instance_type = string\n    volume_size   = number\n    enable_monitoring = bool\n  })\n  default = {\n    instance_type     = \"t3.micro\"\n    volume_size       = 20\n    enable_monitoring = true\n  }\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:variable",
+        "category": "block",
+        "kind": "block",
+        "name": "variable",
+        "qualified_name": "variable",
+        "signature": "variable \"allowed_cidrs\" {",
+        "doc": null,
+        "location": {
+          "start_line": 75,
+          "end_line": 79,
+          "start_byte": 1487,
+          "end_byte": 1621
+        },
+        "content": "variable \"allowed_cidrs\" {\n  description = \"List of allowed CIDR blocks\"\n  type        = list(string)\n  default     = [\"10.0.0.0/8\"]\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:variable",
+        "category": "block",
+        "kind": "block",
+        "name": "variable",
+        "qualified_name": "variable",
+        "signature": "variable \"tags\" {",
+        "doc": null,
+        "location": {
+          "start_line": 81,
+          "end_line": 85,
+          "start_byte": 1623,
+          "end_byte": 1723
+        },
+        "content": "variable \"tags\" {\n  description = \"Additional tags\"\n  type        = map(string)\n  default     = {}\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:locals",
+        "category": "block",
+        "kind": "block",
+        "name": "locals",
+        "qualified_name": "locals",
+        "signature": "locals {",
+        "doc": null,
+        "location": {
+          "start_line": 88,
+          "end_line": 96,
+          "start_byte": 1734,
+          "end_byte": 1915
+        },
+        "content": "locals {\n  name_prefix = \"${var.project_name}-${var.environment}\"\n\n  common_tags = merge(var.tags, {\n    Name = local.name_prefix\n  })\n\n  is_production = var.environment == \"prod\"\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:data",
+        "category": "block",
+        "kind": "block",
+        "name": "data",
+        "qualified_name": "data",
+        "signature": "data \"aws_availability_zones\" \"available\" {",
+        "doc": null,
+        "location": {
+          "start_line": 99,
+          "end_line": 101,
+          "start_byte": 1932,
+          "end_byte": 1999
+        },
+        "content": "data \"aws_availability_zones\" \"available\" {\n  state = \"available\"\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:data",
+        "category": "block",
+        "kind": "block",
+        "name": "data",
+        "qualified_name": "data",
+        "signature": "data \"aws_ami\" \"amazon_linux\" {",
+        "doc": null,
+        "location": {
+          "start_line": 103,
+          "end_line": 116,
+          "start_byte": 2001,
+          "end_byte": 2234
+        },
+        "content": "data \"aws_ami\" \"amazon_linux\" {\n  most_recent = true\n  owners      = [\"amazon\"]\n\n  filter {\n    name   = \"name\"\n    values = [\"amzn2-ami-hvm-*-x86_64-gp2\"]\n  }\n\n  filter {\n    name   = \"virtualization-type\"\n    values = [\"hvm\"]\n  }\n}",
+        "children": [
+          {
+            "id": "block:sample_repo/terraform/sample.tf:data.filter",
+            "category": "block",
+            "kind": "block",
+            "name": "filter",
+            "qualified_name": "data.filter",
+            "signature": "filter {",
+            "doc": null,
+            "location": {
+              "start_line": 107,
+              "end_line": 110,
+              "start_byte": 2084,
+              "end_byte": 2160
+            },
+            "content": "filter {\n    name   = \"name\"\n    values = [\"amzn2-ami-hvm-*-x86_64-gp2\"]\n  }",
+            "children": []
+          },
+          {
+            "id": "block:sample_repo/terraform/sample.tf:data.filter",
+            "category": "block",
+            "kind": "block",
+            "name": "filter",
+            "qualified_name": "data.filter",
+            "signature": "filter {",
+            "doc": null,
+            "location": {
+              "start_line": 112,
+              "end_line": 115,
+              "start_byte": 2164,
+              "end_byte": 2232
+            },
+            "content": "filter {\n    name   = \"virtualization-type\"\n    values = [\"hvm\"]\n  }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:resource",
+        "category": "block",
+        "kind": "block",
+        "name": "resource",
+        "qualified_name": "resource",
+        "signature": "resource \"random_id\" \"suffix\" {",
+        "doc": null,
+        "location": {
+          "start_line": 119,
+          "end_line": 121,
+          "start_byte": 2248,
+          "end_byte": 2299
+        },
+        "content": "resource \"random_id\" \"suffix\" {\n  byte_length = 4\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:resource",
+        "category": "block",
+        "kind": "block",
+        "name": "resource",
+        "qualified_name": "resource",
+        "signature": "resource \"aws_vpc\" \"main\" {",
+        "doc": null,
+        "location": {
+          "start_line": 123,
+          "end_line": 131,
+          "start_byte": 2301,
+          "end_byte": 2509
+        },
+        "content": "resource \"aws_vpc\" \"main\" {\n  cidr_block           = \"10.0.0.0/16\"\n  enable_dns_hostnames = true\n  enable_dns_support   = true\n\n  tags = merge(local.common_tags, {\n    Name = \"${local.name_prefix}-vpc\"\n  })\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:resource",
+        "category": "block",
+        "kind": "block",
+        "name": "resource",
+        "qualified_name": "resource",
+        "signature": "resource \"aws_subnet\" \"public\" {",
+        "doc": null,
+        "location": {
+          "start_line": 133,
+          "end_line": 145,
+          "start_byte": 2511,
+          "end_byte": 2972
+        },
+        "content": "resource \"aws_subnet\" \"public\" {\n  count = length(data.aws_availability_zones.available.names)\n\n  vpc_id                  = aws_vpc.main.id\n  cidr_block              = cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)\n  availability_zone       = data.aws_availability_zones.available.names[count.index]\n  map_public_ip_on_launch = true\n\n  tags = merge(local.common_tags, {\n    Name = \"${local.name_prefix}-public-${count.index + 1}\"\n    Type = \"Public\"\n  })\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:resource",
+        "category": "block",
+        "kind": "block",
+        "name": "resource",
+        "qualified_name": "resource",
+        "signature": "resource \"aws_security_group\" \"web\" {",
+        "doc": null,
+        "location": {
+          "start_line": 147,
+          "end_line": 174,
+          "start_byte": 2974,
+          "end_byte": 3535
+        },
+        "content": "resource \"aws_security_group\" \"web\" {\n  name        = \"${local.name_prefix}-web-sg\"\n  description = \"Security group for web servers\"\n  vpc_id      = aws_vpc.main.id\n\n  dynamic \"ingress\" {\n    for_each = [80, 443]\n    content {\n      from_port   = ingress.value\n      to_port     = ingress.value\n      protocol    = \"tcp\"\n      cidr_blocks = var.allowed_cidrs\n    }\n  }\n\n  egress {\n    from_port   = 0\n    to_port     = 0\n    protocol    = \"-1\"\n    cidr_blocks = [\"0.0.0.0/0\"]\n  }\n\n  tags = local.common_tags\n\n  lifecycle {\n    create_before_destroy = true\n  }\n}",
+        "children": [
+          {
+            "id": "block:sample_repo/terraform/sample.tf:resource.dynamic",
+            "category": "block",
+            "kind": "block",
+            "name": "dynamic",
+            "qualified_name": "resource.dynamic",
+            "signature": "dynamic \"ingress\" {",
+            "doc": null,
+            "location": {
+              "start_line": 152,
+              "end_line": 160,
+              "start_byte": 3142,
+              "end_byte": 3342
+            },
+            "content": "dynamic \"ingress\" {\n    for_each = [80, 443]\n    content {\n      from_port   = ingress.value\n      to_port     = ingress.value\n      protocol    = \"tcp\"\n      cidr_blocks = var.allowed_cidrs\n    }\n  }",
+            "children": [
+              {
+                "id": "block:sample_repo/terraform/sample.tf:resource.dynamic.content",
+                "category": "block",
+                "kind": "block",
+                "name": "content",
+                "qualified_name": "resource.dynamic.content",
+                "signature": "content {",
+                "doc": null,
+                "location": {
+                  "start_line": 154,
+                  "end_line": 159,
+                  "start_byte": 3191,
+                  "end_byte": 3338
+                },
+                "content": "content {\n      from_port   = ingress.value\n      to_port     = ingress.value\n      protocol    = \"tcp\"\n      cidr_blocks = var.allowed_cidrs\n    }",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "block:sample_repo/terraform/sample.tf:resource.egress",
+            "category": "block",
+            "kind": "block",
+            "name": "egress",
+            "qualified_name": "resource.egress",
+            "signature": "egress {",
+            "doc": null,
+            "location": {
+              "start_line": 162,
+              "end_line": 167,
+              "start_byte": 3346,
+              "end_byte": 3453
+            },
+            "content": "egress {\n    from_port   = 0\n    to_port     = 0\n    protocol    = \"-1\"\n    cidr_blocks = [\"0.0.0.0/0\"]\n  }",
+            "children": []
+          },
+          {
+            "id": "block:sample_repo/terraform/sample.tf:resource.lifecycle",
+            "category": "block",
+            "kind": "block",
+            "name": "lifecycle",
+            "qualified_name": "resource.lifecycle",
+            "signature": "lifecycle {",
+            "doc": null,
+            "location": {
+              "start_line": 171,
+              "end_line": 173,
+              "start_byte": 3485,
+              "end_byte": 3533
+            },
+            "content": "lifecycle {\n    create_before_destroy = true\n  }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:resource",
+        "category": "block",
+        "kind": "block",
+        "name": "resource",
+        "qualified_name": "resource",
+        "signature": "resource \"aws_instance\" \"web\" {",
+        "doc": null,
+        "location": {
+          "start_line": 176,
+          "end_line": 197,
+          "start_byte": 3537,
+          "end_byte": 4222
+        },
+        "content": "resource \"aws_instance\" \"web\" {\n  count = local.is_production ? 3 : 1\n\n  ami                    = data.aws_ami.amazon_linux.id\n  instance_type          = var.instance_config.instance_type\n  subnet_id              = aws_subnet.public[count.index % length(aws_subnet.public)].id\n  vpc_security_group_ids = [aws_security_group.web.id]\n  monitoring             = var.instance_config.enable_monitoring\n\n  root_block_device {\n    volume_size = var.instance_config.volume_size\n    volume_type = \"gp3\"\n    encrypted   = true\n  }\n\n  tags = merge(local.common_tags, {\n    Name = \"${local.name_prefix}-web-${count.index + 1}\"\n    Role = \"WebServer\"\n  })\n\n  depends_on = [aws_security_group.web]\n}",
+        "children": [
+          {
+            "id": "block:sample_repo/terraform/sample.tf:resource.root_block_device",
+            "category": "block",
+            "kind": "block",
+            "name": "root_block_device",
+            "qualified_name": "resource.root_block_device",
+            "signature": "root_block_device {",
+            "doc": null,
+            "location": {
+              "start_line": 185,
+              "end_line": 189,
+              "start_byte": 3937,
+              "end_byte": 4057
+            },
+            "content": "root_block_device {\n    volume_size = var.instance_config.volume_size\n    volume_type = \"gp3\"\n    encrypted   = true\n  }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:module",
+        "category": "block",
+        "kind": "block",
+        "name": "module",
+        "qualified_name": "module",
+        "signature": "module \"s3_bucket\" {",
+        "doc": null,
+        "location": {
+          "start_line": 200,
+          "end_line": 207,
+          "start_byte": 4239,
+          "end_byte": 4418
+        },
+        "content": "module \"s3_bucket\" {\n  source = \"./modules/s3\"\n\n  bucket_name = \"${local.name_prefix}-assets-${random_id.suffix.hex}\"\n  environment = var.environment\n\n  tags = local.common_tags\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:output",
+        "category": "block",
+        "kind": "block",
+        "name": "output",
+        "qualified_name": "output",
+        "signature": "output \"vpc_id\" {",
+        "doc": null,
+        "location": {
+          "start_line": 210,
+          "end_line": 213,
+          "start_byte": 4430,
+          "end_byte": 4517
+        },
+        "content": "output \"vpc_id\" {\n  description = \"The ID of the VPC\"\n  value       = aws_vpc.main.id\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:output",
+        "category": "block",
+        "kind": "block",
+        "name": "output",
+        "qualified_name": "output",
+        "signature": "output \"public_subnet_ids\" {",
+        "doc": null,
+        "location": {
+          "start_line": 215,
+          "end_line": 218,
+          "start_byte": 4519,
+          "end_byte": 4633
+        },
+        "content": "output \"public_subnet_ids\" {\n  description = \"List of public subnet IDs\"\n  value       = aws_subnet.public[*].id\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:output",
+        "category": "block",
+        "kind": "block",
+        "name": "output",
+        "qualified_name": "output",
+        "signature": "output \"web_instance_ids\" {",
+        "doc": null,
+        "location": {
+          "start_line": 220,
+          "end_line": 223,
+          "start_byte": 4635,
+          "end_byte": 4749
+        },
+        "content": "output \"web_instance_ids\" {\n  description = \"IDs of web server instances\"\n  value       = aws_instance.web[*].id\n}",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/terraform/sample.tf:output",
+        "category": "block",
+        "kind": "block",
+        "name": "output",
+        "qualified_name": "output",
+        "signature": "output \"web_instance_ips\" {",
+        "doc": null,
+        "location": {
+          "start_line": 225,
+          "end_line": 229,
+          "start_byte": 4751,
+          "end_byte": 4892
+        },
+        "content": "output \"web_instance_ips\" {\n  description = \"Public IPs of web servers\"\n  value       = aws_instance.web[*].public_ip\n  sensitive   = false\n}",
+        "children": []
+      }
+    ]
+  }
+}

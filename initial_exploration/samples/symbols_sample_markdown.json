@@ -1,0 +1,130 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/markdown/README.md",
+    "language": "markdown",
+    "format_family": "markup"
+  },
+  "root": {
+    "id": "file:sample_repo/markdown/README.md",
+    "category": "file",
+    "kind": "document",
+    "name": "README.md",
+    "qualified_name": "README.md",
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 45,
+      "start_byte": 0,
+      "end_byte": 890
+    },
+    "content": "# Project Name\n\nA brief description of the project.\n\n## Installation\n\nTo install the package:\n\n```bash\npip install sample\n```\n\n### Prerequisites\n\nYou need Python 3.12 or higher.\n\n## Usage\n\nBasic usage example:\n\n```python\nfrom sample import DataProcessor\nprocessor = DataProcessor(\"main\")\n```\n\n### Advanced Usage\n\nFor more complex scenarios:\n\n```python\nprocessor.process([\"hello\", \"world\"])\n```\n\n## Contributing\n\nPull requests welcome.\n",
+    "children": [
+      {
+        "id": "section:sample_repo/markdown/README.md:Project Name",
+        "category": "section",
+        "kind": "atx_heading",
+        "name": "Project Name",
+        "qualified_name": "Project Name",
+        "signature": "# Project Name",
+        "doc": null,
+        "location": {
+          "start_line": 1,
+          "end_line": 3,
+          "start_byte": 0,
+          "end_byte": 52
+        },
+        "content": "# Project Name\n\nA brief description of the project.",
+        "children": [
+          {
+            "id": "section:sample_repo/markdown/README.md:Project Name/Installation",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Installation",
+            "qualified_name": "Project Name/Installation",
+            "signature": "## Installation",
+            "doc": null,
+            "location": {
+              "start_line": 5,
+              "end_line": 11,
+              "start_byte": 54,
+              "end_byte": 120
+            },
+            "content": "## Installation\n\nTo install the package:\n\n```bash\npip install sample\n```",
+            "children": [
+              {
+                "id": "section:sample_repo/markdown/README.md:Project Name/Installation/Prerequisites",
+                "category": "section",
+                "kind": "atx_heading",
+                "name": "Prerequisites",
+                "qualified_name": "Project Name/Installation/Prerequisites",
+                "signature": "### Prerequisites",
+                "doc": null,
+                "location": {
+                  "start_line": 13,
+                  "end_line": 15,
+                  "start_byte": 122,
+                  "end_byte": 175
+                },
+                "content": "### Prerequisites\n\nYou need Python 3.12 or higher.",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "section:sample_repo/markdown/README.md:Project Name/Usage",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Usage",
+            "qualified_name": "Project Name/Usage",
+            "signature": "## Usage",
+            "doc": null,
+            "location": {
+              "start_line": 17,
+              "end_line": 25,
+              "start_byte": 177,
+              "end_byte": 290
+            },
+            "content": "## Usage\n\nBasic usage example:\n\n```python\nfrom sample import DataProcessor\nprocessor = DataProcessor(\"main\")\n```",
+            "children": [
+              {
+                "id": "section:sample_repo/markdown/README.md:Project Name/Usage/Advanced Usage",
+                "category": "section",
+                "kind": "atx_heading",
+                "name": "Advanced Usage",
+                "qualified_name": "Project Name/Usage/Advanced Usage",
+                "signature": "### Advanced Usage",
+                "doc": null,
+                "location": {
+                  "start_line": 27,
+                  "end_line": 33,
+                  "start_byte": 292,
+                  "end_byte": 390
+                },
+                "content": "### Advanced Usage\n\nFor more complex scenarios:\n\n```python\nprocessor.process([\"hello\", \"world\"])\n```",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "section:sample_repo/markdown/README.md:Project Name/Contributing",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Contributing",
+            "qualified_name": "Project Name/Contributing",
+            "signature": "## Contributing",
+            "doc": null,
+            "location": {
+              "start_line": 35,
+              "end_line": 37,
+              "start_byte": 392,
+              "end_byte": 430
+            },
+            "content": "## Contributing\n\nPull requests welcome.",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sample JSON Configuration",
+  "description": "Sample JSON file for tree-sitter exploration",
+  "version": "1.0.0",
+
+  "application": {
+    "name": "sample-app",
+    "environment": "production",
+    "debug": false,
+    "port": 3000,
+    "host": "0.0.0.0"
+  },
+
+  "database": {
+    "primary": {
+      "type": "postgresql",
+      "host": "db.example.com",
+      "port": 5432,
+      "name": "myapp",
+      "ssl": true,
+      "pool": {
+        "min": 2,
+        "max": 10,
+        "idleTimeoutMs": 30000
+      }
+    },
+    "replica": {
+      "enabled": true,
+      "hosts": [
+        "replica1.example.com",
+        "replica2.example.com"
+      ]
+    }
+  },
+
+  "cache": {
+    "type": "redis",
+    "url": "redis://cache.example.com:6379",
+    "ttl": 3600,
+    "prefix": "app:",
+    "serializer": "json"
+  },
+
+  "auth": {
+    "jwt": {
+      "secret": "${JWT_SECRET}",
+      "expiresIn": "1h",
+      "algorithm": "HS256",
+      "issuer": "sample-app"
+    },
+    "oauth": {
+      "providers": [
+        {
+          "name": "google",
+          "clientId": "${GOOGLE_CLIENT_ID}",
+          "scopes": ["email", "profile"]
+        },
+        {
+          "name": "github",
+          "clientId": "${GITHUB_CLIENT_ID}",
+          "scopes": ["user:email"]
+        }
+      ]
+    }
+  },
+
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "outputs": [
+      {
+        "type": "console",
+        "colorize": true
+      },
+      {
+        "type": "file",
+        "path": "/var/log/app/app.log",
+        "maxSize": "10MB",
+        "maxFiles": 5
+      }
+    ],
+    "metadata": {
+      "service": "sample-app",
+      "version": "1.0.0"
+    }
+  },
+
+  "features": {
+    "newDashboard": {
+      "enabled": true,
+      "rolloutPercentage": 50,
+      "allowedUsers": ["admin", "beta-tester"]
+    },
+    "darkMode": {
+      "enabled": true,
+      "default": false
+    },
+    "experimentalApi": {
+      "enabled": false
+    }
+  },
+
+  "rateLimiting": {
+    "enabled": true,
+    "rules": [
+      {
+        "path": "/api/*",
+        "limit": 100,
+        "windowMs": 60000
+      },
+      {
+        "path": "/api/auth/*",
+        "limit": 10,
+        "windowMs": 60000
+      }
+    ]
+  },
+
+  "cors": {
+    "enabled": true,
+    "origins": [
+      "https://example.com",
+      "https://app.example.com"
+    ],
+    "methods": ["GET", "POST", "PUT", "DELETE"],
+    "allowedHeaders": ["Content-Type", "Authorization"],
+    "credentials": true,
+    "maxAge": 86400
+  },
+
+  "data": {
+    "primitives": {
+      "string": "Hello, World!",
+      "number": 42,
+      "float": 3.14159,
+      "boolean": true,
+      "null": null
+    },
+    "arrays": {
+      "empty": [],
+      "numbers": [1, 2, 3, 4, 5],
+      "mixed": [1, "two", true, null, {"nested": "object"}],
+      "nested": [[1, 2], [3, 4], [5, 6]]
+    },
+    "special": {
+      "unicode": "Hello, \u4e16\u754c!",
+      "escaped": "Line 1\nLine 2\tTabbed",
+      "emoji": "Hello 👋 World 🌍"
+    }
+  },
+
+  "metadata": {
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T15:45:00.000Z",
+    "tags": ["config", "sample", "tree-sitter"],
+    "maintainers": [
+      {
+        "name": "Developer",
+        "email": "dev@example.com"
+      }
+    ]
+  }
+}

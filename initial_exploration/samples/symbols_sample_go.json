@@ -1,0 +1,110 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/go/sample.go",
+    "language": "go",
+    "format_family": "code_systems"
+  },
+  "root": {
+    "id": "file:sample_repo/go/sample.go",
+    "category": "file",
+    "kind": "source_file",
+    "name": "sample.go",
+    "qualified_name": "sample.go",
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 89,
+      "start_byte": 0,
+      "end_byte": 2100
+    },
+    "content": "// Package sample provides utilities for data processing.\npackage sample\n\nimport (\n\t\"fmt\"\n\t\"strings\"\n)\n\n// DataProcessor handles data transformation operations.\ntype DataProcessor struct {\n\tName  string\n\tcache map[string]string\n}\n\n// NewDataProcessor creates a new DataProcessor instance.\nfunc NewDataProcessor(name string) *DataProcessor {\n\treturn &DataProcessor{\n\t\tName:  name,\n\t\tcache: make(map[string]string),\n\t}\n}\n\n// Process transforms a slice of strings.\nfunc (dp *DataProcessor) Process(data []string) []string {\n\tresult := make([]string, len(data))\n\tfor i, item := range data {\n\t\tresult[i] = dp.transform(item)\n\t}\n\treturn result\n}\n\n// transform converts a single item.\nfunc (dp *DataProcessor) transform(item string) string {\n\tif cached, ok := dp.cache[item]; ok {\n\t\treturn cached\n\t}\n\tresult := strings.ToUpper(strings.TrimSpace(item))\n\tdp.cache[item] = result\n\treturn result\n}\n\n// StandaloneFunc is a package-level function.\nfunc StandaloneFunc(x, y int) int {\n\thelper := func(val int) int {\n\t\treturn val * 2\n\t}\n\treturn helper(x) + helper(y)\n}\n",
+    "children": [
+      {
+        "id": "type:sample_repo/go/sample.go:DataProcessor",
+        "category": "type",
+        "kind": "type_declaration",
+        "name": "DataProcessor",
+        "qualified_name": "DataProcessor",
+        "signature": "type DataProcessor struct {",
+        "doc": null,
+        "location": {
+          "start_line": 10,
+          "end_line": 13,
+          "start_byte": 145,
+          "end_byte": 234
+        },
+        "content": "type DataProcessor struct {\n\tName  string\n\tcache map[string]string\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:NewDataProcessor",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "NewDataProcessor",
+        "qualified_name": "NewDataProcessor",
+        "signature": "func NewDataProcessor(name string) *DataProcessor {",
+        "doc": null,
+        "location": {
+          "start_line": 16,
+          "end_line": 21,
+          "start_byte": 290,
+          "end_byte": 412
+        },
+        "content": "func NewDataProcessor(name string) *DataProcessor {\n\treturn &DataProcessor{\n\t\tName:  name,\n\t\tcache: make(map[string]string),\n\t}\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:DataProcessor.Process",
+        "category": "callable",
+        "kind": "method_declaration",
+        "name": "Process",
+        "qualified_name": "DataProcessor.Process",
+        "signature": "func (dp *DataProcessor) Process(data []string) []string {",
+        "doc": null,
+        "location": {
+          "start_line": 24,
+          "end_line": 30,
+          "start_byte": 460,
+          "end_byte": 612
+        },
+        "content": "func (dp *DataProcessor) Process(data []string) []string {\n\tresult := make([]string, len(data))\n\tfor i, item := range data {\n\t\tresult[i] = dp.transform(item)\n\t}\n\treturn result\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:DataProcessor.transform",
+        "category": "callable",
+        "kind": "method_declaration",
+        "name": "transform",
+        "qualified_name": "DataProcessor.transform",
+        "signature": "func (dp *DataProcessor) transform(item string) string {",
+        "doc": null,
+        "location": {
+          "start_line": 33,
+          "end_line": 40,
+          "start_byte": 660,
+          "end_byte": 890
+        },
+        "content": "func (dp *DataProcessor) transform(item string) string {\n\tif cached, ok := dp.cache[item]; ok {\n\t\treturn cached\n\t}\n\tresult := strings.ToUpper(strings.TrimSpace(item))\n\tdp.cache[item] = result\n\treturn result\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/go/sample.go:StandaloneFunc",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "StandaloneFunc",
+        "qualified_name": "StandaloneFunc",
+        "signature": "func StandaloneFunc(x, y int) int {",
+        "doc": null,
+        "location": {
+          "start_line": 43,
+          "end_line": 48,
+          "start_byte": 940,
+          "end_byte": 1056
+        },
+        "content": "func StandaloneFunc(x, y int) int {\n\thelper := func(val int) int {\n\t\treturn val * 2\n\t}\n\treturn helper(x) + helper(y)\n}",
+        "children": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,302 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/python/sample.py",
+    "language": "python",
+    "format_family": "code_oop"
+  },
+  "root": {
+    "id": "file:sample_repo/python/sample.py",
+    "category": "file",
+    "kind": "module",
+    "name": "sample.py",
+    "qualified_name": "sample.py",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 85,
+      "start_byte": 0,
+      "end_byte": 1824
+    },
+    "content": "\"\"\"Sample Python file for tree-sitter exploration.\"\"\"\n\nfrom typing import List, Optional\nimport asyncio\n\n\ndef standalone_function(x: int, y: int) -> int:\n    \"\"\"A standalone function.\"\"\"\n    return x + y\n\n\nclass Calculator:\n    \"\"\"A sample class with various method types.\"\"\"\n\n    class_variable: int = 0\n\n    def __init__(self, name: str = \"calc\"):\n        self.name = name\n        self._value = 0\n\n    def add(self, a: int, b: int) -> int:\n        \"\"\"Instance method.\"\"\"\n        return a + b\n\n    @staticmethod\n    def multiply(a: int, b: int) -> int:\n        \"\"\"Static method.\"\"\"\n        return a * b\n\n    @classmethod\n    def from_value(cls, value: int) -> \"Calculator\":\n        \"\"\"Class method.\"\"\"\n        calc = cls()\n        calc._value = value\n        return calc\n\n    @property\n    def value(self) -> int:\n        \"\"\"Property getter.\"\"\"\n        return self._value\n\n    async def fetch_data(self, url: str) -> dict:\n        \"\"\"Async method.\"\"\"\n        await asyncio.sleep(0.1)\n        return {\"url\": url, \"data\": \"sample\"}\n\n\nclass AdvancedCalculator(Calculator):\n    \"\"\"Inheritance example.\"\"\"\n\n    def add(self, a: int, b: int) -> int:\n        \"\"\"Override method.\"\"\"\n        result = super().add(a, b)\n        return result\n\n\n# Decorators and nested functions\ndef decorator(func):\n    \"\"\"A simple decorator.\"\"\"\n    def wrapper(*args, **kwargs):\n        return func(*args, **kwargs)\n    return wrapper\n\n\n@decorator\ndef decorated_function():\n    \"\"\"Decorated function.\"\"\"\n    pass\n\n\n# Comprehensions and lambdas\nsquares = [x**2 for x in range(10)]\nsquare_dict = {x: x**2 for x in range(5)}\nevens = {x for x in range(10) if x % 2 == 0}\ndouble = lambda x: x * 2\n\n\n# Context manager\nclass FileHandler:\n    def __enter__(self):\n        return self\n\n    def __exit__(self, exc_type, exc_val, exc_tb):\n        return False\n",
+    "children": [
+      {
+        "id": "callable:sample_repo/python/sample.py:standalone_function",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "standalone_function",
+        "qualified_name": "standalone_function",
+        "signature": "def standalone_function(x:",
+        "doc": null,
+        "location": {
+          "start_line": 7,
+          "end_line": 9,
+          "start_byte": 106,
+          "end_byte": 203
+        },
+        "content": "def standalone_function(x: int, y: int) -> int:\n    \"\"\"A standalone function.\"\"\"\n    return x + y",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/python/sample.py:Calculator",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "Calculator",
+        "qualified_name": "Calculator",
+        "signature": "class Calculator:",
+        "doc": null,
+        "location": {
+          "start_line": 12,
+          "end_line": 45,
+          "start_byte": 206,
+          "end_byte": 1030
+        },
+        "content": "class Calculator:\n    \"\"\"A sample class with various method types.\"\"\"\n\n    class_variable: int = 0\n\n    def __init__(self, name: str = \"calc\"):\n        self.name = name\n        self._value = 0\n\n    def add(self, a: int, b: int) -> int:\n        \"\"\"Instance method.\"\"\"\n        return a + b\n\n    @staticmethod\n    def multiply(a: int, b: int) -> int:\n        \"\"\"Static method.\"\"\"\n        return a * b\n\n    @classmethod\n    def from_value(cls, value: int) -> \"Calculator\":\n        \"\"\"Class method.\"\"\"\n        calc = cls()\n        calc._value = value\n        return calc\n\n    @property\n    def value(self) -> int:\n        \"\"\"Property getter.\"\"\"\n        return self._value\n\n    async def fetch_data(self, url: str) -> dict:\n        \"\"\"Async method.\"\"\"\n        await asyncio.sleep(0.1)\n        return {\"url\": url, \"data\": \"sample\"}",
+        "children": [
+          {
+            "id": "callable:sample_repo/python/sample.py:Calculator.__init__",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "__init__",
+            "qualified_name": "Calculator.__init__",
+            "signature": "def __init__(self, name:",
+            "doc": null,
+            "location": {
+              "start_line": 17,
+              "end_line": 19,
+              "start_byte": 310,
+              "end_byte": 398
+            },
+            "content": "def __init__(self, name: str = \"calc\"):\n        self.name = name\n        self._value = 0",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/python/sample.py:Calculator.add",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "add",
+            "qualified_name": "Calculator.add",
+            "signature": "def add(self, a:",
+            "doc": null,
+            "location": {
+              "start_line": 21,
+              "end_line": 23,
+              "start_byte": 404,
+              "end_byte": 493
+            },
+            "content": "def add(self, a: int, b: int) -> int:\n        \"\"\"Instance method.\"\"\"\n        return a + b",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/python/sample.py:Calculator.multiply",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "multiply",
+            "qualified_name": "Calculator.multiply",
+            "signature": "def multiply(a:",
+            "doc": null,
+            "location": {
+              "start_line": 26,
+              "end_line": 28,
+              "start_byte": 517,
+              "end_byte": 603
+            },
+            "content": "def multiply(a: int, b: int) -> int:\n        \"\"\"Static method.\"\"\"\n        return a * b",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/python/sample.py:Calculator.from_value",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "from_value",
+            "qualified_name": "Calculator.from_value",
+            "signature": "def from_value(cls, value:",
+            "doc": null,
+            "location": {
+              "start_line": 31,
+              "end_line": 35,
+              "start_byte": 626,
+              "end_byte": 771
+            },
+            "content": "def from_value(cls, value: int) -> \"Calculator\":\n        \"\"\"Class method.\"\"\"\n        calc = cls()\n        calc._value = value\n        return calc",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/python/sample.py:Calculator.value",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "value",
+            "qualified_name": "Calculator.value",
+            "signature": "def value(self) -> int:",
+            "doc": null,
+            "location": {
+              "start_line": 38,
+              "end_line": 40,
+              "start_byte": 791,
+              "end_byte": 872
+            },
+            "content": "def value(self) -> int:\n        \"\"\"Property getter.\"\"\"\n        return self._value",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/python/sample.py:Calculator.fetch_data",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "fetch_data",
+            "qualified_name": "Calculator.fetch_data",
+            "signature": "async def fetch_data(self, url:",
+            "doc": null,
+            "location": {
+              "start_line": 42,
+              "end_line": 45,
+              "start_byte": 878,
+              "end_byte": 1030
+            },
+            "content": "async def fetch_data(self, url: str) -> dict:\n        \"\"\"Async method.\"\"\"\n        await asyncio.sleep(0.1)\n        return {\"url\": url, \"data\": \"sample\"}",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/python/sample.py:AdvancedCalculator",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "AdvancedCalculator",
+        "qualified_name": "AdvancedCalculator",
+        "signature": "class AdvancedCalculator(Calculator):",
+        "doc": null,
+        "location": {
+          "start_line": 48,
+          "end_line": 54,
+          "start_byte": 1033,
+          "end_byte": 1232
+        },
+        "content": "class AdvancedCalculator(Calculator):\n    \"\"\"Inheritance example.\"\"\"\n\n    def add(self, a: int, b: int) -> int:\n        \"\"\"Override method.\"\"\"\n        result = super().add(a, b)\n        return result",
+        "children": [
+          {
+            "id": "callable:sample_repo/python/sample.py:AdvancedCalculator.add",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "add",
+            "qualified_name": "AdvancedCalculator.add",
+            "signature": "def add(self, a:",
+            "doc": null,
+            "location": {
+              "start_line": 51,
+              "end_line": 54,
+              "start_byte": 1107,
+              "end_byte": 1232
+            },
+            "content": "def add(self, a: int, b: int) -> int:\n        \"\"\"Override method.\"\"\"\n        result = super().add(a, b)\n        return result",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/python/sample.py:decorator",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "decorator",
+        "qualified_name": "decorator",
+        "signature": "def decorator(func):",
+        "doc": null,
+        "location": {
+          "start_line": 58,
+          "end_line": 62,
+          "start_byte": 1269,
+          "end_byte": 1409
+        },
+        "content": "def decorator(func):\n    \"\"\"A simple decorator.\"\"\"\n    def wrapper(*args, **kwargs):\n        return func(*args, **kwargs)\n    return wrapper",
+        "children": [
+          {
+            "id": "callable:sample_repo/python/sample.py:decorator.wrapper",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "wrapper",
+            "qualified_name": "decorator.wrapper",
+            "signature": "def wrapper(*args, **kwargs):",
+            "doc": null,
+            "location": {
+              "start_line": 60,
+              "end_line": 61,
+              "start_byte": 1324,
+              "end_byte": 1390
+            },
+            "content": "def wrapper(*args, **kwargs):\n        return func(*args, **kwargs)",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/python/sample.py:decorated_function",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "decorated_function",
+        "qualified_name": "decorated_function",
+        "signature": "def decorated_function():",
+        "doc": null,
+        "location": {
+          "start_line": 66,
+          "end_line": 68,
+          "start_byte": 1423,
+          "end_byte": 1487
+        },
+        "content": "def decorated_function():\n    \"\"\"Decorated function.\"\"\"\n    pass",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/python/sample.py:FileHandler",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "FileHandler",
+        "qualified_name": "FileHandler",
+        "signature": "class FileHandler:",
+        "doc": null,
+        "location": {
+          "start_line": 79,
+          "end_line": 84,
+          "start_byte": 1687,
+          "end_byte": 1823
+        },
+        "content": "class FileHandler:\n    def __enter__(self):\n        return self\n\n    def __exit__(self, exc_type, exc_val, exc_tb):\n        return False",
+        "children": [
+          {
+            "id": "callable:sample_repo/python/sample.py:FileHandler.__enter__",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "__enter__",
+            "qualified_name": "FileHandler.__enter__",
+            "signature": "def __enter__(self):",
+            "doc": null,
+            "location": {
+              "start_line": 80,
+              "end_line": 81,
+              "start_byte": 1710,
+              "end_byte": 1750
+            },
+            "content": "def __enter__(self):\n        return self",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/python/sample.py:FileHandler.__exit__",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "__exit__",
+            "qualified_name": "FileHandler.__exit__",
+            "signature": "def __exit__(self, exc_type, exc_val, exc_tb):",
+            "doc": null,
+            "location": {
+              "start_line": 83,
+              "end_line": 84,
+              "start_byte": 1756,
+              "end_byte": 1823
+            },
+            "content": "def __exit__(self, exc_type, exc_val, exc_tb):\n        return False",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

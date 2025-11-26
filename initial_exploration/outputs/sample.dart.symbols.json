@@ -1,0 +1,179 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/dart/sample.dart",
+    "language": "dart",
+    "format_family": "code_oop"
+  },
+  "root": {
+    "id": "file:sample_repo/dart/sample.dart",
+    "category": "file",
+    "kind": "program",
+    "name": "sample.dart",
+    "qualified_name": "sample.dart",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 237,
+      "start_byte": 0,
+      "end_byte": 5100
+    },
+    "content": "/// Sample Dart file for tree-sitter exploration.\n/// Includes Flutter-style patterns and modern Dart features.\n\nimport 'dart:async';\nimport 'dart:convert';\n\n// Type alias\ntypedef JsonMap = Map<String, dynamic>;\ntypedef Callback<T> = void Function(T value);\n\n// Enum with enhanced features (Dart 2.17+)\nenum Status {\n  pending('Pending'),\n  active('Active'),\n  inactive('Inactive');\n\n  const Status(this.label);\n  final String label;\n\n  bool get isTerminal => this == inactive;\n}\n\n// Abstract class (interface)\nabstract class Repository<T> {\n  Future<T?> find(String id);\n  Future<void> save(T item);\n  Future<bool> delete(String id);\n}\n\n// Mixin\nmixin Timestamped {\n  DateTime? createdAt;\n  DateTime? updatedAt;\n\n  void touch() {\n    updatedAt = DateTime.now();\n  }\n}\n\nmixin Identifiable {\n  String get id;\n}\n\n// Class with mixins\nclass User with Timestamped, Identifiable {\n  @override\n  final String id;\n  String name;\n  String? email;\n  Status _status = Status.pending;\n\n  // Constructor with initializer list\n  User({\n    required this.id,\n    required this.name,\n    this.email,\n  }) : createdAt = DateTime.now();\n\n  // Named constructor\n  User.guest() : this(id: 'guest', name: 'Guest User');\n\n  // Factory constructor\n  factory User.fromJson(JsonMap json) {\n    return User(\n      id: json['id'] as String,\n      name: json['name'] as String,\n      email: json['email'] as String?,\n    );\n  }\n\n  // Getter\n  Status get status => _status;\n\n  // Setter with validation\n  set status(Status value) {\n    if (_status.isTerminal) {\n      throw StateError('Cannot change terminal status');\n    }\n    _status = value;\n    touch();\n  }\n\n  // Method\n  JsonMap toJson() => {\n        'id': id,\n        'name': name,\n        'email': email,\n        'status': status.name,\n      };\n\n  // Async method\n  Future<void> activate() async {\n    await Future.delayed(const Duration(milliseconds: 100));\n    status = Status.active;\n  }\n\n  // Operator override\n  @override\n  bool operator ==(Object other) =>\n      identical(this, other) || other is User && id == other.id;\n\n  @override\n  int get hashCode => id.hashCode;\n\n  @override\n  String toString() => 'User(id: $id, name: $name)';\n}\n\n// Extension\nextension UserExtension on User {\n  String get displayName => '$name ($id)';\n\n  bool get hasEmail => email != null && email!.isNotEmpty;\n}\n\n// Extension on built-in type\nextension StringExtension on String {\n  String capitalize() =>\n      isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';\n}\n\n// Generic class\nclass InMemoryRepository<T extends Identifiable> implements Repository<T> {\n  final Map<String, T> _items = {};\n\n  @override\n  Future<T?> find(String id) async {\n    return _items[id];\n  }\n\n  @override\n  Future<void> save(T item) async {\n    _items[item.id] = item;\n  }\n\n  @override\n  Future<bool> delete(String id) async {\n    return _items.remove(id) != null;\n  }\n\n  // Stream\n  Stream<T> watchAll() async* {\n    for (final item in _items.values) {\n      yield item;\n    }\n  }\n}\n\n// Abstract class with implementation\nabstract class BaseService<T extends Identifiable> {\n  final Repository<T> repository;\n\n  BaseService(this.repository);\n\n  Future<T?> getById(String id) => repository.find(id);\n\n  // Abstract method\n  bool validate(T item);\n}\n\n// Concrete service\nclass UserService extends BaseService<User> {\n  UserService(Repository<User> repository) : super(repository);\n\n  @override\n  bool validate(User item) => item.name.isNotEmpty;\n\n  // Null-aware cascade\n  Future<User> createUser(String name, {String? email}) async {\n    final user = User(\n      id: DateTime.now().millisecondsSinceEpoch.toString(),\n      name: name,\n    )..email = email;\n\n    await repository.save(user);\n    return user;\n  }\n}\n\n// Sealed class (Dart 3.0+)\nsealed class Result<T> {\n  const Result();\n}\n\nclass Success<T> extends Result<T> {\n  final T value;\n  const Success(this.value);\n}\n\nclass Failure<T> extends Result<T> {\n  final String error;\n  const Failure(this.error);\n}\n\n// Pattern matching (Dart 3.0+)\nString handleResult(Result<User> result) {\n  return switch (result) {\n    Success(value: final user) => 'Found: ${user.name}',\n    Failure(error: final msg) => 'Error: $msg',\n  };\n}\n\n// Record type (Dart 3.0+)\ntypedef UserRecord = ({String id, String name, String? email});\n\nUserRecord toRecord(User user) => (id: user.id, name: user.name, email: user.email);\n\n// Top-level function\nFuture<void> main() async {\n  final repo = InMemoryRepository<User>();\n  final service = UserService(repo);\n\n  // Cascade notation\n  final user = await service.createUser('Alice')\n    ..email = 'alice@example.com'\n    ..status = Status.active;\n\n  print(user.displayName);\n  print('Capitalized: ${'hello'.capitalize()}');\n\n  // Collection literals with spread\n  final users = [user];\n  final moreUsers = [...users, User.guest()];\n\n  // Collection if/for\n  final activeUsers = [\n    for (final u in moreUsers)\n      if (u.status == Status.active) u\n  ];\n\n  // Null-aware operators\n  final email = user.email ?? 'no-email';\n  final length = user.email?.length ?? 0;\n\n  print('Active users: ${activeUsers.length}');\n}\n",
+    "children": [
+      {
+        "id": "type:sample_repo/dart/sample.dart:Status",
+        "category": "type",
+        "kind": "enum_declaration",
+        "name": "Status",
+        "qualified_name": "Status",
+        "signature": "enum Status {",
+        "doc": null,
+        "location": {
+          "start_line": 12,
+          "end_line": 21,
+          "start_byte": 303,
+          "end_byte": 479
+        },
+        "content": "enum Status {\n  pending('Pending'),\n  active('Active'),\n  inactive('Inactive');\n\n  const Status(this.label);\n  final String label;\n\n  bool get isTerminal => this == inactive;\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/dart/sample.dart:Repository",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "Repository",
+        "qualified_name": "Repository",
+        "signature": "abstract class Repository<T> {",
+        "doc": null,
+        "location": {
+          "start_line": 24,
+          "end_line": 28,
+          "start_byte": 511,
+          "end_byte": 636
+        },
+        "content": "abstract class Repository<T> {\n  Future<T?> find(String id);\n  Future<void> save(T item);\n  Future<bool> delete(String id);\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/dart/sample.dart:User",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "User",
+        "qualified_name": "User",
+        "signature": "class User with Timestamped, Identifiable {",
+        "doc": null,
+        "location": {
+          "start_line": 45,
+          "end_line": 107,
+          "start_byte": 832,
+          "end_byte": 2174
+        },
+        "content": "class User with Timestamped, Identifiable {\n  @override\n  final String id;\n  String name;\n  String? email;\n  Status _status = Status.pending;\n\n  // Constructor with initializer list\n  User({\n    required this.id,\n    required this.name,\n    this.email,\n  }) : createdAt = DateTime.now();\n\n  // Named constructor\n  User.guest() : this(id: 'guest', name: 'Guest User');\n\n  // Factory constructor\n  factory User.fromJson(JsonMap json) {\n    return User(\n      id: json['id'] as String,\n      name: json['name'] as String,\n      email: json['email'] as String?,\n    );\n  }\n\n  // Getter\n  Status get status => _status;\n\n  // Setter with validation\n  set status(Status value) {\n    if (_status.isTerminal) {\n      throw StateError('Cannot change terminal status');\n    }\n    _status = value;\n    touch();\n  }\n\n  // Method\n  JsonMap toJson() => {\n        'id': id,\n        'name': name,\n        'email': email,\n        'status': status.name,\n      };\n\n  // Async method\n  Future<void> activate() async {\n    await Future.delayed(const Duration(milliseconds: 100));\n    status = Status.active;\n  }\n\n  // Operator override\n  @override\n  bool operator ==(Object other) =>\n      identical(this, other) || other is User && id == other.id;\n\n  @override\n  int get hashCode => id.hashCode;\n\n  @override\n  String toString() => 'User(id: $id, name: $name)';\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/dart/sample.dart:InMemoryRepository",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "InMemoryRepository",
+        "qualified_name": "InMemoryRepository",
+        "signature": "class InMemoryRepository<T extends Identifiable> implements Repository<T> {",
+        "doc": null,
+        "location": {
+          "start_line": 123,
+          "end_line": 147,
+          "start_byte": 2508,
+          "end_byte": 2988
+        },
+        "content": "class InMemoryRepository<T extends Identifiable> implements Repository<T> {\n  final Map<String, T> _items = {};\n\n  @override\n  Future<T?> find(String id) async {\n    return _items[id];\n  }\n\n  @override\n  Future<void> save(T item) async {\n    _items[item.id] = item;\n  }\n\n  @override\n  Future<bool> delete(String id) async {\n    return _items.remove(id) != null;\n  }\n\n  // Stream\n  Stream<T> watchAll() async* {\n    for (final item in _items.values) {\n      yield item;\n    }\n  }\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/dart/sample.dart:BaseService",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "BaseService",
+        "qualified_name": "BaseService",
+        "signature": "abstract class BaseService<T extends Identifiable> {",
+        "doc": null,
+        "location": {
+          "start_line": 150,
+          "end_line": 159,
+          "start_byte": 3028,
+          "end_byte": 3253
+        },
+        "content": "abstract class BaseService<T extends Identifiable> {\n  final Repository<T> repository;\n\n  BaseService(this.repository);\n\n  Future<T?> getById(String id) => repository.find(id);\n\n  // Abstract method\n  bool validate(T item);\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/dart/sample.dart:UserService",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "UserService",
+        "qualified_name": "UserService",
+        "signature": "class UserService extends BaseService<User> {",
+        "doc": null,
+        "location": {
+          "start_line": 162,
+          "end_line": 178,
+          "start_byte": 3275,
+          "end_byte": 3718
+        },
+        "content": "class UserService extends BaseService<User> {\n  UserService(Repository<User> repository) : super(repository);\n\n  @override\n  bool validate(User item) => item.name.isNotEmpty;\n\n  // Null-aware cascade\n  Future<User> createUser(String name, {String? email}) async {\n    final user = User(\n      id: DateTime.now().millisecondsSinceEpoch.toString(),\n      name: name,\n    )..email = email;\n\n    await repository.save(user);\n    return user;\n  }\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/dart/sample.dart:Result",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "Result",
+        "qualified_name": "Result",
+        "signature": "sealed class Result<T> {",
+        "doc": null,
+        "location": {
+          "start_line": 181,
+          "end_line": 183,
+          "start_byte": 3748,
+          "end_byte": 3792
+        },
+        "content": "sealed class Result<T> {\n  const Result();\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/dart/sample.dart:Success",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "Success",
+        "qualified_name": "Success",
+        "signature": "class Success<T> extends Result<T> {",
+        "doc": null,
+        "location": {
+          "start_line": 185,
+          "end_line": 188,
+          "start_byte": 3794,
+          "end_byte": 3878
+        },
+        "content": "class Success<T> extends Result<T> {\n  final T value;\n  const Success(this.value);\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/dart/sample.dart:Failure",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "Failure",
+        "qualified_name": "Failure",
+        "signature": "class Failure<T> extends Result<T> {",
+        "doc": null,
+        "location": {
+          "start_line": 190,
+          "end_line": 193,
+          "start_byte": 3880,
+          "end_byte": 3969
+        },
+        "content": "class Failure<T> extends Result<T> {\n  final String error;\n  const Failure(this.error);\n}",
+        "children": []
+      }
+    ]
+  }
+}

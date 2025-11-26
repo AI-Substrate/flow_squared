@@ -1,0 +1,508 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/rust/sample.rs",
+    "language": "rust",
+    "format_family": "code_systems"
+  },
+  "root": {
+    "id": "file:sample_repo/rust/sample.rs",
+    "category": "file",
+    "kind": "source_file",
+    "name": "sample.rs",
+    "qualified_name": "sample.rs",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 202,
+      "start_byte": 0,
+      "end_byte": 4771
+    },
+    "content": "//! Sample Rust file for tree-sitter exploration.\n//! Includes various Rust constructs.\n\nuse std::collections::HashMap;\nuse std::fmt::{self, Display};\nuse std::sync::{Arc, Mutex};\n\n/// Custom error type\n#[derive(Debug)]\npub enum AppError {\n    NotFound(String),\n    InvalidInput { field: String, message: String },\n    Internal(Box<dyn std::error::Error>),\n}\n\nimpl Display for AppError {\n    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {\n        match self {\n            AppError::NotFound(id) => write!(f, \"Not found: {}\", id),\n            AppError::InvalidInput { field, message } => {\n                write!(f, \"Invalid {}: {}\", field, message)\n            }\n            AppError::Internal(e) => write!(f, \"Internal error: {}\", e),\n        }\n    }\n}\n\nimpl std::error::Error for AppError {}\n\n/// A trait defining repository behavior\npub trait Repository<T> {\n    fn find(&self, id: &str) -> Result<Option<T>, AppError>;\n    fn save(&mut self, item: T) -> Result<(), AppError>;\n    fn delete(&mut self, id: &str) -> Result<bool, AppError>;\n}\n\n/// User struct with derive macros\n#[derive(Debug, Clone, PartialEq)]\npub struct User {\n    pub id: String,\n    pub name: String,\n    pub email: Option<String>,\n    status: Status,\n}\n\n/// Status enum\n#[derive(Debug, Clone, Copy, PartialEq, Eq)]\npub enum Status {\n    Pending,\n    Active,\n    Inactive,\n}\n\nimpl Default for Status {\n    fn default() -> Self {\n        Status::Pending\n    }\n}\n\nimpl User {\n    /// Constructor\n    pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {\n        Self {\n            id: id.into(),\n            name: name.into(),\n            email: None,\n            status: Status::default(),\n        }\n    }\n\n    /// Builder pattern method\n    pub fn with_email(mut self, email: impl Into<String>) -> Self {\n        self.email = Some(email.into());\n        self\n    }\n\n    /// Getter\n    pub fn status(&self) -> Status {\n        self.status\n    }\n\n    /// Setter\n    pub fn set_status(&mut self, status: Status) {\n        self.status = status;\n    }\n}\n\n/// Generic struct with lifetime\npub struct Cache<'a, K, V> {\n    items: HashMap<K, V>,\n    name: &'a str,\n}\n\nimpl<'a, K, V> Cache<'a, K, V>\nwhere\n    K: std::hash::Hash + Eq,\n{\n    pub fn new(name: &'a str) -> Self {\n        Self {\n            items: HashMap::new(),\n            name,\n        }\n    }\n\n    pub fn get(&self, key: &K) -> Option<&V> {\n        self.items.get(key)\n    }\n\n    pub fn insert(&mut self, key: K, value: V) -> Option<V> {\n        self.items.insert(key, value)\n    }\n}\n\n/// In-memory repository implementation\npub struct InMemoryRepo {\n    users: Arc<Mutex<HashMap<String, User>>>,\n}\n\nimpl InMemoryRepo {\n    pub fn new() -> Self {\n        Self {\n            users: Arc::new(Mutex::new(HashMap::new())),\n        }\n    }\n}\n\nimpl Repository<User> for InMemoryRepo {\n    fn find(&self, id: &str) -> Result<Option<User>, AppError> {\n        let users = self.users.lock().map_err(|_| {\n            AppError::Internal(\"Lock poisoned\".into())\n        })?;\n        Ok(users.get(id).cloned())\n    }\n\n    fn save(&mut self, item: User) -> Result<(), AppError> {\n        let mut users = self.users.lock().map_err(|_| {\n            AppError::Internal(\"Lock poisoned\".into())\n        })?;\n        users.insert(item.id.clone(), item);\n        Ok(())\n    }\n\n    fn delete(&mut self, id: &str) -> Result<bool, AppError> {\n        let mut users = self.users.lock().map_err(|_| {\n            AppError::Internal(\"Lock poisoned\".into())\n        })?;\n        Ok(users.remove(id).is_some())\n    }\n}\n\n/// Async function\npub async fn fetch_user(id: &str) -> Result<User, AppError> {\n    // Simulated async operation\n    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;\n    Ok(User::new(id, \"Fetched User\"))\n}\n\n/// Macro definition\nmacro_rules! create_user {\n    ($id:expr, $name:expr) => {\n        User::new($id, $name)\n    };\n    ($id:expr, $name:expr, $email:expr) => {\n        User::new($id, $name).with_email($email)\n    };\n}\n\n/// Pattern matching example\npub fn process_status(status: Status) -> &'static str {\n    match status {\n        Status::Pending => \"Waiting...\",\n        Status::Active => \"Running!\",\n        Status::Inactive => \"Stopped.\",\n    }\n}\n\n/// Closure example\npub fn apply_transform<F>(users: Vec<User>, f: F) -> Vec<String>\nwhere\n    F: Fn(&User) -> String,\n{\n    users.iter().map(|u| f(u)).collect()\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn test_user_creation() {\n        let user = User::new(\"1\", \"Alice\");\n        assert_eq!(user.name, \"Alice\");\n        assert_eq!(user.status(), Status::Pending);\n    }\n\n    #[test]\n    fn test_macro() {\n        let user = create_user!(\"2\", \"Bob\", \"bob@example.com\");\n        assert!(user.email.is_some());\n    }\n}\n",
+    "children": [
+      {
+        "id": "callable:sample_repo/rust/sample.rs:Display",
+        "category": "callable",
+        "kind": "impl_item",
+        "name": "Display",
+        "qualified_name": "Display",
+        "signature": "impl Display for AppError {",
+        "doc": null,
+        "location": {
+          "start_line": 16,
+          "end_line": 26,
+          "start_byte": 360,
+          "end_byte": 765
+        },
+        "content": "impl Display for AppError {\n    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {\n        match self {\n            AppError::NotFound(id) => write!(f, \"Not found: {}\", id),\n            AppError::InvalidInput { field, message } => {\n                write!(f, \"Invalid {}: {}\", field, message)\n            }\n            AppError::Internal(e) => write!(f, \"Internal error: {}\", e),\n        }\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/rust/sample.rs:Display.fmt",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "fmt",
+            "qualified_name": "Display.fmt",
+            "signature": "fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {",
+            "doc": null,
+            "location": {
+              "start_line": 17,
+              "end_line": 25,
+              "start_byte": 392,
+              "end_byte": 763
+            },
+            "content": "fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {\n        match self {\n            AppError::NotFound(id) => write!(f, \"Not found: {}\", id),\n            AppError::InvalidInput { field, message } => {\n                write!(f, \"Invalid {}: {}\", field, message)\n            }\n            AppError::Internal(e) => write!(f, \"Internal error: {}\", e),\n        }\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:AppError",
+        "category": "callable",
+        "kind": "impl_item",
+        "name": "AppError",
+        "qualified_name": "AppError",
+        "signature": "impl std::error::Error for AppError {",
+        "doc": null,
+        "location": {
+          "start_line": 28,
+          "end_line": 28,
+          "start_byte": 767,
+          "end_byte": 805
+        },
+        "content": "impl std::error::Error for AppError {}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/rust/sample.rs:User",
+        "category": "type",
+        "kind": "struct_item",
+        "name": "User",
+        "qualified_name": "User",
+        "signature": "pub struct User {",
+        "doc": null,
+        "location": {
+          "start_line": 39,
+          "end_line": 44,
+          "start_byte": 1127,
+          "end_byte": 1239
+        },
+        "content": "pub struct User {\n    pub id: String,\n    pub name: String,\n    pub email: Option<String>,\n    status: Status,\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:Default",
+        "category": "callable",
+        "kind": "impl_item",
+        "name": "Default",
+        "qualified_name": "Default",
+        "signature": "impl Default for Status {",
+        "doc": null,
+        "location": {
+          "start_line": 54,
+          "end_line": 58,
+          "start_byte": 1362,
+          "end_byte": 1446
+        },
+        "content": "impl Default for Status {\n    fn default() -> Self {\n        Status::Pending\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/rust/sample.rs:Default.default",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "default",
+            "qualified_name": "Default.default",
+            "signature": "fn default() -> Self {",
+            "doc": null,
+            "location": {
+              "start_line": 55,
+              "end_line": 57,
+              "start_byte": 1392,
+              "end_byte": 1444
+            },
+            "content": "fn default() -> Self {\n        Status::Pending\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:User",
+        "category": "callable",
+        "kind": "impl_item",
+        "name": "User",
+        "qualified_name": "User",
+        "signature": "impl User {",
+        "doc": null,
+        "location": {
+          "start_line": 60,
+          "end_line": 86,
+          "start_byte": 1448,
+          "end_byte": 2049
+        },
+        "content": "impl User {\n    /// Constructor\n    pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {\n        Self {\n            id: id.into(),\n            name: name.into(),\n            email: None,\n            status: Status::default(),\n        }\n    }\n\n    /// Builder pattern method\n    pub fn with_email(mut self, email: impl Into<String>) -> Self {\n        self.email = Some(email.into());\n        self\n    }\n\n    /// Getter\n    pub fn status(&self) -> Status {\n        self.status\n    }\n\n    /// Setter\n    pub fn set_status(&mut self, status: Status) {\n        self.status = status;\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/rust/sample.rs:User.new",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "new",
+            "qualified_name": "User.new",
+            "signature": "pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {",
+            "doc": null,
+            "location": {
+              "start_line": 62,
+              "end_line": 69,
+              "start_byte": 1484,
+              "end_byte": 1705
+            },
+            "content": "pub fn new(id: impl Into<String>, name: impl Into<String>) -> Self {\n        Self {\n            id: id.into(),\n            name: name.into(),\n            email: None,\n            status: Status::default(),\n        }\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/rust/sample.rs:User.with_email",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "with_email",
+            "qualified_name": "User.with_email",
+            "signature": "pub fn with_email(mut self, email: impl Into<String>) -> Self {",
+            "doc": null,
+            "location": {
+              "start_line": 72,
+              "end_line": 75,
+              "start_byte": 1742,
+              "end_byte": 1865
+            },
+            "content": "pub fn with_email(mut self, email: impl Into<String>) -> Self {\n        self.email = Some(email.into());\n        self\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/rust/sample.rs:User.status",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "status",
+            "qualified_name": "User.status",
+            "signature": "pub fn status(&self) -> Status {",
+            "doc": null,
+            "location": {
+              "start_line": 78,
+              "end_line": 80,
+              "start_byte": 1886,
+              "end_byte": 1944
+            },
+            "content": "pub fn status(&self) -> Status {\n        self.status\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/rust/sample.rs:User.set_status",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "set_status",
+            "qualified_name": "User.set_status",
+            "signature": "pub fn set_status(&mut self, status: Status) {",
+            "doc": null,
+            "location": {
+              "start_line": 83,
+              "end_line": 85,
+              "start_byte": 1965,
+              "end_byte": 2047
+            },
+            "content": "pub fn set_status(&mut self, status: Status) {\n        self.status = status;\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/rust/sample.rs:Cache",
+        "category": "type",
+        "kind": "struct_item",
+        "name": "Cache",
+        "qualified_name": "Cache",
+        "signature": "pub struct Cache<'a, K, V> {",
+        "doc": null,
+        "location": {
+          "start_line": 89,
+          "end_line": 92,
+          "start_byte": 2084,
+          "end_byte": 2159
+        },
+        "content": "pub struct Cache<'a, K, V> {\n    items: HashMap<K, V>,\n    name: &'a str,\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:impl_item_94",
+        "category": "callable",
+        "kind": "impl_item",
+        "name": "impl_item_94",
+        "qualified_name": "impl_item_94",
+        "signature": "impl<'a, K, V> Cache<'a, K, V>",
+        "doc": null,
+        "location": {
+          "start_line": 94,
+          "end_line": 112,
+          "start_byte": 2161,
+          "end_byte": 2543
+        },
+        "content": "impl<'a, K, V> Cache<'a, K, V>\nwhere\n    K: std::hash::Hash + Eq,\n{\n    pub fn new(name: &'a str) -> Self {\n        Self {\n            items: HashMap::new(),\n            name,\n        }\n    }\n\n    pub fn get(&self, key: &K) -> Option<&V> {\n        self.items.get(key)\n    }\n\n    pub fn insert(&mut self, key: K, value: V) -> Option<V> {\n        self.items.insert(key, value)\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/rust/sample.rs:impl_item_94.new",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "new",
+            "qualified_name": "impl_item_94.new",
+            "signature": "pub fn new(name: &'a str) -> Self {",
+            "doc": null,
+            "location": {
+              "start_line": 98,
+              "end_line": 103,
+              "start_byte": 2233,
+              "end_byte": 2352
+            },
+            "content": "pub fn new(name: &'a str) -> Self {\n        Self {\n            items: HashMap::new(),\n            name,\n        }\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/rust/sample.rs:impl_item_94.get",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "get",
+            "qualified_name": "impl_item_94.get",
+            "signature": "pub fn get(&self, key: &K) -> Option<&V> {",
+            "doc": null,
+            "location": {
+              "start_line": 105,
+              "end_line": 107,
+              "start_byte": 2358,
+              "end_byte": 2434
+            },
+            "content": "pub fn get(&self, key: &K) -> Option<&V> {\n        self.items.get(key)\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/rust/sample.rs:impl_item_94.insert",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "insert",
+            "qualified_name": "impl_item_94.insert",
+            "signature": "pub fn insert(&mut self, key: K, value: V) -> Option<V> {",
+            "doc": null,
+            "location": {
+              "start_line": 109,
+              "end_line": 111,
+              "start_byte": 2440,
+              "end_byte": 2541
+            },
+            "content": "pub fn insert(&mut self, key: K, value: V) -> Option<V> {\n        self.items.insert(key, value)\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/rust/sample.rs:InMemoryRepo",
+        "category": "type",
+        "kind": "struct_item",
+        "name": "InMemoryRepo",
+        "qualified_name": "InMemoryRepo",
+        "signature": "pub struct InMemoryRepo {",
+        "doc": null,
+        "location": {
+          "start_line": 115,
+          "end_line": 117,
+          "start_byte": 2585,
+          "end_byte": 2658
+        },
+        "content": "pub struct InMemoryRepo {\n    users: Arc<Mutex<HashMap<String, User>>>,\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:InMemoryRepo",
+        "category": "callable",
+        "kind": "impl_item",
+        "name": "InMemoryRepo",
+        "qualified_name": "InMemoryRepo",
+        "signature": "impl InMemoryRepo {",
+        "doc": null,
+        "location": {
+          "start_line": 119,
+          "end_line": 125,
+          "start_byte": 2660,
+          "end_byte": 2796
+        },
+        "content": "impl InMemoryRepo {\n    pub fn new() -> Self {\n        Self {\n            users: Arc::new(Mutex::new(HashMap::new())),\n        }\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/rust/sample.rs:InMemoryRepo.new",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "new",
+            "qualified_name": "InMemoryRepo.new",
+            "signature": "pub fn new() -> Self {",
+            "doc": null,
+            "location": {
+              "start_line": 120,
+              "end_line": 124,
+              "start_byte": 2684,
+              "end_byte": 2794
+            },
+            "content": "pub fn new() -> Self {\n        Self {\n            users: Arc::new(Mutex::new(HashMap::new())),\n        }\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:InMemoryRepo",
+        "category": "callable",
+        "kind": "impl_item",
+        "name": "InMemoryRepo",
+        "qualified_name": "InMemoryRepo",
+        "signature": "impl Repository<User> for InMemoryRepo {",
+        "doc": null,
+        "location": {
+          "start_line": 127,
+          "end_line": 149,
+          "start_byte": 2798,
+          "end_byte": 3551
+        },
+        "content": "impl Repository<User> for InMemoryRepo {\n    fn find(&self, id: &str) -> Result<Option<User>, AppError> {\n        let users = self.users.lock().map_err(|_| {\n            AppError::Internal(\"Lock poisoned\".into())\n        })?;\n        Ok(users.get(id).cloned())\n    }\n\n    fn save(&mut self, item: User) -> Result<(), AppError> {\n        let mut users = self.users.lock().map_err(|_| {\n            AppError::Internal(\"Lock poisoned\".into())\n        })?;\n        users.insert(item.id.clone(), item);\n        Ok(())\n    }\n\n    fn delete(&mut self, id: &str) -> Result<bool, AppError> {\n        let mut users = self.users.lock().map_err(|_| {\n            AppError::Internal(\"Lock poisoned\".into())\n        })?;\n        Ok(users.remove(id).is_some())\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/rust/sample.rs:InMemoryRepo.find",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "find",
+            "qualified_name": "InMemoryRepo.find",
+            "signature": "fn find(&self, id: &str) -> Result<Option<User>, AppError> {",
+            "doc": null,
+            "location": {
+              "start_line": 128,
+              "end_line": 133,
+              "start_byte": 2843,
+              "end_byte": 3064
+            },
+            "content": "fn find(&self, id: &str) -> Result<Option<User>, AppError> {\n        let users = self.users.lock().map_err(|_| {\n            AppError::Internal(\"Lock poisoned\".into())\n        })?;\n        Ok(users.get(id).cloned())\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/rust/sample.rs:InMemoryRepo.save",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "save",
+            "qualified_name": "InMemoryRepo.save",
+            "signature": "fn save(&mut self, item: User) -> Result<(), AppError> {",
+            "doc": null,
+            "location": {
+              "start_line": 135,
+              "end_line": 141,
+              "start_byte": 3070,
+              "end_byte": 3316
+            },
+            "content": "fn save(&mut self, item: User) -> Result<(), AppError> {\n        let mut users = self.users.lock().map_err(|_| {\n            AppError::Internal(\"Lock poisoned\".into())\n        })?;\n        users.insert(item.id.clone(), item);\n        Ok(())\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/rust/sample.rs:InMemoryRepo.delete",
+            "category": "callable",
+            "kind": "function_item",
+            "name": "delete",
+            "qualified_name": "InMemoryRepo.delete",
+            "signature": "fn delete(&mut self, id: &str) -> Result<bool, AppError> {",
+            "doc": null,
+            "location": {
+              "start_line": 143,
+              "end_line": 148,
+              "start_byte": 3322,
+              "end_byte": 3549
+            },
+            "content": "fn delete(&mut self, id: &str) -> Result<bool, AppError> {\n        let mut users = self.users.lock().map_err(|_| {\n            AppError::Internal(\"Lock poisoned\".into())\n        })?;\n        Ok(users.remove(id).is_some())\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:fetch_user",
+        "category": "callable",
+        "kind": "function_item",
+        "name": "fetch_user",
+        "qualified_name": "fetch_user",
+        "signature": "pub async fn fetch_user(id: &str) -> Result<User, AppError> {",
+        "doc": null,
+        "location": {
+          "start_line": 152,
+          "end_line": 156,
+          "start_byte": 3572,
+          "end_byte": 3777
+        },
+        "content": "pub async fn fetch_user(id: &str) -> Result<User, AppError> {\n    // Simulated async operation\n    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;\n    Ok(User::new(id, \"Fetched User\"))\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:process_status",
+        "category": "callable",
+        "kind": "function_item",
+        "name": "process_status",
+        "qualified_name": "process_status",
+        "signature": "pub fn process_status(status: Status) -> &'static str {",
+        "doc": null,
+        "location": {
+          "start_line": 169,
+          "end_line": 175,
+          "start_byte": 4029,
+          "end_byte": 4230
+        },
+        "content": "pub fn process_status(status: Status) -> &'static str {\n    match status {\n        Status::Pending => \"Waiting...\",\n        Status::Active => \"Running!\",\n        Status::Inactive => \"Stopped.\",\n    }\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:apply_transform",
+        "category": "callable",
+        "kind": "function_item",
+        "name": "apply_transform",
+        "qualified_name": "apply_transform",
+        "signature": "pub fn apply_transform<F>(users:",
+        "doc": null,
+        "location": {
+          "start_line": 178,
+          "end_line": 183,
+          "start_byte": 4252,
+          "end_byte": 4395
+        },
+        "content": "pub fn apply_transform<F>(users: Vec<User>, f: F) -> Vec<String>\nwhere\n    F: Fn(&User) -> String,\n{\n    users.iter().map(|u| f(u)).collect()\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:test_user_creation",
+        "category": "callable",
+        "kind": "function_item",
+        "name": "test_user_creation",
+        "qualified_name": "test_user_creation",
+        "signature": "fn test_user_creation() {",
+        "doc": null,
+        "location": {
+          "start_line": 190,
+          "end_line": 194,
+          "start_byte": 4457,
+          "end_byte": 4624
+        },
+        "content": "fn test_user_creation() {\n        let user = User::new(\"1\", \"Alice\");\n        assert_eq!(user.name, \"Alice\");\n        assert_eq!(user.status(), Status::Pending);\n    }",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/rust/sample.rs:test_macro",
+        "category": "callable",
+        "kind": "function_item",
+        "name": "test_macro",
+        "qualified_name": "test_macro",
+        "signature": "fn test_macro() {",
+        "doc": null,
+        "location": {
+          "start_line": 197,
+          "end_line": 200,
+          "start_byte": 4642,
+          "end_byte": 4768
+        },
+        "content": "fn test_macro() {\n        let user = create_user!(\"2\", \"Bob\", \"bob@example.com\");\n        assert!(user.email.is_some());\n    }",
+        "children": []
+      }
+    ]
+  }
+}

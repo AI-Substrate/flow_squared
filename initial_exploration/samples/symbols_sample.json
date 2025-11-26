@@ -1,0 +1,128 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/python/sample.py",
+    "language": "python",
+    "format_family": "code_oop"
+  },
+  "root": {
+    "id": "file:sample_repo/python/sample.py",
+    "category": "file",
+    "kind": "module",
+    "name": "sample.py",
+    "qualified_name": "sample.py",
+    "location": {
+      "start_line": 1,
+      "end_line": 85,
+      "start_byte": 0,
+      "end_byte": 2456
+    },
+    "content": "#!/usr/bin/env python3\n\"\"\"Sample Python module for tree-sitter exploration.\"\"\"\n\nimport os\nfrom typing import Optional, List\n\n\nclass DataProcessor:\n    \"\"\"Process data with various transformations.\"\"\"\n    \n    def __init__(self, name: str):\n        \"\"\"Initialize the processor.\"\"\"\n        self.name = name\n        self._cache = {}\n    \n    def process(self, data: List[str]) -> List[str]:\n        \"\"\"Process a list of strings.\n        \n        Args:\n            data: Input strings to process\n            \n        Returns:\n            Processed strings\n        \"\"\"\n        return [self._transform(item) for item in data]\n    \n    def _transform(self, item: str) -> str:\n        \"\"\"Transform a single item.\"\"\"\n        if item in self._cache:\n            return self._cache[item]\n        result = item.upper().strip()\n        self._cache[item] = result\n        return result\n\n\ndef standalone_function(x: int, y: int) -> int:\n    \"\"\"A standalone function outside any class.\"\"\"\n    \n    def nested_helper(val: int) -> int:\n        \"\"\"A nested function inside standalone_function.\"\"\"\n        return val * 2\n    \n    return nested_helper(x) + nested_helper(y)\n\n\nif __name__ == \"__main__\":\n    processor = DataProcessor(\"main\")\n    result = processor.process([\"hello\", \"world\"])\n    print(result)\n",
+    "children": [
+      {
+        "id": "type:sample_repo/python/sample.py:DataProcessor",
+        "category": "type",
+        "kind": "class_definition",
+        "name": "DataProcessor",
+        "qualified_name": "DataProcessor",
+        "signature": "class DataProcessor:",
+        "doc": null,
+        "location": {
+          "start_line": 8,
+          "end_line": 34,
+          "start_byte": 156,
+          "end_byte": 892
+        },
+        "content": "class DataProcessor:\n    \"\"\"Process data with various transformations.\"\"\"\n    \n    def __init__(self, name: str):\n        \"\"\"Initialize the processor.\"\"\"\n        self.name = name\n        self._cache = {}\n    \n    def process(self, data: List[str]) -> List[str]:\n        \"\"\"Process a list of strings.\n        \n        Args:\n            data: Input strings to process\n            \n        Returns:\n            Processed strings\n        \"\"\"\n        return [self._transform(item) for item in data]\n    \n    def _transform(self, item: str) -> str:\n        \"\"\"Transform a single item.\"\"\"\n        if item in self._cache:\n            return self._cache[item]\n        result = item.upper().strip()\n        self._cache[item] = result\n        return result",
+        "children": [
+          {
+            "id": "callable:sample_repo/python/sample.py:DataProcessor.__init__",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "__init__",
+            "qualified_name": "DataProcessor.__init__",
+            "signature": "def __init__(self, name: str):",
+            "doc": null,
+            "location": {
+              "start_line": 11,
+              "end_line": 14,
+              "start_byte": 234,
+              "end_byte": 356
+            },
+            "content": "def __init__(self, name: str):\n    \"\"\"Initialize the processor.\"\"\"\n    self.name = name\n    self._cache = {}",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/python/sample.py:DataProcessor.process",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "process",
+            "qualified_name": "DataProcessor.process",
+            "signature": "def process(self, data: List[str]) -> List[str]:",
+            "doc": null,
+            "location": {
+              "start_line": 16,
+              "end_line": 25,
+              "start_byte": 362,
+              "end_byte": 598
+            },
+            "content": "def process(self, data: List[str]) -> List[str]:\n    \"\"\"Process a list of strings.\n    \n    Args:\n        data: Input strings to process\n        \n    Returns:\n        Processed strings\n    \"\"\"\n    return [self._transform(item) for item in data]",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/python/sample.py:DataProcessor._transform",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "_transform",
+            "qualified_name": "DataProcessor._transform",
+            "signature": "def _transform(self, item: str) -> str:",
+            "doc": null,
+            "location": {
+              "start_line": 27,
+              "end_line": 34,
+              "start_byte": 604,
+              "end_byte": 892
+            },
+            "content": "def _transform(self, item: str) -> str:\n    \"\"\"Transform a single item.\"\"\"\n    if item in self._cache:\n        return self._cache[item]\n    result = item.upper().strip()\n    self._cache[item] = result\n    return result",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/python/sample.py:standalone_function",
+        "category": "callable",
+        "kind": "function_definition",
+        "name": "standalone_function",
+        "qualified_name": "standalone_function",
+        "signature": "def standalone_function(x: int, y: int) -> int:",
+        "doc": null,
+        "location": {
+          "start_line": 37,
+          "end_line": 45,
+          "start_byte": 895,
+          "end_byte": 1156
+        },
+        "content": "def standalone_function(x: int, y: int) -> int:\n    \"\"\"A standalone function outside any class.\"\"\"\n    \n    def nested_helper(val: int) -> int:\n        \"\"\"A nested function inside standalone_function.\"\"\"\n        return val * 2\n    \n    return nested_helper(x) + nested_helper(y)",
+        "children": [
+          {
+            "id": "callable:sample_repo/python/sample.py:standalone_function.nested_helper",
+            "category": "callable",
+            "kind": "function_definition",
+            "name": "nested_helper",
+            "qualified_name": "standalone_function.nested_helper",
+            "signature": "def nested_helper(val: int) -> int:",
+            "doc": null,
+            "location": {
+              "start_line": 40,
+              "end_line": 43,
+              "start_byte": 1012,
+              "end_byte": 1120
+            },
+            "content": "def nested_helper(val: int) -> int:\n    \"\"\"A nested function inside standalone_function.\"\"\"\n    return val * 2",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,521 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/typescript/sample.ts",
+    "language": "typescript",
+    "format_family": "code_oop"
+  },
+  "root": {
+    "id": "file:sample_repo/typescript/sample.ts",
+    "category": "file",
+    "kind": "program",
+    "name": "sample.ts",
+    "qualified_name": "sample.ts",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 149,
+      "start_byte": 0,
+      "end_byte": 3276
+    },
+    "content": "/**\n * Sample TypeScript file for tree-sitter exploration.\n * Includes TypeScript-specific constructs.\n */\n\n// Type aliases\ntype ID = string | number;\ntype Callback<T> = (value: T) => void;\n\n// Interfaces\ninterface User {\n    id: ID;\n    name: string;\n    email?: string;\n    readonly createdAt: Date;\n}\n\ninterface Repository<T> {\n    find(id: ID): Promise<T | null>;\n    save(item: T): Promise<T>;\n    delete(id: ID): Promise<boolean>;\n}\n\n// Extending interfaces\ninterface AdminUser extends User {\n    permissions: string[];\n    role: 'admin' | 'superadmin';\n}\n\n// Enums\nenum Status {\n    Pending = 'PENDING',\n    Active = 'ACTIVE',\n    Inactive = 'INACTIVE',\n}\n\nconst enum Direction {\n    Up,\n    Down,\n    Left,\n    Right,\n}\n\n// Generic class\nclass GenericRepository<T extends { id: ID }> implements Repository<T> {\n    private items: Map<ID, T> = new Map();\n\n    async find(id: ID): Promise<T | null> {\n        return this.items.get(id) ?? null;\n    }\n\n    async save(item: T): Promise<T> {\n        this.items.set(item.id, item);\n        return item;\n    }\n\n    async delete(id: ID): Promise<boolean> {\n        return this.items.delete(id);\n    }\n}\n\n// Abstract class\nabstract class BaseService<T> {\n    protected repository: Repository<T>;\n\n    constructor(repository: Repository<T>) {\n        this.repository = repository;\n    }\n\n    abstract validate(item: T): boolean;\n\n    async getById(id: ID): Promise<T | null> {\n        return this.repository.find(id);\n    }\n}\n\n// Decorators (experimental)\nfunction logged(target: any, key: string, descriptor: PropertyDescriptor) {\n    const original = descriptor.value;\n    descriptor.value = function (...args: any[]) {\n        console.log(`Calling ${key}`);\n        return original.apply(this, args);\n    };\n    return descriptor;\n}\n\n// Class with decorators\nclass UserService extends BaseService<User> {\n    constructor() {\n        super(new GenericRepository<User>());\n    }\n\n    validate(user: User): boolean {\n        return user.name.length > 0;\n    }\n\n    @logged\n    async createUser(name: string): Promise<User> {\n        const user: User = {\n            id: Date.now().toString(),\n            name,\n            createdAt: new Date(),\n        };\n        return this.repository.save(user);\n    }\n}\n\n// Utility types\ntype PartialUser = Partial<User>;\ntype RequiredUser = Required<User>;\ntype ReadonlyUser = Readonly<User>;\ntype UserKeys = keyof User;\n\n// Conditional types\ntype NonNullable<T> = T extends null | undefined ? never : T;\ntype ReturnType<T> = T extends (...args: any[]) => infer R ? R : never;\n\n// Mapped types\ntype Nullable<T> = { [P in keyof T]: T[P] | null };\n\n// Function overloads\nfunction process(value: string): string;\nfunction process(value: number): number;\nfunction process(value: string | number): string | number {\n    return value;\n}\n\n// Namespace\nnamespace Validators {\n    export function isEmail(value: string): boolean {\n        return value.includes('@');\n    }\n\n    export function isNotEmpty(value: string): boolean {\n        return value.length > 0;\n    }\n}\n\n// Module augmentation\ndeclare module './module' {\n    interface ExistingInterface {\n        newProperty: string;\n    }\n}\n\n// Export\nexport { User, UserService, Status, Validators };\nexport type { ID, Callback, Repository };\n",
+    "children": [
+      {
+        "id": "type:sample_repo/typescript/sample.ts:ID",
+        "category": "type",
+        "kind": "type_alias_declaration",
+        "name": "ID",
+        "qualified_name": "ID",
+        "signature": "type ID = string | number;",
+        "doc": null,
+        "location": {
+          "start_line": 7,
+          "end_line": 7,
+          "start_byte": 124,
+          "end_byte": 150
+        },
+        "content": "type ID = string | number;",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:Callback",
+        "category": "type",
+        "kind": "type_alias_declaration",
+        "name": "Callback",
+        "qualified_name": "Callback",
+        "signature": "type Callback<T> = (value:",
+        "doc": null,
+        "location": {
+          "start_line": 8,
+          "end_line": 8,
+          "start_byte": 151,
+          "end_byte": 189
+        },
+        "content": "type Callback<T> = (value: T) => void;",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:User",
+        "category": "type",
+        "kind": "interface_declaration",
+        "name": "User",
+        "qualified_name": "User",
+        "signature": "interface User {",
+        "doc": null,
+        "location": {
+          "start_line": 11,
+          "end_line": 16,
+          "start_byte": 205,
+          "end_byte": 303
+        },
+        "content": "interface User {\n    id: ID;\n    name: string;\n    email?: string;\n    readonly createdAt: Date;\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:Repository",
+        "category": "type",
+        "kind": "interface_declaration",
+        "name": "Repository",
+        "qualified_name": "Repository",
+        "signature": "interface Repository<T> {",
+        "doc": null,
+        "location": {
+          "start_line": 18,
+          "end_line": 22,
+          "start_byte": 305,
+          "end_byte": 438
+        },
+        "content": "interface Repository<T> {\n    find(id: ID): Promise<T | null>;\n    save(item: T): Promise<T>;\n    delete(id: ID): Promise<boolean>;\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:AdminUser",
+        "category": "type",
+        "kind": "interface_declaration",
+        "name": "AdminUser",
+        "qualified_name": "AdminUser",
+        "signature": "interface AdminUser extends User {",
+        "doc": null,
+        "location": {
+          "start_line": 25,
+          "end_line": 28,
+          "start_byte": 464,
+          "end_byte": 561
+        },
+        "content": "interface AdminUser extends User {\n    permissions: string[];\n    role: 'admin' | 'superadmin';\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:Status",
+        "category": "type",
+        "kind": "enum_declaration",
+        "name": "Status",
+        "qualified_name": "Status",
+        "signature": "enum Status {",
+        "doc": null,
+        "location": {
+          "start_line": 31,
+          "end_line": 35,
+          "start_byte": 572,
+          "end_byte": 662
+        },
+        "content": "enum Status {\n    Pending = 'PENDING',\n    Active = 'ACTIVE',\n    Inactive = 'INACTIVE',\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:Direction",
+        "category": "type",
+        "kind": "enum_declaration",
+        "name": "Direction",
+        "qualified_name": "Direction",
+        "signature": "const enum Direction {",
+        "doc": null,
+        "location": {
+          "start_line": 37,
+          "end_line": 42,
+          "start_byte": 664,
+          "end_byte": 727
+        },
+        "content": "const enum Direction {\n    Up,\n    Down,\n    Left,\n    Right,\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:GenericRepository",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "GenericRepository",
+        "qualified_name": "GenericRepository",
+        "signature": "class GenericRepository<T extends {",
+        "doc": null,
+        "location": {
+          "start_line": 45,
+          "end_line": 60,
+          "start_byte": 746,
+          "end_byte": 1152
+        },
+        "content": "class GenericRepository<T extends { id: ID }> implements Repository<T> {\n    private items: Map<ID, T> = new Map();\n\n    async find(id: ID): Promise<T | null> {\n        return this.items.get(id) ?? null;\n    }\n\n    async save(item: T): Promise<T> {\n        this.items.set(item.id, item);\n        return item;\n    }\n\n    async delete(id: ID): Promise<boolean> {\n        return this.items.delete(id);\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/typescript/sample.ts:GenericRepository.find",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "find",
+            "qualified_name": "GenericRepository.find",
+            "signature": "async find(id: ID): Promise<T | null> {",
+            "doc": null,
+            "location": {
+              "start_line": 48,
+              "end_line": 50,
+              "start_byte": 867,
+              "end_byte": 955
+            },
+            "content": "async find(id: ID): Promise<T | null> {\n        return this.items.get(id) ?? null;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/typescript/sample.ts:GenericRepository.save",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "save",
+            "qualified_name": "GenericRepository.save",
+            "signature": "async save(item: T): Promise<T> {",
+            "doc": null,
+            "location": {
+              "start_line": 52,
+              "end_line": 55,
+              "start_byte": 961,
+              "end_byte": 1060
+            },
+            "content": "async save(item: T): Promise<T> {\n        this.items.set(item.id, item);\n        return item;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/typescript/sample.ts:GenericRepository.delete",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "delete",
+            "qualified_name": "GenericRepository.delete",
+            "signature": "async delete(id: ID): Promise<boolean> {",
+            "doc": null,
+            "location": {
+              "start_line": 57,
+              "end_line": 59,
+              "start_byte": 1066,
+              "end_byte": 1150
+            },
+            "content": "async delete(id: ID): Promise<boolean> {\n        return this.items.delete(id);\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "callable:sample_repo/typescript/sample.ts:constructor",
+        "category": "callable",
+        "kind": "method_definition",
+        "name": "constructor",
+        "qualified_name": "constructor",
+        "signature": "constructor(repository: Repository<T>) {",
+        "doc": null,
+        "location": {
+          "start_line": 66,
+          "end_line": 68,
+          "start_byte": 1250,
+          "end_byte": 1334
+        },
+        "content": "constructor(repository: Repository<T>) {\n        this.repository = repository;\n    }",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/typescript/sample.ts:getById",
+        "category": "callable",
+        "kind": "method_definition",
+        "name": "getById",
+        "qualified_name": "getById",
+        "signature": "async getById(id: ID): Promise<T | null> {",
+        "doc": null,
+        "location": {
+          "start_line": 72,
+          "end_line": 74,
+          "start_byte": 1382,
+          "end_byte": 1471
+        },
+        "content": "async getById(id: ID): Promise<T | null> {\n        return this.repository.find(id);\n    }",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/typescript/sample.ts:logged",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "logged",
+        "qualified_name": "logged",
+        "signature": "function logged(target: any, key: string, descriptor: PropertyDescriptor) {",
+        "doc": null,
+        "location": {
+          "start_line": 78,
+          "end_line": 85,
+          "start_byte": 1504,
+          "end_byte": 1783
+        },
+        "content": "function logged(target: any, key: string, descriptor: PropertyDescriptor) {\n    const original = descriptor.value;\n    descriptor.value = function (...args: any[]) {\n        console.log(`Calling ${key}`);\n        return original.apply(this, args);\n    };\n    return descriptor;\n}",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:UserService",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "UserService",
+        "qualified_name": "UserService",
+        "signature": "class UserService extends BaseService<User> {",
+        "doc": null,
+        "location": {
+          "start_line": 88,
+          "end_line": 106,
+          "start_byte": 1810,
+          "end_byte": 2255
+        },
+        "content": "class UserService extends BaseService<User> {\n    constructor() {\n        super(new GenericRepository<User>());\n    }\n\n    validate(user: User): boolean {\n        return user.name.length > 0;\n    }\n\n    @logged\n    async createUser(name: string): Promise<User> {\n        const user: User = {\n            id: Date.now().toString(),\n            name,\n            createdAt: new Date(),\n        };\n        return this.repository.save(user);\n    }\n}",
+        "children": [
+          {
+            "id": "callable:sample_repo/typescript/sample.ts:UserService.constructor",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "constructor",
+            "qualified_name": "UserService.constructor",
+            "signature": "constructor() {",
+            "doc": null,
+            "location": {
+              "start_line": 89,
+              "end_line": 91,
+              "start_byte": 1860,
+              "end_byte": 1927
+            },
+            "content": "constructor() {\n        super(new GenericRepository<User>());\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/typescript/sample.ts:UserService.validate",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "validate",
+            "qualified_name": "UserService.validate",
+            "signature": "validate(user: User): boolean {",
+            "doc": null,
+            "location": {
+              "start_line": 93,
+              "end_line": 95,
+              "start_byte": 1933,
+              "end_byte": 2007
+            },
+            "content": "validate(user: User): boolean {\n        return user.name.length > 0;\n    }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/typescript/sample.ts:UserService.createUser",
+            "category": "callable",
+            "kind": "method_definition",
+            "name": "createUser",
+            "qualified_name": "UserService.createUser",
+            "signature": "async createUser(name: string): Promise<User> {",
+            "doc": null,
+            "location": {
+              "start_line": 98,
+              "end_line": 105,
+              "start_byte": 2025,
+              "end_byte": 2253
+            },
+            "content": "async createUser(name: string): Promise<User> {\n        const user: User = {\n            id: Date.now().toString(),\n            name,\n            createdAt: new Date(),\n        };\n        return this.repository.save(user);\n    }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:PartialUser",
+        "category": "type",
+        "kind": "type_alias_declaration",
+        "name": "PartialUser",
+        "qualified_name": "PartialUser",
+        "signature": "type PartialUser = Partial<User>;",
+        "doc": null,
+        "location": {
+          "start_line": 109,
+          "end_line": 109,
+          "start_byte": 2274,
+          "end_byte": 2307
+        },
+        "content": "type PartialUser = Partial<User>;",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:RequiredUser",
+        "category": "type",
+        "kind": "type_alias_declaration",
+        "name": "RequiredUser",
+        "qualified_name": "RequiredUser",
+        "signature": "type RequiredUser = Required<User>;",
+        "doc": null,
+        "location": {
+          "start_line": 110,
+          "end_line": 110,
+          "start_byte": 2308,
+          "end_byte": 2343
+        },
+        "content": "type RequiredUser = Required<User>;",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:ReadonlyUser",
+        "category": "type",
+        "kind": "type_alias_declaration",
+        "name": "ReadonlyUser",
+        "qualified_name": "ReadonlyUser",
+        "signature": "type Reado",
+        "doc": null,
+        "location": {
+          "start_line": 111,
+          "end_line": 111,
+          "start_byte": 2344,
+          "end_byte": 2379
+        },
+        "content": "type ReadonlyUser = Readonly<User>;",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:UserKeys",
+        "category": "type",
+        "kind": "type_alias_declaration",
+        "name": "UserKeys",
+        "qualified_name": "UserKeys",
+        "signature": "type UserKeys = keyof User;",
+        "doc": null,
+        "location": {
+          "start_line": 112,
+          "end_line": 112,
+          "start_byte": 2380,
+          "end_byte": 2407
+        },
+        "content": "type UserKeys = keyof User;",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:NonNullable",
+        "category": "type",
+        "kind": "type_alias_declaration",
+        "name": "NonNullable",
+        "qualified_name": "NonNullable",
+        "signature": "type NonNullable<T> = T extends null | undefined ? never :",
+        "doc": null,
+        "location": {
+          "start_line": 115,
+          "end_line": 115,
+          "start_byte": 2430,
+          "end_byte": 2491
+        },
+        "content": "type NonNullable<T> = T extends null | undefined ? never : T;",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:ReturnType",
+        "category": "type",
+        "kind": "type_alias_declaration",
+        "name": "ReturnType",
+        "qualified_name": "ReturnType",
+        "signature": "type ReturnType<T> = T extends (...args:",
+        "doc": null,
+        "location": {
+          "start_line": 116,
+          "end_line": 116,
+          "start_byte": 2492,
+          "end_byte": 2563
+        },
+        "content": "type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never;",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:Nullable",
+        "category": "type",
+        "kind": "type_alias_declaration",
+        "name": "Nullable",
+        "qualified_name": "Nullable",
+        "signature": "type Nullable<T> = {",
+        "doc": null,
+        "location": {
+          "start_line": 119,
+          "end_line": 119,
+          "start_byte": 2581,
+          "end_byte": 2632
+        },
+        "content": "type Nullable<T> = { [P in keyof T]: T[P] | null };",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/typescript/sample.ts:process",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "process",
+        "qualified_name": "process",
+        "signature": "function process(value: string | number): string | number {",
+        "doc": null,
+        "location": {
+          "start_line": 124,
+          "end_line": 126,
+          "start_byte": 2738,
+          "end_byte": 2817
+        },
+        "content": "function process(value: string | number): string | number {\n    return value;\n}",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/typescript/sample.ts:isEmail",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "isEmail",
+        "qualified_name": "isEmail",
+        "signature": "function isEmail(value: string): boolean {",
+        "doc": null,
+        "location": {
+          "start_line": 130,
+          "end_line": 132,
+          "start_byte": 2866,
+          "end_byte": 2950
+        },
+        "content": "function isEmail(value: string): boolean {\n        return value.includes('@');\n    }",
+        "children": []
+      },
+      {
+        "id": "callable:sample_repo/typescript/sample.ts:isNotEmpty",
+        "category": "callable",
+        "kind": "function_declaration",
+        "name": "isNotEmpty",
+        "qualified_name": "isNotEmpty",
+        "signature": "function isNotEmpty(value: string): boolean {",
+        "doc": null,
+        "location": {
+          "start_line": 134,
+          "end_line": 136,
+          "start_byte": 2963,
+          "end_byte": 3047
+        },
+        "content": "function isNotEmpty(value: string): boolean {\n        return value.length > 0;\n    }",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/typescript/sample.ts:ExistingInterface",
+        "category": "type",
+        "kind": "interface_declaration",
+        "name": "ExistingInterface",
+        "qualified_name": "ExistingInterface",
+        "signature": "interface ExistingInterface {",
+        "doc": null,
+        "location": {
+          "start_line": 141,
+          "end_line": 143,
+          "start_byte": 3106,
+          "end_byte": 3170
+        },
+        "content": "interface ExistingInterface {\n        newProperty: string;\n    }",
+        "children": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,266 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/markdown/sample.md",
+    "language": "markdown",
+    "format_family": "markup"
+  },
+  "root": {
+    "id": "file:sample_repo/markdown/sample.md",
+    "category": "file",
+    "kind": "document",
+    "name": "sample.md",
+    "qualified_name": "sample.md",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 152,
+      "start_byte": 0,
+      "end_byte": 2531
+    },
+    "content": "# Sample Markdown Document\n\nThis is a sample Markdown file for **tree-sitter** exploration.\nIt includes various *Markdown* constructs to test AST generation.\n\n## Section 1: Text Formatting\n\nRegular paragraph with **bold**, *italic*, and ***bold italic*** text.\nAlso `inline code` and ~~strikethrough~~.\n\n### Subsection 1.1: Links and Images\n\nHere's a [link to example](https://example.com \"Example Title\").\nAnd an auto-link: <https://example.com>\n\n![Alt text for image](image.png \"Image Title\")\n\nReference-style link: [example][ref1]\n\n[ref1]: https://example.com\n\n### Subsection 1.2: Lists\n\nUnordered list:\n- Item 1\n- Item 2\n  - Nested item 2.1\n  - Nested item 2.2\n    - Deep nested\n- Item 3\n\nOrdered list:\n1. First item\n2. Second item\n   1. Nested ordered\n   2. Another nested\n3. Third item\n\nTask list:\n- [x] Completed task\n- [ ] Incomplete task\n- [ ] Another task\n\n## Section 2: Code\n\nInline code: `const x = 42;`\n\nFenced code block with language:\n\n```python\ndef hello(name: str) -> str:\n    \"\"\"Say hello.\"\"\"\n    return f\"Hello, {name}!\"\n\nclass Calculator:\n    def add(self, a: int, b: int) -> int:\n        return a + b\n```\n\nAnother code block:\n\n```javascript\nconst greet = (name) => {\n    console.log(`Hello, ${name}!`);\n};\n```\n\nIndented code block:\n\n    function indented() {\n        return \"This is indented code\";\n    }\n\n## Section 3: Blockquotes\n\n> This is a blockquote.\n> It can span multiple lines.\n>\n> > Nested blockquote.\n> > With multiple lines.\n>\n> Back to first level.\n\n## Section 4: Tables\n\n| Column 1 | Column 2 | Column 3 |\n|----------|:--------:|---------:|\n| Left     | Center   | Right    |\n| Data 1   | Data 2   | Data 3   |\n| More     | Data     | Here     |\n\n## Section 5: Horizontal Rules\n\n---\n\n***\n\n___\n\n## Section 6: HTML Elements\n\n<div class=\"custom\">\n  <p>HTML paragraph inside div</p>\n</div>\n\n<details>\n<summary>Click to expand</summary>\n\nHidden content here.\n\n</details>\n\n## Section 7: Footnotes\n\nHere's a sentence with a footnote[^1].\n\nAnother footnote reference[^note].\n\n[^1]: This is the footnote content.\n[^note]: This is another footnote with a label.\n\n## Section 8: Definition Lists\n\nTerm 1\n: Definition for term 1\n\nTerm 2\n: Definition for term 2\n: Another definition for term 2\n\n## Section 9: Math (if supported)\n\nInline math: $E = mc^2$\n\nBlock math:\n\n$$\n\\sum_{i=1}^{n} x_i = x_1 + x_2 + \\cdots + x_n\n$$\n\n## Section 10: Escaping\n\nSpecial characters: \\* \\_ \\` \\[ \\] \\{ \\} \\# \\+ \\- \\. \\!\n\n## Conclusion\n\nThis document demonstrates various Markdown features for AST analysis.\n\n---\n\n*Document end*\n",
+    "children": [
+      {
+        "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document",
+        "category": "section",
+        "kind": "atx_heading",
+        "name": "Sample Markdown Document",
+        "qualified_name": "Sample Markdown Document",
+        "signature": "# Sample Markdown Document",
+        "doc": null,
+        "location": {
+          "start_line": 1,
+          "end_line": 2,
+          "start_byte": 0,
+          "end_byte": 159
+        },
+        "content": "# Sample Markdown Document\n\nThis is a sample Markdown file for **tree-sitter** exploration.\nIt includes various *Markdown* constructs to test AST generation.\n\n",
+        "children": [
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 1: Text Formatting",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 1: Text Formatting",
+            "qualified_name": "Sample Markdown Document/Section 1: Text Formatting",
+            "signature": "## Section 1: Text Formatting",
+            "doc": null,
+            "location": {
+              "start_line": 6,
+              "end_line": 7,
+              "start_byte": 159,
+              "end_byte": 304
+            },
+            "content": "## Section 1: Text Formatting\n\nRegular paragraph with **bold**, *italic*, and ***bold italic*** text.\nAlso `inline code` and ~~strikethrough~~.\n\n",
+            "children": [
+              {
+                "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 1: Text Formatting/Subsection 1.1: Links and Images",
+                "category": "section",
+                "kind": "atx_heading",
+                "name": "Subsection 1.1: Links and Images",
+                "qualified_name": "Sample Markdown Document/Section 1: Text Formatting/Subsection 1.1: Links and Images",
+                "signature": "### Subsection 1.1: Links and Images",
+                "doc": null,
+                "location": {
+                  "start_line": 11,
+                  "end_line": 12,
+                  "start_byte": 304,
+                  "end_byte": 564
+                },
+                "content": "### Subsection 1.1: Links and Images\n\nHere's a [link to example](https://example.com \"Example Title\").\nAnd an auto-link: <https://example.com>\n\n![Alt text for image](image.png \"Image Title\")\n\nReference-style link: [example][ref1]\n\n[ref1]: https://example.com\n\n",
+                "children": []
+              },
+              {
+                "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 1: Text Formatting/Subsection 1.2: Lists",
+                "category": "section",
+                "kind": "atx_heading",
+                "name": "Subsection 1.2: Lists",
+                "qualified_name": "Sample Markdown Document/Section 1: Text Formatting/Subsection 1.2: Lists",
+                "signature": "### Subsection 1.2: Lists",
+                "doc": null,
+                "location": {
+                  "start_line": 22,
+                  "end_line": 23,
+                  "start_byte": 564,
+                  "end_byte": 867
+                },
+                "content": "### Subsection 1.2: Lists\n\nUnordered list:\n- Item 1\n- Item 2\n  - Nested item 2.1\n  - Nested item 2.2\n    - Deep nested\n- Item 3\n\nOrdered list:\n1. First item\n2. Second item\n   1. Nested ordered\n   2. Another nested\n3. Third item\n\nTask list:\n- [x] Completed task\n- [ ] Incomplete task\n- [ ] Another task\n\n",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 2: Code",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 2: Code",
+            "qualified_name": "Sample Markdown Document/Section 2: Code",
+            "signature": "## Section 2: Code",
+            "doc": null,
+            "location": {
+              "start_line": 44,
+              "end_line": 45,
+              "start_byte": 867,
+              "end_byte": 1327
+            },
+            "content": "## Section 2: Code\n\nInline code: `const x = 42;`\n\nFenced code block with language:\n\n```python\ndef hello(name: str) -> str:\n    \"\"\"Say hello.\"\"\"\n    return f\"Hello, {name}!\"\n\nclass Calculator:\n    def add(self, a: int, b: int) -> int:\n        return a + b\n```\n\nAnother code block:\n\n```javascript\nconst greet = (name) => {\n    console.log(`Hello, ${name}!`);\n};\n```\n\nIndented code block:\n\n    function indented() {\n        return \"This is indented code\";\n    }\n\n",
+            "children": []
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 3: Blockquotes",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 3: Blockquotes",
+            "qualified_name": "Sample Markdown Document/Section 3: Blockquotes",
+            "signature": "## Section 3: Blockquotes",
+            "doc": null,
+            "location": {
+              "start_line": 74,
+              "end_line": 75,
+              "start_byte": 1327,
+              "end_byte": 1484
+            },
+            "content": "## Section 3: Blockquotes\n\n> This is a blockquote.\n> It can span multiple lines.\n>\n> > Nested blockquote.\n> > With multiple lines.\n>\n> Back to first level.\n\n",
+            "children": []
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 4: Tables",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 4: Tables",
+            "qualified_name": "Sample Markdown Document/Section 4: Tables",
+            "signature": "## Section 4: Tables",
+            "doc": null,
+            "location": {
+              "start_line": 84,
+              "end_line": 85,
+              "start_byte": 1484,
+              "end_byte": 1682
+            },
+            "content": "## Section 4: Tables\n\n| Column 1 | Column 2 | Column 3 |\n|----------|:--------:|---------:|\n| Left     | Center   | Right    |\n| Data 1   | Data 2   | Data 3   |\n| More     | Data     | Here     |\n\n",
+            "children": []
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 5: Horizontal Rules",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 5: Horizontal Rules",
+            "qualified_name": "Sample Markdown Document/Section 5: Horizontal Rules",
+            "signature": "## Section 5: Horizontal Rules",
+            "doc": null,
+            "location": {
+              "start_line": 92,
+              "end_line": 93,
+              "start_byte": 1682,
+              "end_byte": 1729
+            },
+            "content": "## Section 5: Horizontal Rules\n\n---\n\n***\n\n___\n\n",
+            "children": []
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 6: HTML Elements",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 6: HTML Elements",
+            "qualified_name": "Sample Markdown Document/Section 6: HTML Elements",
+            "signature": "## Section 6: HTML Elements",
+            "doc": null,
+            "location": {
+              "start_line": 100,
+              "end_line": 101,
+              "start_byte": 1729,
+              "end_byte": 1902
+            },
+            "content": "## Section 6: HTML Elements\n\n<div class=\"custom\">\n  <p>HTML paragraph inside div</p>\n</div>\n\n<details>\n<summary>Click to expand</summary>\n\nHidden content here.\n\n</details>\n\n",
+            "children": []
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 7: Footnotes",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 7: Footnotes",
+            "qualified_name": "Sample Markdown Document/Section 7: Footnotes",
+            "signature": "## Section 7: Footnotes",
+            "doc": null,
+            "location": {
+              "start_line": 113,
+              "end_line": 114,
+              "start_byte": 1902,
+              "end_byte": 2088
+            },
+            "content": "## Section 7: Footnotes\n\nHere's a sentence with a footnote[^1].\n\nAnother footnote reference[^note].\n\n[^1]: This is the footnote content.\n[^note]: This is another footnote with a label.\n\n",
+            "children": []
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 8: Definition Lists",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 8: Definition Lists",
+            "qualified_name": "Sample Markdown Document/Section 8: Definition Lists",
+            "signature": "## Section 8: Definition Lists",
+            "doc": null,
+            "location": {
+              "start_line": 122,
+              "end_line": 123,
+              "start_byte": 2088,
+              "end_byte": 2216
+            },
+            "content": "## Section 8: Definition Lists\n\nTerm 1\n: Definition for term 1\n\nTerm 2\n: Definition for term 2\n: Another definition for term 2\n\n",
+            "children": []
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 9: Math (if supported)",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 9: Math (if supported)",
+            "qualified_name": "Sample Markdown Document/Section 9: Math (if supported)",
+            "signature": "## Section 9: Math (if supported)",
+            "doc": null,
+            "location": {
+              "start_line": 131,
+              "end_line": 132,
+              "start_byte": 2216,
+              "end_byte": 2342
+            },
+            "content": "## Section 9: Math (if supported)\n\nInline math: $E = mc^2$\n\nBlock math:\n\n$$\n\\sum_{i=1}^{n} x_i = x_1 + x_2 + \\cdots + x_n\n$$\n\n",
+            "children": []
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Section 10: Escaping",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Section 10: Escaping",
+            "qualified_name": "Sample Markdown Document/Section 10: Escaping",
+            "signature": "## Section 10: Escaping",
+            "doc": null,
+            "location": {
+              "start_line": 141,
+              "end_line": 142,
+              "start_byte": 2342,
+              "end_byte": 2424
+            },
+            "content": "## Section 10: Escaping\n\nSpecial characters: \\* \\_ \\` \\[ \\] \\{ \\} \\# \\+ \\- \\. \\!\n\n",
+            "children": []
+          },
+          {
+            "id": "section:sample_repo/markdown/sample.md:Sample Markdown Document/Conclusion",
+            "category": "section",
+            "kind": "atx_heading",
+            "name": "Conclusion",
+            "qualified_name": "Sample Markdown Document/Conclusion",
+            "signature": "## Conclusion",
+            "doc": null,
+            "location": {
+              "start_line": 145,
+              "end_line": 146,
+              "start_byte": 2424,
+              "end_byte": 2531
+            },
+            "content": "## Conclusion\n\nThis document demonstrates various Markdown features for AST analysis.\n\n---\n\n*Document end*\n",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

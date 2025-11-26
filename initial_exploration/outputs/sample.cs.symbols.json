@@ -1,0 +1,629 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/csharp/sample.cs",
+    "language": "csharp",
+    "format_family": "code_oop"
+  },
+  "root": {
+    "id": "file:sample_repo/csharp/sample.cs",
+    "category": "file",
+    "kind": "compilation_unit",
+    "name": "sample.cs",
+    "qualified_name": "sample.cs",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 238,
+      "start_byte": 0,
+      "end_byte": 6541
+    },
+    "content": "/**\n * Sample C# file for tree-sitter exploration.\n * Includes modern C# constructs.\n */\n\nusing System;\nusing System.Collections.Generic;\nusing System.Linq;\nusing System.Threading.Tasks;\n\nnamespace Sample\n{\n    // Record type (C# 9+)\n    public record UserRecord(string Id, string Name, string? Email = null);\n\n    // Enum\n    public enum Status\n    {\n        Pending,\n        Active,\n        Inactive\n    }\n\n    // Interface with default implementation\n    public interface IRepository<T> where T : class\n    {\n        Task<T?> FindAsync(string id);\n        Task SaveAsync(T item);\n        Task<bool> DeleteAsync(string id);\n\n        // Default implementation\n        async Task<IEnumerable<T>> FindAllAsync(IEnumerable<string> ids)\n        {\n            var results = new List<T>();\n            foreach (var id in ids)\n            {\n                var item = await FindAsync(id);\n                if (item != null) results.Add(item);\n            }\n            return results;\n        }\n    }\n\n    // Class with various features\n    public class User : IEquatable<User>\n    {\n        // Auto-properties\n        public string Id { get; init; }\n        public string Name { get; set; }\n        public string? Email { get; set; }\n        public Status Status { get; private set; } = Status.Pending;\n\n        // Expression-bodied property\n        public bool IsActive => Status == Status.Active;\n\n        // Constructor\n        public User(string id, string name)\n        {\n            Id = id ?? throw new ArgumentNullException(nameof(id));\n            Name = name ?? throw new ArgumentNullException(nameof(name));\n        }\n\n        // Method with expression body\n        public void Activate() => Status = Status.Active;\n\n        // Async method\n        public async Task<string> FetchDataAsync(string url)\n        {\n            await Task.Delay(100);\n            return $\"Data from {url}\";\n        }\n\n        // Pattern matching\n        public string GetStatusMessage() => Status switch\n        {\n            Status.Pending => \"Waiting for activation\",\n            Status.Active => \"User is active\",\n            Status.Inactive => \"User has been deactivated\",\n            _ => throw new InvalidOperationException()\n        };\n\n        // IEquatable implementation\n        public bool Equals(User? other)\n        {\n            if (other is null) return false;\n            return Id == other.Id;\n        }\n\n        public override bool Equals(object? obj) => Equals(obj as User);\n        public override int GetHashCode() => Id.GetHashCode();\n\n        // Deconstruction\n        public void Deconstruct(out string id, out string name)\n        {\n            id = Id;\n            name = Name;\n        }\n    }\n\n    // Generic class with constraints\n    public class InMemoryRepository<T> : IRepository<T> where T : class\n    {\n        private readonly Dictionary<string, T> _items = new();\n        private readonly Func<T, string> _keySelector;\n\n        public InMemoryRepository(Func<T, string> keySelector)\n        {\n            _keySelector = keySelector;\n        }\n\n        public Task<T?> FindAsync(string id)\n        {\n            _items.TryGetValue(id, out var item);\n            return Task.FromResult(item);\n        }\n\n        public Task SaveAsync(T item)\n        {\n            var key = _keySelector(item);\n            _items[key] = item;\n            return Task.CompletedTask;\n        }\n\n        public Task<bool> DeleteAsync(string id)\n        {\n            return Task.FromResult(_items.Remove(id));\n        }\n    }\n\n    // Abstract class\n    public abstract class BaseService<T> where T : class\n    {\n        protected readonly IRepository<T> Repository;\n\n        protected BaseService(IRepository<T> repository)\n        {\n            Repository = repository;\n        }\n\n        public abstract Task<bool> ValidateAsync(T item);\n\n        public virtual async Task<T?> GetByIdAsync(string id)\n        {\n            return await Repository.FindAsync(id);\n        }\n    }\n\n    // Inheritance\n    public class UserService : BaseService<User>\n    {\n        public UserService(IRepository<User> repository) : base(repository) { }\n\n        public override Task<bool> ValidateAsync(User item)\n        {\n            return Task.FromResult(!string.IsNullOrEmpty(item.Name));\n        }\n\n        // LINQ example\n        public async Task<IEnumerable<User>> GetActiveUsersAsync(IEnumerable<string> ids)\n        {\n            var users = await Repository.FindAllAsync(ids);\n            return users.Where(u => u.IsActive)\n                       .OrderBy(u => u.Name)\n                       .ToList();\n        }\n    }\n\n    // Extension methods\n    public static class UserExtensions\n    {\n        public static string ToDisplayString(this User user)\n        {\n            return $\"{user.Name} ({user.Id})\";\n        }\n\n        public static async Task<User> WithEmailAsync(this User user, string email)\n        {\n            await Task.Delay(10); // Simulate async operation\n            user.Email = email;\n            return user;\n        }\n    }\n\n    // Attribute\n    [AttributeUsage(AttributeTargets.Method)]\n    public class LogAttribute : Attribute\n    {\n        public string Message { get; }\n        public LogAttribute(string message) => Message = message;\n    }\n\n    // Static class\n    public static class Validators\n    {\n        public static bool IsValidEmail(string? email)\n            => !string.IsNullOrEmpty(email) && email.Contains('@');\n\n        public static bool IsNotEmpty(string? value)\n            => !string.IsNullOrWhiteSpace(value);\n    }\n\n    // Partial class\n    public partial class PartialUser\n    {\n        public string Id { get; set; } = string.Empty;\n    }\n\n    public partial class PartialUser\n    {\n        public string Name { get; set; } = string.Empty;\n    }\n\n    // Main program\n    public class Program\n    {\n        public static async Task Main(string[] args)\n        {\n            var repo = new InMemoryRepository<User>(u => u.Id);\n            var service = new UserService(repo);\n\n            var user = new User(\"1\", \"Alice\") { Email = \"alice@example.com\" };\n            await repo.SaveAsync(user);\n\n            // Null-conditional and null-coalescing\n            var found = await repo.FindAsync(\"1\");\n            var name = found?.Name ?? \"Unknown\";\n\n            // Tuple\n            var (id, userName) = user;\n\n            // Using declaration\n            await using var stream = new System.IO.MemoryStream();\n\n            Console.WriteLine($\"User: {user.ToDisplayString()}\");\n        }\n    }\n}\n",
+    "children": [
+      {
+        "id": "type:sample_repo/csharp/sample.cs:Status",
+        "category": "type",
+        "kind": "enum_declaration",
+        "name": "Status",
+        "qualified_name": "Status",
+        "signature": "public enum Status",
+        "doc": null,
+        "location": {
+          "start_line": 17,
+          "end_line": 22,
+          "start_byte": 327,
+          "end_byte": 407
+        },
+        "content": "public enum Status\n    {\n        Pending,\n        Active,\n        Inactive\n    }",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:IRepository",
+        "category": "type",
+        "kind": "interface_declaration",
+        "name": "IRepository",
+        "qualified_name": "IRepository",
+        "signature": "public interface IRepository<T> where T :",
+        "doc": null,
+        "location": {
+          "start_line": 25,
+          "end_line": 42,
+          "start_byte": 458,
+          "end_byte": 993
+        },
+        "content": "public interface IRepository<T> where T : class\n    {\n        Task<T?> FindAsync(string id);\n        Task SaveAsync(T item);\n        Task<bool> DeleteAsync(string id);\n\n        // Default implementation\n        async Task<IEnumerable<T>> FindAllAsync(IEnumerable<string> ids)\n        {\n            var results = new List<T>();\n            foreach (var id in ids)\n            {\n                var item = await FindAsync(id);\n                if (item != null) results.Add(item);\n            }\n            return results;\n        }\n    }",
+        "children": [
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:IRepository.FindAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "FindAsync",
+            "qualified_name": "IRepository.FindAsync",
+            "signature": "Task<T?> FindAsync(string id);",
+            "doc": null,
+            "location": {
+              "start_line": 27,
+              "end_line": 27,
+              "start_byte": 520,
+              "end_byte": 550
+            },
+            "content": "Task<T?> FindAsync(string id);",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:IRepository.SaveAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "SaveAsync",
+            "qualified_name": "IRepository.SaveAsync",
+            "signature": "Task SaveAsync(T item);",
+            "doc": null,
+            "location": {
+              "start_line": 28,
+              "end_line": 28,
+              "start_byte": 559,
+              "end_byte": 582
+            },
+            "content": "Task SaveAsync(T item);",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:IRepository.DeleteAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "DeleteAsync",
+            "qualified_name": "IRepository.DeleteAsync",
+            "signature": "Task<bool> DeleteAsync(string id);",
+            "doc": null,
+            "location": {
+              "start_line": 29,
+              "end_line": 29,
+              "start_byte": 591,
+              "end_byte": 625
+            },
+            "content": "Task<bool> DeleteAsync(string id);",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:IRepository.FindAllAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "FindAllAsync",
+            "qualified_name": "IRepository.FindAllAsync",
+            "signature": "async Task<IEnumerable<T>> FindAllAsync(IEnumerable<string> ids)",
+            "doc": null,
+            "location": {
+              "start_line": 32,
+              "end_line": 41,
+              "start_byte": 669,
+              "end_byte": 987
+            },
+            "content": "async Task<IEnumerable<T>> FindAllAsync(IEnumerable<string> ids)\n        {\n            var results = new List<T>();\n            foreach (var id in ids)\n            {\n                var item = await FindAsync(id);\n                if (item != null) results.Add(item);\n            }\n            return results;\n        }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:User",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "User",
+        "qualified_name": "User",
+        "signature": "public class User :",
+        "doc": null,
+        "location": {
+          "start_line": 45,
+          "end_line": 98,
+          "start_byte": 1034,
+          "end_byte": 2704
+        },
+        "content": "public class User : IEquatable<User>\n    {\n        // Auto-properties\n        public string Id { get; init; }\n        public string Name { get; set; }\n        public string? Email { get; set; }\n        public Status Status { get; private set; } = Status.Pending;\n\n        // Expression-bodied property\n        public bool IsActive => Status == Status.Active;\n\n        // Constructor\n        public User(string id, string name)\n        {\n            Id = id ?? throw new ArgumentNullException(nameof(id));\n            Name = name ?? throw new ArgumentNullException(nameof(name));\n        }\n\n        // Method with expression body\n        public void Activate() => Status = Status.Active;\n\n        // Async method\n        public async Task<string> FetchDataAsync(string url)\n        {\n            await Task.Delay(100);\n            return $\"Data from {url}\";\n        }\n\n        // Pattern matching\n        public string GetStatusMessage() => Status switch\n        {\n            Status.Pending => \"Waiting for activation\",\n            Status.Active => \"User is active\",\n            Status.Inactive => \"User has been deactivated\",\n            _ => throw new InvalidOperationException()\n        };\n\n        // IEquatable implementation\n        public bool Equals(User? other)\n        {\n            if (other is null) return false;\n            return Id == other.Id;\n        }\n\n        public override bool Equals(object? obj) => Equals(obj as User);\n        public override int GetHashCode() => Id.GetHashCode();\n\n        // Deconstruction\n        public void Deconstruct(out string id, out string name)\n        {\n            id = Id;\n            name = Name;\n        }\n    }",
+        "children": [
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:User.Activate",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "Activate",
+            "qualified_name": "User.Activate",
+            "signature": "public void Activate() => Status = Status.Active;",
+            "doc": null,
+            "location": {
+              "start_line": 64,
+              "end_line": 64,
+              "start_byte": 1671,
+              "end_byte": 1720
+            },
+            "content": "public void Activate() => Status = Status.Active;",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:User.FetchDataAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "FetchDataAsync",
+            "qualified_name": "User.FetchDataAsync",
+            "signature": "public async Task<string> FetchDataAsync(string url)",
+            "doc": null,
+            "location": {
+              "start_line": 67,
+              "end_line": 71,
+              "start_byte": 1754,
+              "end_byte": 1900
+            },
+            "content": "public async Task<string> FetchDataAsync(string url)\n        {\n            await Task.Delay(100);\n            return $\"Data from {url}\";\n        }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:User.GetStatusMessage",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "GetStatusMessage",
+            "qualified_name": "User.GetStatusMessage",
+            "signature": "public string GetStatusMessage() => Status switch",
+            "doc": null,
+            "location": {
+              "start_line": 74,
+              "end_line": 80,
+              "start_byte": 1938,
+              "end_byte": 2226
+            },
+            "content": "public string GetStatusMessage() => Status switch\n        {\n            Status.Pending => \"Waiting for activation\",\n            Status.Active => \"User is active\",\n            Status.Inactive => \"User has been deactivated\",\n            _ => throw new InvalidOperationException()\n        };",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:User.Equals",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "Equals",
+            "qualified_name": "User.Equals",
+            "signature": "public bool Equals(User? other)",
+            "doc": null,
+            "location": {
+              "start_line": 83,
+              "end_line": 87,
+              "start_byte": 2273,
+              "end_byte": 2404
+            },
+            "content": "public bool Equals(User? other)\n        {\n            if (other is null) return false;\n            return Id == other.Id;\n        }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:User.Equals",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "Equals",
+            "qualified_name": "User.Equals",
+            "signature": "public override bool Equals(object? obj) => Equals(obj as User);",
+            "doc": null,
+            "location": {
+              "start_line": 89,
+              "end_line": 89,
+              "start_byte": 2414,
+              "end_byte": 2478
+            },
+            "content": "public override bool Equals(object? obj) => Equals(obj as User);",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:User.GetHashCode",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "GetHashCode",
+            "qualified_name": "User.GetHashCode",
+            "signature": "public override int GetHashCode() => Id.GetHashCode();",
+            "doc": null,
+            "location": {
+              "start_line": 90,
+              "end_line": 90,
+              "start_byte": 2487,
+              "end_byte": 2541
+            },
+            "content": "public override int GetHashCode() => Id.GetHashCode();",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:User.Deconstruct",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "Deconstruct",
+            "qualified_name": "User.Deconstruct",
+            "signature": "public void Deconstruct(out string id, out string name)",
+            "doc": null,
+            "location": {
+              "start_line": 93,
+              "end_line": 97,
+              "start_byte": 2577,
+              "end_byte": 2698
+            },
+            "content": "public void Deconstruct(out string id, out string name)\n        {\n            id = Id;\n            name = Name;\n        }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:InMemoryRepository",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "InMemoryRepository",
+        "qualified_name": "InMemoryRepository",
+        "signature": "public class InMemoryRepository<T> :",
+        "doc": null,
+        "location": {
+          "start_line": 101,
+          "end_line": 128,
+          "start_byte": 2748,
+          "end_byte": 3524
+        },
+        "content": "public class InMemoryRepository<T> : IRepository<T> where T : class\n    {\n        private readonly Dictionary<string, T> _items = new();\n        private readonly Func<T, string> _keySelector;\n\n        public InMemoryRepository(Func<T, string> keySelector)\n        {\n            _keySelector = keySelector;\n        }\n\n        public Task<T?> FindAsync(string id)\n        {\n            _items.TryGetValue(id, out var item);\n            return Task.FromResult(item);\n        }\n\n        public Task SaveAsync(T item)\n        {\n            var key = _keySelector(item);\n            _items[key] = item;\n            return Task.CompletedTask;\n        }\n\n        public Task<bool> DeleteAsync(string id)\n        {\n            return Task.FromResult(_items.Remove(id));\n        }\n    }",
+        "children": [
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:InMemoryRepository.FindAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "FindAsync",
+            "qualified_name": "InMemoryRepository.FindAsync",
+            "signature": "public Task<T?> FindAsync(string id)",
+            "doc": null,
+            "location": {
+              "start_line": 111,
+              "end_line": 115,
+              "start_byte": 3073,
+              "end_byte": 3221
+            },
+            "content": "public Task<T?> FindAsync(string id)\n        {\n            _items.TryGetValue(id, out var item);\n            return Task.FromResult(item);\n        }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:InMemoryRepository.SaveAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "SaveAsync",
+            "qualified_name": "InMemoryRepository.SaveAsync",
+            "signature": "public Task SaveAsync(T item)",
+            "doc": null,
+            "location": {
+              "start_line": 117,
+              "end_line": 122,
+              "start_byte": 3231,
+              "end_byte": 3393
+            },
+            "content": "public Task SaveAsync(T item)\n        {\n            var key = _keySelector(item);\n            _items[key] = item;\n            return Task.CompletedTask;\n        }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:InMemoryRepository.DeleteAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "DeleteAsync",
+            "qualified_name": "InMemoryRepository.DeleteAsync",
+            "signature": "public Task<bool> DeleteAsync(string id)",
+            "doc": null,
+            "location": {
+              "start_line": 124,
+              "end_line": 127,
+              "start_byte": 3403,
+              "end_byte": 3518
+            },
+            "content": "public Task<bool> DeleteAsync(string id)\n        {\n            return Task.FromResult(_items.Remove(id));\n        }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:BaseService",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "BaseService",
+        "qualified_name": "BaseService",
+        "signature": "public abstract class BaseService<T> where T :",
+        "doc": null,
+        "location": {
+          "start_line": 131,
+          "end_line": 146,
+          "start_byte": 3552,
+          "end_byte": 3978
+        },
+        "content": "public abstract class BaseService<T> where T : class\n    {\n        protected readonly IRepository<T> Repository;\n\n        protected BaseService(IRepository<T> repository)\n        {\n            Repository = repository;\n        }\n\n        public abstract Task<bool> ValidateAsync(T item);\n\n        public virtual async Task<T?> GetByIdAsync(string id)\n        {\n            return await Repository.FindAsync(id);\n        }\n    }",
+        "children": [
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:BaseService.ValidateAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "ValidateAsync",
+            "qualified_name": "BaseService.ValidateAsync",
+            "signature": "public abstract Task<bool> ValidateAsync(T item);",
+            "doc": null,
+            "location": {
+              "start_line": 140,
+              "end_line": 140,
+              "start_byte": 3789,
+              "end_byte": 3838
+            },
+            "content": "public abstract Task<bool> ValidateAsync(T item);",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:BaseService.GetByIdAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "GetByIdAsync",
+            "qualified_name": "BaseService.GetByIdAsync",
+            "signature": "public virtual async Task<T?> GetByIdAsync(string id)",
+            "doc": null,
+            "location": {
+              "start_line": 142,
+              "end_line": 145,
+              "start_byte": 3848,
+              "end_byte": 3972
+            },
+            "content": "public virtual async Task<T?> GetByIdAsync(string id)\n        {\n            return await Repository.FindAsync(id);\n        }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:UserService",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "UserService",
+        "qualified_name": "UserService",
+        "signature": "public class UserService :",
+        "doc": null,
+        "location": {
+          "start_line": 149,
+          "end_line": 166,
+          "start_byte": 4003,
+          "end_byte": 4612
+        },
+        "content": "public class UserService : BaseService<User>\n    {\n        public UserService(IRepository<User> repository) : base(repository) { }\n\n        public override Task<bool> ValidateAsync(User item)\n        {\n            return Task.FromResult(!string.IsNullOrEmpty(item.Name));\n        }\n\n        // LINQ example\n        public async Task<IEnumerable<User>> GetActiveUsersAsync(IEnumerable<string> ids)\n        {\n            var users = await Repository.FindAllAsync(ids);\n            return users.Where(u => u.IsActive)\n                       .OrderBy(u => u.Name)\n                       .ToList();\n        }\n    }",
+        "children": [
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:UserService.ValidateAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "ValidateAsync",
+            "qualified_name": "UserService.ValidateAsync",
+            "signature": "public override Task<bool> ValidateAsync(User item)",
+            "doc": null,
+            "location": {
+              "start_line": 153,
+              "end_line": 156,
+              "start_byte": 4143,
+              "end_byte": 4284
+            },
+            "content": "public override Task<bool> ValidateAsync(User item)\n        {\n            return Task.FromResult(!string.IsNullOrEmpty(item.Name));\n        }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:UserService.GetActiveUsersAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "GetActiveUsersAsync",
+            "qualified_name": "UserService.GetActiveUsersAsync",
+            "signature": "public async Task<IEnumerable<User>> GetActiveUsersAsync(IEnumerable<string> ids)",
+            "doc": null,
+            "location": {
+              "start_line": 159,
+              "end_line": 165,
+              "start_byte": 4318,
+              "end_byte": 4606
+            },
+            "content": "public async Task<IEnumerable<User>> GetActiveUsersAsync(IEnumerable<string> ids)\n        {\n            var users = await Repository.FindAllAsync(ids);\n            return users.Where(u => u.IsActive)\n                       .OrderBy(u => u.Name)\n                       .ToList();\n        }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:UserExtensions",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "UserExtensions",
+        "qualified_name": "UserExtensions",
+        "signature": "public static class UserExtensions",
+        "doc": null,
+        "location": {
+          "start_line": 169,
+          "end_line": 182,
+          "start_byte": 4643,
+          "end_byte": 5041
+        },
+        "content": "public static class UserExtensions\n    {\n        public static string ToDisplayString(this User user)\n        {\n            return $\"{user.Name} ({user.Id})\";\n        }\n\n        public static async Task<User> WithEmailAsync(this User user, string email)\n        {\n            await Task.Delay(10); // Simulate async operation\n            user.Email = email;\n            return user;\n        }\n    }",
+        "children": [
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:UserExtensions.ToDisplayString",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "ToDisplayString",
+            "qualified_name": "UserExtensions.ToDisplayString",
+            "signature": "public static string ToDisplayString(this User user)",
+            "doc": null,
+            "location": {
+              "start_line": 171,
+              "end_line": 174,
+              "start_byte": 4692,
+              "end_byte": 4811
+            },
+            "content": "public static string ToDisplayString(this User user)\n        {\n            return $\"{user.Name} ({user.Id})\";\n        }",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:UserExtensions.WithEmailAsync",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "WithEmailAsync",
+            "qualified_name": "UserExtensions.WithEmailAsync",
+            "signature": "public static async Task<User> WithEmailAsync(this User user, string email)",
+            "doc": null,
+            "location": {
+              "start_line": 176,
+              "end_line": 181,
+              "start_byte": 4821,
+              "end_byte": 5035
+            },
+            "content": "public static async Task<User> WithEmailAsync(this User user, string email)\n        {\n            await Task.Delay(10); // Simulate async operation\n            user.Email = email;\n            return user;\n        }",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:LogAttribute",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "LogAttribute",
+        "qualified_name": "LogAttribute",
+        "signature": "[AttributeUsage(AttributeTargets.Method)]",
+        "doc": null,
+        "location": {
+          "start_line": 185,
+          "end_line": 190,
+          "start_byte": 5064,
+          "end_byte": 5264
+        },
+        "content": "[AttributeUsage(AttributeTargets.Method)]\n    public class LogAttribute : Attribute\n    {\n        public string Message { get; }\n        public LogAttribute(string message) => Message = message;\n    }",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:Validators",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "Validators",
+        "qualified_name": "Validators",
+        "signature": "public static class Validators",
+        "doc": null,
+        "location": {
+          "start_line": 193,
+          "end_line": 200,
+          "start_byte": 5290,
+          "end_byte": 5559
+        },
+        "content": "public static class Validators\n    {\n        public static bool IsValidEmail(string? email)\n            => !string.IsNullOrEmpty(email) && email.Contains('@');\n\n        public static bool IsNotEmpty(string? value)\n            => !string.IsNullOrWhiteSpace(value);\n    }",
+        "children": [
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:Validators.IsValidEmail",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "IsValidEmail",
+            "qualified_name": "Validators.IsValidEmail",
+            "signature": "public static bool IsValidEmail(string? email)",
+            "doc": null,
+            "location": {
+              "start_line": 195,
+              "end_line": 196,
+              "start_byte": 5335,
+              "end_byte": 5449
+            },
+            "content": "public static bool IsValidEmail(string? email)\n            => !string.IsNullOrEmpty(email) && email.Contains('@');",
+            "children": []
+          },
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:Validators.IsNotEmpty",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "IsNotEmpty",
+            "qualified_name": "Validators.IsNotEmpty",
+            "signature": "public static bool IsNotEmpty(string? value)",
+            "doc": null,
+            "location": {
+              "start_line": 198,
+              "end_line": 199,
+              "start_byte": 5459,
+              "end_byte": 5553
+            },
+            "content": "public static bool IsNotEmpty(string? value)\n            => !string.IsNullOrWhiteSpace(value);",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:PartialUser",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "PartialUser",
+        "qualified_name": "PartialUser",
+        "signature": "public partial class PartialUser",
+        "doc": null,
+        "location": {
+          "start_line": 203,
+          "end_line": 206,
+          "start_byte": 5586,
+          "end_byte": 5685
+        },
+        "content": "public partial class PartialUser\n    {\n        public string Id { get; set; } = string.Empty;\n    }",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:PartialUser",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "PartialUser",
+        "qualified_name": "PartialUser",
+        "signature": "public partial class PartialUser",
+        "doc": null,
+        "location": {
+          "start_line": 208,
+          "end_line": 211,
+          "start_byte": 5691,
+          "end_byte": 5792
+        },
+        "content": "public partial class PartialUser\n    {\n        public string Name { get; set; } = string.Empty;\n    }",
+        "children": []
+      },
+      {
+        "id": "type:sample_repo/csharp/sample.cs:Program",
+        "category": "type",
+        "kind": "class_declaration",
+        "name": "Program",
+        "qualified_name": "Program",
+        "signature": "public class Program",
+        "doc": null,
+        "location": {
+          "start_line": 214,
+          "end_line": 236,
+          "start_byte": 5818,
+          "end_byte": 6538
+        },
+        "content": "public class Program\n    {\n        public static async Task Main(string[] args)\n        {\n            var repo = new InMemoryRepository<User>(u => u.Id);\n            var service = new UserService(repo);\n\n            var user = new User(\"1\", \"Alice\") { Email = \"alice@example.com\" };\n            await repo.SaveAsync(user);\n\n            // Null-conditional and null-coalescing\n            var found = await repo.FindAsync(\"1\");\n            var name = found?.Name ?? \"Unknown\";\n\n            // Tuple\n            var (id, userName) = user;\n\n            // Using declaration\n            await using var stream = new System.IO.MemoryStream();\n\n            Console.WriteLine($\"User: {user.ToDisplayString()}\");\n        }\n    }",
+        "children": [
+          {
+            "id": "callable:sample_repo/csharp/sample.cs:Program.Main",
+            "category": "callable",
+            "kind": "method_declaration",
+            "name": "Main",
+            "qualified_name": "Program.Main",
+            "signature": "public static async Task Main(string[] args)",
+            "doc": null,
+            "location": {
+              "start_line": 216,
+              "end_line": 235,
+              "start_byte": 5853,
+              "end_byte": 6532
+            },
+            "content": "public static async Task Main(string[] args)\n        {\n            var repo = new InMemoryRepository<User>(u => u.Id);\n            var service = new UserService(repo);\n\n            var user = new User(\"1\", \"Alice\") { Email = \"alice@example.com\" };\n            await repo.SaveAsync(user);\n\n            // Null-conditional and null-coalescing\n            var found = await repo.FindAsync(\"1\");\n            var name = found?.Name ?? \"Unknown\";\n\n            // Tuple\n            var (id, userName) = user;\n\n            // Using declaration\n            await using var stream = new System.IO.MemoryStream();\n\n            Console.WriteLine($\"User: {user.ToDisplayString()}\");\n        }",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

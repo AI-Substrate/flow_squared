@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/json/sample.json",
+    "language": "json",
+    "format_family": "config_kv"
+  },
+  "root": {
+    "id": "file:sample_repo/json/sample.json",
+    "category": "file",
+    "kind": "document",
+    "name": "sample.json",
+    "qualified_name": "sample.json",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 165,
+      "start_byte": 0,
+      "end_byte": 3271
+    },
+    "content": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"title\": \"Sample JSON Configuration\",\n  \"description\": \"Sample JSON file for tree-sitter exploration\",\n  \"version\": \"1.0.0\",\n\n  \"application\": {\n    \"name\": \"sample-app\",\n    \"environment\": \"production\",\n    \"debug\": false,\n    \"port\": 3000,\n    \"host\": \"0.0.0.0\"\n  },\n\n  \"database\": {\n    \"primary\": {\n      \"type\": \"postgresql\",\n      \"host\": \"db.example.com\",\n      \"port\": 5432,\n      \"name\": \"myapp\",\n      \"ssl\": true,\n      \"pool\": {\n        \"min\": 2,\n        \"max\": 10,\n        \"idleTimeoutMs\": 30000\n      }\n    },\n    \"replica\": {\n      \"enabled\": true,\n      \"hosts\": [\n        \"replica1.example.com\",\n        \"replica2.example.com\"\n      ]\n    }\n  },\n\n  \"cache\": {\n    \"type\": \"redis\",\n    \"url\": \"redis://cache.example.com:6379\",\n    \"ttl\": 3600,\n    \"prefix\": \"app:\",\n    \"serializer\": \"json\"\n  },\n\n  \"auth\": {\n    \"jwt\": {\n      \"secret\": \"${JWT_SECRET}\",\n      \"expiresIn\": \"1h\",\n      \"algorithm\": \"HS256\",\n      \"issuer\": \"sample-app\"\n    },\n    \"oauth\": {\n      \"providers\": [\n        {\n          \"name\": \"google\",\n          \"clientId\": \"${GOOGLE_CLIENT_ID}\",\n          \"scopes\": [\"email\", \"profile\"]\n        },\n        {\n          \"name\": \"github\",\n          \"clientId\": \"${GITHUB_CLIENT_ID}\",\n          \"scopes\": [\"user:email\"]\n        }\n      ]\n    }\n  },\n\n  \"logging\": {\n    \"level\": \"info\",\n    \"format\": \"json\",\n    \"outputs\": [\n      {\n        \"type\": \"console\",\n        \"colorize\": true\n      },\n      {\n        \"type\": \"file\",\n        \"path\": \"/var/log/app/app.log\",\n        \"maxSize\": \"10MB\",\n        \"maxFiles\": 5\n      }\n    ],\n    \"metadata\": {\n      \"service\": \"sample-app\",\n      \"version\": \"1.0.0\"\n    }\n  },\n\n  \"features\": {\n    \"newDashboard\": {\n      \"enabled\": true,\n      \"rolloutPercentage\": 50,\n      \"allowedUsers\": [\"admin\", \"beta-tester\"]\n    },\n    \"darkMode\": {\n      \"enabled\": true,\n      \"default\": false\n    },\n    \"experimentalApi\": {\n      \"enabled\": false\n    }\n  },\n\n  \"rateLimiting\": {\n    \"enabled\": true,\n    \"rules\": [\n      {\n        \"path\": \"/api/*\",\n        \"limit\": 100,\n        \"windowMs\": 60000\n      },\n      {\n        \"path\": \"/api/auth/*\",\n        \"limit\": 10,\n        \"windowMs\": 60000\n      }\n    ]\n  },\n\n  \"cors\": {\n    \"enabled\": true,\n    \"origins\": [\n      \"https://example.com\",\n      \"https://app.example.com\"\n    ],\n    \"methods\": [\"GET\", \"POST\", \"PUT\", \"DELETE\"],\n    \"allowedHeaders\": [\"Content-Type\", \"Authorization\"],\n    \"credentials\": true,\n    \"maxAge\": 86400\n  },\n\n  \"data\": {\n    \"primitives\": {\n      \"string\": \"Hello, World!\",\n      \"number\": 42,\n      \"float\": 3.14159,\n      \"boolean\": true,\n      \"null\": null\n    },\n    \"arrays\": {\n      \"empty\": [],\n      \"numbers\": [1, 2, 3, 4, 5],\n      \"mixed\": [1, \"two\", true, null, {\"nested\": \"object\"}],\n      \"nested\": [[1, 2], [3, 4], [5, 6]]\n    },\n    \"special\": {\n      \"unicode\": \"Hello, \\u4e16\\u754c!\",\n      \"escaped\": \"Line 1\\nLine 2\\tTabbed\",\n      \"emoji\": \"Hello 👋 World 🌍\"\n    }\n  },\n\n  \"metadata\": {\n    \"createdAt\": \"2024-01-15T10:30:00.000Z\",\n    \"updatedAt\": \"2024-01-15T15:45:00.000Z\",\n    \"tags\": [\"config\", \"sample\", \"tree-sitter\"],\n    \"maintainers\": [\n      {\n        \"name\": \"Developer\",\n        \"email\": \"dev@example.com\"\n      }\n    ]\n  }\n}\n",
+    "children": []
+  }
+}

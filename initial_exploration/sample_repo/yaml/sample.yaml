@@ -1,0 +1,228 @@
+# Sample YAML file for tree-sitter exploration
+# Kubernetes-style configuration with various YAML features
+
+---
+# Document 1: Application deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+  namespace: production
+  labels:
+    app: sample
+    version: v1
+    environment: production
+  annotations:
+    description: "Sample application deployment"
+    contact: developer@example.com
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sample
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: sample
+        version: v1
+    spec:
+      containers:
+        - name: app
+          image: myregistry/sample-app:1.0.0
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: url
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - configMapRef:
+                name: app-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+            - name: data-volume
+              mountPath: /data
+      volumes:
+        - name: config-volume
+          configMap:
+            name: app-config
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: app-data-pvc
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: sample
+                topologyKey: kubernetes.io/hostname
+
+---
+# Document 2: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: sample
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+
+---
+# Document 3: ConfigMap with various value types
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: production
+data:
+  # Simple string values
+  LOG_LEVEL: info
+  MAX_CONNECTIONS: "100"
+
+  # Boolean-like strings
+  ENABLE_CACHE: "true"
+  DEBUG_MODE: "false"
+
+  # Multi-line string (literal block scalar)
+  config.json: |
+    {
+      "database": {
+        "host": "localhost",
+        "port": 5432,
+        "name": "myapp"
+      },
+      "features": {
+        "newUI": true,
+        "betaFeatures": false
+      }
+    }
+
+  # Folded block scalar
+  description: >
+    This is a long description
+    that spans multiple lines
+    but will be folded into
+    a single line.
+
+---
+# Document 4: Demonstrating YAML features
+yaml_features:
+  # Anchors and aliases
+  defaults: &defaults
+    timeout: 30
+    retries: 3
+    backoff: exponential
+
+  service_a:
+    <<: *defaults
+    endpoint: https://api.example.com/a
+
+  service_b:
+    <<: *defaults
+    timeout: 60  # Override
+    endpoint: https://api.example.com/b
+
+  # Different scalar styles
+  scalars:
+    plain: This is plain text
+    single_quoted: 'Single quoted: can''t use escapes'
+    double_quoted: "Double quoted: can use \n escapes"
+    literal: |
+      Line 1
+      Line 2
+      Line 3
+    folded: >
+      This will all be
+      on one line
+
+  # Null values
+  null_values:
+    explicit_null: null
+    tilde_null: ~
+    empty_null:
+
+  # Numbers
+  numbers:
+    integer: 42
+    float: 3.14159
+    scientific: 1.0e-5
+    hex: 0xFF
+    octal: 0o755
+    infinity: .inf
+    not_a_number: .nan
+
+  # Booleans
+  booleans:
+    true_value: true
+    false_value: false
+    yes_value: yes
+    no_value: no
+
+  # Complex keys
+  ? - complex
+    - key
+  : complex value
+
+  # Flow style (inline)
+  flow_sequence: [one, two, three]
+  flow_mapping: {key1: value1, key2: value2}
+  nested_flow: {outer: {inner: [a, b, c]}}
+
+  # Tags
+  tagged_value: !custom_tag "tagged string"
+
+  # Timestamps
+  dates:
+    canonical: 2024-01-15T10:30:00.000Z
+    iso8601: 2024-01-15T10:30:00+00:00
+    date_only: 2024-01-15

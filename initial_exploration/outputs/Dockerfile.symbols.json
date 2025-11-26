@@ -1,0 +1,111 @@
+{
+  "version": "1.0",
+  "source": {
+    "file": "sample_repo/dockerfile/Dockerfile",
+    "language": "dockerfile",
+    "format_family": "iac"
+  },
+  "root": {
+    "id": "file:sample_repo/dockerfile/Dockerfile",
+    "category": "file",
+    "kind": "source_file",
+    "name": "Dockerfile",
+    "qualified_name": "Dockerfile",
+    "signature": null,
+    "doc": null,
+    "location": {
+      "start_line": 1,
+      "end_line": 159,
+      "start_byte": 0,
+      "end_byte": 3258
+    },
+    "content": "# Sample Dockerfile for tree-sitter exploration\n# Multi-stage build with various instructions\n\n# ==================================\n# Stage 1: Build stage\n# ==================================\nFROM node:20-alpine AS builder\n\n# Build arguments\nARG NODE_ENV=production\nARG APP_VERSION=1.0.0\n\n# Labels\nLABEL maintainer=\"developer@example.com\"\nLABEL version=\"${APP_VERSION}\"\nLABEL description=\"Sample application for tree-sitter exploration\"\n\n# Environment variables\nENV NODE_ENV=${NODE_ENV}\nENV APP_HOME=/app\nENV PATH=\"${APP_HOME}/node_modules/.bin:${PATH}\"\n\n# Set working directory\nWORKDIR ${APP_HOME}\n\n# Install build dependencies\nRUN apk add --no-cache \\\n    python3 \\\n    make \\\n    g++ \\\n    git\n\n# Copy package files first (for layer caching)\nCOPY package*.json ./\nCOPY yarn.lock ./\n\n# Install dependencies\nRUN yarn install --frozen-lockfile --production=false\n\n# Copy source code\nCOPY src/ ./src/\nCOPY tsconfig.json ./\nCOPY webpack.config.js ./\n\n# Build application\nRUN yarn build && \\\n    yarn cache clean\n\n# ==================================\n# Stage 2: Test stage (optional)\n# ==================================\nFROM builder AS tester\n\n# Install test dependencies\nRUN yarn install --frozen-lockfile\n\n# Copy test files\nCOPY tests/ ./tests/\nCOPY jest.config.js ./\n\n# Run tests\nRUN yarn test --coverage\n\n# ==================================\n# Stage 3: Production stage\n# ==================================\nFROM node:20-alpine AS production\n\n# Security: run as non-root user\nRUN addgroup -g 1001 -S nodejs && \\\n    adduser -S nextjs -u 1001\n\n# Environment\nENV NODE_ENV=production\nENV PORT=3000\n\n# Working directory\nWORKDIR /app\n\n# Copy built artifacts from builder\nCOPY --from=builder --chown=nextjs:nodejs /app/dist ./dist\nCOPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules\nCOPY --from=builder --chown=nextjs:nodejs /app/package.json ./\n\n# Health check\nHEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \\\n    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/health || exit 1\n\n# Expose port\nEXPOSE ${PORT}\n\n# Switch to non-root user\nUSER nextjs\n\n# Volume for persistent data\nVOLUME [\"/app/data\"]\n\n# Entry point and command\nENTRYPOINT [\"node\"]\nCMD [\"dist/server.js\"]\n\n# ==================================\n# Stage 4: Development stage\n# ==================================\nFROM builder AS development\n\n# Additional dev tools\nRUN apk add --no-cache \\\n    curl \\\n    vim\n\n# Install all dependencies including devDependencies\nRUN yarn install --frozen-lockfile\n\n# Copy all source files\nCOPY . .\n\n# Development environment variables\nENV NODE_ENV=development\nENV DEBUG=app:*\n\n# Expose debug port\nEXPOSE 3000 9229\n\n# Development command with hot reload\nCMD [\"yarn\", \"dev\"]\n\n# ==================================\n# Stage 5: CI stage\n# ==================================\nFROM builder AS ci\n\n# CI-specific configuration\nENV CI=true\nENV JEST_JUNIT_OUTPUT_DIR=./reports\n\n# Install all dependencies\nRUN yarn install --frozen-lockfile\n\n# Copy everything\nCOPY . .\n\n# Create reports directory\nRUN mkdir -p ./reports\n\n# Run linting\nRUN yarn lint\n\n# Run type checking\nRUN yarn type-check\n\n# Run tests with coverage\nRUN yarn test:ci\n\n# Build for deployment\nRUN yarn build\n\n# Output: build artifacts are in /app/dist\n",
+    "children": [
+      {
+        "id": "block:sample_repo/dockerfile/Dockerfile:node:20-alpine",
+        "category": "block",
+        "kind": "from_instruction",
+        "name": "node:20-alpine",
+        "qualified_name": "node:20-alpine",
+        "signature": "FROM node:",
+        "doc": null,
+        "location": {
+          "start_line": 7,
+          "end_line": 7,
+          "start_byte": 192,
+          "end_byte": 222
+        },
+        "content": "FROM node:20-alpine AS builder",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/dockerfile/Dockerfile:builder",
+        "category": "block",
+        "kind": "from_instruction",
+        "name": "builder",
+        "qualified_name": "builder",
+        "signature": "FROM builder AS tester",
+        "doc": null,
+        "location": {
+          "start_line": 52,
+          "end_line": 52,
+          "start_byte": 1118,
+          "end_byte": 1140
+        },
+        "content": "FROM builder AS tester",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/dockerfile/Dockerfile:node:20-alpine",
+        "category": "block",
+        "kind": "from_instruction",
+        "name": "node:20-alpine",
+        "qualified_name": "node:20-alpine",
+        "signature": "FROM node:",
+        "doc": null,
+        "location": {
+          "start_line": 67,
+          "end_line": 67,
+          "start_byte": 1409,
+          "end_byte": 1442
+        },
+        "content": "FROM node:20-alpine AS production",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/dockerfile/Dockerfile:builder",
+        "category": "block",
+        "kind": "from_instruction",
+        "name": "builder",
+        "qualified_name": "builder",
+        "signature": "FROM builder AS development",
+        "doc": null,
+        "location": {
+          "start_line": 105,
+          "end_line": 105,
+          "start_byte": 2334,
+          "end_byte": 2361
+        },
+        "content": "FROM builder AS development",
+        "children": []
+      },
+      {
+        "id": "block:sample_repo/dockerfile/Dockerfile:builder",
+        "category": "block",
+        "kind": "from_instruction",
+        "name": "builder",
+        "qualified_name": "builder",
+        "signature": "FROM builder AS ci",
+        "doc": null,
+        "location": {
+          "start_line": 131,
+          "end_line": 131,
+          "start_byte": 2823,
+          "end_byte": 2841
+        },
+        "content": "FROM builder AS ci",
+        "children": []
+      }
+    ]
+  }
+}

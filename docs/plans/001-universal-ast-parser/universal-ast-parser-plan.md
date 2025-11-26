@@ -5,7 +5,7 @@
 **Created**: 2025-01-26
 **Spec**: [./universal-ast-parser-spec.md](./universal-ast-parser-spec.md)
 **Research**: [./tree-sitter-research.md](./tree-sitter-research.md)
-**Status**: READY
+**Status**: COMPLETE
 
 ---
 
@@ -116,62 +116,62 @@ Research synthesized from `tree-sitter-research.md` and spec analysis:
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|-------|
-| [ ] | P0-T1 | Create initial_exploration directory structure | 1 | Setup | -- | /workspaces/flow_squared/initial_exploration/ | Directories exist: sample_repo/, outputs/, scripts/ | mkdir -p for all dirs |
-| [ ] | P0-T2 | Initialize uv project and install dependencies | 1 | Setup | P0-T1 | /workspaces/flow_squared/initial_exploration/pyproject.toml | `uv sync` succeeds, tree-sitter importable | tree-sitter==0.25.2, tree-sitter-language-pack==0.11.0 |
-| [ ] | P0-T3 | Verify grammar availability and document | 1 | Setup | P0-T2 | /workspaces/flow_squared/initial_exploration/GRAMMAR_AVAILABILITY.md | Lists all available grammars, confirms 16 target languages | Enumerate tree-sitter-language-pack, note any missing |
+| [x] | P0-T1 | Create initial_exploration directory structure | 1 | Setup | -- | /workspaces/flow_squared/initial_exploration/ | Directories exist: sample_repo/, outputs/, scripts/ | mkdir -p for all dirs |
+| [x] | P0-T2 | Initialize uv project and install dependencies | 1 | Setup | P0-T1 | /workspaces/flow_squared/initial_exploration/pyproject.toml | `uv sync` succeeds, tree-sitter importable | tree-sitter==0.25.2, tree-sitter-language-pack==0.11.0 |
+| [x] | P0-T3 | Verify grammar availability and document | 1 | Setup | P0-T2 | /workspaces/flow_squared/initial_exploration/GRAMMAR_AVAILABILITY.md | Lists all available grammars, confirms 16 target languages | Enumerate tree-sitter-language-pack, note any missing [^1] |
 
 ### Phase 1: Exploration
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|-------|
-| [ ] | P1-T1 | Create Python sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/python/sample.py | File contains class, methods, function, decorator, async | Representative OOP code |
-| [ ] | P1-T2 | Create JavaScript sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/javascript/sample.js | File contains function, class, arrow function, module | ES6+ features |
-| [ ] | P1-T3 | Create TypeScript sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/typescript/sample.ts | File contains interface, type, generic, class | TS-specific constructs |
-| [ ] | P1-T4 | Create Go sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/go/sample.go | File contains package, struct, method, interface | Go idioms |
-| [ ] | P1-T5 | Create Rust sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/rust/sample.rs | File contains struct, trait, impl, enum | Rust ownership patterns |
-| [ ] | P1-T6 | Create C++ sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/cpp/sample.cpp | File contains class, namespace, template | C++ OOP |
-| [ ] | P1-T7 | Create C# sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/csharp/sample.cs | File contains class, namespace, property, LINQ | .NET patterns |
-| [ ] | P1-T8 | Create Dart sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/dart/sample.dart | File contains class, mixin, extension, async | Flutter-style Dart |
-| [ ] | P1-T9 | Create Markdown sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/markdown/sample.md | File contains h1, h2, h3, code blocks, lists | Nested structure |
-| [ ] | P1-T10 | Create Terraform sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/terraform/sample.tf | File contains resource, data, variable, module ref | IaC patterns |
-| [ ] | P1-T11 | Create Dockerfile sample | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/dockerfile/Dockerfile | File contains multi-stage, ARG, ENV, RUN, CMD | Docker best practices |
-| [ ] | P1-T12 | Create YAML sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/yaml/sample.yaml | File contains nested maps, sequences, anchors | K8s-style YAML |
-| [ ] | P1-T13 | Create JSON sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/json/sample.json | File contains nested objects, arrays | Config-style JSON |
-| [ ] | P1-T14 | Create TOML sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/toml/sample.toml | File contains tables, arrays, nested tables | pyproject.toml style |
-| [ ] | P1-T15 | Create SQL sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/sql/sample.sql | File contains CREATE, SELECT, JOIN, CTE | Database patterns |
-| [ ] | P1-T16 | Create shell script sample | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/shell/sample.sh | File contains function, conditional, loop, pipe | Bash idioms |
-| [ ] | P1-T17 | Write parse_to_json.py exploration script | 2 | Core | P0-T3 | /workspaces/flow_squared/initial_exploration/scripts/parse_to_json.py | Script parses file, outputs formatted JSON AST | Use TreeCursor, include all node metadata |
-| [ ] | P1-T18 | Add extension→language mapping to script | 1 | Core | P1-T17 | /workspaces/flow_squared/initial_exploration/scripts/parse_to_json.py | Script auto-detects language from file extension | Handle .tf→hcl, Dockerfile special case |
-| [ ] | P1-T19 | Generate JSON output for Python sample | 1 | Output | P1-T17,P1-T1 | /workspaces/flow_squared/initial_exploration/outputs/python_sample.json | JSON file exists with complete AST | Verify class/method nodes present |
-| [ ] | P1-T20 | Generate JSON output for JavaScript sample | 1 | Output | P1-T17,P1-T2 | /workspaces/flow_squared/initial_exploration/outputs/javascript_sample.json | JSON file exists with complete AST | Verify function/class nodes present |
-| [ ] | P1-T21 | Generate JSON output for TypeScript sample | 1 | Output | P1-T17,P1-T3 | /workspaces/flow_squared/initial_exploration/outputs/typescript_sample.json | JSON file exists with complete AST | Verify interface/type nodes present |
-| [ ] | P1-T22 | Generate JSON output for Go sample | 1 | Output | P1-T17,P1-T4 | /workspaces/flow_squared/initial_exploration/outputs/go_sample.json | JSON file exists with complete AST | Verify struct/method nodes present |
-| [ ] | P1-T23 | Generate JSON output for Rust sample | 1 | Output | P1-T17,P1-T5 | /workspaces/flow_squared/initial_exploration/outputs/rust_sample.json | JSON file exists with complete AST | Verify struct/impl nodes present |
-| [ ] | P1-T24 | Generate JSON output for C++ sample | 1 | Output | P1-T17,P1-T6 | /workspaces/flow_squared/initial_exploration/outputs/cpp_sample.json | JSON file exists with complete AST | Verify class/namespace nodes present |
-| [ ] | P1-T25 | Generate JSON output for C# sample | 1 | Output | P1-T17,P1-T7 | /workspaces/flow_squared/initial_exploration/outputs/csharp_sample.json | JSON file exists with complete AST | Verify class/namespace nodes present |
-| [ ] | P1-T26 | Generate JSON output for Dart sample | 1 | Output | P1-T17,P1-T8 | /workspaces/flow_squared/initial_exploration/outputs/dart_sample.json | JSON file exists with complete AST | Verify class/mixin nodes present |
-| [ ] | P1-T27 | Generate JSON output for Markdown sample | 1 | Output | P1-T17,P1-T9 | /workspaces/flow_squared/initial_exploration/outputs/markdown_sample.json | JSON file exists with complete AST | Note: check for section vs flat headings |
-| [ ] | P1-T28 | Generate JSON output for Terraform sample | 1 | Output | P1-T17,P1-T10 | /workspaces/flow_squared/initial_exploration/outputs/terraform_sample.json | JSON file exists with complete AST | Use hcl grammar |
-| [ ] | P1-T29 | Generate JSON output for Dockerfile sample | 1 | Output | P1-T17,P1-T11 | /workspaces/flow_squared/initial_exploration/outputs/dockerfile_sample.json | JSON file exists with complete AST | Verify instruction nodes present |
-| [ ] | P1-T30 | Generate JSON output for YAML sample | 1 | Output | P1-T17,P1-T12 | /workspaces/flow_squared/initial_exploration/outputs/yaml_sample.json | JSON file exists with complete AST | Verify mapping/sequence nodes present |
-| [ ] | P1-T31 | Generate JSON output for JSON sample | 1 | Output | P1-T17,P1-T13 | /workspaces/flow_squared/initial_exploration/outputs/json_sample.json | JSON file exists with complete AST | Verify object/array nodes present |
-| [ ] | P1-T32 | Generate JSON output for TOML sample | 1 | Output | P1-T17,P1-T14 | /workspaces/flow_squared/initial_exploration/outputs/toml_sample.json | JSON file exists with complete AST | Verify table nodes present |
-| [ ] | P1-T33 | Generate JSON output for SQL sample | 1 | Output | P1-T17,P1-T15 | /workspaces/flow_squared/initial_exploration/outputs/sql_sample.json | JSON file exists with complete AST | Verify statement nodes present |
-| [ ] | P1-T34 | Generate JSON output for shell sample | 1 | Output | P1-T17,P1-T16 | /workspaces/flow_squared/initial_exploration/outputs/shell_sample.json | JSON file exists with complete AST | Verify function/command nodes present |
-| [ ] | P1-T35 | Write README.md with setup and usage | 1 | Docs | P1-T17 | /workspaces/flow_squared/initial_exploration/README.md | README explains setup, running scripts, interpreting outputs | Include uv commands |
-| [ ] | P1-T36 | Analyze outputs and write FINDINGS.md | 3 | Docs | P1-T19 to P1-T34 | /workspaces/flow_squared/initial_exploration/FINDINGS.md | Document patterns, inconsistencies, design recommendations | Answer spec's 10 open questions; compare OOP vs Config vs IaC formats; identify cross-format patterns; propose production design approach |
+| [x] | P1-T1 | Create Python sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/python/sample.py | File contains class, methods, function, decorator, async | Representative OOP code |
+| [x] | P1-T2 | Create JavaScript sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/javascript/sample.js | File contains function, class, arrow function, module | ES6+ features |
+| [x] | P1-T3 | Create TypeScript sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/typescript/sample.ts | File contains interface, type, generic, class | TS-specific constructs |
+| [x] | P1-T4 | Create Go sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/go/sample.go | File contains package, struct, method, interface | Go idioms |
+| [x] | P1-T5 | Create Rust sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/rust/sample.rs | File contains struct, trait, impl, enum | Rust ownership patterns |
+| [x] | P1-T6 | Create C++ sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/cpp/sample.cpp | File contains class, namespace, template | C++ OOP |
+| [x] | P1-T7 | Create C# sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/csharp/sample.cs | File contains class, namespace, property, LINQ | .NET patterns |
+| [x] | P1-T8 | Create Dart sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/dart/sample.dart | File contains class, mixin, extension, async | Flutter-style Dart |
+| [x] | P1-T9 | Create Markdown sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/markdown/sample.md | File contains h1, h2, h3, code blocks, lists | Nested structure |
+| [x] | P1-T10 | Create Terraform sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/terraform/sample.tf | File contains resource, data, variable, module ref | IaC patterns |
+| [x] | P1-T11 | Create Dockerfile sample | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/dockerfile/Dockerfile | File contains multi-stage, ARG, ENV, RUN, CMD | Docker best practices |
+| [x] | P1-T12 | Create YAML sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/yaml/sample.yaml | File contains nested maps, sequences, anchors | K8s-style YAML |
+| [x] | P1-T13 | Create JSON sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/json/sample.json | File contains nested objects, arrays | Config-style JSON |
+| [x] | P1-T14 | Create TOML sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/toml/sample.toml | File contains tables, arrays, nested tables | pyproject.toml style |
+| [x] | P1-T15 | Create SQL sample file | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/sql/sample.sql | File contains CREATE, SELECT, JOIN, CTE | Database patterns |
+| [x] | P1-T16 | Create shell script sample | 1 | Sample | P0-T3 | /workspaces/flow_squared/initial_exploration/sample_repo/shell/sample.sh | File contains function, conditional, loop, pipe | Bash idioms |
+| [x] | P1-T17 | Write parse_to_json.py exploration script | 2 | Core | P0-T3 | /workspaces/flow_squared/initial_exploration/scripts/parse_to_json.py | Script parses file, outputs formatted JSON AST | Use TreeCursor, include all node metadata |
+| [x] | P1-T18 | Add extension→language mapping to script | 1 | Core | P1-T17 | /workspaces/flow_squared/initial_exploration/scripts/parse_to_json.py | Script auto-detects language from file extension | Handle .tf→hcl, Dockerfile special case |
+| [x] | P1-T19 | Generate JSON output for Python sample | 1 | Output | P1-T17,P1-T1 | /workspaces/flow_squared/initial_exploration/outputs/python_sample.json | JSON file exists with complete AST | Verify class/method nodes present |
+| [x] | P1-T20 | Generate JSON output for JavaScript sample | 1 | Output | P1-T17,P1-T2 | /workspaces/flow_squared/initial_exploration/outputs/javascript_sample.json | JSON file exists with complete AST | Verify function/class nodes present |
+| [x] | P1-T21 | Generate JSON output for TypeScript sample | 1 | Output | P1-T17,P1-T3 | /workspaces/flow_squared/initial_exploration/outputs/typescript_sample.json | JSON file exists with complete AST | Verify interface/type nodes present |
+| [x] | P1-T22 | Generate JSON output for Go sample | 1 | Output | P1-T17,P1-T4 | /workspaces/flow_squared/initial_exploration/outputs/go_sample.json | JSON file exists with complete AST | Verify struct/method nodes present |
+| [x] | P1-T23 | Generate JSON output for Rust sample | 1 | Output | P1-T17,P1-T5 | /workspaces/flow_squared/initial_exploration/outputs/rust_sample.json | JSON file exists with complete AST | Verify struct/impl nodes present |
+| [x] | P1-T24 | Generate JSON output for C++ sample | 1 | Output | P1-T17,P1-T6 | /workspaces/flow_squared/initial_exploration/outputs/cpp_sample.json | JSON file exists with complete AST | Verify class/namespace nodes present |
+| [x] | P1-T25 | Generate JSON output for C# sample | 1 | Output | P1-T17,P1-T7 | /workspaces/flow_squared/initial_exploration/outputs/csharp_sample.json | JSON file exists with complete AST | Verify class/namespace nodes present |
+| [x] | P1-T26 | Generate JSON output for Dart sample | 1 | Output | P1-T17,P1-T8 | /workspaces/flow_squared/initial_exploration/outputs/dart_sample.json | JSON file exists with complete AST | Verify class/mixin nodes present |
+| [x] | P1-T27 | Generate JSON output for Markdown sample | 1 | Output | P1-T17,P1-T9 | /workspaces/flow_squared/initial_exploration/outputs/markdown_sample.json | JSON file exists with complete AST | Note: Headings are FLAT, not nested [^2] |
+| [x] | P1-T28 | Generate JSON output for Terraform sample | 1 | Output | P1-T17,P1-T10 | /workspaces/flow_squared/initial_exploration/outputs/terraform_sample.json | JSON file exists with complete AST | Use hcl grammar |
+| [x] | P1-T29 | Generate JSON output for Dockerfile sample | 1 | Output | P1-T17,P1-T11 | /workspaces/flow_squared/initial_exploration/outputs/dockerfile_sample.json | JSON file exists with complete AST | Verify instruction nodes present |
+| [x] | P1-T30 | Generate JSON output for YAML sample | 1 | Output | P1-T17,P1-T12 | /workspaces/flow_squared/initial_exploration/outputs/yaml_sample.json | JSON file exists with complete AST | Verify mapping/sequence nodes present |
+| [x] | P1-T31 | Generate JSON output for JSON sample | 1 | Output | P1-T17,P1-T13 | /workspaces/flow_squared/initial_exploration/outputs/json_sample.json | JSON file exists with complete AST | Verify object/array nodes present |
+| [x] | P1-T32 | Generate JSON output for TOML sample | 1 | Output | P1-T17,P1-T14 | /workspaces/flow_squared/initial_exploration/outputs/toml_sample.json | JSON file exists with complete AST | Verify table nodes present |
+| [x] | P1-T33 | Generate JSON output for SQL sample | 1 | Output | P1-T17,P1-T15 | /workspaces/flow_squared/initial_exploration/outputs/sql_sample.json | JSON file exists with complete AST | Verify statement nodes present |
+| [x] | P1-T34 | Generate JSON output for shell sample | 1 | Output | P1-T17,P1-T16 | /workspaces/flow_squared/initial_exploration/outputs/shell_sample.json | JSON file exists with complete AST | Verify function/command nodes present |
+| [x] | P1-T35 | Write README.md with setup and usage | 1 | Docs | P1-T17 | /workspaces/flow_squared/initial_exploration/README.md | README explains setup, running scripts, interpreting outputs | Include uv commands |
+| [x] | P1-T36 | Analyze outputs and write FINDINGS.md | 3 | Docs | P1-T19 to P1-T34 | /workspaces/flow_squared/initial_exploration/FINDINGS.md | Document patterns, inconsistencies, design recommendations | Answer spec's 10 open questions; compare OOP vs Config vs IaC formats; identify cross-format patterns; propose production design approach |
 
 ### Acceptance Criteria
 
-- [ ] All 16 sample files created with representative content (AC1, AC2)
-- [ ] All 16 JSON AST output files generated (AC3)
-- [ ] parse_to_json.py script works for any supported file (AC4)
-- [ ] JSON outputs include node types, fields, byte/line ranges, children (AC5)
-- [ ] FINDINGS.md compares at least 5 diverse formats (AC6)
-- [ ] FINDINGS.md identifies patterns and inconsistencies (AC7)
-- [ ] FINDINGS.md proposes design approach for production parser (AC8)
-- [ ] README.md exists with setup and usage instructions (AC9)
-- [ ] All artifacts in `initial_exploration/` directory (AC10)
+- [x] All 16 sample files created with representative content (AC1, AC2)
+- [x] All 16 JSON AST output files generated (AC3)
+- [x] parse_to_json.py script works for any supported file (AC4)
+- [x] JSON outputs include node types, fields, byte/line ranges, children (AC5)
+- [x] FINDINGS.md compares at least 5 diverse formats (AC6) - Compares all 16
+- [x] FINDINGS.md identifies patterns and inconsistencies (AC7) - See suffix patterns, field availability
+- [x] FINDINGS.md proposes design approach for production parser (AC8) - UniversalNode model proposed
+- [x] README.md exists with setup and usage instructions (AC9)
+- [x] All artifacts in `initial_exploration/` directory (AC10)
 
 ### Risks
 
@@ -185,14 +185,23 @@ Research synthesized from `tree-sitter-research.md` and spec analysis:
 
 ## Change Footnotes Ledger
 
-[^1]: [To be added during implementation via plan-6a]
-[^2]: [To be added during implementation via plan-6a]
+[^1]: 2025-11-26 P0-T3: Discovered C# grammar is `csharp` (not `c_sharp`). All 16 target languages confirmed available. 172 total grammars in pack. See `initial_exploration/GRAMMAR_AVAILABILITY.md`.
+[^2]: 2025-11-26 P1-T27: Markdown headings are FLAT `atx_heading` nodes, not nested `section` nodes. Post-processing needed to create hierarchical sections. See FINDINGS.md Q5.
 
 ---
 
-**Next steps:**
-- **Phase 0 first**: Execute setup tasks (P0-T1 → P0-T2 → P0-T3) before exploration
-- **Ready to implement**: `/plan-6-implement-phase --plan "docs/plans/001-universal-ast-parser/universal-ast-parser-plan.md"`
+**Status: COMPLETE**
+
+All acceptance criteria met. See `initial_exploration/FINDINGS.md` for key insights:
+- Universal abstraction is **feasible** with suffix-based type classification
+- Markdown needs post-processing for section nesting
+- TOML has no field names (use positional children)
+- 8 distinct root types across 16 formats
+
+**Next steps for production implementation:**
+1. Design UniversalNode data model based on FINDINGS.md recommendations
+2. Build category classification using suffix patterns
+3. Implement name extraction with field → heuristic fallback
 
 ---
 
