@@ -2,11 +2,10 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
 	"name": "Python 3",
-	// Build from local Dockerfile
-	"build": {
-		"dockerfile": "Dockerfile",
-		"context": "."
-	},
+	// Use docker-compose for explicit port binding (0.0.0.0 for remote access)
+	"dockerComposeFile": "compose.yml",
+	"service": "devcontainer",
+	"workspaceFolder": "/workspaces/flow_squared",
 
 	"features": {
 		"ghcr.io/ai-substrate/devcontainer-features/flowspace:latest": {
@@ -31,23 +30,7 @@
 	"postCreateCommand": "/usr/local/share/ssh-init.sh && /usr/local/bin/post-install.sh",
 	"postStartCommand": "/usr/local/share/ssh-init.sh",
 
-	// Forward SSH port (container 22 -> host 2225)
-	"forwardPorts": [2225],
-	"portsAttributes": {
-		"2225": {
-			"label": "SSH",
-			"onAutoForward": "notify"
-		}
-	},
-	"mounts": [
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/history.jsonl,target=/home/vscode/.claude/history.jsonl,type=bind,consistency=cached",
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/file-history,target=/home/vscode/.claude/file-history,type=bind,consistency=cached",
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/todos,target=/home/vscode/.claude/todos,type=bind,consistency=cached",
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/projects,target=/home/vscode/.claude/projects,type=bind,consistency=cached",
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/session-env,target=/home/vscode/.claude/session-env,type=bind,consistency=cached",
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/shell-snapshots,target=/home/vscode/.claude/shell-snapshots,type=bind,consistency=cached"
-	],
+	// Mounts are in compose.yml, ports exposed via 0.0.0.0:2225 for remote SSH access
 	"remoteEnv": {
         "HOST_PROJECT_PATH": "${localWorkspaceFolder}", // The shim looks for this when running in a container
         

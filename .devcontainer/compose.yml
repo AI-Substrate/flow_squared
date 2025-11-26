@@ -1,0 +1,18 @@
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspaces/flow_squared:cached
+      - ${HOME:-.}/.ssh:/home/vscode/.ssh:cached
+      - ${HOME:-.}/.claude/history.jsonl:/home/vscode/.claude/history.jsonl:cached
+      - ${HOME:-.}/.claude/file-history:/home/vscode/.claude/file-history:cached
+      - ${HOME:-.}/.claude/todos:/home/vscode/.claude/todos:cached
+      - ${HOME:-.}/.claude/projects:/home/vscode/.claude/projects:cached
+      - ${HOME:-.}/.claude/session-env:/home/vscode/.claude/session-env:cached
+      - ${HOME:-.}/.claude/shell-snapshots:/home/vscode/.claude/shell-snapshots:cached
+    ports:
+      - "0.0.0.0:2225:2225"
+    stdin_open: true
+    tty: true
