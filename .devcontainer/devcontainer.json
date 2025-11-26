@@ -1,0 +1,58 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"name": "Python 3",
+	// Build from local Dockerfile
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": "."
+	},
+
+	"features": {
+		"ghcr.io/ai-substrate/devcontainer-features/flowspace:latest": {
+      		"version": "latest"
+    	},
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+		"ghcr.io/devcontainers/features/rust:1": {},
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"installZsh": true,
+			"configureZshAsDefaultShell": true,
+			"installOhMyZsh": true,
+			"installOhMyZshConfig": true,
+			"upgradePackages": true,
+			"nonFreePackages": true,
+			"username": "vscode",
+			"userUid": "automatic",
+			"userGid": "automatic"
+		}
+	},
+
+	// Run post-install script after the container is created
+	"postCreateCommand": "/usr/local/bin/post-install.sh",
+	"mounts": [
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/history.jsonl,target=/home/vscode/.claude/history.jsonl,type=bind,consistency=cached",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/file-history,target=/home/vscode/.claude/file-history,type=bind,consistency=cached",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/todos,target=/home/vscode/.claude/todos,type=bind,consistency=cached",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/projects,target=/home/vscode/.claude/projects,type=bind,consistency=cached",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/session-env,target=/home/vscode/.claude/session-env,type=bind,consistency=cached",
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude/shell-snapshots,target=/home/vscode/.claude/shell-snapshots,type=bind,consistency=cached"
+	],
+	"remoteEnv": {
+        "HOST_PROJECT_PATH": "${localWorkspaceFolder}", // The shim looks for this when running in a container
+        
+        
+        "SSH_AUTH_SOCK": "/ssh-agent"
+    }
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

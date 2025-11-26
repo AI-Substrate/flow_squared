@@ -1,0 +1,177 @@
+# Substrate Configuration File
+# 
+# This file configures substrate's behavior for scanning, querying, and
+# managing multiple code repositories.
+#
+# SECURITY WARNING: Never store API keys, tokens, or passwords directly in this file!
+# Use environment variables instead: ${ENV_VAR_NAME}
+#
+# For more information, see: https://github.com/substrate-ai/substrate
+#
+
+version: '1.0'
+
+# Main repository configuration
+# These settings apply to your primary/local repository
+main_repo:
+  # Paths to scan for source code (relative or absolute)
+  # Examples: ["./src", "./tests", "/home/user/projects/myapp"]
+  scan_paths:
+    - "./docs"
+    
+  # Output directory for scan results
+  # Default: .flowspace/output
+  output_dir: ".flowspace/output"
+  
+  # Patterns to ignore during scanning
+  # Uses gitignore syntax
+  ignore_patterns:
+    - "*.pyc"
+    - "__pycache__"
+    - ".git"
+    - "node_modules"
+    - ".venv"
+    - "*.log"
+    - ".substrate"
+    - ".flowspace"
+
+# Query configuration
+# Controls how searches and queries behave
+query:
+  # Number of results to return (default: 5)
+  top_k: 5
+  
+  # Minimum similarity score for results (0.0-1.0)
+  # Lower values return more results but may be less relevant
+  min_similarity: 0.125
+  
+  # Output format for query results
+  # Options: "json", "pretty", "yaml"
+  output_format: "pretty"
+  
+  # Which repositories to search by default
+  # Options: ["main"], ["all"], or specific repo names
+  default_repos:
+    - "main"
+
+# Performance configuration
+# Tune these settings based on your system resources
+performance:
+  # Maximum number of parallel workers
+  # Set to 4 for a reasonable default (override based on your CPU cores)
+  max_workers: 4
+  
+  # Batch size for processing
+  batch_size: 100
+  
+  # Cache time-to-live in seconds
+  cache_ttl: 3600
+
+# MCP (Model Context Protocol) server configuration
+mcp:
+  # Enable MCP server
+  enabled: true
+  
+  # Server host (use 0.0.0.0 to allow external connections)
+  host: "127.0.0.1"
+  
+  # Server port
+  port: 8765
+
+# Additional repository configurations
+# Add external repositories to search across multiple codebases
+repos: []
+  # Example configurations (uncomment and modify as needed):
+  #
+  # - name: "my-library"
+  #   condensed_path: "/path/to/my-library/condensed.jsonl"
+  #   description: "Internal utility library"
+  #   weight: 1.0
+  #   tags: ["internal", "utils"]
+  #
+  # - name: "third-party-sdk" 
+  #   condensed_path: "${HOME}/repos/sdk/condensed.jsonl"
+  #   description: "Third-party SDK we depend on"
+  #   weight: 0.8
+  #   tags: ["external", "sdk"]
+
+# Embedding configuration
+# Default: Uses local transformer model (no API key needed)
+embedding:
+  mode: azure
+  azure:
+    endpoint: https://oaijodoaustralia.openai.azure.com/
+    api_key: ${AZURE_EMBEDDING_API_KEY}
+    model: text-embedding-3-small-no-rate
+    dimensions: 1024
+
+  batch_size: 128
+
+llm:
+  provider: azure
+  api_key: ${AZURE_OPENAI_API_KEY}
+  base_url: https://jordoopenai2.openai.azure.com/
+  azure_deployment_name: gpt-5-mini
+  azure_api_version: 2024-12-01-preview
+  model: gpt-5-mini   # For logging/display purposes
+  temperature: 0.1
+  max_tokens: 1024
+  smart_content_max_workers: 64
+
+# Alternative embedding providers (uncomment and modify as needed):
+#
+# For Azure OpenAI:
+# embedding:
+#   mode: "azure"
+#   azure:
+#     api_key: "${AZURE_OPENAI_API_KEY}"
+#     endpoint: "${AZURE_OPENAI_ENDPOINT}"
+#     model: "text-embedding-3-small"
+#     api_version: "2024-02-01"
+#   batch_size: 32
+#
+# For OpenAI-compatible APIs:
+# embedding:
+#   mode: "openai_compatible"
+#   openai_compatible:
+#     api_key: "${OPENAI_API_KEY}"
+#     base_url: "https://api.openai.com/v1"
+#     model: "text-embedding-3-small"
+#   batch_size: 32
+
+# Workflow pipeline configuration
+# Defines the stages that will be executed during scanning
+workflow:
+  # Available stages: lfl, lsl, smart_content, embed, graph
+  # Remove 'smart_content' if you don't have an LLM configured
+  stages: [lfl, lsl, smart_content, embed, graph]
+
+# LLM configuration (optional)
+# Configure the language model for smart content generation
+# Uncomment and modify for your preferred provider
+#
+# IMPORTANT: If 'smart_content' is in your workflow stages, you MUST configure an LLM
+# or remove 'smart_content' from the workflow stages list
+#
+# llm:
+#   # For mock/testing (no API needed):
+#   provider: "mock"
+#   
+#   # For OpenAI:
+#   # provider: "openai"
+#   # api_key: "${OPENAI_API_KEY}"
+#   # model: "gpt-4"
+#   # temperature: 0.7
+#   # max_tokens: 1000
+#   
+#   # For Azure OpenAI:
+#   # provider: "azure"
+#   # api_key: "${AZURE_OPENAI_API_KEY}"
+#   # base_url: "https://jordoopenai2.openai.azure.com/"
+#   # azure_deployment_name: "gpt-5-mini"
+#   # azure_api_version: "2024-12-01-preview"
+#   # model: "gpt-5-mini"   # For logging/display purposes
+#   # temperature: 0.1
+#   # max_tokens: 1024
+#   # smart_content_max_workers: 64
+
