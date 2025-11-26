@@ -43,7 +43,15 @@
         
         
         "SSH_AUTH_SOCK": "/ssh-agent"
-    }
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"bierner.github-markdown-preview",
+				"bierner.markdown-mermaid"
+			]
+		}
+	}
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
