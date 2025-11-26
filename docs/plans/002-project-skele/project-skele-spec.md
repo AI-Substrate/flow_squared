@@ -126,32 +126,37 @@ Establish a Python project skeleton implementing Clean Architecture principles w
 **Then** the following structure exists:
 ```
 src/
-├── cli/
-│   └── __init__.py
-├── core/
-│   ├── __init__.py
-│   ├── models/
-│   │   └── __init__.py       # Domain models (dataclasses, value objects)
-│   ├── services/
-│   │   └── __init__.py
-│   ├── adapters/
-│   │   ├── __init__.py
-│   │   └── protocols.py      # Adapter interfaces
-│   └── repos/
-│       ├── __init__.py
-│       └── protocols.py      # Repository interfaces
-└── config/
-    ├── __init__.py           # Singleton export
-    └── models.py             # Pydantic config models
+└── fs2/                      # Named package (avoids 'src' namespace conflicts)
+    ├── __init__.py
+    ├── cli/
+    │   └── __init__.py
+    ├── core/
+    │   ├── __init__.py
+    │   ├── models/
+    │   │   └── __init__.py       # Domain models (dataclasses, value objects)
+    │   ├── services/
+    │   │   └── __init__.py
+    │   ├── adapters/
+    │   │   ├── __init__.py
+    │   │   └── protocols.py      # Adapter interfaces
+    │   └── repos/
+    │       ├── __init__.py
+    │       └── protocols.py      # Repository interfaces
+    └── config/
+        ├── __init__.py           # Singleton export
+        └── models.py             # Pydantic config models
 
 tests/
 ├── conftest.py
 ├── scratch/                  # Fast exploration tests
 ├── unit/
 │   ├── config/
-│   └── adapters/
+│   ├── adapters/
+│   └── services/             # Service composition tests (tests as documentation)
 └── docs/                     # Canonical documentation tests
 ```
+
+**Note**: The `src/fs2/` layout follows Python packaging best practices—`src/` is the container directory (not a package), while `fs2/` is the actual importable package. This prevents namespace conflicts when the package is installed.
 
 ### AC2: CLI Module
 **Given** the cli module

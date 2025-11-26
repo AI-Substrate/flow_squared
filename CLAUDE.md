@@ -49,15 +49,16 @@ The devcontainer configures two MCP servers:
 
 ```
 src/
-├── cli/                    # Presentation layer (Typer + Rich)
-├── core/
-│   ├── models/             # Domain models (dataclasses, shared types)
-│   ├── services/           # Composition layer (business logic)
-│   ├── adapters/           # External SDK wrappers
-│   │   └── protocols.py    # Adapter interfaces
-│   └── repos/              # Data access
-│       └── protocols.py    # Repository interfaces
-└── config/                 # Pydantic settings
+└── fs2/                        # Named package (import fs2.*)
+    ├── cli/                    # Presentation layer (Typer + Rich)
+    ├── core/
+    │   ├── models/             # Domain models (dataclasses, shared types)
+    │   ├── services/           # Composition layer (business logic)
+    │   ├── adapters/           # External SDK wrappers
+    │   │   └── protocols.py    # Adapter interfaces
+    │   └── repos/              # Data access
+    │       └── protocols.py    # Repository interfaces
+    └── config/                 # Pydantic settings
 ```
 
 ### Dependency Flow Rules
