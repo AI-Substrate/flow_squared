@@ -2,13 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Identity
+
+> **Flowspace2** (short: **fs2**) — A ground-up rebuild of Flowspace with Clean Architecture
+
+| Attribute | Value |
+|-----------|-------|
+| **Name** | Flowspace2 |
+| **Short Name** | fs2 |
+| **Env Prefix** | `FS2_` |
+| **Config Dir** | `.fs2/` |
+| **Package Manager** | `uv` |
+
 ## Project Overview
 
-flow_squared is a Python project for building a universal code/document parser using tree-sitter. The goal is to extract structural elements from ANY supported file format into a single, generic hierarchical data structure—without requiring per-language special cases.
+Flowspace2 is a Python project implementing Clean Architecture principles. The codebase enforces strict dependency boundaries where **Services** compose **Adapters** and **Repositories** through interface injection, with zero concept leakage from infrastructure to business logic.
 
-**Key Dependencies** (planned):
-- `tree-sitter==0.25.2` — Core parsing engine
-- `tree-sitter-language-pack==0.11.0` — Bundled grammars for 50+ languages
+**Key Dependencies**:
+- `pydantic` / `pydantic-settings` — Configuration and validation
+- `typer` — CLI argument parsing
+- `rich` — Terminal formatting
+- `pytest` — Testing
 - `uv` — Package manager
 
 ## Development Environment
@@ -31,26 +45,51 @@ The devcontainer configures two MCP servers:
 
 ## Architecture
 
-### Current State
-The project is in early exploration phase. The `docs/plans/001-universal-ast-parser/` directory contains the feature specification for the universal AST parser.
+### Clean Architecture Layers
 
-### Planned Structure
-The parser will:
-1. Accept any tree-sitter-supported file format
-2. Output a consistent hierarchical structure: `{file, nodes[]}` where each node has `type`, `name`, `start_line`, `end_line`, `children[]`
-3. Handle 50+ languages with zero conditional logic per language
+```
+src/
+├── cli/                    # Presentation layer (Typer + Rich)
+├── core/
+│   ├── models/             # Domain models (dataclasses, shared types)
+│   ├── services/           # Composition layer (business logic)
+│   ├── adapters/           # External SDK wrappers
+│   │   └── protocols.py    # Adapter interfaces
+│   └── repos/              # Data access
+│       └── protocols.py    # Repository interfaces
+└── config/                 # Pydantic settings
+```
+
+### Dependency Flow Rules
+
+**ALLOWED** (left → right):
+- `cli` → `services`
+- `services` → `adapters/protocols`, `repos/protocols`, `models`
+- `adapters/*_impl` → external SDKs
+- `repos/*_impl` → databases/APIs
+
+**FORBIDDEN** (right → left):
+- `adapters` → `services` ❌
+- `repos` → `services` ❌
+- External SDK types leaking into `services` ❌
+
+### Configuration
+
+- **Env prefix**: `FS2_` (e.g., `FS2_AZURE__OPENAI__ENDPOINT`)
+- **Config file**: `.fs2/config.yaml`
+- **Precedence**: programmatic → env vars → YAML → .env → defaults
 
 ### FlowSpace Integration
 The project uses FlowSpace for code indexing:
 - Config: `.flowspace/config.yaml`
 - Registry: `.flowspace/registry.yaml`
-- Scan paths configured in `main_repo.scan_paths`
 
 ## Key Design Decisions
 
-- **No language-specific branches**: The parser core must handle all formats identically
-- **Hierarchical output**: Nested structures of arbitrary depth (file → module → class → method → nested function)
-- **Semantic preservation**: Each format retains its natural concepts (no forcing "classes" onto Markdown)
+- **ABC interfaces**: Use `abc.ABC` with `@abstractmethod` for explicit contracts (runtime enforcement)
+- **Fakes over mocks**: Implement test doubles as real interface implementations (inherit from ABC)
+- **Actionable errors**: All exceptions include fix instructions
+- **Tests as documentation**: Canonical tests demonstrate composition patterns
 
 
 ## Wormhole MCP Server (Code Intelligence)

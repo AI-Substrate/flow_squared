@@ -18,6 +18,7 @@ main_repo:
   # Examples: ["./src", "./tests", "/home/user/projects/myapp"]
   scan_paths:
     - "./docs"
+    - "./initial_exploration"
     
   # Output directory for scan results
   # Default: .flowspace/output
