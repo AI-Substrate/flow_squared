@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(mkdir:*)",
+      "mcp__flowspace__query",
+      "mcp__flowspace__list_repos",
+      "mcp__flowspace__document_code",
+      "Bash(python3:*)",
+      "Bash(ssh:*)",
+      "Bash(sudo service ssh:*)",
+      "Bash(ss:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

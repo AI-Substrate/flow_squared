@@ -27,6 +27,9 @@ echo "Pulling flowspace image"
 
 flowspace update
 
+# Source updated PATH to make newly installed tools available
+export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"
+
 claude mcp add flowspace -- flowspace mcp
 claude mcp add wormhole -- npx github:AI-Substrate/wormhole mcp --workspace .
 
