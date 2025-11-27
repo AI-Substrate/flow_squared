@@ -201,34 +201,34 @@ class AzureOpenAIConfig(BaseModel):
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Notes |
 |--------|-----|------|-----|------|--------------|------------------|------------|-------|
-| [ ] | ST001 | Write tests for XDG path resolution | 2 | Test | – | `/workspaces/flow_squared/tests/unit/config/test_config_paths.py` | Tests: XDG_CONFIG_HOME set, not set, home fallback | New file |
-| [ ] | ST002 | Implement `paths.py` with XDG helpers | 2 | Core | ST001 | `/workspaces/flow_squared/src/fs2/config/paths.py` | ST001 tests pass; returns Path objects | `get_user_config_dir()`, `get_project_config_dir()` |
-| [ ] | ST003 | Write tests for secrets loading into env | 2 | Test | ST002 | `/workspaces/flow_squared/tests/unit/config/test_secrets_loading.py` | Tests: user/project/dotenv loading, precedence, .env wins | New file |
-| [ ] | ST004 | Implement `_load_secrets_to_env()` helper | 2 | Core | ST003 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST003 tests pass; uses python-dotenv | Loads all secrets.env files |
-| [ ] | ST005 | Write tests for YAML loading helpers | 2 | Test | ST004 | `/workspaces/flow_squared/tests/unit/config/test_yaml_loading.py` | Tests: user YAML, project YAML, missing graceful | New file |
-| [ ] | ST006 | Implement `_load_yaml_config()` helpers | 2 | Core | ST005 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST005 tests pass; returns dict or {} | Graceful on missing/invalid |
-| [ ] | ST007 | Write tests for FS2_* env var parsing convention | 2 | Test | ST006 | `/workspaces/flow_squared/tests/unit/config/test_env_parsing.py` | Tests: `FS2_X__Y__Z` → `x.y.z`, case conversion, nested dict | New file |
-| [ ] | ST008 | Implement `_parse_env_vars()` with convention | 2 | Core | ST007 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST007 tests pass; `FS2_AZURE__OPENAI__TIMEOUT` → `{"azure":{"openai":{"timeout":"120"}}}` | Convention: `__` = nesting, lowercase |
-| [ ] | ST009 | Write tests for deep merge utility | 2 | Test | ST008 | `/workspaces/flow_squared/tests/unit/config/test_deep_merge.py` | Tests: leaf-level merge, nested dicts, list handling | New file |
-| [ ] | ST010 | Implement `_deep_merge()` utility | 2 | Core | ST009 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST009 tests pass; recursive dict merge | Overlay wins at leaf level |
-| [ ] | ST011 | Write tests for placeholder expansion | 2 | Test | ST010 | `/workspaces/flow_squared/tests/unit/config/test_placeholder_expansion.py` | Tests: expansion, missing leaves unexpanded | New file |
-| [ ] | ST012 | Implement `_expand_placeholders()` | 2 | Core | ST011 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST011 tests pass; expands or leaves unexpanded | Simple string replacement |
-| [ ] | ST013 | Write tests for AzureOpenAIConfig | 2 | Test | ST012 | `/workspaces/flow_squared/tests/unit/config/test_config_objects.py` | Tests: `__config_path__="azure.openai"`, field validation, timeout range | New file |
-| [ ] | ST014 | Implement AzureOpenAIConfig | 2 | Core | ST013 | `/workspaces/flow_squared/src/fs2/config/objects.py` | ST013 tests pass; `__config_path__`, timeout validator | Pydantic BaseModel |
-| [ ] | ST015 | Write tests for SearchQueryConfig | 2 | Test | ST014 | `/workspaces/flow_squared/tests/unit/config/test_config_objects.py` | Tests: `__config_path__=None` (CLI-only), mode choices | Same file as ST013 |
-| [ ] | ST016 | Implement SearchQueryConfig | 2 | Core | ST015 | `/workspaces/flow_squared/src/fs2/config/objects.py` | ST015 tests pass; `__config_path__=None`, mode validator | Pydantic BaseModel |
-| [ ] | ST017 | Write tests for config type registry | 2 | Test | ST016 | `/workspaces/flow_squared/tests/unit/config/test_config_objects.py` | Tests: `YAML_CONFIG_TYPES` list, auto-load by `__config_path__` | Same file |
-| [ ] | ST018 | Implement config type registry | 1 | Core | ST017 | `/workspaces/flow_squared/src/fs2/config/objects.py` | ST017 tests pass; `YAML_CONFIG_TYPES = [AzureOpenAIConfig]` | List of types to auto-load |
-| [ ] | ST019 | Write tests for ConfigurationService ABC | 2 | Test | ST018 | `/workspaces/flow_squared/tests/unit/config/test_configuration_service.py` | Tests: set/get/require methods, type safety | New file |
-| [ ] | ST020 | Implement ConfigurationService ABC | 2 | Core | ST019 | `/workspaces/flow_squared/src/fs2/config/service.py` | ST019 tests pass; generic T typing | Abstract base class |
-| [ ] | ST021 | Write tests for FS2ConfigurationService | 3 | Test | ST020 | `/workspaces/flow_squared/tests/unit/config/test_configuration_service.py` | Tests: full pipeline, typed objects from `__config_path__`, get/set | Orchestration tests |
-| [ ] | ST022 | Implement FS2ConfigurationService | 3 | Core | ST021 | `/workspaces/flow_squared/src/fs2/config/service.py` | ST021 tests pass; loads YAML/env, creates typed objects by `__config_path__` | The orchestrator |
-| [ ] | ST023 | Write tests for FakeConfigurationService | 2 | Test | ST022 | `/workspaces/flow_squared/tests/unit/config/test_configuration_service.py` | Tests: constructor with typed objects, get/set | For DI in tests |
-| [ ] | ST024 | Implement FakeConfigurationService | 2 | Core | ST023 | `/workspaces/flow_squared/src/fs2/config/service.py` | ST023 tests pass; accepts *configs in constructor | Test double |
-| [ ] | ST025 | Update `__init__.py` exports | 2 | Core | ST024 | `/workspaces/flow_squared/src/fs2/config/__init__.py` | Exports ConfigurationService, config objects | Breaking change |
-| [ ] | ST026 | Write tests for CLI integration pattern | 2 | Test | ST025 | `/workspaces/flow_squared/tests/unit/config/test_cli_integration.py` | Tests: CLI sets config via set(), service gets via get() | New file |
-| [ ] | ST027 | Update example configs and docs | 2 | Doc | ST026 | `.fs2/config.yaml.example`, `.fs2/secrets.env.example` | Files document typed-object pattern, FS2_* convention | User-facing |
-| [ ] | ST028 | Validate all tests pass with coverage | 1 | Integration | ST027 | – | `pytest tests/unit/config/ -v --cov=fs2.config --cov-fail-under=80` | Final check |
+| [x] | ST001 | Write tests for XDG path resolution | 2 | Test | – | `/workspaces/flow_squared/tests/unit/config/test_config_paths.py` | Tests: XDG_CONFIG_HOME set, not set, home fallback | New file |
+| [x] | ST002 | Implement `paths.py` with XDG helpers | 2 | Core | ST001 | `/workspaces/flow_squared/src/fs2/config/paths.py` | ST001 tests pass; returns Path objects | `get_user_config_dir()`, `get_project_config_dir()` |
+| [x] | ST003 | Write tests for secrets loading into env | 2 | Test | ST002 | `/workspaces/flow_squared/tests/unit/config/test_secrets_loading.py` | Tests: user/project/dotenv loading, precedence, .env wins | New file |
+| [x] | ST004 | Implement `_load_secrets_to_env()` helper | 2 | Core | ST003 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST003 tests pass; uses python-dotenv | Loads all secrets.env files |
+| [x] | ST005 | Write tests for YAML loading helpers | 2 | Test | ST004 | `/workspaces/flow_squared/tests/unit/config/test_yaml_loading.py` | Tests: user YAML, project YAML, missing graceful | New file |
+| [x] | ST006 | Implement `_load_yaml_config()` helpers | 2 | Core | ST005 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST005 tests pass; returns dict or {} | Graceful on missing/invalid |
+| [x] | ST007 | Write tests for FS2_* env var parsing convention | 2 | Test | ST006 | `/workspaces/flow_squared/tests/unit/config/test_env_parsing.py` | Tests: `FS2_X__Y__Z` → `x.y.z`, case conversion, nested dict | New file |
+| [x] | ST008 | Implement `_parse_env_vars()` with convention | 2 | Core | ST007 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST007 tests pass; `FS2_AZURE__OPENAI__TIMEOUT` → `{"azure":{"openai":{"timeout":"120"}}}` | Convention: `__` = nesting, lowercase |
+| [x] | ST009 | Write tests for deep merge utility | 2 | Test | ST008 | `/workspaces/flow_squared/tests/unit/config/test_deep_merge.py` | Tests: leaf-level merge, nested dicts, list handling | New file |
+| [x] | ST010 | Implement `_deep_merge()` utility | 2 | Core | ST009 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST009 tests pass; recursive dict merge | Overlay wins at leaf level |
+| [x] | ST011 | Write tests for placeholder expansion | 2 | Test | ST010 | `/workspaces/flow_squared/tests/unit/config/test_placeholder_expansion.py` | Tests: expansion, missing leaves unexpanded | New file |
+| [x] | ST012 | Implement `_expand_placeholders()` | 2 | Core | ST011 | `/workspaces/flow_squared/src/fs2/config/loaders.py` | ST011 tests pass; expands or leaves unexpanded | Simple string replacement |
+| [x] | ST013 | Write tests for AzureOpenAIConfig | 2 | Test | ST012 | `/workspaces/flow_squared/tests/unit/config/test_config_objects.py` | Tests: `__config_path__="azure.openai"`, field validation, timeout range | New file |
+| [x] | ST014 | Implement AzureOpenAIConfig | 2 | Core | ST013 | `/workspaces/flow_squared/src/fs2/config/objects.py` | ST013 tests pass; `__config_path__`, timeout validator | Pydantic BaseModel |
+| [x] | ST015 | Write tests for SearchQueryConfig | 2 | Test | ST014 | `/workspaces/flow_squared/tests/unit/config/test_config_objects.py` | Tests: `__config_path__=None` (CLI-only), mode choices | Same file as ST013 |
+| [x] | ST016 | Implement SearchQueryConfig | 2 | Core | ST015 | `/workspaces/flow_squared/src/fs2/config/objects.py` | ST015 tests pass; `__config_path__=None`, mode validator | Pydantic BaseModel |
+| [x] | ST017 | Write tests for config type registry | 2 | Test | ST016 | `/workspaces/flow_squared/tests/unit/config/test_config_objects.py` | Tests: `YAML_CONFIG_TYPES` list, auto-load by `__config_path__` | Same file |
+| [x] | ST018 | Implement config type registry | 1 | Core | ST017 | `/workspaces/flow_squared/src/fs2/config/objects.py` | ST017 tests pass; `YAML_CONFIG_TYPES = [AzureOpenAIConfig]` | List of types to auto-load |
+| [x] | ST019 | Write tests for ConfigurationService ABC | 2 | Test | ST018 | `/workspaces/flow_squared/tests/unit/config/test_configuration_service.py` | Tests: set/get/require methods, type safety | New file |
+| [x] | ST020 | Implement ConfigurationService ABC | 2 | Core | ST019 | `/workspaces/flow_squared/src/fs2/config/service.py` | ST019 tests pass; generic T typing | Abstract base class |
+| [x] | ST021 | Write tests for FS2ConfigurationService | 3 | Test | ST020 | `/workspaces/flow_squared/tests/unit/config/test_configuration_service.py` | Tests: full pipeline, typed objects from `__config_path__`, get/set | Orchestration tests |
+| [x] | ST022 | Implement FS2ConfigurationService | 3 | Core | ST021 | `/workspaces/flow_squared/src/fs2/config/service.py` | ST021 tests pass; loads YAML/env, creates typed objects by `__config_path__` | The orchestrator |
+| [x] | ST023 | Write tests for FakeConfigurationService | 2 | Test | ST022 | `/workspaces/flow_squared/tests/unit/config/test_configuration_service.py` | Tests: constructor with typed objects, get/set | For DI in tests |
+| [x] | ST024 | Implement FakeConfigurationService | 2 | Core | ST023 | `/workspaces/flow_squared/src/fs2/config/service.py` | ST023 tests pass; accepts *configs in constructor | Test double |
+| [x] | ST025 | Update `__init__.py` exports | 2 | Core | ST024 | `/workspaces/flow_squared/src/fs2/config/__init__.py` | Exports ConfigurationService, config objects | Breaking change |
+| [x] | ST026 | Write tests for CLI integration pattern | 2 | Test | ST025 | `/workspaces/flow_squared/tests/unit/config/test_cli_integration.py` | Tests: CLI sets config via set(), service gets via get() | New file |
+| [x] | ST027 | Update example configs and docs | 2 | Doc | ST026 | `.fs2/config.yaml.example`, `.fs2/secrets.env.example` | Files document typed-object pattern, FS2_* convention | User-facing |
+| [x] | ST028 | Validate all tests pass with coverage | 1 | Integration | ST027 | – | `pytest tests/unit/config/ -v --cov=fs2.config --cov-fail-under=80` | Final check [^8] |
 
 **Total Tasks**: 28
 **Complexity Summary**: 23 x CS-2 + 2 x CS-3 + 3 x CS-1 = **Subtask CS-3** (medium overall)

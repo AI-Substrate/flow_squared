@@ -9,7 +9,9 @@
       "Bash(python3:*)",
       "Bash(ssh:*)",
       "Bash(sudo service ssh:*)",
-      "Bash(ss:*)"
+      "Bash(ss:*)",
+      "Bash(cat:*)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []

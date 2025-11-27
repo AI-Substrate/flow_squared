@@ -6,59 +6,86 @@
 #   cp .fs2/config.yaml.example .fs2/config.yaml
 #
 # IMPORTANT: Never commit .fs2/config.yaml - it may contain secrets via placeholders.
-# The actual secrets should be in environment variables or .env (which are gitignored).
+# The actual secrets should be in environment variables, secrets.env, or .env (gitignored).
 #
-# Configuration Precedence (highest to lowest):
-#   1. Environment variables (FS2_* prefix, e.g., FS2_AZURE__OPENAI__ENDPOINT)
-#   2. This YAML file (.fs2/config.yaml)
-#   3. .env file
-#   4. Default values
+# ============================================================================
+# CONFIGURATION ARCHITECTURE
+# ============================================================================
 #
-# Future: Config location will migrate to ~/.config/fs2/config.yaml (XDG spec)
+# Flowspace2 uses a typed-object ConfigurationService pattern:
 #
-# Import paths:
-#   Production: from fs2.config import settings (singleton, validates at import)
-#   Tests: from fs2.config.models import FS2Settings (fresh instance, test isolation)
+#   from fs2.config import FS2ConfigurationService, AzureOpenAIConfig
+#   config = FS2ConfigurationService()  # Loads this YAML + env vars
+#   azure = config.get(AzureOpenAIConfig)  # Get typed config object
+#
+# Config Types:
+#   - AzureOpenAIConfig: Azure OpenAI settings (__config_path__ = "azure.openai")
+#   - SearchQueryConfig: CLI query settings (__config_path__ = None, CLI-only)
+#
+# ============================================================================
+# PRECEDENCE (lowest to highest)
+# ============================================================================
+#
+# 1. Config object defaults (in code)
+# 2. User YAML (~/.config/fs2/config.yaml)
+# 3. Project YAML (./.fs2/config.yaml) - this file
+# 4. Environment vars (FS2_* prefix)
+#
+# Secrets precedence (loaded into os.environ):
+# 1. OS environment (base layer)
+# 2. User secrets (~/.config/fs2/secrets.env)
+# 3. Project secrets (./.fs2/secrets.env)
+# 4. Working dir .env (./.env wins over everything)
+#
+# ============================================================================
+# ENVIRONMENT VARIABLE CONVENTION
+# ============================================================================
+#
+# No manual mapping required - pure convention:
+#   FS2_AZURE__OPENAI__TIMEOUT=120
+#       ^^^^^^^^^^^^^^^^^^^^^^
+#       Lowercased, __ becomes . → azure.openai.timeout
+#
+# Examples:
+#   FS2_AZURE__OPENAI__ENDPOINT=https://example.com → azure.openai.endpoint
+#   FS2_AZURE__OPENAI__TIMEOUT=60 → azure.openai.timeout
+#
+# ============================================================================
 
 azure:
   openai:
-    # Azure OpenAI endpoint URL (required for Azure OpenAI)
-    # Can be set via: FS2_AZURE__OPENAI__ENDPOINT environment variable
+    # Azure OpenAI endpoint URL
+    # Set via: FS2_AZURE__OPENAI__ENDPOINT
     endpoint: null  # e.g., https://your-resource.openai.azure.com
 
     # API version for Azure OpenAI
-    # Default: 2024-02-01
     api_version: "2024-02-01"
 
     # Deployment name in your Azure OpenAI resource
-    # Can be set via: FS2_AZURE__OPENAI__DEPLOYMENT_NAME
+    # Set via: FS2_AZURE__OPENAI__DEPLOYMENT_NAME
     deployment_name: null  # e.g., gpt-4-turbo
 
-    # API key - NEVER put literal secrets here!
-    # Use a placeholder that references an environment variable:
+    # API key - use ${VAR} placeholder, NOT literal secret!
+    # Option 1: Placeholder (loaded from secrets.env or .env)
     #   api_key: ${AZURE_OPENAI_API_KEY}
-    # Then set: export AZURE_OPENAI_API_KEY=your-actual-key
-    #
-    # Or set directly via: FS2_AZURE__OPENAI__API_KEY environment variable
-    # (typed fields like timeout use direct env var override, not placeholders)
+    # Option 2: Direct env var
+    #   FS2_AZURE__OPENAI__API_KEY=your-key
     #
     # Security: Literal secrets (sk-*, 64+ char strings) are rejected.
-    api_key: null  # Use ${AZURE_OPENAI_API_KEY} or set via environment
+    api_key: null
 
-    # Request timeout in seconds (integer)
-    # Default: 30
-    # Set via env: FS2_AZURE__OPENAI__TIMEOUT=60
-    # Note: Typed fields (int, bool) use direct env var override, not ${} placeholders
+    # Request timeout in seconds (1-300)
+    # Set via: FS2_AZURE__OPENAI__TIMEOUT
     timeout: 30
 
-# Example with placeholder expansion:
-# azure:
-#   openai:
-#     endpoint: https://${AZURE_HOST}/openai
-#     api_key: ${AZURE_OPENAI_API_KEY}
-#     deployment_name: ${DEPLOYMENT_NAME}
+# ============================================================================
+# SECRETS FILE EXAMPLE
+# ============================================================================
 #
-# Then set environment variables:
-#   export AZURE_HOST=my-resource.openai.azure.com
-#   export AZURE_OPENAI_API_KEY=your-key
-#   export DEPLOYMENT_NAME=gpt-4-turbo
+# Create .fs2/secrets.env (gitignored):
+#   AZURE_OPENAI_API_KEY=your-actual-api-key
+#
+# Then reference in YAML:
+#   api_key: ${AZURE_OPENAI_API_KEY}
+#
+# Or use .env file in project root for all secrets.

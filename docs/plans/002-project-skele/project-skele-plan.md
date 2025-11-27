@@ -1004,7 +1004,7 @@ Mid-implementation detours requiring structured tracking.
 
 | ID | Created | Phase | Parent Task | Reason | Status | Dossier |
 |----|---------|-------|-------------|--------|--------|---------|
-| 001-subtask-configuration-service-multi-source | 2025-11-26 | Phase 1: Configuration System | T007-T010 | Phase 1 config is too basic for production. Need multi-source loading (XDG paths), secrets separation, injectable ConfigurationService, and CLI override integration. | [ ] Pending | [Link](tasks/phase-1-configuration-system/001-subtask-configuration-service-multi-source.md) |
+| 001-subtask-configuration-service-multi-source | 2025-11-26 | Phase 1: Configuration System | T007-T010 | Phase 1 config is too basic for production. Need multi-source loading (XDG paths), secrets separation, injectable ConfigurationService, and CLI override integration. | [x] Complete | [Link](tasks/phase-1-configuration-system/001-subtask-configuration-service-multi-source.md) |
 
 ---
 
@@ -1061,3 +1061,19 @@ Mid-implementation detours requiring structured tracking.
   - `file:tests/unit/config/test_singleton_pattern.py` - 4 tests
   - `file:.fs2/config.yaml.example` - Example config
   - `file:tests/conftest.py` - clean_config_env fixture
+
+[^8]: Subtask 001 Complete - ConfigurationService Multi-Source Loading (28 tasks, 66 new tests)
+  - `file:src/fs2/config/paths.py`
+  - `file:src/fs2/config/loaders.py`
+  - `file:src/fs2/config/objects.py`
+  - `file:src/fs2/config/service.py`
+  - `file:src/fs2/config/__init__.py`
+  - `file:tests/unit/config/test_config_paths.py`
+  - `file:tests/unit/config/test_secrets_loading.py`
+  - `file:tests/unit/config/test_yaml_loading.py`
+  - `file:tests/unit/config/test_env_parsing.py`
+  - `file:tests/unit/config/test_deep_merge.py`
+  - `file:tests/unit/config/test_placeholder_expansion.py`
+  - `file:tests/unit/config/test_config_objects.py`
+  - `file:tests/unit/config/test_configuration_service.py`
+  - `file:tests/unit/config/test_cli_integration.py`
