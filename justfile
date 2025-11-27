@@ -21,16 +21,17 @@ test-unit:
 test-match PATTERN:
     python -m pytest tests/ -v -k "{{PATTERN}}"
 
-fft: format fix test
-
 # === Code Quality ===
-ff: format fix
 
-# Format code automatically (like dart format)
-format:
-    black src/ tests/
-    isort src/ tests/
+# Format, fix, and test (the main workflow)
+fft: fix test
 
-# Fix code issues automatically (like dart fix)
+# Fix and format code (ruff replaces black, isort, autoflake)
 fix:
-    autoflake --remove-all-unused-imports --remove-unused-variables --in-place --recursive src/ tests/
+    ruff check --fix src/ tests/
+    ruff format src/ tests/
+
+# Just check without fixing
+lint:
+    ruff check src/ tests/
+    ruff format --check src/ tests/

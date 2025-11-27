@@ -109,8 +109,11 @@ def test_given_configuration_error_when_raised_then_catchable():
     Quality Contribution: Enables broad exception handling
     """
     # Arrange
-    from fs2.config.exceptions import (ConfigurationError, LiteralSecretError,
-                                       MissingConfigurationError)
+    from fs2.config.exceptions import (
+        ConfigurationError,
+        LiteralSecretError,
+        MissingConfigurationError,
+    )
 
     # Act & Assert
     # Both should be catchable as ConfigurationError

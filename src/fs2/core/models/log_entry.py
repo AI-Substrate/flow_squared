@@ -5,7 +5,7 @@ Per Finding 06: Frozen dataclasses for domain models.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fs2.core.models.log_level import LogLevel
@@ -31,4 +31,4 @@ class LogEntry:
     level: LogLevel
     message: str
     context: dict[str, Any] = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))

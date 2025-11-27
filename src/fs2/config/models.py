@@ -19,8 +19,11 @@ from typing import Any
 
 import yaml
 from pydantic import BaseModel, field_validator, model_validator
-from pydantic_settings import (BaseSettings, PydanticBaseSettingsSource,
-                               SettingsConfigDict)
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 from fs2.config.exceptions import LiteralSecretError, MissingConfigurationError
 
@@ -49,9 +52,7 @@ def _is_literal_secret(value: str | None) -> bool:
     if value.startswith("sk-"):
         return True
     # Reject unusually long values (likely API keys)
-    if len(value) > 64:
-        return True
-    return False
+    return len(value) > 64
 
 
 class OpenAIConfig(BaseModel):

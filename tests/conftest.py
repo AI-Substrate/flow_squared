@@ -7,11 +7,13 @@ Per Critical Finding 12: Fixtures mirror domain structure.
 
 Per Insight #2: Warn about singleton pollution.
 Per Insight #6: clean_config_env fixture for test isolation.
+Per Phase 3: TestContext fixture for pre-wired DI.
 """
 
 import os
 import sys
 import warnings
+from dataclasses import dataclass
 
 import pytest
 
@@ -54,8 +56,54 @@ def clean_config_env(monkeypatch):
     yield
 
 
-# Future fixtures (Phase 3+):
-# @pytest.fixture
-# def fake_log_adapter():
-#     from fs2.core.adapters.log_adapter import FakeLogAdapter
-#     return FakeLogAdapter()
+# Phase 3: Pre-wired test dependencies
+
+
+@dataclass
+class TestContext:
+    """Pre-wired dependencies for tests.
+
+    Provides a ready-to-use DI container with common test dependencies.
+    Tests can use this directly or extract individual components.
+
+    Attributes:
+        config: FakeConfigurationService with LogAdapterConfig pre-registered
+        logger: FakeLogAdapter for capturing log messages
+
+    Usage:
+        def test_something(test_context):
+            service = SomeService(config=test_context.config, logger=test_context.logger)
+            service.do_work()
+            assert len(test_context.logger.messages) == 1
+    """
+
+    config: "FakeConfigurationService"  # noqa: F821
+    logger: "FakeLogAdapter"  # noqa: F821
+
+
+@pytest.fixture
+def test_context():
+    """Pre-configured test context with logger and config.
+
+    Per Phase 3 Insight #2: Reduces boilerplate for tests that need
+    a working ConfigurationService + FakeLogAdapter combination.
+
+    The config comes pre-loaded with LogAdapterConfig(min_level="DEBUG")
+    so all log levels are captured by default.
+
+    Usage:
+        def test_service_logs_on_start(test_context):
+            service = MyService(
+                config=test_context.config,
+                logger=test_context.logger
+            )
+            service.start()
+            assert any("started" in m.message.lower() for m in test_context.logger.messages)
+    """
+    from fs2.config.objects import LogAdapterConfig
+    from fs2.config.service import FakeConfigurationService
+    from fs2.core.adapters.log_adapter_fake import FakeLogAdapter
+
+    config = FakeConfigurationService(LogAdapterConfig(min_level="DEBUG"))
+    logger = FakeLogAdapter(config)
+    return TestContext(config=config, logger=logger)

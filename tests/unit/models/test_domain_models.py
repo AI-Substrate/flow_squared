@@ -10,7 +10,7 @@ Per AC5: @dataclass(frozen=True), zero imports from services/adapters/repos
 """
 
 from dataclasses import FrozenInstanceError
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import IntEnum
 
 import pytest
@@ -117,9 +117,9 @@ class TestLogEntry:
         from fs2.core.models.log_entry import LogEntry
         from fs2.core.models.log_level import LogLevel
 
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         entry = LogEntry(level=LogLevel.INFO, message="test")
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         # Timestamp should be between before and after
         assert before <= entry.timestamp <= after

@@ -142,10 +142,42 @@ class SampleAdapterConfig(BaseModel):
     simulate_error: str | None = None
 
 
+class LogAdapterConfig(BaseModel):
+    """Configuration for LogAdapter implementations.
+
+    Loaded from YAML or environment variables.
+    Path: log.adapter (e.g., FS2_LOG__ADAPTER__MIN_LEVEL)
+
+    Controls logging behavior for ConsoleLogAdapter and FakeLogAdapter.
+
+    Attributes:
+        min_level: Minimum log level to output (DEBUG, INFO, WARNING, ERROR).
+                   Messages below this level are filtered out.
+                   Default: DEBUG (all messages shown).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        log:
+          adapter:
+            min_level: INFO  # Filters out DEBUG messages
+        ```
+
+    Note:
+        min_level is stored as string for YAML compatibility.
+        Use LogLevel enum values: DEBUG, INFO, WARNING, ERROR.
+    """
+
+    __config_path__: ClassVar[str] = "log.adapter"
+
+    min_level: str = "DEBUG"
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     AzureOpenAIConfig,
     SampleServiceConfig,
     SampleAdapterConfig,
+    LogAdapterConfig,
 ]

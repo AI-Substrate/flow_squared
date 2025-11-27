@@ -16,11 +16,33 @@ dependencies = [
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
-    "ruff>=0.1",
-    "black>=24.0",
-    "isort>=5.0",
-    "autoflake>=2.0",
+    "ruff>=0.8",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "E402",  # module level import not at top (needed for logger setup pattern)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B017", "SIM102"]  # allow pytest.raises(Exception), nested ifs for clarity
+
+[tool.ruff.lint.isort]
+known-first-party = ["fs2"]
 
 [build-system]
 requires = ["hatchling"]

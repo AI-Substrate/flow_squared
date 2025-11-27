@@ -30,8 +30,7 @@ class TestAdapterErrorHierarchy:
         Purpose: Proves AuthenticationError is a specialized AdapterError
         Quality Contribution: Enables granular error handling
         """
-        from fs2.core.adapters.exceptions import (AdapterError,
-                                                  AuthenticationError)
+        from fs2.core.adapters.exceptions import AdapterError, AuthenticationError
 
         assert issubclass(AuthenticationError, AdapterError)
         assert issubclass(AuthenticationError, Exception)
@@ -41,8 +40,7 @@ class TestAdapterErrorHierarchy:
         Purpose: Proves ConnectionError is a specialized AdapterError
         Quality Contribution: Enables granular error handling
         """
-        from fs2.core.adapters.exceptions import (AdapterConnectionError,
-                                                  AdapterError)
+        from fs2.core.adapters.exceptions import AdapterConnectionError, AdapterError
 
         assert issubclass(AdapterConnectionError, AdapterError)
         assert issubclass(AdapterConnectionError, Exception)
@@ -64,8 +62,7 @@ class TestAdapterErrorHierarchy:
         Purpose: Proves AuthenticationError can be caught with AdapterError handler
         Quality Contribution: Supports hierarchical exception handling
         """
-        from fs2.core.adapters.exceptions import (AdapterError,
-                                                  AuthenticationError)
+        from fs2.core.adapters.exceptions import AdapterError, AuthenticationError
 
         with pytest.raises(AdapterError):
             raise AuthenticationError("auth failed")
