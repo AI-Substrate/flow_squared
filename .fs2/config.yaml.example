@@ -1,0 +1,64 @@
+# .fs2/config.yaml.example
+#
+# Flowspace2 Configuration Example
+#
+# Copy this file to .fs2/config.yaml and customize for your environment:
+#   cp .fs2/config.yaml.example .fs2/config.yaml
+#
+# IMPORTANT: Never commit .fs2/config.yaml - it may contain secrets via placeholders.
+# The actual secrets should be in environment variables or .env (which are gitignored).
+#
+# Configuration Precedence (highest to lowest):
+#   1. Environment variables (FS2_* prefix, e.g., FS2_AZURE__OPENAI__ENDPOINT)
+#   2. This YAML file (.fs2/config.yaml)
+#   3. .env file
+#   4. Default values
+#
+# Future: Config location will migrate to ~/.config/fs2/config.yaml (XDG spec)
+#
+# Import paths:
+#   Production: from fs2.config import settings (singleton, validates at import)
+#   Tests: from fs2.config.models import FS2Settings (fresh instance, test isolation)
+
+azure:
+  openai:
+    # Azure OpenAI endpoint URL (required for Azure OpenAI)
+    # Can be set via: FS2_AZURE__OPENAI__ENDPOINT environment variable
+    endpoint: null  # e.g., https://your-resource.openai.azure.com
+
+    # API version for Azure OpenAI
+    # Default: 2024-02-01
+    api_version: "2024-02-01"
+
+    # Deployment name in your Azure OpenAI resource
+    # Can be set via: FS2_AZURE__OPENAI__DEPLOYMENT_NAME
+    deployment_name: null  # e.g., gpt-4-turbo
+
+    # API key - NEVER put literal secrets here!
+    # Use a placeholder that references an environment variable:
+    #   api_key: ${AZURE_OPENAI_API_KEY}
+    # Then set: export AZURE_OPENAI_API_KEY=your-actual-key
+    #
+    # Or set directly via: FS2_AZURE__OPENAI__API_KEY environment variable
+    # (typed fields like timeout use direct env var override, not placeholders)
+    #
+    # Security: Literal secrets (sk-*, 64+ char strings) are rejected.
+    api_key: null  # Use ${AZURE_OPENAI_API_KEY} or set via environment
+
+    # Request timeout in seconds (integer)
+    # Default: 30
+    # Set via env: FS2_AZURE__OPENAI__TIMEOUT=60
+    # Note: Typed fields (int, bool) use direct env var override, not ${} placeholders
+    timeout: 30
+
+# Example with placeholder expansion:
+# azure:
+#   openai:
+#     endpoint: https://${AZURE_HOST}/openai
+#     api_key: ${AZURE_OPENAI_API_KEY}
+#     deployment_name: ${DEPLOYMENT_NAME}
+#
+# Then set environment variables:
+#   export AZURE_HOST=my-resource.openai.azure.com
+#   export AZURE_OPENAI_API_KEY=your-key
+#   export DEPLOYMENT_NAME=gpt-4-turbo

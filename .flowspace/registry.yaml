@@ -13,13 +13,13 @@ repositories:
     output_dir: .flowspace/output
     watch_enabled: false
     ignore_patterns: null
-    file_count: 65
-    total_nodes: 226
+    file_count: 69
+    total_nodes: 230
     index_duration: null
     graph_load_time: null
     created_at: '2025-11-26T02:39:35.838685'
-    updated_at: '2025-11-26T10:19:01.899303'
-    last_indexed: '2025-11-26T10:19:01.899303'
+    updated_at: '2025-11-26T22:21:34.101051'
+    last_indexed: '2025-11-26T22:21:34.101051'
   serena:
     name: serena
     condensed_path: .flowspace/repos/serena/condensed.jsonl

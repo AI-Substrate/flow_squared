@@ -213,3 +213,9 @@ scratch/*
 .flowspace/*
 !.flowspace/config.yaml
 !.flowspace/registry.yaml
+
+# fs2 Configuration
+# Ignore config.yaml (may contain sensitive placeholders)
+# but track the example file
+.fs2/config.yaml
+!.fs2/config.yaml.example

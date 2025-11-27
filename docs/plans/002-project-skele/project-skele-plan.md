@@ -486,20 +486,20 @@ tests/
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 0.1 | [ ] | Create src/ directory structure | 1 | src/cli/, src/core/{models,services,adapters,repos}/, src/config/ exist | - | |
-| 0.2 | [ ] | Create tests/ directory structure | 1 | tests/{scratch,unit/{config,adapters,services},docs}/ exist | - | |
-| 0.3 | [ ] | Create all `__init__.py` files | 1 | All packages importable | - | |
-| 0.4 | [ ] | Create pyproject.toml with dependencies | 2 | pydantic, pydantic-settings, pytest, rich, typer, pyyaml, python-dotenv | - | |
-| 0.5 | [ ] | Run `uv sync` to install dependencies | 1 | All deps installed | - | |
-| 0.6 | [ ] | Create pytest.ini with markers | 1 | unit, integration, docs markers defined | - | |
-| 0.7 | [ ] | Create tests/conftest.py skeleton | 1 | pytest discovers tests | - | |
-| 0.8 | [ ] | Validate pytest discovery | 1 | `pytest --collect-only` exits 0, discovers conftest.py | - | |
+| 0.1 | [x] | Create src/ directory structure | 1 | src/cli/, src/core/{models,services,adapters,repos}/, src/config/ exist | [📋](tasks/phase-0-project-structure/execution.log.md) | Completed [^1] |
+| 0.2 | [x] | Create tests/ directory structure | 1 | tests/{scratch,unit/{config,adapters,services},docs}/ exist | [📋](tasks/phase-0-project-structure/execution.log.md) | Completed [^2] |
+| 0.3 | [x] | Create all `__init__.py` files | 1 | All packages importable | [📋](tasks/phase-0-project-structure/execution.log.md) | Completed [^1] |
+| 0.4 | [x] | Create pyproject.toml with dependencies | 2 | pydantic, pydantic-settings, pytest, rich, typer, pyyaml, python-dotenv | [📋](tasks/phase-0-project-structure/execution.log.md) | Completed [^3] |
+| 0.5 | [x] | Run `uv sync` to install dependencies | 1 | All deps installed | [📋](tasks/phase-0-project-structure/execution.log.md) | 23 packages [^4] |
+| 0.6 | [x] | Create pytest.ini with markers | 1 | unit, integration, docs markers defined | [📋](tasks/phase-0-project-structure/execution.log.md) | Completed [^5] |
+| 0.7 | [x] | Create tests/conftest.py skeleton | 1 | pytest discovers tests | [📋](tasks/phase-0-project-structure/execution.log.md) | Completed [^5] |
+| 0.8 | [x] | Validate pytest discovery | 1 | `pytest --collect-only` exits 0, discovers conftest.py | [📋](tasks/phase-0-project-structure/execution.log.md) | Completed [^6] |
 
 #### Acceptance Criteria
-- [ ] All directories from AC1 exist
-- [ ] `uv sync` succeeds
-- [ ] `pytest --collect-only` shows test discovery working
-- [ ] `python -c "import src"` succeeds
+- [x] All directories from AC1 exist
+- [x] `uv sync` succeeds
+- [x] `pytest --collect-only` shows test discovery working
+- [x] `python -c "import fs2"` succeeds
 
 ---
 
@@ -527,28 +527,28 @@ tests/
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 1.1 | [ ] | Write tests for FS2Settings basic loading | 2 | Tests cover: default values, type validation | - | tests/unit/config/ |
-| 1.2 | [ ] | Implement FS2Settings BaseSettings class | 2 | Tests from 1.1 pass | - | src/config/models.py |
-| 1.3 | [ ] | Write tests for nested config (azure.openai.*) | 2 | Tests: nested access works | - | |
-| 1.4 | [ ] | Implement nested BaseModel classes | 2 | Tests from 1.3 pass | - | |
-| 1.5 | [ ] | Write tests for env var precedence | 2 | Tests: env overrides defaults | - | |
-| 1.6 | [ ] | Implement env var loading with FS2_ prefix | 2 | Tests from 1.5 pass | - | SettingsConfigDict |
-| 1.7 | [ ] | Write tests for YAML config source | 2 | Tests: YAML loading, missing file graceful | - | |
-| 1.8 | [ ] | Implement YamlConfigSettingsSource | 3 | Tests from 1.7 pass | - | Custom PydanticBaseSettingsSource |
-| 1.9 | [ ] | Write tests for full precedence order | 2 | Tests: env > YAML > .env > defaults | - | |
-| 1.10 | [ ] | Implement settings_customise_sources | 2 | Tests from 1.9 pass | - | |
-| 1.11 | [ ] | Write tests for leaf-level override | 2 | Tests: partial nested override works | - | |
-| 1.12 | [ ] | Validate leaf-level merge behavior | 1 | Tests from 1.11 pass | - | |
-| 1.13 | [ ] | Write tests for placeholder expansion | 2 | Tests: ${VAR} expands, missing raises | - | |
-| 1.14 | [ ] | Implement recursive placeholder expansion | 3 | Tests from 1.13 pass | - | @model_validator |
-| 1.15 | [ ] | Write tests for literal secret detection | 2 | Tests: sk-*, 64+ char keys rejected | - | |
-| 1.16 | [ ] | Implement security field_validators | 2 | Tests from 1.15 pass | - | Two-stage validation |
-| 1.17 | [ ] | Write tests for ConfigurationError messages | 2 | Tests: errors are actionable with fix instructions | - | |
-| 1.18 | [ ] | Implement ConfigurationError hierarchy | 2 | Tests from 1.17 pass | - | src/config/exceptions.py |
-| 1.19 | [ ] | Write tests for singleton vs fresh instance | 2 | Tests: import path isolation | - | |
-| 1.20 | [ ] | Implement singleton in __init__.py | 1 | Tests from 1.19 pass | - | Dual import paths |
-| 1.21 | [ ] | Create .fs2/config.yaml example | 1 | Example config with comments | - | |
-| 1.22 | [ ] | Validate all Phase 1 tests pass | 1 | `pytest tests/unit/config/` green | - | |
+| 1.1 | [x] | Write tests for FS2Settings basic loading | 2 | Tests cover: default values, type validation | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.2 | [x] | Implement FS2Settings BaseSettings class | 2 | Tests from 1.1 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.3 | [x] | Write tests for nested config (azure.openai.*) | 2 | Tests: nested access works | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.4 | [x] | Implement nested BaseModel classes | 2 | Tests from 1.3 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.5 | [x] | Write tests for env var precedence | 2 | Tests: env overrides defaults | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.6 | [x] | Implement env var loading with FS2_ prefix | 2 | Tests from 1.5 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.7 | [x] | Write tests for YAML config source | 2 | Tests: YAML loading, missing file graceful | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.8 | [x] | Implement YamlConfigSettingsSource | 3 | Tests from 1.7 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.9 | [x] | Write tests for full precedence order | 2 | Tests: env > YAML > .env > defaults | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.10 | [x] | Implement settings_customise_sources | 2 | Tests from 1.9 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.11 | [x] | Write tests for leaf-level override | 2 | Tests: partial nested override works | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.12 | [x] | Validate leaf-level merge behavior | 1 | Tests from 1.11 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.13 | [x] | Write tests for placeholder expansion | 2 | Tests: ${VAR} expands, missing raises | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.14 | [x] | Implement recursive placeholder expansion | 3 | Tests from 1.13 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.15 | [x] | Write tests for literal secret detection | 2 | Tests: sk-*, 64+ char keys rejected | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.16 | [x] | Implement security field_validators | 2 | Tests from 1.15 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.17 | [x] | Write tests for ConfigurationError messages | 2 | Tests: errors are actionable with fix instructions | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.18 | [x] | Implement ConfigurationError hierarchy | 2 | Tests from 1.17 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.19 | [x] | Write tests for singleton vs fresh instance | 2 | Tests: import path isolation | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.20 | [x] | Implement singleton in __init__.py | 1 | Tests from 1.19 pass | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.21 | [x] | Create .fs2/config.yaml example | 1 | Example config with comments | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
+| 1.22 | [x] | Validate all Phase 1 tests pass | 1 | `pytest tests/unit/config/` green | [📋](tasks/phase-1-configuration-system/execution.log.md#tdd-execution-summary) | Completed [^7] |
 
 #### Test Examples (Write First!)
 
@@ -632,11 +632,11 @@ def test_given_literal_secret_when_loading_then_raises_actionable_error():
 - [ ] Empty config values validated
 
 #### Acceptance Criteria
-- [ ] All 22 tests passing
-- [ ] Test coverage > 80% for config module
-- [ ] No mocks used (monkeypatch for env vars allowed)
-- [ ] ConfigurationError messages include fix instructions
-- [ ] Singleton works for production, fresh instances for tests
+- [x] All 22 tests passing
+- [x] Test coverage > 80% for config module
+- [x] No mocks used (monkeypatch for env vars allowed)
+- [x] ConfigurationError messages include fix instructions
+- [x] Singleton works for production, fresh instances for tests
 
 ---
 
@@ -977,8 +977,8 @@ def test_given_sample_service_with_injected_fakes_when_processing_then_logs_and_
 ## Progress Tracking
 
 ### Phase Completion Checklist
-- [ ] Phase 0: Project Structure & Dependencies - NOT STARTED
-- [ ] Phase 1: Configuration System - NOT STARTED
+- [x] Phase 0: Project Structure & Dependencies - COMPLETE
+- [x] Phase 1: Configuration System - COMPLETE
 - [ ] Phase 2: Core Interfaces (ABC Definitions) - NOT STARTED
 - [ ] Phase 3: Logger Adapter Implementation - NOT STARTED
 - [ ] Phase 4: Canonical Documentation Test - NOT STARTED
@@ -998,14 +998,66 @@ def test_given_sample_service_with_injected_fakes_when_processing_then_logs_and_
 
 ---
 
-## Change Footnotes Ledger
+## Subtasks Registry
 
-**NOTE**: This section will be populated during implementation by plan-6a-update-progress.
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-configuration-service-multi-source | 2025-11-26 | Phase 1: Configuration System | T007-T010 | Phase 1 config is too basic for production. Need multi-source loading (XDG paths), secrets separation, injectable ConfigurationService, and CLI override integration. | [ ] Pending | [Link](tasks/phase-1-configuration-system/001-subtask-configuration-service-multi-source.md) |
+
+---
+
+## Change Footnotes Ledger
 
 **Footnote Numbering Authority**: plan-6a-update-progress is the single source of truth for footnote numbering.
 
-```markdown
-[^1]: [To be added during implementation via plan-6a]
-[^2]: [To be added during implementation via plan-6a]
-...
-```
+[^1]: Phase 0 - Source package structure (T001-T009)
+  - `file:src/fs2/__init__.py`
+  - `file:src/fs2/cli/__init__.py`
+  - `file:src/fs2/core/__init__.py`
+  - `file:src/fs2/core/models/__init__.py`
+  - `file:src/fs2/core/services/__init__.py`
+  - `file:src/fs2/core/adapters/__init__.py`
+  - `file:src/fs2/core/adapters/protocols.py`
+  - `file:src/fs2/core/repos/__init__.py`
+  - `file:src/fs2/core/repos/protocols.py`
+  - `file:src/fs2/config/__init__.py`
+
+[^2]: Phase 0 - Test directory structure (T010-T013)
+  - `file:tests/` (directory)
+  - `file:tests/unit/` (directory)
+  - `file:tests/unit/config/` (directory)
+  - `file:tests/unit/adapters/` (directory)
+  - `file:tests/unit/services/` (directory)
+  - `file:tests/scratch/` (directory)
+  - `file:tests/docs/` (directory)
+
+[^3]: Phase 0 - Build configuration (T014)
+  - `file:pyproject.toml`
+
+[^4]: Phase 0 - Dependency installation (T015)
+  - `file:uv.lock`
+
+[^5]: Phase 0 - Pytest configuration (T016-T017)
+  - `file:pytest.ini`
+  - `file:tests/conftest.py`
+
+[^6]: Phase 0 - Final validation (T018-T019)
+  - Validated: pytest discovery works
+  - Validated: all fs2 subpackages importable
+
+[^7]: Phase 1 Complete - Configuration System (22 tasks, 46 tests, 95% coverage)
+  - `file:src/fs2/config/__init__.py` - Singleton export
+  - `file:src/fs2/config/models.py` - FS2Settings, nested configs, YAML source
+  - `file:src/fs2/config/exceptions.py` - ConfigurationError hierarchy
+  - `file:tests/unit/config/test_config_models.py` - 5 tests
+  - `file:tests/unit/config/test_nested_config.py` - 4 tests
+  - `file:tests/unit/config/test_config_precedence.py` - 9 tests
+  - `file:tests/unit/config/test_yaml_source.py` - 4 tests
+  - `file:tests/unit/config/test_env_expansion.py` - 6 tests
+  - `file:tests/unit/config/test_security_validation.py` - 7 tests
+  - `file:tests/unit/config/test_config_errors.py` - 7 tests
+  - `file:tests/unit/config/test_singleton_pattern.py` - 4 tests
+  - `file:.fs2/config.yaml.example` - Example config
+  - `file:tests/conftest.py` - clean_config_env fixture

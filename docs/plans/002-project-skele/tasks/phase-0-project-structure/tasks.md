@@ -12,25 +12,25 @@
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|-----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Create `src/` and `src/fs2/` directories | 1 | Setup | – | `/workspaces/flow_squared/src/`, `/workspaces/flow_squared/src/fs2/` | Directories exist | – | Foundation for all source |
-| [ ] | T002 | Create `src/fs2/cli/` package with `__init__.py` | 1 | Setup | T001 | `/workspaces/flow_squared/src/fs2/cli/`, `/workspaces/flow_squared/src/fs2/cli/__init__.py` | `import fs2.cli` succeeds | – | Presentation layer |
-| [ ] | T003 | Create `src/fs2/core/` package with `__init__.py` | 1 | Setup | T001 | `/workspaces/flow_squared/src/fs2/core/`, `/workspaces/flow_squared/src/fs2/core/__init__.py` | `import fs2.core` succeeds | – | Core business logic root |
-| [ ] | T004 | Create `src/fs2/core/models/` package with `__init__.py` | 1 | Setup | T003 | `/workspaces/flow_squared/src/fs2/core/models/`, `/workspaces/flow_squared/src/fs2/core/models/__init__.py` | `import fs2.core.models` succeeds | – | Domain models (frozen dataclasses) |
-| [ ] | T005 | Create `src/fs2/core/services/` package with `__init__.py` | 1 | Setup | T003 | `/workspaces/flow_squared/src/fs2/core/services/`, `/workspaces/flow_squared/src/fs2/core/services/__init__.py` | `import fs2.core.services` succeeds | – | Composition layer |
-| [ ] | T006 | Create `src/fs2/core/adapters/` package with `__init__.py` and `protocols.py` (with docstring) | 1 | Setup | T003 | `/workspaces/flow_squared/src/fs2/core/adapters/`, `/workspaces/flow_squared/src/fs2/core/adapters/__init__.py`, `/workspaces/flow_squared/src/fs2/core/adapters/protocols.py` | `import fs2.core.adapters` succeeds | – | ABC interfaces (per Finding 09); see Protocols Skeleton below |
-| [ ] | T007 | Create `src/fs2/core/repos/` package with `__init__.py` and `protocols.py` (with docstring) | 1 | Setup | T003 | `/workspaces/flow_squared/src/fs2/core/repos/`, `/workspaces/flow_squared/src/fs2/core/repos/__init__.py`, `/workspaces/flow_squared/src/fs2/core/repos/protocols.py` | `import fs2.core.repos` succeeds | – | Repository interfaces; see Protocols Skeleton below |
-| [ ] | T008 | Create `src/fs2/config/` package with `__init__.py` | 1 | Setup | T001 | `/workspaces/flow_squared/src/fs2/config/`, `/workspaces/flow_squared/src/fs2/config/__init__.py` | `import fs2.config` succeeds | – | Cross-cutting config |
-| [ ] | T009 | Create `src/fs2/__init__.py` root package marker | 1 | Setup | T001 | `/workspaces/flow_squared/src/fs2/__init__.py` | `import fs2` succeeds | – | Makes fs2 a package |
-| [ ] | T010 | Create `tests/` root directory | 1 | Setup | – | `/workspaces/flow_squared/tests/` | Directory exists | – | Test root |
-| [ ] | T011 | Create `tests/unit/` with subdirectories `config/`, `adapters/`, `services/` | 1 | Setup | T010 | `/workspaces/flow_squared/tests/unit/`, `/workspaces/flow_squared/tests/unit/config/`, `/workspaces/flow_squared/tests/unit/adapters/`, `/workspaces/flow_squared/tests/unit/services/` | All directories exist | – | Unit test organization |
-| [ ] | T012 | Create `tests/scratch/` directory | 1 | Setup | T010 | `/workspaces/flow_squared/tests/scratch/` | Directory exists | – | Fast exploration tests |
-| [ ] | T013 | Create `tests/docs/` directory | 1 | Setup | T010 | `/workspaces/flow_squared/tests/docs/` | Directory exists | – | Canonical documentation tests |
-| [ ] | T014 | Create `pyproject.toml` with dependencies and Python >=3.12 constraint | 2 | Setup | – | `/workspaces/flow_squared/pyproject.toml` | File valid TOML, contains all deps | – | See Dependencies section below |
-| [ ] | T015 | Run `uv sync --extra dev` to install all dependencies | 1 | Setup | T014 | `/workspaces/flow_squared/uv.lock` | Exit code 0, all packages installed (including pytest) | – | [P] can run after T014 |
-| [ ] | T016 | Create `pytest.ini` with markers (unit, integration, docs) | 1 | Setup | T010 | `/workspaces/flow_squared/pytest.ini` | Markers registered, no warnings | – | Per Finding 12 |
-| [ ] | T017 | Create `tests/conftest.py` skeleton with pytest configuration | 1 | Setup | T010, T016 | `/workspaces/flow_squared/tests/conftest.py` | pytest discovers conftest | – | Per Finding 12 |
-| [ ] | T018 | Validate pytest discovery | 1 | Integration | T015, T017 | – | `pytest --collect-only` exits 0 | – | Final validation |
-| [ ] | T019 | Validate all `fs2` subpackages import successfully | 1 | Integration | T009, T015 | – | `python -c "import fs2; import fs2.core; import fs2.config; import fs2.cli"` exits 0 | – | Final validation |
+| [x] | T001 | Create `src/` and `src/fs2/` directories | 1 | Setup | – | `/workspaces/flow_squared/src/`, `/workspaces/flow_squared/src/fs2/` | Directories exist | – | Foundation for all source · [^1] |
+| [x] | T002 | Create `src/fs2/cli/` package with `__init__.py` | 1 | Setup | T001 | `/workspaces/flow_squared/src/fs2/cli/`, `/workspaces/flow_squared/src/fs2/cli/__init__.py` | `import fs2.cli` succeeds | – | Presentation layer · [^1] |
+| [x] | T003 | Create `src/fs2/core/` package with `__init__.py` | 1 | Setup | T001 | `/workspaces/flow_squared/src/fs2/core/`, `/workspaces/flow_squared/src/fs2/core/__init__.py` | `import fs2.core` succeeds | – | Core business logic root · [^1] |
+| [x] | T004 | Create `src/fs2/core/models/` package with `__init__.py` | 1 | Setup | T003 | `/workspaces/flow_squared/src/fs2/core/models/`, `/workspaces/flow_squared/src/fs2/core/models/__init__.py` | `import fs2.core.models` succeeds | – | Domain models (frozen dataclasses) · [^1] |
+| [x] | T005 | Create `src/fs2/core/services/` package with `__init__.py` | 1 | Setup | T003 | `/workspaces/flow_squared/src/fs2/core/services/`, `/workspaces/flow_squared/src/fs2/core/services/__init__.py` | `import fs2.core.services` succeeds | – | Composition layer · [^1] |
+| [x] | T006 | Create `src/fs2/core/adapters/` package with `__init__.py` and `protocols.py` (with docstring) | 1 | Setup | T003 | `/workspaces/flow_squared/src/fs2/core/adapters/`, `/workspaces/flow_squared/src/fs2/core/adapters/__init__.py`, `/workspaces/flow_squared/src/fs2/core/adapters/protocols.py` | `import fs2.core.adapters` succeeds | – | ABC interfaces (per Finding 09) · [^1] |
+| [x] | T007 | Create `src/fs2/core/repos/` package with `__init__.py` and `protocols.py` (with docstring) | 1 | Setup | T003 | `/workspaces/flow_squared/src/fs2/core/repos/`, `/workspaces/flow_squared/src/fs2/core/repos/__init__.py`, `/workspaces/flow_squared/src/fs2/core/repos/protocols.py` | `import fs2.core.repos` succeeds | – | Repository interfaces · [^1] |
+| [x] | T008 | Create `src/fs2/config/` package with `__init__.py` | 1 | Setup | T001 | `/workspaces/flow_squared/src/fs2/config/`, `/workspaces/flow_squared/src/fs2/config/__init__.py` | `import fs2.config` succeeds | – | Cross-cutting config · [^1] |
+| [x] | T009 | Create `src/fs2/__init__.py` root package marker | 1 | Setup | T001 | `/workspaces/flow_squared/src/fs2/__init__.py` | `import fs2` succeeds | – | Makes fs2 a package · [^1] |
+| [x] | T010 | Create `tests/` root directory | 1 | Setup | – | `/workspaces/flow_squared/tests/` | Directory exists | – | Test root · [^2] |
+| [x] | T011 | Create `tests/unit/` with subdirectories `config/`, `adapters/`, `services/` | 1 | Setup | T010 | `/workspaces/flow_squared/tests/unit/`, `/workspaces/flow_squared/tests/unit/config/`, `/workspaces/flow_squared/tests/unit/adapters/`, `/workspaces/flow_squared/tests/unit/services/` | All directories exist | – | Unit test organization · [^2] |
+| [x] | T012 | Create `tests/scratch/` directory | 1 | Setup | T010 | `/workspaces/flow_squared/tests/scratch/` | Directory exists | – | Fast exploration tests · [^2] |
+| [x] | T013 | Create `tests/docs/` directory | 1 | Setup | T010 | `/workspaces/flow_squared/tests/docs/` | Directory exists | – | Canonical documentation tests · [^2] |
+| [x] | T014 | Create `pyproject.toml` with dependencies and Python >=3.12 constraint | 2 | Setup | – | `/workspaces/flow_squared/pyproject.toml` | File valid TOML, contains all deps | – | See Dependencies section · [^3] |
+| [x] | T015 | Run `uv sync --extra dev` to install all dependencies | 1 | Setup | T014 | `/workspaces/flow_squared/uv.lock` | Exit code 0, all packages installed (including pytest) | – | 23 packages installed · [^4] |
+| [x] | T016 | Create `pytest.ini` with markers (unit, integration, docs) | 1 | Setup | T010 | `/workspaces/flow_squared/pytest.ini` | Markers registered, no warnings | – | Per Finding 12 · [^5] |
+| [x] | T017 | Create `tests/conftest.py` skeleton with pytest configuration | 1 | Setup | T010, T016 | `/workspaces/flow_squared/tests/conftest.py` | pytest discovers conftest | – | Per Finding 12 · [^5] |
+| [x] | T018 | Validate pytest discovery | 1 | Integration | T015, T017 | – | `pytest --collect-only` exits 0 | – | Final validation · [^6] |
+| [x] | T019 | Validate all `fs2` subpackages import successfully | 1 | Integration | T009, T015 | – | `python -c "import fs2; import fs2.core; import fs2.config; import fs2.cli"` exits 0 | – | Final validation · [^6] |
 
 **Total Tasks**: 19
 **Complexity Summary**: 18 × CS-1 (trivial) + 1 × CS-2 (small) = **Phase CS-1** (trivial overall)
@@ -374,20 +374,53 @@ See: docs/plans/002-project-skele/project-skele-spec.md § AC4
 
 ## Phase Footnote Stubs
 
-> **NOTE**: Footnotes will be added during implementation by `/plan-6a-update-progress`.
 > **Numbering Authority**: plan-6a-update-progress is the single source of truth for footnote numbering.
 
-| Footnote | Task | Description |
-|----------|------|-------------|
-| *(empty)* | – | *(populated during implementation)* |
+[^1]: Phase 0 - Source package structure (T001-T009)
+  - `file:src/fs2/__init__.py`
+  - `file:src/fs2/cli/__init__.py`
+  - `file:src/fs2/core/__init__.py`
+  - `file:src/fs2/core/models/__init__.py`
+  - `file:src/fs2/core/services/__init__.py`
+  - `file:src/fs2/core/adapters/__init__.py`
+  - `file:src/fs2/core/adapters/protocols.py`
+  - `file:src/fs2/core/repos/__init__.py`
+  - `file:src/fs2/core/repos/protocols.py`
+  - `file:src/fs2/config/__init__.py`
+
+[^2]: Phase 0 - Test directory structure (T010-T013)
+  - `file:tests/` (directory)
+  - `file:tests/unit/` (directory)
+  - `file:tests/unit/config/` (directory)
+  - `file:tests/unit/adapters/` (directory)
+  - `file:tests/unit/services/` (directory)
+  - `file:tests/scratch/` (directory)
+  - `file:tests/docs/` (directory)
+
+[^3]: Phase 0 - Build configuration (T014)
+  - `file:pyproject.toml`
+
+[^4]: Phase 0 - Dependency installation (T015)
+  - `file:uv.lock`
+
+[^5]: Phase 0 - Pytest configuration (T016-T017)
+  - `file:pytest.ini`
+  - `file:tests/conftest.py`
+
+[^6]: Phase 0 - Final validation (T018-T019)
+  - Validated: pytest discovery works
+  - Validated: all fs2 subpackages importable
 
 ---
 
 ## Evidence Artifacts
 
-Implementation will produce:
-- **Execution Log**: `/workspaces/flow_squared/docs/plans/002-project-skele/tasks/phase-0-project-structure/execution.log.md`
-- **Created Files**: All files listed in Absolute Path(s) column
+**Execution Log**: [execution.log.md](./execution.log.md)
+**Status**: COMPLETE (2025-11-26)
+
+**Created Files**:
+- All files listed in Absolute Path(s) column - verified
+- See execution log for full evidence and test output
 
 ---
 
