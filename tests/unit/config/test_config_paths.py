@@ -3,7 +3,6 @@
 ST001: Tests for get_user_config_dir() and get_project_config_dir().
 """
 
-import os
 from pathlib import Path
 
 import pytest

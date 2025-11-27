@@ -28,24 +28,14 @@ Legacy Note:
     ConfigurationService.
 """
 
-from fs2.config.exceptions import (
-    ConfigurationError,
-    LiteralSecretError,
-    MissingConfigurationError,
-)
-from fs2.config.objects import (
-    AzureOpenAIConfig,
-    SearchQueryConfig,
-    YAML_CONFIG_TYPES,
-)
-from fs2.config.service import (
-    ConfigurationService,
-    FS2ConfigurationService,
-    FakeConfigurationService,
-)
-
+from fs2.config.exceptions import (ConfigurationError, LiteralSecretError,
+                                   MissingConfigurationError)
 # Legacy export for backward compatibility
 from fs2.config.models import FS2Settings
+from fs2.config.objects import (YAML_CONFIG_TYPES, AzureOpenAIConfig,
+                                SearchQueryConfig)
+from fs2.config.service import (ConfigurationService, FakeConfigurationService,
+                                FS2ConfigurationService)
 
 __all__ = [
     # Primary API - ConfigurationService pattern

@@ -33,7 +33,9 @@ def test_given_env_var_when_loading_config_then_env_overrides_default(monkeypatc
 
 
 @pytest.mark.unit
-def test_given_env_var_for_string_field_when_loading_then_overrides_default(monkeypatch):
+def test_given_env_var_for_string_field_when_loading_then_overrides_default(
+    monkeypatch,
+):
     """
     Purpose: Proves string fields can be overridden by env vars
     Quality Contribution: Validates basic env var functionality
@@ -192,7 +194,9 @@ azure:
 
 
 @pytest.mark.unit
-def test_given_yaml_and_env_when_loading_then_env_wins_leaf_level(monkeypatch, tmp_path):
+def test_given_yaml_and_env_when_loading_then_env_wins_leaf_level(
+    monkeypatch, tmp_path
+):
     """
     Purpose: Proves leaf-level override (not atomic section replacement)
     Quality Contribution: Catches precedence bugs early (Finding 08)

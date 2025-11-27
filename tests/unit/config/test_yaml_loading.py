@@ -33,7 +33,12 @@ azure:
 
         # Assert
         assert result == {
-            "azure": {"openai": {"endpoint": "https://example.openai.azure.com", "timeout": 60}}
+            "azure": {
+                "openai": {
+                    "endpoint": "https://example.openai.azure.com",
+                    "timeout": 60,
+                }
+            }
         }
 
     def test_given_missing_file_when_loading_then_returns_empty_dict(self, tmp_path):

@@ -76,8 +76,76 @@ class SearchQueryConfig(BaseModel):
         return v
 
 
+class SampleServiceConfig(BaseModel):
+    """Configuration for SampleService.
+
+    Loaded from YAML or environment variables.
+    Path: sample.service (e.g., FS2_SAMPLE__SERVICE__RETRY_COUNT)
+
+    This is a canonical example demonstrating service configuration.
+    The service behavior is controlled by config, not hardcoded.
+
+    Attributes:
+        retry_count: Number of times to retry on failure (0 = no retry).
+        validate_before_process: Whether to validate input before processing.
+        include_timing: Whether to include timing metadata in results.
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        sample:
+          service:
+            retry_count: 3
+            validate_before_process: true
+            include_timing: false
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "sample.service"
+
+    retry_count: int = 0
+    validate_before_process: bool = True
+    include_timing: bool = False
+
+
+class SampleAdapterConfig(BaseModel):
+    """Configuration for SampleAdapter implementations.
+
+    Loaded from YAML or environment variables.
+    Path: sample.adapter (e.g., FS2_SAMPLE__ADAPTER__PREFIX)
+
+    This is a canonical example demonstrating adapter configuration.
+    The adapter behavior is controlled by config, not hardcoded.
+
+    Attributes:
+        prefix: String to prepend to processed output.
+        max_length: Maximum allowed input length (0 = unlimited).
+        fail_on_empty: Whether to fail when input is empty.
+        simulate_error: If set, process() returns this error message (testing only).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        sample:
+          adapter:
+            prefix: "processed"
+            max_length: 0
+            fail_on_empty: true
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "sample.adapter"
+
+    prefix: str = "processed"
+    max_length: int = 0
+    fail_on_empty: bool = True
+    simulate_error: str | None = None
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     AzureOpenAIConfig,
+    SampleServiceConfig,
+    SampleAdapterConfig,
 ]

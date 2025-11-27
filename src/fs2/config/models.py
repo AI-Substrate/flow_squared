@@ -19,11 +19,8 @@ from typing import Any
 
 import yaml
 from pydantic import BaseModel, field_validator, model_validator
-from pydantic_settings import (
-    BaseSettings,
-    PydanticBaseSettingsSource,
-    SettingsConfigDict,
-)
+from pydantic_settings import (BaseSettings, PydanticBaseSettingsSource,
+                               SettingsConfigDict)
 
 from fs2.config.exceptions import LiteralSecretError, MissingConfigurationError
 
@@ -112,9 +109,7 @@ class YamlConfigSettingsSource(PydanticBaseSettingsSource):
     # Path relative to CWD; TODO: migrate to ~/.config/fs2/
     CONFIG_PATH = Path(".fs2/config.yaml")
 
-    def get_field_value(
-        self, field: Any, field_name: str
-    ) -> tuple[Any, str, bool]:
+    def get_field_value(self, field: Any, field_name: str) -> tuple[Any, str, bool]:
         """Required by base class - not used for dict-based sources."""
         return None, field_name, False
 

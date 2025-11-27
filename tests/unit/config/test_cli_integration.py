@@ -10,9 +10,7 @@ import pytest
 class TestCLIIntegration:
     """Tests for CLI integration pattern."""
 
-    def test_given_cli_flow_when_set_then_service_can_get(
-        self, monkeypatch, tmp_path
-    ):
+    def test_given_cli_flow_when_set_then_service_can_get(self, monkeypatch, tmp_path):
         """
         Purpose: Full CLI integration: construct → set() → service get().
         Quality Contribution: Documents the intended usage pattern.
@@ -22,8 +20,8 @@ class TestCLIIntegration:
         monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
         monkeypatch.chdir(tmp_path)
 
-        from fs2.config.service import FS2ConfigurationService
         from fs2.config.objects import SearchQueryConfig
+        from fs2.config.service import FS2ConfigurationService
 
         # Simulate CLI command like: fs2 query "authentication" --mode slim
         config = FS2ConfigurationService()
@@ -35,7 +33,9 @@ class TestCLIIntegration:
                 self._search = config.require(SearchQueryConfig)
 
             def execute(self) -> str:
-                return f"Searching for '{self._search.text}' in {self._search.mode} mode"
+                return (
+                    f"Searching for '{self._search.text}' in {self._search.mode} mode"
+                )
 
         service = MockSearchService(config)
 
@@ -66,8 +66,8 @@ azure:
 """
         )
 
-        from fs2.config.service import FS2ConfigurationService
         from fs2.config.objects import AzureOpenAIConfig, SearchQueryConfig
+        from fs2.config.service import FS2ConfigurationService
 
         # CLI sets search config
         config = FS2ConfigurationService()
@@ -86,7 +86,10 @@ azure:
         service = MockService(config)
 
         # Assert
-        assert service.describe() == "Search: error handling, Azure: https://test.openai.azure.com"
+        assert (
+            service.describe()
+            == "Search: error handling, Azure: https://test.openai.azure.com"
+        )
 
     def test_given_fake_service_when_testing_then_no_file_access(self):
         """
@@ -94,8 +97,8 @@ azure:
         Quality Contribution: Fast, deterministic tests.
         """
         # Arrange: Use fake - no file system access needed
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import AzureOpenAIConfig, SearchQueryConfig
+        from fs2.config.service import FakeConfigurationService
 
         fake_azure = AzureOpenAIConfig(
             endpoint="https://fake.openai.azure.com",
@@ -117,7 +120,9 @@ azure:
         service = MockLLMService(config)
 
         # Assert
-        assert service.call() == "Calling https://fake.openai.azure.com with 'test query'"
+        assert (
+            service.call() == "Calling https://fake.openai.azure.com with 'test query'"
+        )
 
     def test_given_env_override_when_cli_runs_then_env_wins(
         self, monkeypatch, tmp_path
@@ -146,8 +151,8 @@ azure:
         # Simulate: FS2_AZURE__OPENAI__TIMEOUT=120 fs2 query ...
         monkeypatch.setenv("FS2_AZURE__OPENAI__TIMEOUT", "120")
 
-        from fs2.config.service import FS2ConfigurationService
         from fs2.config.objects import AzureOpenAIConfig
+        from fs2.config.service import FS2ConfigurationService
 
         # Act
         config = FS2ConfigurationService()

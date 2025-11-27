@@ -72,9 +72,7 @@ class TestParseEnvVars:
         assert "openai" in result["azure"]
         assert "api_version" in result["azure"]["openai"]
 
-    def test_given_no_fs2_vars_when_parsing_then_returns_empty_dict(
-        self, monkeypatch
-    ):
+    def test_given_no_fs2_vars_when_parsing_then_returns_empty_dict(self, monkeypatch):
         """
         Purpose: No FS2_* vars returns empty dict.
         Quality Contribution: Handles no-config case.
@@ -112,9 +110,7 @@ class TestParseEnvVars:
         # Assert
         assert result["debug"] == "true"
 
-    def test_given_non_fs2_vars_when_parsing_then_ignores_them(
-        self, monkeypatch
-    ):
+    def test_given_non_fs2_vars_when_parsing_then_ignores_them(self, monkeypatch):
         """
         Purpose: Non-FS2_* vars are ignored.
         Quality Contribution: Only processes our config vars.

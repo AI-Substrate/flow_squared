@@ -148,7 +148,11 @@ def deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
     result = copy.deepcopy(base)
 
     for key, overlay_value in overlay.items():
-        if key in result and isinstance(result[key], dict) and isinstance(overlay_value, dict):
+        if (
+            key in result
+            and isinstance(result[key], dict)
+            and isinstance(overlay_value, dict)
+        ):
             # Recursively merge nested dicts
             result[key] = deep_merge(result[key], overlay_value)
         else:

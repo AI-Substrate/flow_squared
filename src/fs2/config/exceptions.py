@@ -20,8 +20,6 @@ class ConfigurationError(Exception):
     on how to fix the issue.
     """
 
-    pass
-
 
 class MissingConfigurationError(ConfigurationError):
     """Missing configuration value.

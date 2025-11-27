@@ -52,21 +52,35 @@ src/
 └── fs2/                        # Named package (import fs2.*)
     ├── cli/                    # Presentation layer (Typer + Rich)
     ├── core/
-    │   ├── models/             # Domain models (dataclasses, shared types)
+    │   ├── models/             # Domain models (frozen dataclasses)
+    │   │   ├── log_level.py    # LogLevel IntEnum
+    │   │   ├── log_entry.py    # LogEntry frozen dataclass
+    │   │   └── process_result.py # ProcessResult with ok()/fail()
     │   ├── services/           # Composition layer (business logic)
     │   ├── adapters/           # External SDK wrappers
-    │   │   └── protocols.py    # Adapter interfaces
+    │   │   ├── log_adapter.py      # LogAdapter ABC
+    │   │   ├── console_adapter.py  # ConsoleAdapter ABC
+    │   │   ├── sample_adapter.py   # SampleAdapter ABC (canonical example)
+    │   │   ├── exceptions.py       # AdapterError hierarchy
+    │   │   └── *_impl.py           # Implementations (e.g., log_adapter_console.py)
     │   └── repos/              # Data access
     │       └── protocols.py    # Repository interfaces
     └── config/                 # Pydantic settings
 ```
 
+### Adapter File Naming Convention
+
+Each adapter follows a consistent naming pattern:
+- **ABC file**: `{name}_adapter.py` (e.g., `log_adapter.py`)
+- **Implementation files**: `{name}_adapter_{impl}.py` (e.g., `log_adapter_console.py`, `log_adapter_fake.py`)
+- **Exceptions**: `exceptions.py` (shared by all adapters)
+
 ### Dependency Flow Rules
 
 **ALLOWED** (left → right):
 - `cli` → `services`
-- `services` → `adapters/protocols`, `repos/protocols`, `models`
-- `adapters/*_impl` → external SDKs
+- `services` → `adapters/*_adapter.py` (ABCs), `repos/protocols`, `models`
+- `adapters/*_impl.py` → external SDKs
 - `repos/*_impl` → databases/APIs
 
 **FORBIDDEN** (right → left):

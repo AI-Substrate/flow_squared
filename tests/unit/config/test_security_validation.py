@@ -63,12 +63,12 @@ def test_given_placeholder_when_loading_then_allowed():
     """
     # Arrange - note: placeholder will fail expansion if var not set
     # We're testing field validator allows placeholders through
-    from fs2.config.models import FS2Settings
-
     # This should not raise at field validation stage
     # The model_validator will expand it (and fail if var not set)
     # For this test, set the env var to allow full creation
     import os
+
+    from fs2.config.models import FS2Settings
 
     os.environ["MY_API_KEY"] = "test-value"
     try:

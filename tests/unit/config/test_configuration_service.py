@@ -4,7 +4,6 @@ ST019-ST024: Tests for ConfigurationService, FS2ConfigurationService, FakeConfig
 """
 
 import pytest
-from pydantic import BaseModel
 
 
 @pytest.mark.unit
@@ -87,8 +86,8 @@ azure:
         )
 
         # Act
-        from fs2.config.service import FS2ConfigurationService
         from fs2.config.objects import AzureOpenAIConfig
+        from fs2.config.service import FS2ConfigurationService
 
         config = FS2ConfigurationService()
         azure = config.get(AzureOpenAIConfig)
@@ -126,8 +125,8 @@ azure:
         monkeypatch.setenv("FS2_AZURE__OPENAI__TIMEOUT", "90")
 
         # Act
-        from fs2.config.service import FS2ConfigurationService
         from fs2.config.objects import AzureOpenAIConfig
+        from fs2.config.service import FS2ConfigurationService
 
         config = FS2ConfigurationService()
         azure = config.get(AzureOpenAIConfig)
@@ -149,8 +148,8 @@ azure:
         monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
         monkeypatch.chdir(tmp_path)
 
-        from fs2.config.service import FS2ConfigurationService
         from fs2.config.objects import SearchQueryConfig
+        from fs2.config.service import FS2ConfigurationService
 
         config = FS2ConfigurationService()
         search = SearchQueryConfig(mode="slim", text="auth", limit=20)
@@ -177,8 +176,8 @@ azure:
         monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
         monkeypatch.chdir(tmp_path)
 
-        from fs2.config.service import FS2ConfigurationService
         from fs2.config.objects import SearchQueryConfig
+        from fs2.config.service import FS2ConfigurationService
 
         config = FS2ConfigurationService()
 
@@ -200,9 +199,9 @@ azure:
         monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
         monkeypatch.chdir(tmp_path)
 
-        from fs2.config.service import FS2ConfigurationService
-        from fs2.config.objects import SearchQueryConfig
         from fs2.config.exceptions import MissingConfigurationError
+        from fs2.config.objects import SearchQueryConfig
+        from fs2.config.service import FS2ConfigurationService
 
         config = FS2ConfigurationService()
 
@@ -243,8 +242,8 @@ azure:
         )
 
         # Act
-        from fs2.config.service import FS2ConfigurationService
         from fs2.config.objects import AzureOpenAIConfig
+        from fs2.config.service import FS2ConfigurationService
 
         config = FS2ConfigurationService()
         azure = config.get(AzureOpenAIConfig)
@@ -264,8 +263,8 @@ class TestFakeConfigurationService:
         Quality Contribution: Easy test setup.
         """
         # Arrange
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import AzureOpenAIConfig, SearchQueryConfig
+        from fs2.config.service import FakeConfigurationService
 
         azure = AzureOpenAIConfig(endpoint="https://fake.com")
         search = SearchQueryConfig(mode="slim")
@@ -283,8 +282,8 @@ class TestFakeConfigurationService:
         Quality Contribution: Clean default.
         """
         # Arrange
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import SearchQueryConfig
+        from fs2.config.service import FakeConfigurationService
 
         config = FakeConfigurationService()
 
@@ -300,8 +299,8 @@ class TestFakeConfigurationService:
         Quality Contribution: Same API contract.
         """
         # Arrange
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import SearchQueryConfig
+        from fs2.config.service import FakeConfigurationService
 
         config = FakeConfigurationService()
         search = SearchQueryConfig(mode="detailed", text="test")
@@ -320,9 +319,9 @@ class TestFakeConfigurationService:
         Quality Contribution: Same error behavior.
         """
         # Arrange
-        from fs2.config.service import FakeConfigurationService
-        from fs2.config.objects import SearchQueryConfig
         from fs2.config.exceptions import MissingConfigurationError
+        from fs2.config.objects import SearchQueryConfig
+        from fs2.config.service import FakeConfigurationService
 
         config = FakeConfigurationService()
 

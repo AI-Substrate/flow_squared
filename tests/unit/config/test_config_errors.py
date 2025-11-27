@@ -56,7 +56,8 @@ def test_given_missing_config_error_when_to_string_then_actionable():
 
     # Act
     error = MissingConfigurationError(
-        key="AZURE_OPENAI_API_KEY", sources=["Environment variable: AZURE_OPENAI_API_KEY"]
+        key="AZURE_OPENAI_API_KEY",
+        sources=["Environment variable: AZURE_OPENAI_API_KEY"],
     )
 
     # Assert
@@ -108,11 +109,8 @@ def test_given_configuration_error_when_raised_then_catchable():
     Quality Contribution: Enables broad exception handling
     """
     # Arrange
-    from fs2.config.exceptions import (
-        ConfigurationError,
-        LiteralSecretError,
-        MissingConfigurationError,
-    )
+    from fs2.config.exceptions import (ConfigurationError, LiteralSecretError,
+                                       MissingConfigurationError)
 
     # Act & Assert
     # Both should be catchable as ConfigurationError

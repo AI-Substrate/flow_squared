@@ -18,13 +18,9 @@ from typing import TypeVar
 from pydantic import BaseModel
 
 from fs2.config.exceptions import MissingConfigurationError
-from fs2.config.loaders import (
-    deep_merge,
-    expand_placeholders,
-    load_secrets_to_env,
-    load_yaml_config,
-    parse_env_vars,
-)
+from fs2.config.loaders import (deep_merge, expand_placeholders,
+                                load_secrets_to_env, load_yaml_config,
+                                parse_env_vars)
 from fs2.config.objects import YAML_CONFIG_TYPES
 from fs2.config.paths import get_project_config_dir, get_user_config_dir
 

@@ -662,18 +662,18 @@ def test_given_literal_secret_when_loading_then_raises_actionable_error():
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 2.1 | [ ] | Write tests for LogAdapter ABC contract | 2 | Tests: methods exist, abstractmethod enforced | - | |
-| 2.2 | [ ] | Implement LogAdapter ABC | 2 | Tests from 2.1 pass, TypeError on instantiate | - | src/core/adapters/protocols.py |
-| 2.3 | [ ] | Write tests for ConsoleAdapter ABC contract | 2 | Tests: print/input methods defined | - | |
-| 2.4 | [ ] | Implement ConsoleAdapter ABC | 1 | Tests from 2.3 pass | - | For Rich wrapping |
-| 2.5 | [ ] | Write tests for domain model immutability | 2 | Tests: frozen dataclass, mutation raises | - | |
-| 2.6 | [ ] | Implement domain models (LogEntry, etc.) | 2 | Tests from 2.5 pass | - | src/core/models/ |
-| 2.7 | [ ] | Write tests for AdapterError hierarchy | 2 | Tests: inheritance chain correct | - | |
-| 2.8 | [ ] | Implement adapter exception hierarchy | 2 | Tests from 2.7 pass | - | src/core/adapters/exceptions.py |
-| 2.9 | [ ] | Write tests for import boundary rules | 2 | Tests: protocols have no SDK imports | - | |
-| 2.10 | [ ] | Validate import boundaries | 1 | Static analysis passes | - | |
-| 2.11 | [ ] | Create SampleAdapter ABC (for canonical test) | 2 | Minimal adapter interface | - | |
-| 2.12 | [ ] | Validate all Phase 2 tests pass | 1 | `pytest tests/unit/` green | - | |
+| 2.1 | [x] | Write tests for LogAdapter ABC contract | 2 | Tests: methods exist, abstractmethod enforced | [📋](tasks/phase-2-core-interfaces/execution.log.md#cycle-t001-t002-logadapter-abc) | Complete [^9] |
+| 2.2 | [x] | Implement LogAdapter ABC | 2 | Tests from 2.1 pass, TypeError on instantiate | [📋](tasks/phase-2-core-interfaces/execution.log.md#cycle-t001-t002-logadapter-abc) | src/core/adapters/protocols.py [^9] |
+| 2.3 | [x] | Write tests for ConsoleAdapter ABC contract | 2 | Tests: print/input methods defined | [📋](tasks/phase-2-core-interfaces/execution.log.md#cycle-t003-t004-consoleadapter-abc) | Complete [^9] |
+| 2.4 | [x] | Implement ConsoleAdapter ABC | 1 | Tests from 2.3 pass | [📋](tasks/phase-2-core-interfaces/execution.log.md#cycle-t003-t004-consoleadapter-abc) | For Rich wrapping [^9] |
+| 2.5 | [x] | Write tests for domain model immutability | 2 | Tests: frozen dataclass, mutation raises | [📋](tasks/phase-2-core-interfaces/execution.log.md#cycle-t007-t008-logentry-frozen-dataclass) | Complete [^9] |
+| 2.6 | [x] | Implement domain models (LogEntry, etc.) | 2 | Tests from 2.5 pass | [📋](tasks/phase-2-core-interfaces/execution.log.md#cycle-t007-t008-logentry-frozen-dataclass) | LogEntry, LogLevel, ProcessResult [^9] |
+| 2.7 | [x] | Write tests for AdapterError hierarchy | 2 | Tests: inheritance chain correct | [📋](tasks/phase-2-core-interfaces/execution.log.md#cycle-t009-t010-adaptererror-hierarchy) | Complete [^9] |
+| 2.8 | [x] | Implement adapter exception hierarchy | 2 | Tests from 2.7 pass | [📋](tasks/phase-2-core-interfaces/execution.log.md#cycle-t009-t010-adaptererror-hierarchy) | AdapterError + children [^9] |
+| 2.9 | [x] | Write tests for import boundary rules | 2 | Tests: protocols have no SDK imports | [📋](tasks/phase-2-core-interfaces/execution.log.md#task-t011-t012-import-boundary-validation) | Complete [^9] |
+| 2.10 | [x] | Validate import boundaries | 1 | Static analysis passes | [📋](tasks/phase-2-core-interfaces/execution.log.md#task-t011-t012-import-boundary-validation) | Boundaries clean [^9] |
+| 2.11 | [x] | Create SampleAdapter ABC (for canonical test) | 2 | Minimal adapter interface | [📋](tasks/phase-2-core-interfaces/execution.log.md#cycle-t015-t016-sampleadapter-abc) | Full pattern with ProcessResult [^9] |
+| 2.12 | [x] | Validate all Phase 2 tests pass | 1 | `pytest tests/unit/` green | [📋](tasks/phase-2-core-interfaces/execution.log.md#task-t019-final-validation) | 46 tests, 100% coverage [^9] |
 
 #### Test Examples (Write First!)
 
@@ -710,10 +710,10 @@ def test_given_domain_model_when_mutating_then_raises_frozen_error():
 ```
 
 #### Acceptance Criteria
-- [ ] All ABCs raise TypeError on direct instantiation
-- [ ] Domain models are frozen
-- [ ] No SDK imports in protocols.py files
-- [ ] Exception hierarchy documented
+- [x] All ABCs raise TypeError on direct instantiation
+- [x] Domain models are frozen
+- [x] No SDK imports in protocols.py files
+- [x] Exception hierarchy documented
 
 ---
 
@@ -979,7 +979,7 @@ def test_given_sample_service_with_injected_fakes_when_processing_then_logs_and_
 ### Phase Completion Checklist
 - [x] Phase 0: Project Structure & Dependencies - COMPLETE
 - [x] Phase 1: Configuration System - COMPLETE
-- [ ] Phase 2: Core Interfaces (ABC Definitions) - NOT STARTED
+- [x] Phase 2: Core Interfaces (ABC Definitions) - COMPLETE [^9]
 - [ ] Phase 3: Logger Adapter Implementation - NOT STARTED
 - [ ] Phase 4: Canonical Documentation Test - NOT STARTED
 - [ ] Phase 5: Justfile & Documentation - NOT STARTED
@@ -1077,3 +1077,29 @@ Mid-implementation detours requiring structured tracking.
   - `file:tests/unit/config/test_config_objects.py`
   - `file:tests/unit/config/test_configuration_service.py`
   - `file:tests/unit/config/test_cli_integration.py`
+
+[^9]: Phase 2 Complete - Core Interfaces (ABC Definitions) (19 tasks, 46 tests, 100% coverage)
+  - `class:src/fs2/core/adapters/log_adapter.py:LogAdapter`
+  - `class:src/fs2/core/adapters/console_adapter.py:ConsoleAdapter`
+  - `class:src/fs2/core/adapters/sample_adapter.py:SampleAdapter`
+  - `class:src/fs2/core/adapters/exceptions.py:AdapterError`
+  - `class:src/fs2/core/adapters/exceptions.py:AuthenticationError`
+  - `class:src/fs2/core/adapters/exceptions.py:AdapterConnectionError`
+  - `class:src/fs2/core/models/log_level.py:LogLevel`
+  - `class:src/fs2/core/models/log_entry.py:LogEntry`
+  - `class:src/fs2/core/models/process_result.py:ProcessResult`
+  - `file:src/fs2/core/models/__init__.py`
+  - `file:src/fs2/core/adapters/__init__.py`
+  - `file:tests/unit/adapters/test_protocols.py`
+  - `file:tests/unit/adapters/test_exceptions.py`
+  - `file:tests/unit/adapters/test_import_boundaries.py`
+  - `file:tests/unit/models/test_domain_models.py`
+
+[^10]: Phase 2 Post-Implementation Refactor - No Concept Leakage (2025-11-27)
+  **Architectural Change**: Services/Adapters receive `ConfigurationService` (registry), NOT extracted configs.
+  Components call `config.require(TheirConfigType)` internally - composition root doesn't know what configs each component needs.
+  - `file:src/fs2/config/objects.py` - Added SampleServiceConfig, SampleAdapterConfig
+  - `file:src/fs2/core/services/sample_service.py` - SampleService receives ConfigurationService
+  - `file:src/fs2/core/adapters/sample_adapter_fake.py` - FakeSampleAdapter receives ConfigurationService
+  - `file:tests/docs/test_sample_adapter_pattern.py` - Full pattern documentation (19 tests)
+  - **179 tests passing** after refactor

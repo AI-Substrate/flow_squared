@@ -63,11 +63,9 @@ def test_given_fake_service_when_created_then_isolated_from_files():
     Quality Contribution: Validates test double pattern
     """
     # Arrange & Act
-    from fs2.config import FakeConfigurationService, AzureOpenAIConfig
+    from fs2.config import AzureOpenAIConfig, FakeConfigurationService
 
-    config = FakeConfigurationService(
-        AzureOpenAIConfig(endpoint="https://test.com")
-    )
+    config = FakeConfigurationService(AzureOpenAIConfig(endpoint="https://test.com"))
 
     # Assert: Works without any file system setup
     azure = config.get(AzureOpenAIConfig)
