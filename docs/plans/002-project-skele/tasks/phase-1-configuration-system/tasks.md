@@ -38,11 +38,31 @@
 **Total Tasks**: 22
 **Complexity Summary**: 16 × CS-2 (small) + 4 × CS-3 (medium) + 2 × CS-1 (trivial) = **Phase CS-3** (medium overall)
 
-### Active Subtasks
+### Completed Subtasks
 
 | Subtask ID | Status | Description |
 |------------|--------|-------------|
-| [001-subtask-configuration-service-multi-source](./001-subtask-configuration-service-multi-source.md) | Pending | Multi-source config loading (XDG paths), secrets separation, injectable ConfigurationService |
+| [001-subtask-configuration-service-multi-source](./001-subtask-configuration-service-multi-source.md) | Complete | Multi-source config loading (XDG paths), secrets separation, injectable ConfigurationService [^8] |
+
+[^8]: Subtask 001 Complete - ConfigurationService Multi-Source Loading (28 tasks, 66 new tests, 97% coverage)
+  - `file:src/fs2/config/paths.py` - XDG path resolution
+  - `file:src/fs2/config/loaders.py` - Loading helpers (secrets, YAML, env, merge, expand)
+  - `file:src/fs2/config/objects.py` - Typed config objects
+  - `file:src/fs2/config/service.py` - ConfigurationService ABC and implementations
+  - `file:tests/unit/config/test_config_paths.py` - 5 tests
+  - `file:tests/unit/config/test_secrets_loading.py` - 6 tests
+  - `file:tests/unit/config/test_yaml_loading.py` - 5 tests
+  - `file:tests/unit/config/test_env_parsing.py` - 6 tests
+  - `file:tests/unit/config/test_deep_merge.py` - 8 tests
+  - `file:tests/unit/config/test_placeholder_expansion.py` - 6 tests
+  - `file:tests/unit/config/test_config_objects.py` - 13 tests
+  - `file:tests/unit/config/test_configuration_service.py` - 13 tests
+  - `file:tests/unit/config/test_cli_integration.py` - 4 tests
+  - `file:.fs2/config.yaml.example` - Updated example config
+  - `file:.fs2/secrets.env.example` - New secrets example
+  - **Approval**: Code review passed with 0 blocking findings
+  - **Coverage**: 97% (exceeds 80% threshold)
+  - **Tests**: 112 total (66 new + 46 from Phase 1)
 
 ### Parallelization Guidance
 
@@ -1167,7 +1187,8 @@ User confirmed Option A. Keep `.fs2/config.yaml.example` in repo with proper git
 ## Evidence Artifacts
 
 **Execution Log**: [execution.log.md](./execution.log.md) (created by /plan-6-implement-phase)
-**Status**: NOT STARTED
+**Subtask 001 Execution Log**: [001-subtask-configuration-service-multi-source.execution.log.md](./001-subtask-configuration-service-multi-source.execution.log.md)
+**Status**: ✅ COMPLETE (Phase 1 base + Subtask 001)
 
 **Expected Files to Create**:
 - `src/fs2/config/models.py` — Pydantic configuration models

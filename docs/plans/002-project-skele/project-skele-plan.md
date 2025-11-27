@@ -1004,7 +1004,7 @@ Mid-implementation detours requiring structured tracking.
 
 | ID | Created | Phase | Parent Task | Reason | Status | Dossier |
 |----|---------|-------|-------------|--------|--------|---------|
-| 001-subtask-configuration-service-multi-source | 2025-11-26 | Phase 1: Configuration System | T007-T010 | Phase 1 config is too basic for production. Need multi-source loading (XDG paths), secrets separation, injectable ConfigurationService, and CLI override integration. | [x] Complete | [Link](tasks/phase-1-configuration-system/001-subtask-configuration-service-multi-source.md) |
+| 001-subtask-configuration-service-multi-source | 2025-11-26 | Phase 1: Configuration System | T007-T010 | Phase 1 config is too basic for production. Need multi-source loading (XDG paths), secrets separation, injectable ConfigurationService, and CLI override integration. | ✅ Complete | [Link](tasks/phase-1-configuration-system/001-subtask-configuration-service-multi-source.md) [^8] |
 
 ---
 
