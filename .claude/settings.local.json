@@ -11,7 +11,11 @@
       "Bash(sudo service ssh:*)",
       "Bash(ss:*)",
       "Bash(cat:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(just test:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run python -m pytest:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,11 @@
 {
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     "peacock.remoteColor": "#61dafb",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
     "workbench.colorCustomizations": {
         "activityBar.activeBackground": "#93e6fc",
         "activityBar.background": "#93e6fc",
@@ -19,10 +24,5 @@
         "titleBar.activeForeground": "#15202b",
         "titleBar.inactiveBackground": "#61dafb99",
         "titleBar.inactiveForeground": "#15202b99"
-    },
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    }
 }

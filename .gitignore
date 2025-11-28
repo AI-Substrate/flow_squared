@@ -219,3 +219,7 @@ scratch/*
 # but track the example file
 .fs2/config.yaml
 !.fs2/config.yaml.example
+
+.vsc-bridge/*
+!.vsc-bridge/config.yaml
+!.vsc-bridge/registry.yaml
