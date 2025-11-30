@@ -12,6 +12,7 @@
       "Bash(ss:*)",
       "Bash(cat:*)",
       "Bash(git diff:*)",
+      "Bash(pytest:*)",
       "Bash(python -m pytest:*)",
       "Bash(just test:*)",
       "Bash(uv run pytest:*)",
