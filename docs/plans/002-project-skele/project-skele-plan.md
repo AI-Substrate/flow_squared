@@ -982,7 +982,7 @@ def test_given_sample_service_with_injected_fakes_when_processing_then_logs_and_
 - [x] Phase 2: Core Interfaces (ABC Definitions) - COMPLETE [^9]
 - [x] Phase 3: Logger Adapter Implementation - COMPLETE [^11]
 - [x] Phase 4: Canonical Documentation Test - COMPLETE [^12]
-- [ ] Phase 5: Justfile & Documentation - NOT STARTED
+- [x] Phase 5: Justfile & Documentation - COMPLETE [^13]
 
 ### Validation Status
 **Status**: ✅ VALIDATED (2025-11-26)
@@ -994,7 +994,7 @@ def test_given_sample_service_with_injected_fakes_when_processing_then_logs_and_
 - Doctrine: PASS (1 HIGH fixed → absence noted in Assumptions)
 - ADR: N/A (no ADRs exist)
 
-**Next Step**: Run `/plan-5-phase-tasks-and-brief` for Phase 0
+**Next Step**: Plan 002-project-skele COMPLETE. All phases delivered.
 
 ---
 
@@ -1124,3 +1124,15 @@ Mid-implementation detours requiring structured tracking.
   - Updated comments to Arrange/Act/Assert format
   - `file:tests/docs/test_sample_adapter_pattern.py` - 19 documentation tests
   - **209 tests passing**, all AC8 criteria met
+
+[^13]: Phase 5 Complete - Justfile & Documentation (2025-12-01)
+  **Deliverables**: Documentation guides + README quick-start. Justfile already existed with core commands.
+  **Approach**: Lightweight execution via /didyouknow session - created SHORT focused docs linking to existing comprehensive guide.
+  - `file:docs/how/architecture.md` - Layer diagram + import rules (54 lines)
+  - `file:docs/how/configuration.md` - Precedence table + FS2_* format (55 lines)
+  - `file:docs/how/tdd.md` - Test philosophy + fixtures (60 lines)
+  - `file:docs/how/di.md` - DI pattern summary (62 lines)
+  - `file:README.md` - Developer quick-start (52 lines)
+  - Fixed typo: `womhole-mcp-guide.md` → `wormhole-mcp-guide.md`
+  - **Skipped**: test-docs, test-scratch, typecheck commands (KISS)
+  - **209 tests passing**, all AC10/AC11 criteria met
