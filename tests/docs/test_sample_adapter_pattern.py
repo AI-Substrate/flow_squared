@@ -618,16 +618,31 @@ def test_complete_pattern_summary():
 
 
 @pytest.mark.docs
-def test_end_to_end_example():
+def test_given_service_with_fakes_when_processing_then_returns_result():
     """
-    COMPLETE END-TO-END EXAMPLE
+    Test Doc:
+    - Why: Demonstrates the canonical Clean Architecture composition pattern
+           where services receive ConfigurationService (registry) and adapters
+           via constructor injection, enabling full testability with fakes.
+    - Contract: SampleService composes SampleAdapter + ConfigurationService;
+                both service and adapter call config.require() internally;
+                composition root passes registry, NOT extracted configs.
+    - Usage Notes:
+        1. Create FakeConfigurationService with all needed config objects
+        2. Create adapter, passing the registry (adapter gets its own config)
+        3. Create service, passing registry AND adapter
+        4. Call service methods, assert on ProcessResult
+        5. For production: swap FakeConfigurationService → FS2ConfigurationService
+    - Quality Contribution: Critical path - this pattern is the foundation
+                            for ALL service implementations in fs2.
+    - Worked Example:
+        Input: service = SampleService(config=registry, adapter=fake_adapter)
+        Action: result = service.process("Hello, World!")
+        Output: ProcessResult(success=True, value="example: Hello, World!")
 
-    This test demonstrates the entire pattern in one place.
-    Copy this as a starting point for new adapters/services.
+    COMPLETE END-TO-END EXAMPLE - Copy this as a starting point for new adapters/services.
     """
-    # =================================================================
-    # STEP 1: Create ConfigurationService with all needed configs
-    # =================================================================
+    # Arrange =============================================================
     # In production: config = FS2ConfigurationService()  # Loads from YAML/env
     # In tests: use FakeConfigurationService with explicit configs
     config = FakeConfigurationService(
@@ -643,34 +658,24 @@ def test_end_to_end_example():
         ),
     )
 
-    # =================================================================
-    # STEP 2: Create adapter - receives registry, gets its own config
-    # =================================================================
+    # Arrange (continued) - Create adapter and service
     adapter = FakeSampleAdapter(config)
-
-    # =================================================================
-    # STEP 3: Create service - receives SAME registry AND adapter
-    # =================================================================
     service = SampleService(config=config, adapter=adapter)
 
-    # =================================================================
-    # STEP 4: Use the service
-    # =================================================================
-    # Happy path
+    # Act - Process data through the service
     result = service.process("Hello, World!", context={"user_id": "123"})
 
+    # Assert - Verify successful processing
     assert result.success is True
     assert result.value == "example: Hello, World!"
     assert "duration_ms" in result.metadata  # Timing enabled
 
-    # Error path
+    # Assert - Verify error handling path
     error_result = service.process("")  # Empty input
-
     assert error_result.success is False
     assert "Validation failed" in error_result.error
 
-    # Batch processing
+    # Assert - Verify batch processing
     batch_results = service.process_batch(["a", "b", "c"])
-
     assert len(batch_results) == 3
     assert all(r.success for r in batch_results)
