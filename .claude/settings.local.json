@@ -18,7 +18,9 @@
       "Bash(uv run pytest:*)",
       "Bash(uv run python -m pytest:*)",
       "Bash(just --list:*)",
-      "Bash(just lint:*)"
+      "Bash(just lint:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
