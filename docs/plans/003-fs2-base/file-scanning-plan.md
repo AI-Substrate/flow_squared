@@ -251,14 +251,14 @@ uv run mypy src/fs2/
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 1.1 | [ ] | Add dependencies to pyproject.toml | 1 | networkx, tree-sitter-language-pack, pathspec in deps | - | Pin versions |
-| 1.2 | [ ] | Write tests for CodeNode model | 2 | Tests cover: frozen, factory methods, node_id format, truncated flag | - | tests/unit/models/test_code_node.py |
-| 1.3 | [ ] | Implement CodeNode to pass tests | 2 | All tests from 1.2 pass | - | src/fs2/core/models/code_node.py |
-| 1.4 | [ ] | Write tests for ScanConfig | 2 | Tests cover: validation, defaults, YAML loading | - | tests/unit/config/test_scan_config.py |
-| 1.5 | [ ] | Implement ScanConfig to pass tests | 2 | All tests from 1.4 pass, registered in YAML_CONFIG_TYPES | - | src/fs2/config/objects.py |
-| 1.6 | [ ] | Write tests for domain exceptions | 1 | Tests cover: FileScannerError, ASTParserError, GraphStoreError | - | tests/unit/adapters/test_exceptions.py |
-| 1.7 | [ ] | Add domain exceptions | 1 | All tests from 1.6 pass | - | src/fs2/core/adapters/exceptions.py |
-| 1.8 | [ ] | Export models from __init__.py | 1 | Can import from fs2.core.models | - | Clean module exports |
+| 1.1 | [x] | Add dependencies to pyproject.toml | 1 | networkx, tree-sitter-language-pack, pathspec in deps | [📋](tasks/phase-1/execution.log.md#t001-t002-dependencies-setup) | Pin versions [^1] |
+| 1.2 | [x] | Write tests for CodeNode model | 2 | Tests cover: frozen, factory methods, node_id format, truncated flag | [📋](tasks/phase-1/execution.log.md#t003-t021-codenode-implementation-full-tdd) | tests/unit/models/test_code_node.py [^2] |
+| 1.3 | [x] | Implement CodeNode to pass tests | 2 | All tests from 1.2 pass | [📋](tasks/phase-1/execution.log.md#t003-t021-codenode-implementation-full-tdd) | src/fs2/core/models/code_node.py [^2] |
+| 1.4 | [x] | Write tests for ScanConfig | 2 | Tests cover: validation, defaults, YAML loading | [📋](tasks/phase-1/execution.log.md#t022-t027-scanconfig-implementation-full-tdd) | tests/unit/config/test_scan_config.py [^3] |
+| 1.5 | [x] | Implement ScanConfig to pass tests | 2 | All tests from 1.4 pass, registered in YAML_CONFIG_TYPES | [📋](tasks/phase-1/execution.log.md#t022-t027-scanconfig-implementation-full-tdd) | src/fs2/config/objects.py [^3] |
+| 1.6 | [x] | Write tests for domain exceptions | 1 | Tests cover: FileScannerError, ASTParserError, GraphStoreError | [📋](tasks/phase-1/execution.log.md#t028-t031-domain-exceptions-implementation-full-tdd) | tests/unit/adapters/test_exceptions.py [^4] |
+| 1.7 | [x] | Add domain exceptions | 1 | All tests from 1.6 pass | [📋](tasks/phase-1/execution.log.md#t028-t031-domain-exceptions-implementation-full-tdd) | src/fs2/core/adapters/exceptions.py [^4] |
+| 1.8 | [x] | Export models from __init__.py | 1 | Can import from fs2.core.models | [📋](tasks/phase-1/execution.log.md#t032-export-models) | Clean module exports [^5] |
 
 ### Test Examples (Write First!)
 
@@ -307,17 +307,17 @@ def test_given_method_node_when_created_then_node_id_format_correct():
 ```
 
 ### Non-Happy-Path Coverage
-- [ ] Empty content handling
-- [ ] Invalid node_id format validation
-- [ ] Missing required fields
-- [ ] Truncated flag with truncated_at_line
+- [x] Empty content handling
+- [x] Invalid node_id format validation
+- [x] Missing required fields
+- [x] Truncated flag with truncated_at_line
 
 ### Acceptance Criteria
-- [ ] All tests passing
-- [ ] CodeNode is frozen dataclass
-- [ ] ScanConfig loads from YAML and env vars
-- [ ] Dependencies installed and importable
-- [ ] No SDK types in models
+- [x] All tests passing (236 tests)
+- [x] CodeNode is frozen dataclass
+- [x] ScanConfig loads from YAML and env vars
+- [x] Dependencies installed and importable
+- [x] No SDK types in models
 
 ---
 
@@ -939,7 +939,7 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
 ## Progress Tracking
 
 ### Phase Completion Checklist
-- [ ] Phase 1: Core Models and Configuration - NOT STARTED
+- [x] Phase 1: Core Models and Configuration - COMPLETED (2025-12-15)
 - [ ] Phase 2: File Scanner Adapter - NOT STARTED
 - [ ] Phase 3: AST Parser Adapter - NOT STARTED
 - [ ] Phase 4: Graph Storage Repository - NOT STARTED
@@ -955,6 +955,23 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
 
 ## Change Footnotes Ledger
 
-[^1]: [To be added during implementation via plan-6a]
-[^2]: [To be added during implementation via plan-6a]
-[^3]: [To be added during implementation via plan-6a]
+[^1]: Task 1.1 - Added dependencies (Phase 1 - 2025-12-15)
+  - `file:pyproject.toml` - Added networkx>=3.0, tree-sitter-language-pack>=0.13.0, pathspec>=0.12
+
+[^2]: Tasks 1.2-1.3 - CodeNode implementation (Phase 1 - 2025-12-15)
+  - `class:src/fs2/core/models/code_node.py:CodeNode` - Universal frozen dataclass (~17 fields)
+  - `function:src/fs2/core/models/code_node.py:classify_node` - Language-agnostic classification
+  - `file:tests/unit/models/test_code_node.py` - 25 tests for CodeNode
+
+[^3]: Tasks 1.4-1.5 - ScanConfig implementation (Phase 1 - 2025-12-15)
+  - `class:src/fs2/config/objects.py:ScanConfig` - Pydantic model for scan configuration
+  - `file:tests/unit/config/test_scan_config.py` - 12 tests for ScanConfig
+
+[^4]: Tasks 1.6-1.7 - Domain exceptions (Phase 1 - 2025-12-15)
+  - `class:src/fs2/core/adapters/exceptions.py:FileScannerError` - File scanning errors
+  - `class:src/fs2/core/adapters/exceptions.py:ASTParserError` - AST parsing errors
+  - `class:src/fs2/core/adapters/exceptions.py:GraphStoreError` - Graph storage errors
+  - `file:tests/unit/adapters/test_exceptions.py` - 9 new tests for exceptions
+
+[^5]: Task 1.8 - Model exports (Phase 1 - 2025-12-15)
+  - `file:src/fs2/core/models/__init__.py` - Export CodeNode, classify_node

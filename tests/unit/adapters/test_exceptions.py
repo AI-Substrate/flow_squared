@@ -99,3 +99,135 @@ class TestAdapterErrorHierarchy:
         error = AdapterConnectionError("Connection timeout to service")
 
         assert "Connection timeout" in str(error)
+
+
+@pytest.mark.unit
+class TestFileScannerError:
+    """Tests for FileScannerError exception (T028)."""
+
+    def test_given_file_scanner_error_then_inherits_from_adapter_error(self):
+        """
+        Purpose: Proves FileScannerError is a specialized AdapterError.
+        Quality Contribution: Enables granular error handling for file scanning.
+
+        Task: T028
+        """
+        from fs2.core.adapters.exceptions import AdapterError, FileScannerError
+
+        assert issubclass(FileScannerError, AdapterError)
+        assert issubclass(FileScannerError, Exception)
+
+    def test_given_file_scanner_error_when_raised_then_can_be_caught_as_adapter_error(
+        self,
+    ):
+        """
+        Purpose: Proves FileScannerError can be caught with AdapterError handler.
+        Quality Contribution: Supports hierarchical exception handling.
+
+        Task: T028
+        """
+        from fs2.core.adapters.exceptions import AdapterError, FileScannerError
+
+        with pytest.raises(AdapterError):
+            raise FileScannerError("Permission denied: /etc/shadow")
+
+    def test_given_file_scanner_error_with_message_then_message_accessible(self):
+        """
+        Purpose: Proves FileScannerError message is accessible.
+        Quality Contribution: Enables actionable error messages.
+
+        Task: T028
+        """
+        from fs2.core.adapters.exceptions import FileScannerError
+
+        error = FileScannerError("Permission denied: /etc/shadow")
+
+        assert "Permission denied" in str(error)
+
+
+@pytest.mark.unit
+class TestASTParserError:
+    """Tests for ASTParserError exception (T029)."""
+
+    def test_given_ast_parser_error_then_inherits_from_adapter_error(self):
+        """
+        Purpose: Proves ASTParserError is a specialized AdapterError.
+        Quality Contribution: Enables granular error handling for AST parsing.
+
+        Task: T029
+        """
+        from fs2.core.adapters.exceptions import AdapterError, ASTParserError
+
+        assert issubclass(ASTParserError, AdapterError)
+        assert issubclass(ASTParserError, Exception)
+
+    def test_given_ast_parser_error_when_raised_then_can_be_caught_as_adapter_error(
+        self,
+    ):
+        """
+        Purpose: Proves ASTParserError can be caught with AdapterError handler.
+        Quality Contribution: Supports hierarchical exception handling.
+
+        Task: T029
+        """
+        from fs2.core.adapters.exceptions import AdapterError, ASTParserError
+
+        with pytest.raises(AdapterError):
+            raise ASTParserError("Unknown language: brainfuck")
+
+    def test_given_ast_parser_error_with_message_then_message_accessible(self):
+        """
+        Purpose: Proves ASTParserError message is accessible.
+        Quality Contribution: Enables actionable error messages.
+
+        Task: T029
+        """
+        from fs2.core.adapters.exceptions import ASTParserError
+
+        error = ASTParserError("Binary file detected: image.png")
+
+        assert "Binary file" in str(error)
+
+
+@pytest.mark.unit
+class TestGraphStoreError:
+    """Tests for GraphStoreError exception (T030)."""
+
+    def test_given_graph_store_error_then_inherits_from_adapter_error(self):
+        """
+        Purpose: Proves GraphStoreError is a specialized AdapterError.
+        Quality Contribution: Enables granular error handling for graph operations.
+
+        Task: T030
+        """
+        from fs2.core.adapters.exceptions import AdapterError, GraphStoreError
+
+        assert issubclass(GraphStoreError, AdapterError)
+        assert issubclass(GraphStoreError, Exception)
+
+    def test_given_graph_store_error_when_raised_then_can_be_caught_as_adapter_error(
+        self,
+    ):
+        """
+        Purpose: Proves GraphStoreError can be caught with AdapterError handler.
+        Quality Contribution: Supports hierarchical exception handling.
+
+        Task: T030
+        """
+        from fs2.core.adapters.exceptions import AdapterError, GraphStoreError
+
+        with pytest.raises(AdapterError):
+            raise GraphStoreError("Corrupted pickle file: graph.gpickle")
+
+    def test_given_graph_store_error_with_message_then_message_accessible(self):
+        """
+        Purpose: Proves GraphStoreError message is accessible.
+        Quality Contribution: Enables actionable error messages.
+
+        Task: T030
+        """
+        from fs2.core.adapters.exceptions import GraphStoreError
+
+        error = GraphStoreError("Failed to save graph: disk full")
+
+        assert "Failed to save" in str(error)

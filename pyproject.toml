@@ -4,11 +4,14 @@ version = "0.1.0"
 description = "Flowspace2 - Clean Architecture Python scaffold"
 requires-python = ">=3.12"
 dependencies = [
+    "networkx>=3.0",
+    "pathspec>=0.12",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "python-dotenv>=1.0",
     "pyyaml>=6.0",
     "rich>=13.0",
+    "tree-sitter-language-pack>=0.13.0",
     "typer>=0.9",
 ]
 

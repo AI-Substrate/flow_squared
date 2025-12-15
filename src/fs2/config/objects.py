@@ -173,6 +173,66 @@ class LogAdapterConfig(BaseModel):
     min_level: str = "DEBUG"
 
 
+class ScanConfig(BaseModel):
+    """Configuration for file scanning operations.
+
+    Loaded from YAML or environment variables.
+    Path: scan (e.g., FS2_SCAN__MAX_FILE_SIZE_KB)
+
+    Controls how fs2 scans directories for source files.
+    Per spec AC1: Configuration loading for scan paths.
+    Per Critical Finding 06: follow_symlinks defaults to False.
+    Per Critical Finding 12: sample_lines_for_large_files for large file handling.
+
+    Attributes:
+        scan_paths: List of paths to scan (relative or absolute).
+        max_file_size_kb: Maximum file size in KB to fully parse (default: 500).
+                          Files larger than this are sampled.
+        respect_gitignore: Whether to respect .gitignore patterns (default: True).
+        follow_symlinks: Whether to follow symbolic links (default: False).
+                         False prevents infinite loops from circular symlinks.
+        sample_lines_for_large_files: Number of lines to sample from large files
+                                      (default: 1000). Per AC6.
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        scan:
+          scan_paths:
+            - "./src"
+            - "./lib"
+          max_file_size_kb: 1000
+          respect_gitignore: true
+          follow_symlinks: false
+          sample_lines_for_large_files: 2000
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "scan"
+
+    scan_paths: list[str] = ["."]
+    max_file_size_kb: int = 500
+    respect_gitignore: bool = True
+    follow_symlinks: bool = False
+    sample_lines_for_large_files: int = 1000
+
+    @field_validator("max_file_size_kb")
+    @classmethod
+    def validate_max_file_size_kb(cls, v: int) -> int:
+        """Validate max_file_size_kb is positive."""
+        if v <= 0:
+            raise ValueError("max_file_size_kb must be positive")
+        return v
+
+    @field_validator("sample_lines_for_large_files")
+    @classmethod
+    def validate_sample_lines(cls, v: int) -> int:
+        """Validate sample_lines_for_large_files is positive."""
+        if v <= 0:
+            raise ValueError("sample_lines_for_large_files must be positive")
+        return v
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -180,4 +240,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     SampleServiceConfig,
     SampleAdapterConfig,
     LogAdapterConfig,
+    ScanConfig,
 ]
