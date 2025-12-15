@@ -3,7 +3,7 @@
 **Spec**: [../../file-scanning-spec.md](../../file-scanning-spec.md)
 **Plan**: [../../file-scanning-plan.md](../../file-scanning-plan.md)
 **Date**: 2025-12-15
-**Status**: NOT STARTED
+**Status**: COMPLETED
 **Testing Approach**: Full TDD
 
 ---
@@ -57,65 +57,65 @@ class Calculator:
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|-----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T000a | Create tests/fixtures/ast_samples/ directory structure | 1 | Setup | – | /workspaces/flow_squared/tests/fixtures/ast_samples/ | Directories exist for python/, typescript/, markdown/, terraform/, docker/, csharp/, rust/, go/, binary/ | – | Foundation for all parse tests |
-| [ ] | T000b | Create Python sample files (5 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/python/ | simple_class.py, nested_classes.py, standalone_functions.py, decorators_async.py, syntax_error.py exist with valid/invalid syntax | – | Covers AC5 hierarchy tests |
-| [ ] | T000c | Create TypeScript/JavaScript sample files (4 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/typescript/ | interfaces_types.ts, class_generics.ts, react_component.tsx, standalone.js exist | – | Covers AC4, AC5 |
-| [ ] | T000d | Create Markdown sample files (3 files) | 1 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/markdown/ | headings_nested.md, code_blocks.md, frontmatter.md exist | – | Section extraction tests |
-| [ ] | T000e | Create Terraform sample files (2 files) | 1 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/terraform/ | resources_providers.tf, modules_variables.tf exist | – | Block extraction tests |
-| [ ] | T000f | Create Dockerfile sample files (2 files) | 1 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/docker/ | Dockerfile.simple, Dockerfile.multistage exist | – | Instruction extraction tests |
-| [ ] | T000g | Create C# sample files (3 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/csharp/ | namespace_class.cs, properties_methods.cs, async_linq.cs exist | – | Extended language support |
-| [ ] | T000h | Create Rust sample files (2 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/rust/ | structs_impl.rs, traits_generics.rs exist | – | Extended language support |
-| [ ] | T000i | Create Go sample files (2 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/go/ | structs_methods.go, interfaces.go exist | – | Extended language support |
-| [ ] | T000j | Create edge case sample files | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/ | binary/sample.bin, empty.py, unicode_names.py exist | – | Error handling tests |
-| [ ] | T000k | Add ast_samples_path pytest fixture to conftest.py | 1 | Setup | T000a-T000j | /workspaces/flow_squared/tests/conftest.py | Fixture returns Path to fixtures/ast_samples/, tests can use it | – | DRY fixture access |
-| [ ] | T001 | Write tests for ASTParser ABC contract | 1 | Test | T000k | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser.py | ABC cannot be instantiated, defines parse() and detect_language() | – | Per CF02 |
-| [ ] | T002 | Write tests for ASTParser return types | 1 | Test | T001 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser.py | parse() -> list[CodeNode], detect_language() -> str | – | – |
-| [ ] | T003 | Write tests for ASTParser lifecycle | 1 | Test | T001 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser.py | Inherits from ABC, requires ConfigurationService | – | Per CF01 |
-| [ ] | T004 | Implement ASTParser ABC | 1 | Core | T001-T003 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser.py | All ABC tests pass, clean imports | – | Per CF02 |
-| [ ] | T005 | Write tests for FakeASTParser configurable results | 2 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_fake.py | set_results() configures return values | – | – |
-| [ ] | T006 | Write tests for FakeASTParser call history | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_fake.py | Call history records parse/detect invocations | – | For Phase 5 service tests |
-| [ ] | T007 | Write tests for FakeASTParser error simulation | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_fake.py | simulate_error_for configures which files raise | – | Per CF10 |
-| [ ] | T008 | Write tests for FakeASTParser inherits ABC | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_fake.py | isinstance(FakeASTParser(...), ASTParser) | – | Per CF02 |
-| [ ] | T009 | Implement FakeASTParser | 2 | Core | T005-T008 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_fake.py | All fake tests pass | – | Per CF02 |
-| [ ] | T010 | Write tests for language detection - Python | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .py → "python" | – | AC4 |
-| [ ] | T011 | Write tests for language detection - TypeScript/JavaScript | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .ts → "typescript", .js → "javascript", .tsx/.jsx handled | – | AC4 |
-| [ ] | T012 | Write tests for language detection - Markdown | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .md → "markdown" | – | AC4 |
-| [ ] | T013 | Write tests for language detection - Terraform | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .tf → "hcl" | – | AC4 |
-| [ ] | T014 | Write tests for language detection - Dockerfile | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Dockerfile (no ext) → "dockerfile" | – | AC4, filename match |
-| [ ] | T014b | Write tests for language detection - C# | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .cs → "c_sharp" | – | Extended lang support |
-| [ ] | T014c | Write tests for language detection - Rust | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .rs → "rust" | – | Extended lang support |
-| [ ] | T014d | Write tests for language detection - Go | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .go → "go" | – | Extended lang support |
-| [ ] | T014e | Write tests for language detection - YAML/JSON | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .yaml/.yml → "yaml", .json → "json" | – | Config file support |
-| [ ] | T015 | Write tests for language detection - ambiguous extensions | 2 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .h → "cpp" (default), config override supported | – | Per CF13 |
-| [ ] | T016 | Write tests for language detection - unknown extension | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .xyz → None (unknown), logged warning | – | Per CF10 |
-| [ ] | T017 | Implement language detection mapping | 2 | Core | T010-T016,T014b-e | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | All language detection tests pass | – | Static mapping per CF13 |
-| [ ] | T018 | Write tests for Python file parsing - file node | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | parse() returns file node with correct node_id, category="file" | – | AC5 |
-| [ ] | T019 | Write tests for Python class extraction | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Class extracted with category="type", correct qualified_name | – | AC5 |
-| [ ] | T020 | Write tests for Python method extraction | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Methods extracted with category="callable", parent class in qualified_name | – | AC5 |
-| [ ] | T021 | Write tests for Python standalone function extraction | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Top-level functions extracted, no class prefix | – | AC5 |
-| [ ] | T022 | Write tests for nested class handling | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Inner class qualified_name includes outer class | – | AC5 |
-| [ ] | T023 | Write tests for hierarchy depth limit | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Only named nodes up to depth 4 extracted | – | Per CF08 |
-| [ ] | T024 | Implement Python AST traversal | 3 | Core | T018-T023 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | All Python hierarchy tests pass | – | Per CF03 (use .children not .child(i)) |
-| [ ] | T025 | Write tests for TypeScript class/interface extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | TS classes and interfaces extracted correctly | – | AC5 |
-| [ ] | T026 | Write tests for Markdown heading extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Headings extracted with category="section" | – | AC5 |
-| [ ] | T027 | Write tests for Terraform block extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | resource/provider blocks extracted with category="block" | – | AC5 |
-| [ ] | T027b | Write tests for C# namespace/class extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Namespaces, classes, methods, properties extracted correctly | – | Uses fixtures/ast_samples/csharp/ |
-| [ ] | T027c | Write tests for Rust struct/impl/trait extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Structs, impl blocks, traits, functions extracted correctly | – | Uses fixtures/ast_samples/rust/ |
-| [ ] | T027d | Write tests for Go struct/interface extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Structs, interfaces, methods, functions extracted correctly | – | Uses fixtures/ast_samples/go/ |
-| [ ] | T028 | Implement multi-language traversal | 3 | Core | T025-T027d | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | TS, MD, TF, C#, Rust, Go tests pass | – | Uses classify_node(); update patterns for new languages; log unknown ts_kinds to .fs2/unknown_node_types.log |
-| [ ] | T032 | Write tests for binary file detection | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Binary file (null bytes) returns empty list, logs warning | – | Per CF07 |
-| [ ] | T033 | Write tests for encoding error handling | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Non-UTF8 file handled gracefully, raises ASTParserError | – | Per CF10 |
-| [ ] | T034 | Write tests for syntax error handling | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Malformed source still returns partial nodes, is_error flag | – | Per CF10 |
-| [ ] | T035 | Write tests for empty file handling | 1 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Empty file returns file node only | – | Edge case |
-| [ ] | T036 | Implement error handling and edge cases | 2 | Core | T032-T035 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | All error handling tests pass | – | Per CF07, CF10 |
-| [ ] | T036b | Write tests for unknown node type logging | 1 | Test | T028 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Unknown ts_kinds logged to .fs2/unknown_node_types.log | – | Observability |
-| [ ] | T036c | Implement unknown node type logging | 1 | Core | T036b | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | Log file created with format: timestamp, language, ts_kind, file:line | – | Per Insights Session |
-| [ ] | T037 | Write tests for node_id format compliance | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | All node_ids follow {category}:{path}:{qualified_name} | – | AC7, CF11 |
-| [ ] | T038 | Write tests for anonymous node handling | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Lambda/anonymous functions get @line suffix | – | Per CF11 |
-| [ ] | T039 | Write tests for content and signature extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | content = full source, signature = first line | – | – |
-| [ ] | T040 | Implement node ID and content extraction | 2 | Core | T037-T039 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | All node_id and content tests pass | – | Uses CodeNode factories |
-| [ ] | T041 | Export ASTParser, FakeASTParser, TreeSitterParser from adapters | 1 | Setup | T040 | /workspaces/flow_squared/src/fs2/core/adapters/__init__.py | Imports work from fs2.core.adapters | – | – |
-| [ ] | T042 | Run full test suite and lint check | 1 | Validation | T041 | /workspaces/flow_squared/tests/unit/ | All tests pass, ruff clean | – | Final validation |
+| [x] | T000a | Create tests/fixtures/ast_samples/ directory structure | 1 | Setup | – | /workspaces/flow_squared/tests/fixtures/ast_samples/ | Directories exist for python/, typescript/, markdown/, terraform/, docker/, csharp/, rust/, go/, binary/ | – | Foundation for all parse tests |
+| [x] | T000b | Create Python sample files (5 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/python/ | simple_class.py, nested_classes.py, standalone_functions.py, decorators_async.py, syntax_error.py exist with valid/invalid syntax | – | Covers AC5 hierarchy tests |
+| [x] | T000c | Create TypeScript/JavaScript sample files (4 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/typescript/ | interfaces_types.ts, class_generics.ts, react_component.tsx, standalone.js exist | – | Covers AC4, AC5 |
+| [x] | T000d | Create Markdown sample files (3 files) | 1 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/markdown/ | headings_nested.md, code_blocks.md, frontmatter.md exist | – | Section extraction tests |
+| [x] | T000e | Create Terraform sample files (2 files) | 1 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/terraform/ | resources_providers.tf, modules_variables.tf exist | – | Block extraction tests |
+| [x] | T000f | Create Dockerfile sample files (2 files) | 1 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/docker/ | Dockerfile.simple, Dockerfile.multistage exist | – | Instruction extraction tests |
+| [x] | T000g | Create C# sample files (3 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/csharp/ | namespace_class.cs, properties_methods.cs, async_linq.cs exist | – | Extended language support |
+| [x] | T000h | Create Rust sample files (2 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/rust/ | structs_impl.rs, traits_generics.rs exist | – | Extended language support |
+| [x] | T000i | Create Go sample files (2 files) | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/go/ | structs_methods.go, interfaces.go exist | – | Extended language support |
+| [x] | T000j | Create edge case sample files | 2 | Setup | T000a | /workspaces/flow_squared/tests/fixtures/ast_samples/ | binary/sample.bin, empty.py, unicode_names.py exist | – | Error handling tests |
+| [x] | T000k | Add ast_samples_path pytest fixture to conftest.py | 1 | Setup | T000a-T000j | /workspaces/flow_squared/tests/conftest.py | Fixture returns Path to fixtures/ast_samples/, tests can use it | – | DRY fixture access |
+| [x] | T001 | Write tests for ASTParser ABC contract | 1 | Test | T000k | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser.py | ABC cannot be instantiated, defines parse() and detect_language() | – | Per CF02 |
+| [x] | T002 | Write tests for ASTParser return types | 1 | Test | T001 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser.py | parse() -> list[CodeNode], detect_language() -> str | – | – |
+| [x] | T003 | Write tests for ASTParser lifecycle | 1 | Test | T001 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser.py | Inherits from ABC, requires ConfigurationService | – | Per CF01 |
+| [x] | T004 | Implement ASTParser ABC | 1 | Core | T001-T003 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser.py | All ABC tests pass, clean imports | – | Per CF02 |
+| [x] | T005 | Write tests for FakeASTParser configurable results | 2 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_fake.py | set_results() configures return values | – | – |
+| [x] | T006 | Write tests for FakeASTParser call history | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_fake.py | Call history records parse/detect invocations | – | For Phase 5 service tests |
+| [x] | T007 | Write tests for FakeASTParser error simulation | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_fake.py | simulate_error_for configures which files raise | – | Per CF10 |
+| [x] | T008 | Write tests for FakeASTParser inherits ABC | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_fake.py | isinstance(FakeASTParser(...), ASTParser) | – | Per CF02 |
+| [x] | T009 | Implement FakeASTParser | 2 | Core | T005-T008 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_fake.py | All fake tests pass | – | Per CF02 |
+| [x] | T010 | Write tests for language detection - Python | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .py → "python" | – | AC4 |
+| [x] | T011 | Write tests for language detection - TypeScript/JavaScript | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .ts → "typescript", .js → "javascript", .tsx/.jsx handled | – | AC4 |
+| [x] | T012 | Write tests for language detection - Markdown | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .md → "markdown" | – | AC4 |
+| [x] | T013 | Write tests for language detection - Terraform | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .tf → "hcl" | – | AC4 |
+| [x] | T014 | Write tests for language detection - Dockerfile | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Dockerfile (no ext) → "dockerfile" | – | AC4, filename match |
+| [x] | T014b | Write tests for language detection - C# | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .cs → "c_sharp" | – | Extended lang support |
+| [x] | T014c | Write tests for language detection - Rust | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .rs → "rust" | – | Extended lang support |
+| [x] | T014d | Write tests for language detection - Go | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .go → "go" | – | Extended lang support |
+| [x] | T014e | Write tests for language detection - YAML/JSON | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .yaml/.yml → "yaml", .json → "json" | – | Config file support |
+| [x] | T015 | Write tests for language detection - ambiguous extensions | 2 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .h → "cpp" (default), config override supported | – | Per CF13 |
+| [x] | T016 | Write tests for language detection - unknown extension | 1 | Test | T004 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | .xyz → None (unknown), logged warning | – | Per CF10 |
+| [x] | T017 | Implement language detection mapping | 2 | Core | T010-T016,T014b-e | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | All language detection tests pass | – | Static mapping per CF13 |
+| [x] | T018 | Write tests for Python file parsing - file node | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | parse() returns file node with correct node_id, category="file" | – | AC5 |
+| [x] | T019 | Write tests for Python class extraction | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Class extracted with category="type", correct qualified_name | – | AC5 |
+| [x] | T020 | Write tests for Python method extraction | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Methods extracted with category="callable", parent class in qualified_name | – | AC5 |
+| [x] | T021 | Write tests for Python standalone function extraction | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Top-level functions extracted, no class prefix | – | AC5 |
+| [x] | T022 | Write tests for nested class handling | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Inner class qualified_name includes outer class | – | AC5 |
+| [x] | T023 | Write tests for hierarchy depth limit | 2 | Test | T017 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Only named nodes up to depth 4 extracted | – | Per CF08 |
+| [x] | T024 | Implement Python AST traversal | 3 | Core | T018-T023 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | All Python hierarchy tests pass | – | Per CF03 (use .children not .child(i)) |
+| [x] | T025 | Write tests for TypeScript class/interface extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | TS classes and interfaces extracted correctly | – | AC5 |
+| [x] | T026 | Write tests for Markdown heading extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Headings extracted with category="section" | – | AC5 |
+| [x] | T027 | Write tests for Terraform block extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | resource/provider blocks extracted with category="block" | – | AC5 |
+| [x] | T027b | Write tests for C# namespace/class extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Namespaces, classes, methods, properties extracted correctly | – | Uses fixtures/ast_samples/csharp/ |
+| [x] | T027c | Write tests for Rust struct/impl/trait extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Structs, impl blocks, traits, functions extracted correctly | – | Uses fixtures/ast_samples/rust/ |
+| [x] | T027d | Write tests for Go struct/interface extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Structs, interfaces, methods, functions extracted correctly | – | Uses fixtures/ast_samples/go/ |
+| [x] | T028 | Implement multi-language traversal | 3 | Core | T025-T027d | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | TS, MD, TF, C#, Rust, Go tests pass | – | Uses classify_node(); update patterns for new languages; log unknown ts_kinds to .fs2/unknown_node_types.log |
+| [x] | T032 | Write tests for binary file detection | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Binary file (null bytes) returns empty list, logs warning | – | Per CF07 |
+| [x] | T033 | Write tests for encoding error handling | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Non-UTF8 file handled gracefully, raises ASTParserError | – | Per CF10 |
+| [x] | T034 | Write tests for syntax error handling | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Malformed source still returns partial nodes, is_error flag | – | Per CF10 |
+| [x] | T035 | Write tests for empty file handling | 1 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Empty file returns file node only | – | Edge case |
+| [x] | T036 | Implement error handling and edge cases | 2 | Core | T032-T035 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | All error handling tests pass | – | Per CF07, CF10 |
+| [x] | T036b | Write tests for unknown node type logging | 1 | Test | T028 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Unknown ts_kinds logged to .fs2/unknown_node_types.log | – | Observability |
+| [x] | T036c | Implement unknown node type logging | 1 | Core | T036b | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | Log file created with format: timestamp, language, ts_kind, file:line | – | Per Insights Session |
+| [x] | T037 | Write tests for node_id format compliance | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | All node_ids follow {category}:{path}:{qualified_name} | – | AC7, CF11 |
+| [x] | T038 | Write tests for anonymous node handling | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | Lambda/anonymous functions get @line suffix | – | Per CF11 |
+| [x] | T039 | Write tests for content and signature extraction | 2 | Test | T024 | /workspaces/flow_squared/tests/unit/adapters/test_ast_parser_impl.py | content = full source, signature = first line | – | – |
+| [x] | T040 | Implement node ID and content extraction | 2 | Core | T037-T039 | /workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py | All node_id and content tests pass | – | Uses CodeNode factories |
+| [x] | T041 | Export ASTParser, FakeASTParser, TreeSitterParser from adapters | 1 | Setup | T040 | /workspaces/flow_squared/src/fs2/core/adapters/__init__.py | Imports work from fs2.core.adapters | – | – |
+| [x] | T042 | Run full test suite and lint check | 1 | Validation | T041 | /workspaces/flow_squared/tests/unit/ | All tests pass, ruff clean | – | Final validation |
 
 ---
 

@@ -107,3 +107,23 @@ def test_context():
     config = FakeConfigurationService(LogAdapterConfig(min_level="DEBUG"))
     logger = FakeLogAdapter(config)
     return TestContext(config=config, logger=logger)
+
+
+# Phase 3: AST Parser fixtures
+
+
+@pytest.fixture
+def ast_samples_path():
+    """Path to the ast_samples fixtures directory.
+
+    Per Phase 3 Task T000k: Provides convenient access to sample source files
+    for AST parser tests.
+
+    Usage:
+        def test_parse_python(ast_samples_path):
+            py_file = ast_samples_path / "python" / "simple_class.py"
+            # ... parse the file
+    """
+    from pathlib import Path
+
+    return Path(__file__).parent / "fixtures" / "ast_samples"

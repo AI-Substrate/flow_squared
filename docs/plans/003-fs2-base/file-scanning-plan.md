@@ -460,15 +460,15 @@ def test_given_nested_gitignore_when_scanning_then_applies_subtree_only(tmp_path
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 3.1 | [ ] | Write tests for ASTParser ABC | 1 | Tests verify ABC contract | - | tests/unit/adapters/test_ast_parser.py |
-| 3.2 | [ ] | Create ASTParser ABC | 1 | ABC with parse(), detect_language() methods | - | src/fs2/core/adapters/ast_parser.py |
-| 3.3 | [ ] | Write tests for FakeASTParser | 2 | Tests cover: call history, configurable results | - | tests/unit/adapters/test_ast_parser_fake.py |
-| 3.4 | [ ] | Implement FakeASTParser | 2 | All tests from 3.3 pass | - | src/fs2/core/adapters/ast_parser_fake.py |
-| 3.5 | [ ] | Write tests for language detection (AC4) | 2 | Tests cover: .py, .ts, .md, .tf, Dockerfile | - | tests/unit/adapters/test_ast_parser_impl.py |
-| 3.6 | [ ] | Write tests for AST hierarchy extraction (AC5) | 3 | Tests cover: Python class with methods → graph nodes | - | tests/unit/adapters/test_ast_parser_impl.py |
-| 3.7 | [ ] | Implement TreeSitterParser | 3 | All tests from 3.5, 3.6 pass | - | src/fs2/core/adapters/ast_parser_impl.py |
-| 3.9 | [ ] | Write tests for binary file detection | 1 | Tests cover: binary skipped, warning logged | - | tests/unit/adapters/test_ast_parser_impl.py |
-| 3.10 | [ ] | Add binary detection and error handling | 1 | Binary files return empty node list, no crash | - | src/fs2/core/adapters/ast_parser_impl.py |
+| 3.1 | [x] | Write tests for ASTParser ABC | 1 | Tests verify ABC contract | [📋](tasks/phase-3/execution.log.md#step-1-abc-and-fake-t001-t009) | tests/unit/adapters/test_ast_parser.py [^9] |
+| 3.2 | [x] | Create ASTParser ABC | 1 | ABC with parse(), detect_language() methods | [📋](tasks/phase-3/execution.log.md#step-1-abc-and-fake-t001-t009) | src/fs2/core/adapters/ast_parser.py [^9] |
+| 3.3 | [x] | Write tests for FakeASTParser | 2 | Tests cover: call history, configurable results | [📋](tasks/phase-3/execution.log.md#step-1-abc-and-fake-t001-t009) | tests/unit/adapters/test_ast_parser_fake.py [^10] |
+| 3.4 | [x] | Implement FakeASTParser | 2 | All tests from 3.3 pass | [📋](tasks/phase-3/execution.log.md#step-1-abc-and-fake-t001-t009) | src/fs2/core/adapters/ast_parser_fake.py [^10] |
+| 3.5 | [x] | Write tests for language detection (AC4) | 2 | Tests cover: .py, .ts, .md, .tf, Dockerfile | [📋](tasks/phase-3/execution.log.md#step-2-language-detection-t010-t017) | tests/unit/adapters/test_ast_parser_impl.py [^11] |
+| 3.6 | [x] | Write tests for AST hierarchy extraction (AC5) | 3 | Tests cover: Python class with methods → graph nodes | [📋](tasks/phase-3/execution.log.md#step-3-python-ast-hierarchy-t018-t024) | tests/unit/adapters/test_ast_parser_impl.py [^11] |
+| 3.7 | [x] | Implement TreeSitterParser | 3 | All tests from 3.5, 3.6 pass | [📋](tasks/phase-3/execution.log.md#step-4-multi-language-support-t025-t028) | src/fs2/core/adapters/ast_parser_impl.py [^11] |
+| 3.9 | [x] | Write tests for binary file detection | 1 | Tests cover: binary skipped, warning logged | [📋](tasks/phase-3/execution.log.md#step-5-error-handling-and-binary-detection-t032-t036) | tests/unit/adapters/test_ast_parser_impl.py [^11] |
+| 3.10 | [x] | Add binary detection and error handling | 1 | Binary files return empty node list, no crash | [📋](tasks/phase-3/execution.log.md#step-5-error-handling-and-binary-detection-t032-t036) | src/fs2/core/adapters/ast_parser_impl.py [^11] |
 
 ### Test Examples (Write First!)
 
@@ -535,18 +535,18 @@ class Calculator:
 ```
 
 ### Non-Happy-Path Coverage
-- [ ] Unknown file extension
-- [ ] Empty file
-- [ ] Syntax error in source
-- [ ] Binary file (null bytes)
-- [ ] Encoding errors (non-UTF8)
+- [x] Unknown file extension
+- [x] Empty file
+- [x] Syntax error in source
+- [x] Binary file (null bytes)
+- [x] Encoding errors (non-UTF8)
 
 ### Acceptance Criteria
-- [ ] All tests passing
-- [ ] AC4: Language detection works for .py, .ts, .md, .tf, Dockerfile
-- [ ] AC5: File → Class → Method hierarchy extracted
-- [ ] ~~AC6~~: REMOVED - truncation produces broken AST; tree-sitter handles large files
-- [ ] Binary files skipped gracefully
+- [x] All tests passing (329 tests)
+- [x] AC4: Language detection works for .py, .ts, .md, .tf, Dockerfile
+- [x] AC5: File → Class → Method hierarchy extracted
+- [x] ~~AC6~~: REMOVED - truncation produces broken AST; tree-sitter handles large files
+- [x] Binary files skipped gracefully
 
 ---
 
@@ -941,7 +941,7 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
 ### Phase Completion Checklist
 - [x] Phase 1: Core Models and Configuration - COMPLETED (2025-12-15)
 - [x] Phase 2: File Scanner Adapter - COMPLETED (2025-12-15)
-- [ ] Phase 3: AST Parser Adapter - NOT STARTED
+- [x] Phase 3: AST Parser Adapter - COMPLETED (2025-12-15)
 - [ ] Phase 4: Graph Storage Repository - NOT STARTED
 - [ ] Phase 5: Scan Service Orchestration - NOT STARTED
 - [ ] Phase 6: CLI Command and Documentation - NOT STARTED
@@ -990,3 +990,18 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
   - `file:tests/unit/adapters/test_file_scanner_impl.py` - 25 tests for FileSystemScanner
   - `file:src/fs2/core/adapters/__init__.py` - Export FileScanner, FakeFileScanner, FileSystemScanner
   - `file:src/fs2/core/models/__init__.py` - Export ScanResult
+
+[^9]: Tasks 3.1-3.2 - ASTParser ABC (Phase 3 - 2025-12-15)
+  - `class:src/fs2/core/adapters/ast_parser.py:ASTParser` - ABC with parse() -> list[CodeNode], detect_language() -> str | None
+  - `file:tests/unit/adapters/test_ast_parser.py` - 4 tests for ASTParser ABC
+
+[^10]: Tasks 3.3-3.4 - FakeASTParser (Phase 3 - 2025-12-15)
+  - `class:src/fs2/core/adapters/ast_parser_fake.py:FakeASTParser` - Test double with configurable results, call history, error simulation
+  - `file:tests/unit/adapters/test_ast_parser_fake.py` - 9 tests for FakeASTParser
+
+[^11]: Tasks 3.5-3.10 - TreeSitterParser implementation (Phase 3 - 2025-12-15)
+  - `class:src/fs2/core/adapters/ast_parser_impl.py:TreeSitterParser` - Production impl with tree-sitter-language-pack
+  - `file:tests/unit/adapters/test_ast_parser_impl.py` - 38 tests for TreeSitterParser
+  - `file:src/fs2/core/adapters/__init__.py` - Export ASTParser, FakeASTParser, TreeSitterParser
+  - `file:tests/fixtures/ast_samples/` - 26 fixture files for 9 languages
+  - `file:tests/conftest.py` - ast_samples_path pytest fixture

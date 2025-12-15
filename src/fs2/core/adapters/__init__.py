@@ -16,6 +16,9 @@ Public API:
 - FileScanner: ABC for file scanning with gitignore support
 - FakeFileScanner: Test double for FileScanner
 - FileSystemScanner: Production FileScanner using pathspec
+- ASTParser: ABC for AST parsing with tree-sitter
+- FakeASTParser: Test double for ASTParser
+- TreeSitterParser: Production ASTParser using tree-sitter-language-pack
 - AdapterError: Base exception for all adapter errors
 - AuthenticationError: Authentication failed
 - AdapterConnectionError: Connection failed
@@ -26,6 +29,9 @@ Public API:
 See tests/docs/test_sample_adapter_pattern.py for complete usage documentation.
 """
 
+from fs2.core.adapters.ast_parser import ASTParser
+from fs2.core.adapters.ast_parser_fake import FakeASTParser
+from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 from fs2.core.adapters.console_adapter import ConsoleAdapter
 from fs2.core.adapters.exceptions import (
     AdapterConnectionError,
@@ -55,6 +61,9 @@ __all__ = [
     "FileScanner",
     "FakeFileScanner",
     "FileSystemScanner",
+    "ASTParser",
+    "FakeASTParser",
+    "TreeSitterParser",
     "AdapterError",
     "AuthenticationError",
     "AdapterConnectionError",
