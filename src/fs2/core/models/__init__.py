@@ -6,11 +6,20 @@ Public API:
 - ProcessResult: Result type for adapter operations with ok()/fail() factories
 - CodeNode: Universal code node for any structural code element
 - classify_node: Language-agnostic classification utility
+- ScanResult: File scan result with path and size
 """
 
 from fs2.core.models.code_node import CodeNode, classify_node
 from fs2.core.models.log_entry import LogEntry
 from fs2.core.models.log_level import LogLevel
 from fs2.core.models.process_result import ProcessResult
+from fs2.core.models.scan_result import ScanResult
 
-__all__ = ["LogLevel", "LogEntry", "ProcessResult", "CodeNode", "classify_node"]
+__all__ = [
+    "LogLevel",
+    "LogEntry",
+    "ProcessResult",
+    "CodeNode",
+    "classify_node",
+    "ScanResult",
+]

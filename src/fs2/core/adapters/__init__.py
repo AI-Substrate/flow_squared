@@ -1,8 +1,8 @@
 """Adapter layer - ABC interfaces and implementations.
 
 Architecture:
-- Each adapter ABC is in its own file: {name}_adapter.py
-- Implementations go in: {name}_adapter_{impl}.py (e.g., log_adapter_console.py)
+- Each adapter ABC is in its own file: {name}_adapter.py or file_{name}.py
+- Implementations go in: {name}_adapter_{impl}.py or file_{name}_impl.py
 - Exceptions in: exceptions.py
 
 Public API:
@@ -13,9 +13,15 @@ Public API:
 - SampleAdapter: ABC demonstrating full adapter pattern (process/validate)
 - FakeSampleAdapter: Test double for SampleAdapter (canonical implementation example)
 - SampleAdapterConfig: Configuration for SampleAdapter
+- FileScanner: ABC for file scanning with gitignore support
+- FakeFileScanner: Test double for FileScanner
+- FileSystemScanner: Production FileScanner using pathspec
 - AdapterError: Base exception for all adapter errors
 - AuthenticationError: Authentication failed
 - AdapterConnectionError: Connection failed
+- FileScannerError: File scanning operation failed
+- ASTParserError: AST parsing operation failed
+- GraphStoreError: Graph storage operation failed
 
 See tests/docs/test_sample_adapter_pattern.py for complete usage documentation.
 """
@@ -24,8 +30,14 @@ from fs2.core.adapters.console_adapter import ConsoleAdapter
 from fs2.core.adapters.exceptions import (
     AdapterConnectionError,
     AdapterError,
+    ASTParserError,
     AuthenticationError,
+    FileScannerError,
+    GraphStoreError,
 )
+from fs2.core.adapters.file_scanner import FileScanner
+from fs2.core.adapters.file_scanner_fake import FakeFileScanner
+from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 from fs2.core.adapters.log_adapter import LogAdapter
 from fs2.core.adapters.log_adapter_console import ConsoleLogAdapter
 from fs2.core.adapters.log_adapter_fake import FakeLogAdapter
@@ -40,7 +52,13 @@ __all__ = [
     "SampleAdapter",
     "FakeSampleAdapter",
     "SampleAdapterConfig",
+    "FileScanner",
+    "FakeFileScanner",
+    "FileSystemScanner",
     "AdapterError",
     "AuthenticationError",
     "AdapterConnectionError",
+    "FileScannerError",
+    "ASTParserError",
+    "GraphStoreError",
 ]

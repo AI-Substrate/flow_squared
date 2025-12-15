@@ -343,15 +343,15 @@ def test_given_method_node_when_created_then_node_id_format_correct():
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 2.1 | [ ] | Write tests for FileScanner ABC | 1 | Tests verify ABC cannot be instantiated | - | tests/unit/adapters/test_file_scanner.py |
-| 2.2 | [ ] | Create FileScanner ABC | 1 | ABC with scan(), should_ignore() methods | - | src/fs2/core/adapters/file_scanner.py |
-| 2.3 | [ ] | Write tests for FakeFileScanner | 2 | Tests cover: call history, configurable results | - | tests/unit/adapters/test_file_scanner_fake.py |
-| 2.4 | [ ] | Implement FakeFileScanner | 2 | All tests from 2.3 pass | - | src/fs2/core/adapters/file_scanner_fake.py |
-| 2.5 | [ ] | Write tests for FileSystemScanner gitignore | 3 | Tests cover: AC2, AC3 (root + nested gitignore) | - | tests/unit/adapters/test_file_scanner_impl.py |
-| 2.6 | [ ] | Write tests for FileSystemScanner traversal | 2 | Tests cover: recursive scan, symlink handling | - | tests/unit/adapters/test_file_scanner_impl.py |
-| 2.7 | [ ] | Implement FileSystemScanner | 3 | All tests from 2.5, 2.6 pass | - | src/fs2/core/adapters/file_scanner_impl.py |
-| 2.8 | [ ] | Write tests for permission error handling | 1 | Tests cover: AC10 (graceful error handling) | - | tests/unit/adapters/test_file_scanner_impl.py |
-| 2.9 | [ ] | Add exception translation | 1 | PermissionError → FileScannerError | - | src/fs2/core/adapters/file_scanner_impl.py |
+| 2.1 | [x] | Write tests for FileScanner ABC | 1 | Tests verify ABC cannot be instantiated | [📋](tasks/phase-2/execution.log.md#t001-t004-filescanner-abc) | tests/unit/adapters/test_file_scanner.py [^6] |
+| 2.2 | [x] | Create FileScanner ABC | 1 | ABC with scan(), should_ignore() methods | [📋](tasks/phase-2/execution.log.md#t001-t004-filescanner-abc) | src/fs2/core/adapters/file_scanner.py [^6] |
+| 2.3 | [x] | Write tests for FakeFileScanner | 2 | Tests cover: call history, configurable results | [📋](tasks/phase-2/execution.log.md#t005-t009-fakefilescanner) | tests/unit/adapters/test_file_scanner_fake.py [^7] |
+| 2.4 | [x] | Implement FakeFileScanner | 2 | All tests from 2.3 pass | [📋](tasks/phase-2/execution.log.md#t005-t009-fakefilescanner) | src/fs2/core/adapters/file_scanner_fake.py [^7] |
+| 2.5 | [x] | Write tests for FileSystemScanner gitignore | 3 | Tests cover: AC2, AC3 (root + nested gitignore) | [📋](tasks/phase-2/execution.log.md#t010-t027-filesystemscanner-implementation) | tests/unit/adapters/test_file_scanner_impl.py [^8] |
+| 2.6 | [x] | Write tests for FileSystemScanner traversal | 2 | Tests cover: recursive scan, symlink handling | [📋](tasks/phase-2/execution.log.md#t010-t027-filesystemscanner-implementation) | tests/unit/adapters/test_file_scanner_impl.py [^8] |
+| 2.7 | [x] | Implement FileSystemScanner | 3 | All tests from 2.5, 2.6 pass | [📋](tasks/phase-2/execution.log.md#t010-t027-filesystemscanner-implementation) | src/fs2/core/adapters/file_scanner_impl.py [^8] |
+| 2.8 | [x] | Write tests for permission error handling | 1 | Tests cover: AC10 (graceful error handling) | [📋](tasks/phase-2/execution.log.md#t010-t027-filesystemscanner-implementation) | tests/unit/adapters/test_file_scanner_impl.py [^8] |
+| 2.9 | [x] | Add exception translation | 1 | PermissionError → FileScannerError | [📋](tasks/phase-2/execution.log.md#t010-t027-filesystemscanner-implementation) | src/fs2/core/adapters/file_scanner_impl.py [^8] |
 
 ### Test Examples (Write First!)
 
@@ -420,18 +420,18 @@ def test_given_nested_gitignore_when_scanning_then_applies_subtree_only(tmp_path
 ```
 
 ### Non-Happy-Path Coverage
-- [ ] Empty directory
-- [ ] Non-existent scan path
-- [ ] Permission denied on directory
-- [ ] Circular symlinks (when follow_symlinks=True)
-- [ ] Malformed .gitignore file
+- [x] Empty directory
+- [x] Non-existent scan path
+- [x] Permission denied on directory
+- [ ] Circular symlinks (when follow_symlinks=True) - not tested (complex to set up)
+- [x] Malformed .gitignore file
 
 ### Acceptance Criteria
-- [ ] All tests passing
-- [ ] AC2: Root .gitignore patterns respected
-- [ ] AC3: Nested .gitignore patterns scoped correctly
-- [ ] Symlinks not followed by default
-- [ ] Permission errors logged, scan continues
+- [x] All tests passing (278 tests)
+- [x] AC2: Root .gitignore patterns respected
+- [x] AC3: Nested .gitignore patterns scoped correctly
+- [x] Symlinks not followed by default
+- [x] Permission errors logged, scan continues
 
 ---
 
@@ -940,7 +940,7 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
 
 ### Phase Completion Checklist
 - [x] Phase 1: Core Models and Configuration - COMPLETED (2025-12-15)
-- [ ] Phase 2: File Scanner Adapter - NOT STARTED
+- [x] Phase 2: File Scanner Adapter - COMPLETED (2025-12-15)
 - [ ] Phase 3: AST Parser Adapter - NOT STARTED
 - [ ] Phase 4: Graph Storage Repository - NOT STARTED
 - [ ] Phase 5: Scan Service Orchestration - NOT STARTED
@@ -975,3 +975,18 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
 
 [^5]: Task 1.8 - Model exports (Phase 1 - 2025-12-15)
   - `file:src/fs2/core/models/__init__.py` - Export CodeNode, classify_node
+
+[^6]: Tasks 2.1-2.2 - FileScanner ABC (Phase 2 - 2025-12-15)
+  - `class:src/fs2/core/adapters/file_scanner.py:FileScanner` - ABC with scan() -> list[ScanResult], should_ignore()
+  - `file:tests/unit/adapters/test_file_scanner.py` - 4 tests for FileScanner ABC
+  - `class:src/fs2/core/models/scan_result.py:ScanResult` - Frozen dataclass with path, size_bytes
+
+[^7]: Tasks 2.3-2.4 - FakeFileScanner (Phase 2 - 2025-12-15)
+  - `class:src/fs2/core/adapters/file_scanner_fake.py:FakeFileScanner` - Test double with configurable results
+  - `file:tests/unit/adapters/test_file_scanner_fake.py` - 8 tests for FakeFileScanner
+
+[^8]: Tasks 2.5-2.9 - FileSystemScanner implementation (Phase 2 - 2025-12-15)
+  - `class:src/fs2/core/adapters/file_scanner_impl.py:FileSystemScanner` - Production impl with pathspec
+  - `file:tests/unit/adapters/test_file_scanner_impl.py` - 25 tests for FileSystemScanner
+  - `file:src/fs2/core/adapters/__init__.py` - Export FileScanner, FakeFileScanner, FileSystemScanner
+  - `file:src/fs2/core/models/__init__.py` - Export ScanResult
