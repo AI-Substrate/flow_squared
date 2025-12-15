@@ -127,10 +127,12 @@ scan:
 - A class node for `Calculator` (child of file)
 - Method nodes for `add()` and `subtract()` (children of class)
 
-### AC6: Large File Handling
-**Given** a file larger than `max_file_size_kb`
-**When** the parser processes this file
-**Then** it samples the first N lines (configurable) and creates a partial node with a `truncated: true` flag
+### ~~AC6: Large File Handling~~ (REMOVED)
+~~**Given** a file larger than `max_file_size_kb`~~
+~~**When** the parser processes this file~~
+~~**Then** it samples the first N lines (configurable) and creates a partial node with a `truncated: true` flag~~
+
+**Removed**: Per Critical Insights Session (2025-12-15) - truncation produces broken/invalid AST because it cuts through syntax structures. Tree-sitter handles large files efficiently; truncation solves a non-problem while creating real data quality issues.
 
 ### AC7: Node ID Format
 **Given** a method `add` in class `Calculator` in file `src/calc.py`

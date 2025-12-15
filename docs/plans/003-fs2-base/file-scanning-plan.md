@@ -146,11 +146,13 @@
 **Action Required**: Use file-relative paths with counter for anonymous nodes (e.g., `<lambda_0>`).
 **Affects Phases**: Phase 1, 3
 
-### 12: Large File Truncation
-**Impact**: Medium | **Sources**: S3-06
-**What**: Files larger than `max_file_size_kb` should be sampled (first N lines), not skipped entirely.
-**Action Required**: Add `truncated: bool` field to CodeNode. Sample first `sample_lines_for_large_files` lines.
-**Affects Phases**: Phase 1, 2, 3
+### ~~12: Large File Truncation~~ (REMOVED)
+**Impact**: ~~Medium~~ | **Sources**: S3-06
+~~**What**: Files larger than `max_file_size_kb` should be sampled (first N lines), not skipped entirely.~~
+~~**Action Required**: Add `truncated: bool` field to CodeNode. Sample first `sample_lines_for_large_files` lines.~~
+~~**Affects Phases**: Phase 1, 2, 3~~
+
+**Removed**: Per Critical Insights Session (2025-12-15) - truncation produces broken/invalid AST because it cuts through syntax structures mid-definition. Tree-sitter handles large files efficiently; this was solving a non-problem while creating real data quality issues.
 
 ### 13: Language Detection Ambiguity
 **Impact**: Medium | **Sources**: S3-04
@@ -464,8 +466,7 @@ def test_given_nested_gitignore_when_scanning_then_applies_subtree_only(tmp_path
 | 3.4 | [ ] | Implement FakeASTParser | 2 | All tests from 3.3 pass | - | src/fs2/core/adapters/ast_parser_fake.py |
 | 3.5 | [ ] | Write tests for language detection (AC4) | 2 | Tests cover: .py, .ts, .md, .tf, Dockerfile | - | tests/unit/adapters/test_ast_parser_impl.py |
 | 3.6 | [ ] | Write tests for AST hierarchy extraction (AC5) | 3 | Tests cover: Python class with methods → graph nodes | - | tests/unit/adapters/test_ast_parser_impl.py |
-| 3.7 | [ ] | Write tests for large file handling (AC6) | 2 | Tests cover: truncation, sample_lines | - | tests/unit/adapters/test_ast_parser_impl.py |
-| 3.8 | [ ] | Implement TreeSitterParser | 3 | All tests from 3.5, 3.6, 3.7 pass | - | src/fs2/core/adapters/ast_parser_impl.py |
+| 3.7 | [ ] | Implement TreeSitterParser | 3 | All tests from 3.5, 3.6 pass | - | src/fs2/core/adapters/ast_parser_impl.py |
 | 3.9 | [ ] | Write tests for binary file detection | 1 | Tests cover: binary skipped, warning logged | - | tests/unit/adapters/test_ast_parser_impl.py |
 | 3.10 | [ ] | Add binary detection and error handling | 1 | Binary files return empty node list, no crash | - | src/fs2/core/adapters/ast_parser_impl.py |
 
@@ -539,13 +540,12 @@ class Calculator:
 - [ ] Syntax error in source
 - [ ] Binary file (null bytes)
 - [ ] Encoding errors (non-UTF8)
-- [ ] File larger than max_file_size_kb
 
 ### Acceptance Criteria
 - [ ] All tests passing
 - [ ] AC4: Language detection works for .py, .ts, .md, .tf, Dockerfile
 - [ ] AC5: File → Class → Method hierarchy extracted
-- [ ] AC6: Large files truncated with flag set
+- [ ] ~~AC6~~: REMOVED - truncation produces broken AST; tree-sitter handles large files
 - [ ] Binary files skipped gracefully
 
 ---
