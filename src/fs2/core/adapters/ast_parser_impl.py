@@ -317,6 +317,7 @@ class TreeSitterParser(ASTParser):
             nodes=nodes,
             depth=1,
             parent_qualified_name=None,
+            parent_node_id=file_node.node_id,
         )
 
         return nodes
@@ -362,6 +363,7 @@ class TreeSitterParser(ASTParser):
         nodes: list[CodeNode],
         depth: int,
         parent_qualified_name: str | None,
+        parent_node_id: str | None,
     ) -> None:
         """Recursively extract named nodes from AST.
 
@@ -376,6 +378,7 @@ class TreeSitterParser(ASTParser):
             nodes: List to append extracted CodeNodes to.
             depth: Current depth in tree.
             parent_qualified_name: Qualified name of parent node.
+            parent_node_id: Node ID of parent for hierarchy edges.
         """
         # Depth limit per CF08
         if depth > 4:
@@ -412,6 +415,7 @@ class TreeSitterParser(ASTParser):
                     nodes=nodes,
                     depth=depth,
                     parent_qualified_name=parent_qualified_name,
+                    parent_node_id=parent_node_id,
                 )
                 continue
 
@@ -426,6 +430,7 @@ class TreeSitterParser(ASTParser):
                     nodes=nodes,
                     depth=depth,
                     parent_qualified_name=parent_qualified_name,
+                    parent_node_id=parent_node_id,
                 )
                 continue
 
@@ -468,10 +473,11 @@ class TreeSitterParser(ASTParser):
                 is_named=child.is_named,
                 field_name=None,  # Would need index to use node.field_name_for_child(i)
                 is_error=ts_kind == "ERROR",
+                parent_node_id=parent_node_id,
             )
             nodes.append(code_node)
 
-            # Recurse with updated qualified name
+            # Recurse with updated qualified name and parent node ID
             self._extract_nodes(
                 node=child,
                 file_path=file_path,
@@ -480,6 +486,7 @@ class TreeSitterParser(ASTParser):
                 nodes=nodes,
                 depth=depth + 1,
                 parent_qualified_name=qualified_name,
+                parent_node_id=code_node.node_id,
             )
 
     def _extract_name(self, node, language: str) -> str | None:
@@ -545,12 +552,14 @@ class TreeSitterParser(ASTParser):
         is_named: bool,
         field_name: str | None,
         is_error: bool,
+        parent_node_id: str | None,
     ) -> CodeNode:
         """Create appropriate CodeNode using factory methods.
 
         Args:
             category: Node category (type, callable, section, block).
             ... all other CodeNode fields
+            parent_node_id: Node ID of parent for hierarchy edges.
 
         Returns:
             CodeNode created via appropriate factory method.
@@ -573,6 +582,7 @@ class TreeSitterParser(ASTParser):
                 is_named=is_named,
                 field_name=field_name,
                 is_error=is_error,
+                parent_node_id=parent_node_id,
             )
         elif category == "callable":
             return CodeNode.create_callable(
@@ -592,6 +602,7 @@ class TreeSitterParser(ASTParser):
                 is_named=is_named,
                 field_name=field_name,
                 is_error=is_error,
+                parent_node_id=parent_node_id,
             )
         elif category == "section":
             return CodeNode.create_section(
@@ -611,6 +622,7 @@ class TreeSitterParser(ASTParser):
                 is_named=is_named,
                 field_name=field_name,
                 is_error=is_error,
+                parent_node_id=parent_node_id,
             )
         else:  # block
             return CodeNode.create_block(
@@ -630,4 +642,5 @@ class TreeSitterParser(ASTParser):
                 is_named=is_named,
                 field_name=field_name,
                 is_error=is_error,
+                parent_node_id=parent_node_id,
             )

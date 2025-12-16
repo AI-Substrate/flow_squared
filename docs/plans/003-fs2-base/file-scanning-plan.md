@@ -703,12 +703,12 @@ def test_given_parent_child_relationship_when_queried_then_returns_children(tmp_
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 5.1 | [ ] | Write tests for ScanService with fakes | 2 | Tests cover: constructor DI, config extraction | - | tests/unit/services/test_scan_service.py |
-| 5.2 | [ ] | Write tests for scan orchestration | 3 | Tests cover: files scanned → parsed → stored | - | tests/unit/services/test_scan_service.py |
-| 5.3 | [ ] | Write tests for error handling | 2 | Tests cover: partial failure continues, errors collected | - | tests/unit/services/test_scan_service.py |
-| 5.4 | [ ] | Implement ScanService | 3 | All tests from 5.1, 5.2, 5.3 pass | - | src/fs2/core/services/scan_service.py |
-| 5.5 | [ ] | Write integration tests with real adapters | 3 | Tests cover: AC1-AC8 end-to-end | - | tests/integration/test_scan_integration.py |
-| 5.6 | [ ] | Verify all acceptance criteria | 2 | AC1-AC8 pass with real file system | - | tests/integration/test_scan_integration.py |
+| 5.1 | [x] | Write tests for ScanService with fakes | 2 | Tests cover: constructor DI, config extraction | [📋](tasks/phase-5/execution.log.md#t001-t002-pipelinecontext-dataclass) | Completed - 66 unit tests [^13] |
+| 5.2 | [x] | Write tests for scan orchestration | 3 | Tests cover: files scanned → parsed → stored | [📋](tasks/phase-5/execution.log.md#t005-t011-stages) | Completed - Pipeline stages [^13] |
+| 5.3 | [x] | Write tests for error handling | 2 | Tests cover: partial failure continues, errors collected | [📋](tasks/phase-5/execution.log.md#t014-t018-scanpipeline-orchestrator) | Completed - Error aggregation [^13] |
+| 5.4 | [x] | Implement ScanService | 3 | All tests from 5.1, 5.2, 5.3 pass | [📋](tasks/phase-5/execution.log.md#t018-implement-scanpipeline) | Completed - ScanPipeline [^13] |
+| 5.5 | [x] | Write integration tests with real adapters | 3 | Tests cover: AC1-AC8 end-to-end | [📋](tasks/phase-5/execution.log.md#t021-t026-integration-tests) | Completed - 8 integration tests [^13] |
+| 5.6 | [x] | Verify all acceptance criteria | 2 | AC1-AC8 pass with real file system | [📋](tasks/phase-5/execution.log.md#acceptance-criteria-verification) | Completed - All ACs verified [^13] |
 
 ### Test Examples (Write First!)
 
@@ -784,17 +784,17 @@ def test_given_parse_error_when_scanning_then_continues_and_collects_errors():
 ```
 
 ### Non-Happy-Path Coverage
-- [ ] All files fail to parse
-- [ ] Scanner returns empty list
-- [ ] Graph save fails
-- [ ] Config missing required fields
+- [x] All files fail to parse
+- [x] Scanner returns empty list
+- [x] Graph save fails
+- [x] Config missing required fields
 
 ### Acceptance Criteria
-- [ ] All tests passing
-- [ ] Service correctly composes adapters
-- [ ] Errors collected, scan continues
-- [ ] AC1-AC8 verified in integration tests
-- [ ] ConfigurationService registry pattern: All components (FileScanner, ASTParser, GraphStore, ScanService) receive `ConfigurationService` and call `config.require()` internally (no extracted configs in constructors)
+- [x] All tests passing (389 tests total)
+- [x] Service correctly composes adapters
+- [x] Errors collected, scan continues
+- [x] AC1-AC8 verified in integration tests
+- [x] ConfigurationService registry pattern: All components (FileScanner, ASTParser, GraphStore, ScanService) receive `ConfigurationService` and call `config.require()` internally (no extracted configs in constructors)
 
 ---
 
@@ -943,7 +943,7 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
 - [x] Phase 2: File Scanner Adapter - COMPLETED (2025-12-15)
 - [x] Phase 3: AST Parser Adapter - COMPLETED (2025-12-15)
 - [x] Phase 4: Graph Storage Repository - COMPLETED (2025-12-16)
-- [ ] Phase 5: Scan Service Orchestration - NOT STARTED
+- [x] Phase 5: Scan Service Orchestration - COMPLETED (2025-12-16)
 - [ ] Phase 6: CLI Command and Documentation - NOT STARTED
 
 ### STOP Rule
@@ -1015,3 +1015,22 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
   - `file:tests/unit/repos/test_graph_store_fake.py` - Fake tests (12 tests)
   - `file:tests/unit/repos/test_graph_store_impl.py` - Impl tests (19 tests)
   - `file:src/fs2/core/repos/__init__.py` - Package exports
+
+[^13]: Tasks 5.1-5.6 - ScanPipeline service implementation (Phase 5 - 2025-12-16)
+  - `class:src/fs2/core/services/pipeline_context.py:PipelineContext` - Mutable context dataclass
+  - `class:src/fs2/core/services/pipeline_stage.py:PipelineStage` - Protocol for stages
+  - `class:src/fs2/core/services/scan_pipeline.py:ScanPipeline` - Pipeline orchestrator
+  - `class:src/fs2/core/services/stages/discovery_stage.py:DiscoveryStage` - File discovery stage
+  - `class:src/fs2/core/services/stages/parsing_stage.py:ParsingStage` - AST parsing stage
+  - `class:src/fs2/core/services/stages/storage_stage.py:StorageStage` - Graph storage stage
+  - `class:src/fs2/core/models/scan_summary.py:ScanSummary` - Frozen result dataclass
+  - `file:tests/unit/services/test_pipeline_context.py` - 15 tests for PipelineContext
+  - `file:tests/unit/services/test_pipeline_stage.py` - 6 tests for PipelineStage
+  - `file:tests/unit/services/test_discovery_stage.py` - 8 tests for DiscoveryStage
+  - `file:tests/unit/services/test_parsing_stage.py` - 11 tests for ParsingStage
+  - `file:tests/unit/services/test_storage_stage.py` - 13 tests for StorageStage
+  - `file:tests/unit/services/test_scan_pipeline.py` - 13 tests for ScanPipeline
+  - `file:tests/unit/models/test_scan_summary.py` - 10 tests for ScanSummary
+  - `file:tests/integration/test_scan_pipeline_integration.py` - 8 integration tests
+  - `file:src/fs2/core/services/__init__.py` - Package exports
+  - `file:src/fs2/core/services/stages/__init__.py` - Stages package exports

@@ -113,6 +113,7 @@ class CodeNode:
         is_named: Tree-sitter distinction (True = structural, False = punctuation)
         field_name: Relationship to parent in tree-sitter grammar
         is_error: True if this node is an ERROR node (unparseable chunk)
+        parent_node_id: Node ID of parent in hierarchy (None for file nodes)
         truncated: True if content was truncated due to size limits
         truncated_at_line: Line number where truncation occurred
         smart_content: AI-generated summary (future, defaults to None)
@@ -150,6 +151,9 @@ class CodeNode:
     # === Error Flag ===
     is_error: bool = False
 
+    # === Hierarchy ===
+    parent_node_id: str | None = None
+
     # === Large File Handling ===
     truncated: bool = False
     truncated_at_line: int | None = None
@@ -175,6 +179,7 @@ class CodeNode:
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
+        parent_node_id: str | None = None,
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
@@ -215,6 +220,7 @@ class CodeNode:
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
+            parent_node_id=parent_node_id,
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,
@@ -241,6 +247,7 @@ class CodeNode:
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
+        parent_node_id: str | None = None,
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
@@ -285,6 +292,7 @@ class CodeNode:
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
+            parent_node_id=parent_node_id,
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,
@@ -311,6 +319,7 @@ class CodeNode:
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
+        parent_node_id: str | None = None,
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
@@ -355,6 +364,7 @@ class CodeNode:
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
+            parent_node_id=parent_node_id,
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,
@@ -381,6 +391,7 @@ class CodeNode:
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
+        parent_node_id: str | None = None,
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
@@ -425,6 +436,7 @@ class CodeNode:
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
+            parent_node_id=parent_node_id,
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,
@@ -451,6 +463,7 @@ class CodeNode:
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
+        parent_node_id: str | None = None,
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
@@ -495,6 +508,7 @@ class CodeNode:
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
+            parent_node_id=parent_node_id,
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,

@@ -138,8 +138,8 @@ class PipelineContext:
 **StorageStage**:
 - Iterates `context.nodes`
 - Calls `context.graph_store.add_node(node)` for each
-- Derives parent-child edges from `qualified_name` structure
-- Calls `context.graph_store.add_edge(parent_id, child_id)`
+- Creates parent-child edges using `node.parent_node_id` (set by ASTParser during traversal)
+- Calls `context.graph_store.add_edge(node.parent_node_id, node.node_id)` for each node with parent
 - Calls `context.graph_store.save(context.graph_path)`
 - Handles GraphStoreError → appends to context.errors
 
@@ -222,9 +222,8 @@ class SmartContentStage:
 
     def process(self, context: PipelineContext) -> PipelineContext:
         for node in context.nodes:
-            # Generate smart_content via LLM
-            # Update node (would need mutable nodes or new list)
-            pass
+            # Generate smart_content via LLM and mutate directly
+            node.smart_content = generate_summary(node.content)
         return context
 
 # Register in pipeline:
@@ -249,34 +248,34 @@ pipeline = ScanPipeline(
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|-----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Write tests for PipelineContext dataclass | 1 | Test | – | `/workspaces/flow_squared/tests/unit/services/test_pipeline_context.py` | Tests verify all fields, default factories | – | Mutable context |
-| [ ] | T002 | Implement PipelineContext dataclass | 1 | Core | T001 | `/workspaces/flow_squared/src/fs2/core/services/pipeline_context.py` | T001 tests pass | – | scan_results, nodes, errors, metrics, adapters |
-| [ ] | T003 | Write tests for PipelineStage protocol | 1 | Test | T002 | `/workspaces/flow_squared/tests/unit/services/test_pipeline_stage.py` | Tests verify protocol contract | – | Protocol with name + process |
-| [ ] | T004 | Define PipelineStage Protocol | 1 | Core | T003 | `/workspaces/flow_squared/src/fs2/core/services/pipeline_stage.py` | T003 tests pass | – | typing.Protocol |
-| [ ] | T005 | Write tests for DiscoveryStage | 2 | Test | T004 | `/workspaces/flow_squared/tests/unit/services/test_discovery_stage.py` | Tests verify scan_results populated, errors collected | – | Wraps FileScanner |
-| [ ] | T006 | Implement DiscoveryStage | 2 | Core | T005 | `/workspaces/flow_squared/src/fs2/core/services/stages/discovery_stage.py` | T005 tests pass | – | Calls file_scanner.scan() |
-| [ ] | T007 | Write tests for ParsingStage | 2 | Test | T006 | `/workspaces/flow_squared/tests/unit/services/test_parsing_stage.py` | Tests verify nodes populated, per-file errors collected | – | Wraps ASTParser |
-| [ ] | T008 | Implement ParsingStage | 2 | Core | T007 | `/workspaces/flow_squared/src/fs2/core/services/stages/parsing_stage.py` | T007 tests pass | – | Iterates scan_results, calls parse() |
-| [ ] | T009 | Write tests for StorageStage edge derivation | 2 | Test | T008 | `/workspaces/flow_squared/tests/unit/services/test_storage_stage.py` | Tests verify parent-child edges from qualified_name | – | E.g., Calculator child of file |
-| [ ] | T010 | Write tests for StorageStage persistence | 2 | Test | T009 | `/workspaces/flow_squared/tests/unit/services/test_storage_stage.py` | Tests verify add_node, add_edge, save calls | – | Uses FakeGraphStore |
-| [ ] | T011 | Implement StorageStage | 2 | Core | T010 | `/workspaces/flow_squared/src/fs2/core/services/stages/storage_stage.py` | T009-T010 tests pass | – | Edge derivation + persistence |
-| [ ] | T012 | Write tests for ScanSummary model | 1 | Test | T011 | `/workspaces/flow_squared/tests/unit/models/test_scan_summary.py` | Tests verify frozen, fields, factory | – | Frozen dataclass |
-| [ ] | T013 | Implement ScanSummary frozen dataclass | 1 | Core | T012 | `/workspaces/flow_squared/src/fs2/core/models/scan_summary.py` | T012 tests pass | – | success, files_scanned, nodes_created, errors, metrics |
-| [ ] | T014 | Write tests for ScanPipeline orchestration | 2 | Test | T013 | `/workspaces/flow_squared/tests/unit/services/test_scan_pipeline.py` | Tests verify stages run in order, context flows | – | Uses mock stages |
-| [ ] | T015 | Write tests for ScanPipeline DI pattern | 2 | Test | T014 | `/workspaces/flow_squared/tests/unit/services/test_scan_pipeline.py` | Tests verify config.require(), adapter injection | – | Per CF01, CF15 |
-| [ ] | T016 | Write tests for ScanPipeline error aggregation | 1 | Test | T015 | `/workspaces/flow_squared/tests/unit/services/test_scan_pipeline.py` | Tests verify errors collected from all stages | – | Per AC10 |
-| [ ] | T017 | Write tests for ScanPipeline custom stages | 1 | Test | T016 | `/workspaces/flow_squared/tests/unit/services/test_scan_pipeline.py` | Tests verify custom stage list overrides defaults | – | Extensibility test |
-| [ ] | T018 | Implement ScanPipeline | 3 | Core | T017 | `/workspaces/flow_squared/src/fs2/core/services/scan_pipeline.py` | All T014-T017 tests pass | – | Orchestrates stages sequentially |
-| [ ] | T019 | Export pipeline components from services __init__.py | 1 | Core | T018 | `/workspaces/flow_squared/src/fs2/core/services/__init__.py` | Imports work from fs2.core.services | – | Create if needed |
-| [ ] | T020 | Export ScanSummary from models __init__.py | 1 | Core | T013 | `/workspaces/flow_squared/src/fs2/core/models/__init__.py` | Import works | – | – |
-| [ ] | T021 | Write integration test: full pipeline with real adapters | 3 | Integration | T019 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | Real FileSystemScanner + TreeSitterParser + NetworkXGraphStore | – | End-to-end |
-| [ ] | T022 | Write integration test: verify AC1 config loading | 2 | Integration | T021 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | ScanConfig from context used | – | AC1 |
-| [ ] | T023 | Write integration test: verify AC5 hierarchy | 2 | Integration | T022 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | File → Class → Method edges | – | AC5 |
-| [ ] | T024 | Write integration test: verify AC7 node IDs | 1 | Integration | T023 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | IDs match format | – | AC7 |
-| [ ] | T025 | Write integration test: verify AC8 persistence | 2 | Integration | T024 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | Save + load recovers all | – | AC8 |
-| [ ] | T026 | Write integration test: verify AC10 error handling | 2 | Integration | T025 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | Binary file → warning, scan continues | – | AC10 |
-| [ ] | T027 | Run full test suite and lint | 1 | Validation | T026 | – | All tests pass, ruff clean | – | – |
-| [ ] | T028 | Update plan progress tracking | 1 | Doc | T027 | `/workspaces/flow_squared/docs/plans/003-fs2-base/file-scanning-plan.md` | Phase 5 marked complete | – | – |
+| [x] | T001 | Write tests for PipelineContext dataclass | 1 | Test | – | `/workspaces/flow_squared/tests/unit/services/test_pipeline_context.py` | Tests verify all fields, default factories | – | Mutable context |
+| [x] | T002 | Implement PipelineContext dataclass | 1 | Core | T001 | `/workspaces/flow_squared/src/fs2/core/services/pipeline_context.py` | T001 tests pass | – | scan_results, nodes, errors, metrics, adapters |
+| [x] | T003 | Write tests for PipelineStage protocol | 1 | Test | T002 | `/workspaces/flow_squared/tests/unit/services/test_pipeline_stage.py` | Tests verify protocol contract | – | Protocol with name + process |
+| [x] | T004 | Define PipelineStage Protocol | 1 | Core | T003 | `/workspaces/flow_squared/src/fs2/core/services/pipeline_stage.py` | T003 tests pass | – | typing.Protocol |
+| [x] | T005 | Write tests for DiscoveryStage | 2 | Test | T004 | `/workspaces/flow_squared/tests/unit/services/test_discovery_stage.py` | Tests verify scan_results populated, errors collected, ValueError if no scanner | – | Wraps FileScanner |
+| [x] | T006 | Implement DiscoveryStage | 2 | Core | T005 | `/workspaces/flow_squared/src/fs2/core/services/stages/discovery_stage.py` | T005 tests pass | – | Validates file_scanner not None, calls scan() |
+| [x] | T007 | Write tests for ParsingStage | 2 | Test | T006 | `/workspaces/flow_squared/tests/unit/services/test_parsing_stage.py` | Tests verify nodes populated, per-file errors collected, ValueError if no parser | – | Wraps ASTParser |
+| [x] | T008 | Implement ParsingStage | 2 | Core | T007 | `/workspaces/flow_squared/src/fs2/core/services/stages/parsing_stage.py` | T007 tests pass | – | Validates ast_parser not None, iterates scan_results |
+| [x] | T009 | Write tests for StorageStage edge creation | 2 | Test | T008 | `/workspaces/flow_squared/tests/unit/services/test_storage_stage.py` | Tests verify parent-child edges from node.parent_node_id | – | E.g., Calculator child of file |
+| [x] | T010 | Write tests for StorageStage persistence | 2 | Test | T009 | `/workspaces/flow_squared/tests/unit/services/test_storage_stage.py` | Tests verify add_node, add_edge, save calls, ValueError if no store | – | Uses FakeGraphStore |
+| [x] | T011 | Implement StorageStage | 2 | Core | T010 | `/workspaces/flow_squared/src/fs2/core/services/stages/storage_stage.py` | T009-T010 tests pass | – | Validates graph_store not None, uses parent_node_id for edges |
+| [x] | T012 | Write tests for ScanSummary model | 1 | Test | T011 | `/workspaces/flow_squared/tests/unit/models/test_scan_summary.py` | Tests verify frozen, fields, factory | – | Frozen dataclass |
+| [x] | T013 | Implement ScanSummary frozen dataclass | 1 | Core | T012 | `/workspaces/flow_squared/src/fs2/core/models/scan_summary.py` | T012 tests pass | – | success, files_scanned, nodes_created, errors, metrics |
+| [x] | T014 | Write tests for ScanPipeline orchestration | 2 | Test | T013 | `/workspaces/flow_squared/tests/unit/services/test_scan_pipeline.py` | Tests verify stages run in order, context flows | – | Uses mock stages |
+| [x] | T015 | Write tests for ScanPipeline DI pattern | 2 | Test | T014 | `/workspaces/flow_squared/tests/unit/services/test_scan_pipeline.py` | Tests verify config.require(), adapter injection | – | Per CF01, CF15 |
+| [x] | T016 | Write tests for ScanPipeline error aggregation | 1 | Test | T015 | `/workspaces/flow_squared/tests/unit/services/test_scan_pipeline.py` | Tests verify errors collected from all stages | – | Per AC10 |
+| [x] | T017 | Write tests for ScanPipeline custom stages | 1 | Test | T016 | `/workspaces/flow_squared/tests/unit/services/test_scan_pipeline.py` | Tests verify custom stage list overrides defaults | – | Extensibility test |
+| [x] | T018 | Implement ScanPipeline | 3 | Core | T017 | `/workspaces/flow_squared/src/fs2/core/services/scan_pipeline.py` | All T014-T017 tests pass | – | Orchestrates stages sequentially |
+| [x] | T019 | Export pipeline components from services __init__.py | 1 | Core | T018 | `/workspaces/flow_squared/src/fs2/core/services/__init__.py` | Imports work from fs2.core.services | – | Create if needed |
+| [x] | T020 | Export ScanSummary from models __init__.py | 1 | Core | T013 | `/workspaces/flow_squared/src/fs2/core/models/__init__.py` | Import works | – | – |
+| [x] | T021 | Write integration test: full pipeline with real adapters | 3 | Integration | T019 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | Real FileSystemScanner + TreeSitterParser + NetworkXGraphStore | – | End-to-end |
+| [x] | T022 | Write integration test: verify AC1 config loading | 2 | Integration | T021 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | ScanConfig from context used | – | AC1 |
+| [x] | T023 | Write integration test: verify AC5 hierarchy | 2 | Integration | T022 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | File → Class → Method edges | – | AC5 |
+| [x] | T024 | Write integration test: verify AC7 node IDs | 1 | Integration | T023 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | IDs match format | – | AC7 |
+| [x] | T025 | Write integration test: verify AC8 persistence | 2 | Integration | T024 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | Save + load recovers all | – | AC8 |
+| [x] | T026 | Write integration test: verify AC10 error handling | 2 | Integration | T025 | `/workspaces/flow_squared/tests/integration/test_scan_pipeline_integration.py` | Binary file → warning, scan continues | – | AC10 |
+| [x] | T027 | Run full test suite and lint | 1 | Validation | T026 | – | All tests pass, ruff clean | – | – |
+| [x] | T028 | Update plan progress tracking | 1 | Doc | T027 | `/workspaces/flow_squared/docs/plans/003-fs2-base/file-scanning-plan.md` | Phase 5 marked complete | – | – |
 
 ---
 
@@ -303,7 +302,7 @@ pipeline = ScanPipeline(
 3. **Phase 3 (AST Parser)** added code understanding:
    - `ASTParser` ABC with `parse() -> list[CodeNode]`, `detect_language()`
    - `TreeSitterParser` with 50+ language extensions
-   - Flat node list output (hierarchy via qualified_name)
+   - Flat node list output with `parent_node_id` set during traversal
    - Pattern: Graceful degradation (unknown → empty list)
 
 4. **Phase 4 (Graph Storage)** added persistence layer:
@@ -319,7 +318,7 @@ pipeline = ScanPipeline(
 **From Phase 1** (Core Models):
 | Deliverable | Purpose for Phase 5 |
 |-------------|---------------------|
-| `CodeNode` | Stored in context.nodes, persisted to graph |
+| `CodeNode` | Stored in context.nodes, persisted to graph; `parent_node_id` used for edges |
 | `ScanConfig` | Extracted via config.require(), stored in context |
 | `FileScannerError` | Caught in DiscoveryStage, appended to context.errors |
 | `ASTParserError` | Caught in ParsingStage, appended to context.errors |
@@ -353,9 +352,12 @@ pipeline = ScanPipeline(
 |---------|------------|---------------|
 | ConfigurationService registry | Applied consistently | Applied in ScanPipeline |
 | ABC + Fake + Impl | Adapters follow this | **Stages use Protocol** (simpler) |
-| Frozen dataclass models | CodeNode, ScanResult | ScanSummary, **PipelineContext is mutable** |
+| Frozen dataclass models | ScanResult, CodeNode (frozen) | ScanSummary (frozen), **PipelineContext is mutable** |
 | Exception translation | At adapter boundaries | **Collected in context.errors** |
 | Call history in Fakes | For verification | Stages are tested via context assertions |
+| Hierarchy representation | via qualified_name structure | **node.parent_node_id set by ASTParser** |
+
+> **Note (Insight #2 resolution)**: CodeNode now has `parent_node_id` field populated by TreeSitterParser during AST traversal. This eliminates the need for edge derivation in StorageStage—the hierarchy is captured at parse time, not reconstructed later.
 
 #### Architectural Continuity
 
@@ -363,7 +365,7 @@ pipeline = ScanPipeline(
 1. **DI via constructor**: ScanPipeline receives adapters
 2. **ConfigurationService registry**: `config.require(ScanConfig)`
 3. **Domain exceptions**: Catch at stage boundaries
-4. **Hierarchy via edges**: Derived from qualified_name in StorageStage
+4. **Hierarchy via edges**: Read from node.parent_node_id in StorageStage
 
 **New Patterns Introduced**:
 1. **Pipeline Stage Protocol**: Composable, testable stages
@@ -384,14 +386,14 @@ pipeline = ScanPipeline(
 **Primary Objective**: Create pipeline-based scanning architecture with composable stages.
 
 **Behavior Checklist**:
-- [ ] PipelineContext carries config, adapters, results, errors through stages
-- [ ] DiscoveryStage populates context.scan_results via file_scanner.scan()
-- [ ] ParsingStage populates context.nodes via ast_parser.parse() per file
-- [ ] StorageStage persists nodes and derives parent-child edges
-- [ ] All stages collect errors in context.errors (continuation pattern)
-- [ ] ScanPipeline runs stages sequentially, returns ScanSummary
-- [ ] Custom stages can be injected via stages parameter
-- [ ] ScanSummary captures files_scanned, nodes_created, errors, metrics
+- [x] PipelineContext carries config, adapters, results, errors through stages
+- [x] DiscoveryStage populates context.scan_results via file_scanner.scan()
+- [x] ParsingStage populates context.nodes via ast_parser.parse() per file
+- [x] StorageStage persists nodes and creates edges via node.parent_node_id
+- [x] All stages collect errors in context.errors (continuation pattern)
+- [x] ScanPipeline runs stages sequentially, returns ScanSummary
+- [x] Custom stages can be injected via stages parameter
+- [x] ScanSummary captures files_scanned, nodes_created, errors, metrics
 
 ---
 
@@ -483,10 +485,7 @@ sequenceDiagram
     SP->>SS: process(context)
     loop For each node
         SS->>CTX: context.graph_store.add_node(node)
-    end
-    Note over SS: Derive parent-child edges
-    loop For each edge
-        SS->>CTX: context.graph_store.add_edge()
+        SS->>CTX: context.graph_store.add_edge(node.parent_node_id, node.node_id)
     end
     SS->>CTX: context.graph_store.save()
     SS-->>SP: context
@@ -507,7 +506,7 @@ sequenceDiagram
 | PipelineStage | test_pipeline_stage.py | Protocol compliance |
 | DiscoveryStage | test_discovery_stage.py | Populates scan_results, collects errors |
 | ParsingStage | test_parsing_stage.py | Populates nodes, per-file error handling |
-| StorageStage | test_storage_stage.py | Edge derivation, persistence, error handling |
+| StorageStage | test_storage_stage.py | Edge creation from parent_node_id, persistence, error handling |
 | ScanSummary | test_scan_summary.py | Frozen, fields, from_context factory |
 | ScanPipeline | test_scan_pipeline.py | Stage ordering, DI, error aggregation, custom stages |
 
@@ -526,6 +525,11 @@ sequenceDiagram
 
 ### Step-by-Step Implementation Outline
 
+**Pre-Phase 5 (Already Complete):**
+- CodeNode now has `parent_node_id: str | None` field
+- TreeSitterParser sets `parent_node_id` during AST traversal
+- This was implemented based on Insight #2 analysis
+
 **Step 1: Core Pipeline Infrastructure (T001-T004)**
 1. PipelineContext dataclass (mutable, carries all state)
 2. PipelineStage Protocol (name property, process method)
@@ -539,9 +543,9 @@ sequenceDiagram
 2. Implementation that populates context.nodes
 
 **Step 4: Storage Stage (T009-T011)**
-1. Tests for edge derivation logic
+1. Tests for edge creation from node.parent_node_id
 2. Tests for persistence with FakeGraphStore
-3. Implementation with add_node, add_edge, save
+3. Implementation with add_node, add_edge (using parent_node_id), save
 
 **Step 5: ScanSummary Model (T012-T013)**
 1. Tests for frozen dataclass
@@ -590,7 +594,7 @@ uv run mypy src/fs2/core/services/
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Edge derivation complexity | Medium | Thorough tests for nested qualified_names |
+| ~~Edge derivation complexity~~ | ~~Medium~~ | **RESOLVED**: parent_node_id set by ASTParser, no derivation needed |
 | Mutable context vs frozen models | Low | Document intentional mutability in PipelineContext |
 | Stage ordering flexibility | Low | Default stages + custom override pattern |
 
@@ -598,24 +602,39 @@ uv run mypy src/fs2/core/services/
 
 ### Ready Check
 
-- [ ] Prior phases 1-4 all complete and passing (372 tests)
-- [ ] All Fake adapters have call_history property
-- [ ] ast_samples/python/ fixtures exist for integration tests
-- [ ] ScanConfig has all needed fields
-- [ ] ADR constraints mapped to tasks - N/A (no ADRs)
-- [ ] Pipeline architecture approved by stakeholder
+- [x] Prior phases 1-4 all complete and passing (391 tests at start)
+- [x] All Fake adapters have call_history property
+- [x] ast_samples/python/ fixtures exist for integration tests
+- [x] ScanConfig has all needed fields
+- [x] ADR constraints mapped to tasks - N/A (no ADRs)
+- [x] Pipeline architecture approved by stakeholder
 
-**Awaiting explicit GO/NO-GO before implementation.**
+**Phase 5 Implementation COMPLETE - 475 tests passing**
 
 ---
 
 ## Phase Footnote Stubs
 
-*Footnotes will be added by plan-6 during execution.*
-
 | Footnote | Task(s) | Description | Added By |
 |----------|---------|-------------|----------|
-| – | – | – | – |
+| [^13] | T001-T028 | Phase 5 complete implementation - Pipeline service layer | plan-6 |
+
+[^13]: Tasks T001-T028 - ScanPipeline service implementation (Phase 5 - 2025-12-16)
+  - `class:src/fs2/core/services/pipeline_context.py:PipelineContext` - Mutable context dataclass
+  - `class:src/fs2/core/services/pipeline_stage.py:PipelineStage` - Protocol for stages
+  - `class:src/fs2/core/services/scan_pipeline.py:ScanPipeline` - Pipeline orchestrator
+  - `class:src/fs2/core/services/stages/discovery_stage.py:DiscoveryStage` - File discovery stage
+  - `class:src/fs2/core/services/stages/parsing_stage.py:ParsingStage` - AST parsing stage
+  - `class:src/fs2/core/services/stages/storage_stage.py:StorageStage` - Graph storage stage
+  - `class:src/fs2/core/models/scan_summary.py:ScanSummary` - Frozen result dataclass
+  - `file:tests/unit/services/test_pipeline_context.py` - 15 tests
+  - `file:tests/unit/services/test_pipeline_stage.py` - 6 tests
+  - `file:tests/unit/services/test_discovery_stage.py` - 8 tests
+  - `file:tests/unit/services/test_parsing_stage.py` - 11 tests
+  - `file:tests/unit/services/test_storage_stage.py` - 13 tests
+  - `file:tests/unit/services/test_scan_pipeline.py` - 13 tests
+  - `file:tests/unit/models/test_scan_summary.py` - 10 tests
+  - `file:tests/integration/test_scan_pipeline_integration.py` - 8 integration tests
 
 ---
 
@@ -679,3 +698,169 @@ docs/plans/003-fs2-base/
         ├── tasks.md          ← This file
         └── execution.log.md  ← Created by /plan-6
 ```
+
+---
+
+## Critical Insights Discussion
+
+**Session**: 2025-12-16
+**Context**: Phase 5: Scan Service Orchestration - Pipeline Architecture Dossier
+**Analyst**: AI Clarity Agent
+**Reviewer**: Development Team
+**Format**: Water Cooler Conversation (5 Critical Insights)
+
+### Insight 1: Frozen Nodes + Future Enrichment
+
+**Did you know**: The pipeline architecture needs stages to enrich nodes (smart_content, embeddings), but the original design had frozen CodeNode which would require awkward replacement patterns.
+
+**Implications**:
+- Future stages need to mutate nodes directly
+- Frozen dataclass requires creating new instances for any field change
+- Every enhancement stage would need boilerplate replacement code
+
+**Options Considered**:
+- Option A: Replace Pattern (Create New Nodes)
+- Option B: Side-Channel Enrichment Dict
+- Option C: Document Replace Pattern
+- Option D: Add CodeNode.with_enrichment() Method
+
+**AI Recommendation**: Option D (with_enrichment factory method)
+
+**Discussion Summary**:
+User challenged the need for frozen nodes in a sequential pipeline. Discussion revealed that immutability was designed before the pipeline architecture and adds friction without benefit in this context.
+
+**Decision**: Keep CodeNode frozen but add `parent_node_id` field (resolved in Insight #2)
+
+**Affects**: CodeNode design, future enhancement stages
+
+---
+
+### Insight 2: Edge Derivation from qualified_name
+
+**Did you know**: The original dossier planned to "derive parent-child edges from qualified_name structure" in StorageStage, but this reconstructs information already available during AST traversal.
+
+**Implications**:
+- Tree-sitter walk already knows the parent at each step
+- Deriving from qualified_name is fragile string parsing
+- initial_exploration research showed hierarchy is captured during traversal
+
+**Options Considered**:
+- Option A: Explicit Algorithm in Dossier
+- Option B: Discovery During Implementation
+- Option C: Add parent_node_id to CodeNode (set by ASTParser)
+
+**AI Recommendation**: Option C (parent_node_id)
+
+**Discussion Summary**:
+User pointed to initial_exploration research showing that tree-sitter gives us hierarchy during the walk. The "derivation" approach was throwing away information and trying to reconstruct it. User's insight: "this is not reconstruction, its pure logical data."
+
+**Decision**: Add `parent_node_id: str | None` to CodeNode, set by TreeSitterParser during traversal
+
+**Action Items**:
+- [x] Add parent_node_id field to CodeNode
+- [x] Update all factory methods
+- [x] Update TreeSitterParser._extract_nodes to track parent_node_id
+- [x] Update Phase 5 dossier to reflect new approach
+
+**Affects**: CodeNode (Phase 1), TreeSitterParser (Phase 3), StorageStage (Phase 5)
+
+---
+
+### Insight 3: Binary Success Definition
+
+**Did you know**: ScanSummary defines `success = len(errors) == 0`, meaning a single encoding error in 10,000 files reports as "failed."
+
+**Implications**:
+- Partial success looks like total failure
+- CI/CD pipelines might block unnecessarily
+- User perception affected by red ❌ for minor issues
+
+**Options Considered**:
+- Option A: Keep Binary Success (current)
+- Option B: Add Success Levels (full/partial/failed)
+- Option C: Separate Concerns (errors vs warnings)
+- Option D: Threshold-Based Success
+
+**AI Recommendation**: Option A (Keep Binary)
+
+**Discussion Summary**:
+Simple is better for MVP. CLI layer (Phase 6) can add user-friendly messaging around the raw boolean. Conservative approach forces attention to errors.
+
+**Decision**: Keep binary success, CLI can add nuance
+
+**Affects**: No changes needed
+
+---
+
+### Insight 4: Stage Precondition Validation
+
+**Did you know**: Each stage assumes its required adapter is present in context, but nothing validates this—leading to cryptic `AttributeError: 'NoneType'` if misconfigured.
+
+**Implications**:
+- Custom pipelines could hit confusing errors
+- Test setup mistakes hard to debug
+- No clear error message about what's missing
+
+**Options Considered**:
+- Option A: Validate in ScanPipeline.run() (fail fast)
+- Option B: Each Stage Validates Own Preconditions
+- Option C: Document as Caller Responsibility
+- Option D: Non-Optional Adapters in Context
+
+**AI Recommendation**: Option B (stage validates own)
+
+**Discussion Summary**:
+Self-documenting stages that check their own requirements provide clear error messages and don't require ScanPipeline to know stage internals.
+
+**Decision**: Each stage validates its required adapter, raises ValueError with clear message
+
+**Action Items**:
+- [x] Update T005, T007, T010 to test precondition validation
+- [x] Update T006, T008, T011 to implement precondition checks
+
+**Affects**: DiscoveryStage, ParsingStage, StorageStage implementations
+
+---
+
+### Insight 5: Memory Footprint for Large Codebases
+
+**Did you know**: The pipeline holds all CodeNodes in memory (~600MB-1.2GB for 50k files) before persisting, which could hit limits on constrained environments.
+
+**Implications**:
+- Large codebases could exhaust memory
+- CI runners and Docker containers may have limits
+- Developer laptops with 8GB RAM could struggle
+
+**Options Considered**:
+- Option A: Accept for MVP
+- Option B: Streaming Architecture
+- Option C: Batch Processing
+- Option D: Content-on-Demand
+
+**AI Recommendation**: Option A (Accept for MVP)
+
+**Discussion Summary**:
+YAGNI—we don't know if this is actually a problem. Measure first, then optimize. Most codebases are smaller than 50k files.
+
+**Decision**: Accept for MVP, optimize later if needed
+
+**Affects**: No changes needed
+
+---
+
+## Session Summary
+
+**Insights Surfaced**: 5 critical insights identified and discussed
+**Decisions Made**: 5 decisions reached through collaborative discussion
+**Action Items Created**: 2 code changes implemented (parent_node_id, precondition validation in dossier)
+**Areas Updated**:
+- CodeNode: Added `parent_node_id` field
+- TreeSitterParser: Sets `parent_node_id` during traversal
+- Phase 5 dossier: Updated StorageStage approach, task descriptions
+
+**Shared Understanding Achieved**: ✓
+
+**Confidence Level**: High - Key architectural decisions made, risks addressed
+
+**Next Steps**:
+Run `/plan-6-implement-phase --phase 5` to begin implementation with approved architecture
