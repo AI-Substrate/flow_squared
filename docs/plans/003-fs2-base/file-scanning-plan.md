@@ -571,14 +571,14 @@ class Calculator:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 4.1 | [ ] | Write tests for GraphStore ABC | 1 | Tests verify ABC contract | - | tests/unit/repos/test_graph_store.py |
-| 4.2 | [ ] | Create GraphStore ABC | 1 | ABC with add_node, add_edge, get_node, save, load | - | src/fs2/core/repos/graph_store.py |
-| 4.3 | [ ] | Write tests for FakeGraphStore | 2 | Tests cover: in-memory storage, call history | - | tests/unit/repos/test_graph_store_fake.py |
-| 4.4 | [ ] | Implement FakeGraphStore | 2 | All tests from 4.3 pass | - | src/fs2/core/repos/graph_store_fake.py |
-| 4.5 | [ ] | Write tests for graph persistence (AC8) | 2 | Tests cover: save, load, 100+ nodes recoverable | - | tests/unit/repos/test_graph_store_impl.py |
-| 4.6 | [ ] | Write tests for node relationships | 2 | Tests cover: parent-child edges, get_children | - | tests/unit/repos/test_graph_store_impl.py |
-| 4.7 | [ ] | Implement NetworkXGraphStore | 2 | All tests from 4.5, 4.6 pass | - | src/fs2/core/repos/graph_store_impl.py |
-| 4.8 | [ ] | Add format versioning | 1 | Metadata includes format_version: "1.0" | - | src/fs2/core/repos/graph_store_impl.py |
+| 4.1 | [x] | Write tests for GraphStore ABC | 1 | Tests verify ABC contract | [📋](tasks/phase-4/execution.log.md) | tests/unit/repos/test_graph_store.py [^12] |
+| 4.2 | [x] | Create GraphStore ABC | 1 | ABC with add_node, add_edge, get_node, save, load | [📋](tasks/phase-4/execution.log.md) | src/fs2/core/repos/graph_store.py [^12] |
+| 4.3 | [x] | Write tests for FakeGraphStore | 2 | Tests cover: in-memory storage, call history | [📋](tasks/phase-4/execution.log.md) | tests/unit/repos/test_graph_store_fake.py [^12] |
+| 4.4 | [x] | Implement FakeGraphStore | 2 | All tests from 4.3 pass | [📋](tasks/phase-4/execution.log.md) | src/fs2/core/repos/graph_store_fake.py [^12] |
+| 4.5 | [x] | Write tests for graph persistence (AC8) | 2 | Tests cover: save, load, 100+ nodes recoverable | [📋](tasks/phase-4/execution.log.md) | tests/unit/repos/test_graph_store_impl.py [^12] |
+| 4.6 | [x] | Write tests for node relationships | 2 | Tests cover: parent-child edges, get_children | [📋](tasks/phase-4/execution.log.md) | tests/unit/repos/test_graph_store_impl.py [^12] |
+| 4.7 | [x] | Implement NetworkXGraphStore | 2 | All tests from 4.5, 4.6 pass | [📋](tasks/phase-4/execution.log.md) | src/fs2/core/repos/graph_store_impl.py [^12] |
+| 4.8 | [x] | Add format versioning | 1 | Metadata includes format_version: "1.0" | [📋](tasks/phase-4/execution.log.md) | src/fs2/core/repos/graph_store_impl.py [^12] |
 
 ### Test Examples (Write First!)
 
@@ -942,7 +942,7 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
 - [x] Phase 1: Core Models and Configuration - COMPLETED (2025-12-15)
 - [x] Phase 2: File Scanner Adapter - COMPLETED (2025-12-15)
 - [x] Phase 3: AST Parser Adapter - COMPLETED (2025-12-15)
-- [ ] Phase 4: Graph Storage Repository - NOT STARTED
+- [x] Phase 4: Graph Storage Repository - COMPLETED (2025-12-16)
 - [ ] Phase 5: Scan Service Orchestration - NOT STARTED
 - [ ] Phase 6: CLI Command and Documentation - NOT STARTED
 
@@ -1005,3 +1005,13 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
   - `file:src/fs2/core/adapters/__init__.py` - Export ASTParser, FakeASTParser, TreeSitterParser
   - `file:tests/fixtures/ast_samples/` - 26 fixture files for 9 languages
   - `file:tests/conftest.py` - ast_samples_path pytest fixture
+
+[^12]: Tasks 4.1-4.8 - GraphStore repository implementation (Phase 4 - 2025-12-16)
+  - `class:src/fs2/core/repos/graph_store.py:GraphStore` - ABC interface
+  - `class:src/fs2/core/repos/graph_store_fake.py:FakeGraphStore` - Test double
+  - `class:src/fs2/core/repos/graph_store_impl.py:NetworkXGraphStore` - Production impl
+  - `class:src/fs2/core/repos/graph_store_impl.py:RestrictedUnpickler` - Security unpickler
+  - `file:tests/unit/repos/test_graph_store.py` - ABC tests (12 tests)
+  - `file:tests/unit/repos/test_graph_store_fake.py` - Fake tests (12 tests)
+  - `file:tests/unit/repos/test_graph_store_impl.py` - Impl tests (19 tests)
+  - `file:src/fs2/core/repos/__init__.py` - Package exports
