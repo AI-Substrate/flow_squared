@@ -30,6 +30,35 @@ src/fs2/
 └── config/           # Pydantic-settings configuration
 ```
 
+## Scanning
+
+Scan your codebase to build a queryable code graph:
+
+```bash
+# Initialize config (first time)
+fs2 init
+
+# Run scan
+fs2 scan
+
+# Verbose mode (shows per-file progress)
+fs2 scan --verbose
+```
+
+**Configuration** (`.fs2/config.yaml`):
+
+```yaml
+scan:
+  scan_paths:
+    - "."
+  respect_gitignore: true
+  max_file_size_kb: 500
+```
+
+**Output**: Graph saved to `.fs2/graph.pickle`
+
+See [Scanning Guide](docs/how/scanning.md) for details on node types, troubleshooting, and advanced configuration.
+
 ## Key Patterns
 
 - **ABC-based interfaces** with `@abstractmethod` for explicit contracts
@@ -43,6 +72,7 @@ src/fs2/
 |-------|-------------|
 | [Architecture](docs/how/architecture.md) | Layer diagram, import rules |
 | [Configuration](docs/how/configuration.md) | Multi-source config, env vars |
+| [Scanning](docs/how/scanning.md) | File scanning and code graph generation |
 | [TDD](docs/how/tdd.md) | Test structure, fixtures, fakes |
 | [Dependency Injection](docs/how/di.md) | DI patterns |
 | [Adding Services & Adapters](docs/how/adding-services-adapters.md) | Step-by-step guide |

@@ -15,6 +15,9 @@ dependencies = [
     "typer>=0.9",
 ]
 
+[project.scripts]
+fs2 = "fs2.cli.main:app"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",

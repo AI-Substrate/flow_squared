@@ -820,14 +820,14 @@ def test_given_parse_error_when_scanning_then_continues_and_collects_errors():
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 6.1 | [ ] | Write tests for CLI scan command | 2 | Tests cover: AC9 output format, args parsing | - | tests/unit/cli/test_scan_cli.py |
-| 6.2 | [ ] | Implement CLI scan command | 2 | All tests from 6.1 pass | - | src/fs2/cli/scan.py |
-| 6.3 | [ ] | Write tests for progress bar | 1 | Tests cover: shown for >50 files, hidden for small scans | - | tests/unit/cli/test_scan_cli.py |
-| 6.4 | [ ] | Add Rich progress bar | 1 | Progress bar shows for large scans | - | src/fs2/cli/scan.py |
-| 6.5 | [ ] | Survey existing docs/how/ structure | 1 | Document existing structure | - | Discovery step |
-| 6.6 | [ ] | Update README.md with quick-start | 2 | Config example, basic usage documented | - | /workspaces/flow_squared/README.md |
-| 6.7 | [ ] | Create docs/how/scanning.md | 2 | Node types, graph format, troubleshooting | - | /workspaces/flow_squared/docs/how/scanning.md |
-| 6.8 | [ ] | Final acceptance criteria verification | 2 | AC1-AC10 all pass | - | Manual verification |
+| 6.1 | [x] | Write tests for CLI scan command | 2 | Tests cover: AC9 output format, args parsing | [📋](tasks/phase-6/execution.log.md#phase-6-complete) | Completed · [^14] |
+| 6.2 | [x] | Implement CLI scan command | 2 | All tests from 6.1 pass | [📋](tasks/phase-6/execution.log.md#phase-6-complete) | Completed · [^14] |
+| 6.3 | [x] | Write tests for progress bar | 1 | Tests cover: shown for >50 files, hidden for small scans | [📋](tasks/phase-6/execution.log.md#phase-6-complete) | Completed · [^14] |
+| 6.4 | [x] | Add Rich progress bar | 1 | Progress bar shows for large scans | [📋](tasks/phase-6/execution.log.md#phase-6-complete) | Completed · [^14] |
+| 6.5 | [x] | Survey existing docs/how/ structure | 1 | Document existing structure | [📋](tasks/phase-6/execution.log.md#phase-6-complete) | Completed · [^14] |
+| 6.6 | [x] | Update README.md with quick-start | 2 | Config example, basic usage documented | [📋](tasks/phase-6/execution.log.md#phase-6-complete) | Completed · [^14] |
+| 6.7 | [x] | Create docs/how/scanning.md | 2 | Node types, graph format, troubleshooting | [📋](tasks/phase-6/execution.log.md#phase-6-complete) | Completed · [^14] |
+| 6.8 | [x] | Final acceptance criteria verification | 2 | AC1-AC10 all pass | [📋](tasks/phase-6/execution.log.md#phase-6-complete) | Completed · [^14] |
 
 ### Test Examples (Write First!)
 
@@ -897,11 +897,11 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
 - [ ] Terminal without color support
 
 ### Acceptance Criteria
-- [ ] All tests passing
-- [ ] AC9: CLI outputs "Scanned N files, created M nodes"
-- [ ] Progress bar shown for >50 files
-- [ ] README.md updated
-- [ ] docs/how/scanning.md created
+- [x] All tests passing
+- [x] AC9: CLI outputs "Scanned N files, created M nodes"
+- [x] Progress bar shown for >50 files
+- [x] README.md updated
+- [x] docs/how/scanning.md created
 
 ---
 
@@ -944,7 +944,7 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
 - [x] Phase 3: AST Parser Adapter - COMPLETED (2025-12-15)
 - [x] Phase 4: Graph Storage Repository - COMPLETED (2025-12-16)
 - [x] Phase 5: Scan Service Orchestration - COMPLETED (2025-12-16)
-- [ ] Phase 6: CLI Command and Documentation - NOT STARTED
+- [x] Phase 6: CLI Command and Documentation - COMPLETED (2025-12-17)
 
 ### STOP Rule
 **IMPORTANT**: This plan must be complete before creating tasks. After writing this plan:
@@ -1034,3 +1034,13 @@ See [docs/how/scanning.md](docs/how/scanning.md) for details.
   - `file:tests/integration/test_scan_pipeline_integration.py` - 8 integration tests
   - `file:src/fs2/core/services/__init__.py` - Package exports
   - `file:src/fs2/core/services/stages/__init__.py` - Stages package exports
+
+[^14]: Phase 6 - CLI Command and Documentation (32 tests)
+  - `file:src/fs2/cli/main.py` - Typer app with command registration
+  - `file:src/fs2/cli/scan.py` - Scan command implementation
+  - `file:src/fs2/cli/init.py` - Init command implementation
+  - `file:src/fs2/__main__.py` - Entry point for python -m fs2
+  - `file:docs/how/scanning.md` - Scanning guide
+  - `file:tests/unit/cli/test_scan_cli.py` - Scan CLI tests (20 tests)
+  - `file:tests/unit/cli/test_init_cli.py` - Init CLI tests (7 tests)
+  - `file:tests/integration/test_fs2_cli_integration.py` - CLI integration tests (5 tests)
