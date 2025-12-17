@@ -41,3 +41,26 @@ fix:
 lint:
     uv run ruff check src/ tests/
     uv run ruff format --check src/ tests/
+
+# === CLI Examples ===
+
+# Example: get a node by ID (outputs JSON)
+example-get-node:
+    uv run fs2 get-node "file:src/fs2/cli/get_node.py"
+
+# Example: get a node and pipe to jq
+example-get-node-jq:
+    uv run fs2 get-node "file:src/fs2/cli/get_node.py" | jq '.node_id, .category'
+
+# Example: get a node and write to file
+example-get-node-file:
+    uv run fs2 get-node "file:src/fs2/cli/get_node.py" --file /tmp/node.json
+    cat /tmp/node.json | jq '.node_id'
+
+# Example: show tree of the project
+example-tree:
+    uv run fs2 tree
+
+# Example: show tree with depth limit
+example-tree-depth:
+    uv run fs2 tree --depth 2
