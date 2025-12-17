@@ -10,9 +10,9 @@ Sync Impact Report:
 - Outstanding TODOs: None
 -->
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Ratified**: 2025-12-01
-**Last Amended**: 2025-12-01
+**Last Amended**: 2025-12-17
 
 ---
 
@@ -135,6 +135,39 @@ except SDKAuthError as e:
 **Example**:
 ```
 LiteralSecretError: Literal secret in api_key. Use placeholder: ${API_KEY}. Then set env var: API_KEY=<secret>
+```
+
+### P9: CLI Layer Scope
+
+**Statement**: CLI commands MUST NOT contain business logic. CLI handles only argument parsing (Typer) and presentation (Rich). All non-trivial operations MUST be delegated to services.
+
+**Rationale**: Business logic in CLI cannot be unit tested without file I/O and real fixtures. Services enable code reuse across interfaces (CLI, API, SDK, tests). Enforces the Clean Architecture principle: CLI is just a delivery mechanism.
+
+**CLI Responsibilities**:
+- Argument parsing and validation (Typer)
+- Creating services (composition root)
+- Calling service methods
+- Presentation and formatting (Rich, JSON output)
+- Exit codes and user-facing error messages
+
+**CLI MUST NOT**:
+- Contain algorithms or data transformation logic
+- Directly instantiate repos/adapters (except as part of composition root)
+- Call GraphStore methods directly (use services instead)
+- Have functions like `_filter_nodes()`, `_build_tree()` (these belong in services)
+
+**Pattern**:
+```python
+# CORRECT - CLI delegates to service
+def tree(pattern: str, depth: int) -> None:
+    config = FS2ConfigurationService()
+    graph_store = NetworkXGraphStore(config)
+    service = TreeService(config=config, graph_store=graph_store)
+
+    tree_nodes = service.build_tree(pattern=pattern, max_depth=depth)
+
+    # CLI handles presentation only
+    _display_tree(tree_nodes)  # Rich rendering
 ```
 
 ---
@@ -265,6 +298,16 @@ Every test MUST include:
 - [ ] All adapters and repos inherit from ABC
 - [ ] All methods have `@abstractmethod` decorator
 - [ ] Interfaces use only domain types (no SDK types)
+
+**Memory Management**:
+- [ ] Services do NOT store copies of graph data (nodes, edges, subgraphs)
+- [ ] Components pass GraphStore references, not cached graph contents
+- [ ] Graph access goes through GraphStore ABC methods only
+
+**CLI Layer**:
+- [ ] CLI commands contain NO business logic (filtering, tree building, etc.)
+- [ ] CLI only handles: arg parsing, composition root, service calls, presentation
+- [ ] Business logic is in services, not CLI functions like `_filter_nodes()`
 
 **Test Quality**:
 - [ ] Tests use Given-When-Then naming convention

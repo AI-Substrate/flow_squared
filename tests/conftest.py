@@ -162,7 +162,7 @@ def _scanned_fixtures_graph_session(tmp_path_factory):
     """
     from pathlib import Path
 
-    from fs2.config.objects import ScanConfig, TreeConfig
+    from fs2.config.objects import GraphConfig, ScanConfig
     from fs2.config.service import FakeConfigurationService
     from fs2.core.adapters import FileSystemScanner, TreeSitterParser
     from fs2.core.repos import NetworkXGraphStore
@@ -182,10 +182,10 @@ def _scanned_fixtures_graph_session(tmp_path_factory):
         respect_gitignore=False,
         max_file_size_kb=500,
     )
-    tree_config = TreeConfig(graph_path=str(config_dir / "graph.pickle"))
+    graph_config = GraphConfig(graph_path=str(config_dir / "graph.pickle"))
 
     # Create configuration service with both configs
-    config = FakeConfigurationService(scan_config, tree_config)
+    config = FakeConfigurationService(scan_config, graph_config)
 
     # Create adapters and pipeline
     file_scanner = FileSystemScanner(config)
@@ -220,7 +220,7 @@ def _scanned_fixtures_graph_session(tmp_path_factory):
   scan_paths:
     - "{fixtures_path}"
   respect_gitignore: false
-tree:
+graph:
   graph_path: "{graph_path}"
 """)
 
@@ -293,7 +293,7 @@ def scanned_project(tmp_path, monkeypatch):
     - "."
   respect_gitignore: true
   max_file_size_kb: 500
-tree:
+graph:
   graph_path: ".fs2/graph.pickle"
 """)
 
@@ -363,7 +363,7 @@ def config_only_project(tmp_path):
     config_file.write_text(f"""scan:
   scan_paths:
     - "{tmp_path}"
-tree:
+graph:
   graph_path: ".fs2/graph.pickle"
 """)
 
@@ -393,7 +393,7 @@ def corrupted_graph_project(tmp_path):
     config_file.write_text(f"""scan:
   scan_paths:
     - "{tmp_path}"
-tree:
+graph:
   graph_path: ".fs2/graph.pickle"
 """)
 

@@ -106,6 +106,20 @@
 - Models MUST NOT contain business logic
 - Models MUST be pure data containers
 
+### R3.5 Graph Data Access (CRITICAL - Memory Management)
+
+- Services and other classes MUST NOT store copies of graph data (nodes, edges, subgraphs)
+- Components MAY use and pass `GraphStore` references (the interface)
+- Components MUST NOT cache or duplicate graph contents
+- All graph access MUST go through the `GraphStore` ABC methods
+- **Rationale**: GraphStore implementations manage potentially large in-memory graphs. Copying graph data:
+  - Creates memory bloat (duplicating entire node/edge collections)
+  - Causes synchronization issues (stale copies when graph updates)
+  - Violates single source of truth principle
+  - Breaks memory management strategies (graph implementations may use lazy loading, pagination, etc.)
+- **Allowed**: Passing `GraphStore` instance, calling methods like `get_node()`, `query_nodes()`
+- **Forbidden**: `self._nodes = graph.all_nodes()`, `self._subgraph = graph.subgraph(...)`
+
 <!-- USER CONTENT START -->
 <!-- Add project-specific interface rules here -->
 <!-- USER CONTENT END -->
@@ -371,6 +385,14 @@ def command(
 | `FakeLogAdapter(config)` | `Mock(spec=LogAdapter)` |
 | `FakeConfigurationService(...)` | `MagicMock()` |
 | `monkeypatch.setenv()` | `@patch.dict(os.environ)` |
+
+### Graph Data Access Summary
+
+| Allowed | Forbidden |
+|---------|-----------|
+| Pass `GraphStore` reference | Store `graph.all_nodes()` in field |
+| Call `graph.get_node(id)` | Cache `graph.subgraph(...)` |
+| Query on-demand | Duplicate node/edge collections |
 
 ---
 

@@ -13,15 +13,19 @@ Public API:
 - PipelineContext: Mutable context flowing through stages
 - PipelineStage: Protocol for pipeline stages
 - DiscoveryStage, ParsingStage, StorageStage: Default pipeline stages
+- GetNodeService: Service for retrieving nodes from the code graph
+- TreeService: Service for building tree structures from the code graph
 
 See tests/docs/test_sample_adapter_pattern.py for complete usage documentation.
 """
 
+from fs2.core.services.get_node_service import GetNodeService
 from fs2.core.services.pipeline_context import PipelineContext
 from fs2.core.services.pipeline_stage import PipelineStage
 from fs2.core.services.sample_service import SampleService, SampleServiceConfig
 from fs2.core.services.scan_pipeline import ScanPipeline
 from fs2.core.services.stages import DiscoveryStage, ParsingStage, StorageStage
+from fs2.core.services.tree_service import TreeService
 
 __all__ = [
     "SampleService",
@@ -32,4 +36,6 @@ __all__ = [
     "DiscoveryStage",
     "ParsingStage",
     "StorageStage",
+    "GetNodeService",
+    "TreeService",
 ]

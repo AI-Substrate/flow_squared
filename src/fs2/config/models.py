@@ -200,6 +200,7 @@ class FS2Settings(BaseSettings):
         env_prefix="FS2_",
         env_nested_delimiter="__",
         case_sensitive=False,
+        extra="ignore",  # Allow extra fields in YAML (scan, graph, etc.)
     )
 
     azure: AzureConfig = AzureConfig()

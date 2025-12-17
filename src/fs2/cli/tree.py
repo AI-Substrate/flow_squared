@@ -2,9 +2,11 @@
 
 Displays code structure from the persisted graph as a hierarchical tree.
 Supports path/glob filtering and depth limiting.
+
+Per Clean Architecture: CLI handles only arg parsing + presentation.
+Business logic (filtering, root bucketing, tree building) is delegated to TreeService.
 """
 
-import fnmatch
 import logging
 from pathlib import Path
 from typing import Annotated
@@ -14,17 +16,16 @@ from rich.console import Console
 from rich.tree import Tree
 
 from fs2.config.exceptions import MissingConfigurationError
-from fs2.config.objects import TreeConfig
 from fs2.config.service import FS2ConfigurationService
-from fs2.core.adapters.exceptions import GraphStoreError
-from fs2.core.models.code_node import CodeNode
+from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
+from fs2.core.models.tree_node import TreeNode
 from fs2.core.repos import NetworkXGraphStore
-from fs2.core.repos.graph_store import GraphStore
+from fs2.core.services.tree_service import TreeService
 
 console = Console()
 logger = logging.getLogger("fs2.cli.tree")
 
-# Icon mapping per category (Discovery 13)
+# Icon mapping per category (Discovery 13) - PRESENTATION CONCERN stays in CLI
 CATEGORY_ICONS = {
     "file": "📄",
     "type": "📦",
@@ -85,70 +86,45 @@ def tree(
         console.print("[dim]DEBUG: Verbose mode enabled[/dim]")
 
     try:
-        # Load configuration
+        # === Composition Root ===
         config = FS2ConfigurationService()
-        tree_config = config.require(TreeConfig)
+        graph_store = NetworkXGraphStore(config)
 
-        # Get graph path
-        graph_path = Path(tree_config.graph_path)
+        # Create service with DI
+        service = TreeService(config=config, graph_store=graph_store)
 
-        # Check if graph exists (Insight #5: exit 1 for missing)
-        if not graph_path.exists():
+        if verbose:
+            console.print("[dim]DEBUG: TreeService created[/dim]")
+
+        # === Service Call ===
+        try:
+            tree_nodes = service.build_tree(pattern=pattern, max_depth=depth)
+        except GraphNotFoundError:
             console.print(
                 "[red]Error:[/red] No graph found.\n"
                 "  Run [bold]fs2 scan[/bold] first to create the graph."
             )
-            raise typer.Exit(code=1)
-
-        if verbose:
-            console.print(f"[dim]DEBUG: Loading graph from {graph_path}[/dim]")
-
-        # Create graph store and load
-        graph_store: GraphStore = NetworkXGraphStore(config)
-
-        try:
-            graph_store.load(graph_path)
+            raise typer.Exit(code=1) from None
         except GraphStoreError as e:
-            # Insight #5: exit 2 for corruption (file exists but bad)
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(code=2) from None
 
-        # Get all nodes
-        all_nodes = graph_store.get_all_nodes()
-
-        # Handle empty graph
-        if not all_nodes:
-            console.print("Found 0 nodes in 0 files")
-            raise typer.Exit(code=0)
-
-        # Apply pattern filtering
-        if pattern == ".":
-            matched_nodes = all_nodes
-            if verbose:
-                console.print(
-                    f"[dim]DEBUG: No pattern filter, using all {len(all_nodes)} nodes[/dim]"
-                )
-        else:
-            matched_nodes = _filter_nodes(all_nodes, pattern)
-            if verbose:
-                console.print(
-                    f"[dim]DEBUG: Pattern '{pattern}' matched {len(matched_nodes)} nodes[/dim]"
-                )
-
-        # Handle no matches
-        if not matched_nodes:
-            console.print(f"No nodes match pattern: {pattern}")
-            raise typer.Exit(code=0)
-
-        # Build root bucket (remove children when ancestor matched)
-        root_nodes = _build_root_bucket(matched_nodes, graph_store)
         if verbose:
             console.print(
-                f"[dim]DEBUG: Root bucket has {len(root_nodes)} root nodes[/dim]"
+                f"[dim]DEBUG: TreeService returned {len(tree_nodes)} root nodes[/dim]"
             )
 
-        # Build and display tree
-        _display_tree(root_nodes, graph_store, detail, depth, verbose)
+        # === Presentation ===
+        # Handle empty results
+        if not tree_nodes:
+            if pattern == ".":
+                console.print("Found 0 nodes in 0 files")
+            else:
+                console.print(f"No nodes match pattern: {pattern}")
+            raise typer.Exit(code=0)
+
+        # Display tree using Rich
+        _display_tree(tree_nodes, detail, depth, verbose)
 
     except MissingConfigurationError:
         console.print(
@@ -158,117 +134,27 @@ def tree(
         raise typer.Exit(code=1) from None
 
 
-def _filter_nodes(nodes: list[CodeNode], pattern: str) -> list[CodeNode]:
-    """Filter nodes by pattern using unified node_id matching.
-
-    Matching priority (Insight #2):
-    1. Exact match on node_id → short-circuit
-    2. Glob pattern (contains *?[]) → fnmatch on node_id
-    3. Substring match → partial match on node_id
-
-    Args:
-        nodes: List of all CodeNodes.
-        pattern: Pattern to match against.
-
-    Returns:
-        List of matching CodeNodes.
-    """
-    # 1. Exact match - short-circuit
-    exact_matches = [n for n in nodes if n.node_id == pattern]
-    if exact_matches:
-        return exact_matches
-
-    # 2. Glob pattern detection
-    if any(c in pattern for c in "*?[]"):
-        return [n for n in nodes if fnmatch.fnmatch(n.node_id, f"*{pattern}*")]
-
-    # 3. Substring match
-    return [n for n in nodes if pattern in n.node_id]
-
-
-def _build_root_bucket(
-    matched_nodes: list[CodeNode], store: GraphStore
-) -> list[CodeNode]:
-    """Build root bucket by removing children when ancestor also matched.
-
-    When both a parent and child match the pattern, only keep the parent
-    in the root bucket. This enables proper tree rendering from the
-    shallowest matched nodes.
-
-    Args:
-        matched_nodes: Nodes that matched the pattern.
-        store: GraphStore for hierarchy queries.
-
-    Returns:
-        List of root nodes (shallowest matches).
-    """
-    if not matched_nodes:
-        return []
-
-    # Build set of matched node_ids for quick lookup
-    matched_ids = {n.node_id for n in matched_nodes}
-
-    # Bucket: node_id → CodeNode
-    bucket: dict[str, CodeNode] = {}
-
-    for node in matched_nodes:
-        # Check if any ancestor is already matched
-        has_matched_ancestor = False
-        current_id = node.parent_node_id
-
-        while current_id:
-            if current_id in matched_ids:
-                has_matched_ancestor = True
-                break
-            parent = store.get_node(current_id)
-            current_id = parent.parent_node_id if parent else None
-
-        if has_matched_ancestor:
-            # Skip this node - ancestor is already a root
-            continue
-
-        # Remove any descendants from bucket
-        descendants_to_remove = []
-        for bucket_id in bucket:
-            # Check if bucket_id is a descendant of node
-            check_id = bucket[bucket_id].parent_node_id
-            while check_id:
-                if check_id == node.node_id:
-                    descendants_to_remove.append(bucket_id)
-                    break
-                parent = store.get_node(check_id)
-                check_id = parent.parent_node_id if parent else None
-
-        for desc_id in descendants_to_remove:
-            del bucket[desc_id]
-
-        bucket[node.node_id] = node
-
-    return list(bucket.values())
-
-
 def _display_tree(
-    root_nodes: list[CodeNode],
-    store: GraphStore,
+    tree_nodes: list[TreeNode],
     detail: str,
     max_depth: int,
     verbose: bool = False,
 ) -> None:
-    """Display nodes as Rich Tree.
+    """Display TreeNodes as Rich Tree.
 
     Groups files by common path prefix into virtual 📁 folders.
 
     Args:
-        root_nodes: Root nodes to display.
-        store: GraphStore for children queries.
+        tree_nodes: Root TreeNodes from TreeService.build_tree().
         detail: "min" or "max" detail level.
-        max_depth: Maximum depth (0 = unlimited).
+        max_depth: Maximum depth (for hidden children messages).
         verbose: Whether to show debug output.
     """
     # Group by path prefix for virtual folders
-    path_groups: dict[str, list[CodeNode]] = {}
+    path_groups: dict[str, list[TreeNode]] = {}
 
-    for node in root_nodes:
+    for tree_node in tree_nodes:
+        node = tree_node.node
         # Extract path prefix from node_id
         parts = node.node_id.split(":")
         if len(parts) >= 2:
@@ -279,7 +165,7 @@ def _display_tree(
 
         if prefix not in path_groups:
             path_groups[prefix] = []
-        path_groups[prefix].append(node)
+        path_groups[prefix].append(tree_node)
 
     # Track all displayed nodes for accurate summary
     display_stats = {"total_nodes": 0, "file_count": 0}
@@ -288,9 +174,9 @@ def _display_tree(
     if len(path_groups) == 1 and "" in path_groups:
         # No grouping needed - single flat list
         main_tree = Tree("[bold]Code Structure[/bold]")
-        for node in sorted(root_nodes, key=lambda n: n.node_id):
-            _add_node_to_tree(
-                main_tree, node, store, detail, max_depth, 1, display_stats
+        for tree_node in sorted(tree_nodes, key=lambda tn: tn.node.node_id):
+            _add_tree_node_to_rich_tree(
+                main_tree, tree_node, detail, max_depth, 1, display_stats
             )
     else:
         # Group by path prefix
@@ -302,9 +188,11 @@ def _display_tree(
             else:
                 folder_branch = main_tree
 
-            for node in sorted(path_groups[prefix], key=lambda n: n.node_id):
-                _add_node_to_tree(
-                    folder_branch, node, store, detail, max_depth, 1, display_stats
+            for tree_node in sorted(
+                path_groups[prefix], key=lambda tn: tn.node.node_id
+            ):
+                _add_tree_node_to_rich_tree(
+                    folder_branch, tree_node, detail, max_depth, 1, display_stats
                 )
 
     console.print(main_tree)
@@ -315,26 +203,26 @@ def _display_tree(
     console.print(f"\n✓ Found {total_nodes} nodes in {file_count} files")
 
 
-def _add_node_to_tree(
+def _add_tree_node_to_rich_tree(
     parent_tree: Tree,
-    node: CodeNode,
-    store: GraphStore,
+    tree_node: TreeNode,
     detail: str,
     max_depth: int,
     current_depth: int,
     stats: dict[str, int] | None = None,
 ) -> None:
-    """Recursively add a node and its children to the tree.
+    """Recursively add a TreeNode and its children to the Rich Tree.
 
     Args:
         parent_tree: Parent Rich Tree node.
-        node: CodeNode to add.
-        store: GraphStore for children queries.
+        tree_node: TreeNode to add.
         detail: "min" or "max" detail level.
-        max_depth: Maximum depth (0 = unlimited).
+        max_depth: Maximum depth (for hidden children message).
         current_depth: Current depth in tree.
         stats: Optional dict to track {"total_nodes", "file_count"}.
     """
+    node = tree_node.node
+
     # Track stats for summary
     if stats is not None:
         stats["total_nodes"] += 1
@@ -356,16 +244,14 @@ def _add_node_to_tree(
 
     branch = parent_tree.add(label)
 
-    # Check depth limit
-    if max_depth > 0 and current_depth >= max_depth:
-        children = store.get_children(node.node_id)
-        if children:
-            branch.add(f"[dim][{len(children)} children hidden by depth limit][/dim]")
-        return
+    # Show hidden children indicator if any
+    if tree_node.hidden_children_count > 0:
+        branch.add(
+            f"[dim][{tree_node.hidden_children_count} children hidden by depth limit][/dim]"
+        )
 
     # Add children
-    children = store.get_children(node.node_id)
-    for child in sorted(children, key=lambda n: n.start_line):
-        _add_node_to_tree(
-            branch, child, store, detail, max_depth, current_depth + 1, stats
+    for child_tree_node in tree_node.children:
+        _add_tree_node_to_rich_tree(
+            branch, child_tree_node, detail, max_depth, current_depth + 1, stats
         )

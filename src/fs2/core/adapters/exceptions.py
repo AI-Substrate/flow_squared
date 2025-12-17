@@ -9,6 +9,7 @@ Error Type Guidelines:
 | AdapterError          | Base for all adapter errors                      |
 | AuthenticationError   | Auth failures (invalid token, expired creds)     |
 | AdapterConnectionError| Network/connection issues (timeout, unreachable) |
+| GraphNotFoundError    | Graph file not found (user needs to run scan)    |
 
 Pattern for exception translation in adapter implementations:
 ```python
@@ -21,6 +22,14 @@ def _call_sdk(self):
         raise AdapterConnectionError(f"Connection failed: {e}") from e
 ```
 """
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    pass
 
 
 class AdapterError(Exception):
@@ -105,3 +114,31 @@ class GraphStoreError(AdapterError):
     - Check file permissions
     - Regenerate graph from scan
     """
+
+
+class GraphNotFoundError(AdapterError):
+    """Graph file does not exist.
+
+    Raised when a service attempts to load a graph that hasn't been created yet.
+
+    Common causes:
+    - User hasn't run `fs2 scan` yet
+    - Graph path is misconfigured
+    - Graph file was deleted
+
+    Recovery:
+    - Run `fs2 scan` to create the graph
+    - Check graph_path in configuration
+    """
+
+    def __init__(self, path: Path, message: str | None = None):
+        """Initialize with path to missing graph.
+
+        Args:
+            path: Path where graph was expected.
+            message: Optional custom message.
+        """
+        self.path: Path = path if isinstance(path, Path) else Path(path)
+        super().__init__(
+            message or f"Graph not found at {path}. Run 'fs2 scan' first."
+        )

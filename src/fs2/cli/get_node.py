@@ -2,6 +2,9 @@
 
 Retrieves a single CodeNode by ID and outputs as JSON for scripting and tool integration.
 
+Per Clean Architecture: CLI handles only arg parsing + presentation.
+Business logic (graph loading, node retrieval) is delegated to GetNodeService.
+
 Per research finding #01: Use raw print() for JSON output, Console(stderr=True) for errors.
 This ensures clean stdout for piping to tools like jq - only JSON on stdout, all else to stderr.
 """
@@ -15,11 +18,10 @@ import typer
 from rich.console import Console
 
 from fs2.config.exceptions import MissingConfigurationError
-from fs2.config.objects import TreeConfig
 from fs2.config.service import FS2ConfigurationService
-from fs2.core.adapters.exceptions import GraphStoreError
+from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
 from fs2.core.repos import NetworkXGraphStore
-from fs2.core.repos.graph_store import GraphStore
+from fs2.core.services.get_node_service import GetNodeService
 
 # Console for error/status messages - writes to stderr to keep stdout clean for piping
 console = Console(stderr=True)
@@ -55,44 +57,41 @@ def get_node(
         2 - System error (corrupted graph)
     """
     try:
-        # Load configuration (T011)
+        # === Composition Root ===
+        # Create configuration service and adapters
         config = FS2ConfigurationService()
-        tree_config = config.require(TreeConfig)
+        graph_store = NetworkXGraphStore(config)
 
-        # Get graph path
-        graph_path = Path(tree_config.graph_path)
+        # Create service with DI
+        service = GetNodeService(config=config, graph_store=graph_store)
 
-        # Check if graph exists (T011 - exit 1 for missing)
-        if not graph_path.exists():
+        # === Service Call ===
+        # Service handles graph loading (lazy) and node retrieval
+        try:
+            node = service.get_node(node_id)
+        except GraphNotFoundError:
+            # Graph file doesn't exist - exit 1 (user error)
             console.print(
                 "[red]Error:[/red] No graph found.\n"
                 "  Run [bold]fs2 scan[/bold] first to create the graph."
             )
-            raise typer.Exit(code=1)
-
-        # Create graph store and load (T012)
-        graph_store: GraphStore = NetworkXGraphStore(config)
-
-        try:
-            graph_store.load(graph_path)
+            raise typer.Exit(code=1) from None
         except GraphStoreError as e:
-            # Exit 2 for corruption (file exists but bad) - T015
+            # Exit 2 for corruption (file exists but bad)
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(code=2) from None
 
-        # Get node by ID (T012)
-        node = graph_store.get_node(node_id)
-
+        # === Presentation ===
         if node is None:
-            # Node not found - exit 1 (user error) - T012
+            # Node not found - exit 1 (user error)
             console.print(f"[red]Error:[/red] Node not found: {node_id}")
             raise typer.Exit(code=1)
 
-        # Serialize to JSON (T013)
+        # Serialize to JSON
         # Use asdict() for dataclass serialization, default=str for non-JSON types
         json_str = json.dumps(asdict(node), indent=2, default=str)
 
-        # Output to file or stdout (T013, T014)
+        # Output to file or stdout
         if file:
             file.write_text(json_str)
             console.print(f"[green]✓[/green] Wrote {node_id} to {file}")
@@ -101,7 +100,7 @@ def get_node(
             print(json_str)
 
     except MissingConfigurationError:
-        # Missing config - exit 1 (user error) - T015
+        # Missing config - exit 1 (user error)
         console.print(
             "[red]Error:[/red] No configuration found.\n"
             "  Run [bold]fs2 init[/bold] first to create .fs2/config.yaml"

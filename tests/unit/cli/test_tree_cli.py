@@ -106,7 +106,7 @@ def scanned_project(tmp_path, monkeypatch):
     - "."
   respect_gitignore: true
   max_file_size_kb: 500
-tree:
+graph:
   graph_path: ".fs2/graph.pickle"
 """)
 
@@ -163,7 +163,7 @@ def config_only_project(tmp_path):
     config_file.write_text(f"""scan:
   scan_paths:
     - "{tmp_path}"
-tree:
+graph:
   graph_path: ".fs2/graph.pickle"
 """)
 
@@ -435,7 +435,7 @@ def empty_graph_project(tmp_path):
     config_file.write_text(f"""scan:
   scan_paths:
     - "{tmp_path}"
-tree:
+graph:
   graph_path: ".fs2/graph.pickle"
 """)
 
@@ -488,7 +488,7 @@ def corrupted_graph_project(tmp_path):
     config_file.write_text(f"""scan:
   scan_paths:
     - "{tmp_path}"
-tree:
+graph:
   graph_path: ".fs2/graph.pickle"
 """)
 

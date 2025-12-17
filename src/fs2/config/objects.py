@@ -173,13 +173,13 @@ class LogAdapterConfig(BaseModel):
     min_level: str = "DEBUG"
 
 
-class TreeConfig(BaseModel):
-    """Configuration for tree command.
+class GraphConfig(BaseModel):
+    """Configuration for graph access.
 
     Loaded from YAML or environment variables.
-    Path: tree (e.g., FS2_TREE__GRAPH_PATH)
+    Path: graph (e.g., FS2_GRAPH__GRAPH_PATH)
 
-    Controls the fs2 tree command behavior.
+    Used by any service that needs to load/access the code graph.
 
     Attributes:
         graph_path: Path to the graph pickle file (default: .fs2/graph.pickle).
@@ -187,14 +187,18 @@ class TreeConfig(BaseModel):
     YAML example:
         ```yaml
         # .fs2/config.yaml
-        tree:
+        graph:
           graph_path: ".fs2/graph.pickle"
         ```
     """
 
-    __config_path__: ClassVar[str] = "tree"
+    __config_path__: ClassVar[str] = "graph"
 
     graph_path: str = ".fs2/graph.pickle"
+
+
+# Backward compatibility alias - DEPRECATED, use GraphConfig
+TreeConfig = GraphConfig
 
 
 class ScanConfig(BaseModel):
@@ -265,5 +269,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     SampleAdapterConfig,
     LogAdapterConfig,
     ScanConfig,
-    TreeConfig,
+    GraphConfig,
 ]
