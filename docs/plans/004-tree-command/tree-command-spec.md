@@ -115,19 +115,19 @@
 ### AC5: Detail Level - Max
 **Given** a scanned codebase
 **When** `fs2 tree --detail max` is run
-**Then** display: icon, name, type, line range, node ID, signature (if available)
+**Then** display: icon, name, line range, signature (inline), and node ID (on second line)
 **Example output**:
 ```
 📄 calculator.py [1-50]
-│  node: file:calculator.py
-├── 📦 Calculator [15-45]
-│   │  node: type:calculator.py:Calculator
-│   ├── ƒ add [20-25]
-│   │   │  node: callable:calculator.py:Calculator.add
-│   │   │  sig: def add(self, a: int, b: int) -> int
-│   └── ƒ subtract [27-32]
-│       │  node: callable:calculator.py:Calculator.subtract
+        file:calculator.py
+└── 📦 Calculator [15-45] class Calculator:
+        type:calculator.py:Calculator
+    ├── ƒ add [20-25] def add(self, a: int, b: int) -> int:
+    │       callable:calculator.py:Calculator.add
+    └── ƒ subtract [27-32] def subtract(self, a: int, b: int) -> int:
+            callable:calculator.py:Calculator.subtract
 ```
+**Format**: Main line shows `icon name [lines] signature`. Second line (dimmed, indented) shows the node ID for copy-paste use with FlowSpace tools.
 
 ### AC6: Depth Limiting
 **Given** a scanned codebase with deep nesting
@@ -398,6 +398,8 @@ Node IDs displayed in `--detail max` output follow a **stable format** that will
 | Block | `block:{path}:{name}` | `block:Dockerfile:FROM` |
 
 **Stability commitment**: This format is compatible with FlowSpace MCP tools and is considered a stable API. Breaking changes require a major version bump (e.g., fs2 2.0).
+
+**Caveat - Anonymous Elements**: Some languages (notably Go) produce AST nodes without explicit names (e.g., anonymous struct/interface bodies, block statements). These appear as `@N` where N is the line number (e.g., `type:path:@16`). These `@N` identifiers are **not stable** - they change if lines are added/removed above them. Scripts should not rely on `@N`-based node IDs for long-term matching.
 
 ---
 

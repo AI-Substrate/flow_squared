@@ -654,17 +654,17 @@ pytest tests/unit/cli/test_tree_cli.py tests/unit/config/test_tree_config.py --c
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 2.1 | [ ] | Write tests for --detail min output (AC4) | 2 | Tests verify icon, name, line range format | - | |
-| 2.2 | [ ] | Implement --detail min formatting | 2 | Output matches spec format exactly | - | |
-| 2.3 | [ ] | Write tests for --detail max output (AC5) | 2 | Tests verify node ID and signature display | - | Per Discovery 17 |
-| 2.4 | [ ] | Implement --detail max formatting | 2 | Shows node IDs; handles missing signatures | - | |
-| 2.5 | [ ] | Write tests for --depth limiting (AC6) | 2 | Tests verify depth cutoff and indicator | - | Per Discovery 11 |
-| 2.6 | [ ] | Implement --depth limiting with indicator | 2 | Stops at depth; shows hidden child count | - | |
-| 2.7 | [ ] | Write tests for summary line (AC9 counts) | 2 | Tests verify format with counts: "Found N nodes in M files" | - | Freshness deferred to Phase 3 |
-| 2.8 | [ ] | Implement summary line with counts | 1 | Shows "Found N nodes in M files" without freshness | - | AC9 freshness in Phase 3 |
-| 2.9 | [ ] | Write tests for --verbose flag | 1 | Tests verify debug output appears | - | Per Discovery 19 |
-| 2.10 | [ ] | Implement verbose logging setup | 1 | RichHandler configured on --verbose | - | |
-| 2.11 | [ ] | Refactor and validate Phase 2 | 2 | All tests pass; lint clean | - | |
+| 2.1 | [x] | Write tests for --detail min output (AC4) | 2 | Tests verify icon, name, line range format | [^7] | TestDetailMin: 3 tests |
+| 2.2 | [x] | Implement --detail min formatting | 2 | Output matches spec format exactly | [^7] | Verified existing impl |
+| 2.3 | [x] | Write tests for --detail max output (AC5) | 2 | Tests verify node ID and signature display | [^7] | TestDetailMax: 4 tests |
+| 2.4 | [x] | Implement --detail max formatting | 2 | Shows node IDs; handles missing signatures | [^7] | Verified existing impl |
+| 2.5 | [x] | Write tests for --depth limiting (AC6) | 2 | Tests verify depth cutoff and indicator | [^7] | TestDepthLimiting: 5 tests |
+| 2.6 | [x] | Implement --depth limiting with indicator | 2 | Stops at depth; shows hidden child count | [^7] | Verified existing impl |
+| 2.7 | [x] | Write tests for summary line (AC9 counts) | 2 | Tests verify format with counts: "Found N nodes in M files" | [^7] | TestSummaryLine: 5 tests |
+| 2.8 | [x] | Implement summary line with counts | 1 | Shows "Found N nodes in M files" without freshness | [^7] | Verified existing impl |
+| 2.9 | [x] | Write tests for --verbose flag | 1 | Tests verify debug output appears | [^7] | Already tested in Phase 1 |
+| 2.10 | [x] | Implement verbose logging setup | 1 | RichHandler configured on --verbose | [^7] | Existing impl sufficient |
+| 2.11 | [x] | Refactor and validate Phase 2 | 2 | All tests pass; lint clean | [^7] | 67 tests, lint clean |
 
 ### Test Examples (Write First!)
 
@@ -703,10 +703,10 @@ class TestDepthLimiting:
 ```
 
 ### Acceptance Criteria
-- [ ] AC4: --detail min shows icon, name, type, line range
-- [ ] AC5: --detail max shows node ID and signature
-- [ ] AC6: --depth N limits depth with indicator
-- [ ] AC9 (partial): Summary line shows node/file counts ("Found N nodes in M files")
+- [x] AC4: --detail min shows icon, name, type, line range
+- [x] AC5: --detail max shows node ID and signature
+- [x] AC6: --depth N limits depth with indicator
+- [x] AC9 (partial): Summary line shows node/file counts ("Found N nodes in M files")
   - Note: Freshness timestamp "(scanned Xh ago)" is delivered in Phase 3
 
 ### Phase 2 Validation Commands
@@ -917,8 +917,8 @@ grep -A 5 "fs2 tree" README.md
 ### Phase Completion Checklist
 
 - [x] Phase 1: Core Tree Command with Path Filtering - COMPLETE
-- [ ] Phase 2: Detail Levels and Depth Limiting - NOT STARTED
-- [ ] Phase 3: File-Type-Specific Handling and Polish - NOT STARTED
+- [x] Phase 2: Detail Levels and Depth Limiting - COMPLETE
+- [~] Phase 3: File-Type-Specific Handling and Polish - SKIPPED [^8]
 
 ### STOP Rule
 
@@ -948,6 +948,16 @@ grep -A 5 "fs2 tree" README.md
   - `file:tests/integration/test_tree_cli_integration.py`
   - `file:tests/conftest.py` (scanned_fixtures_graph fixture)
   - `section:docs/rules-idioms-architecture/rules.md:R9` (CLI standards per Insight #2)
+[^7]: Phase 2 Implementation Complete (2025-12-17)
+  - `file:tests/unit/cli/test_tree_cli.py` (17 new tests added)
+  - Test classes: TestDetailMin, TestDetailMax, TestDepthLimiting, TestSummaryLine
+  - Total tests: 67 passing (39 tree CLI + 7 TreeConfig + 16 GraphStore + 5 integration)
+  - No code changes to tree.py - Phase 1 impl verified correct per /didyouknow session
+[^8]: Phase 3 Skipped (2025-12-17)
+  - User decision to skip file-type-specific handling and polish features
+  - Deferred ACs: AC9 (freshness), AC10 (Dockerfile), AC11 (Markdown), AC12 (data files), AC15 (spinner), AC16 (warning)
+  - Core tree functionality (Phase 1 + Phase 2) is complete and usable
+  - Phase 3 tasks.md dossier created at `docs/plans/004-tree-command/tasks/phase-3-file-type-specific-handling-and-polish/tasks.md` for future reference
 
 ---
 

@@ -125,11 +125,15 @@ def tree(
         if pattern == ".":
             matched_nodes = all_nodes
             if verbose:
-                console.print(f"[dim]DEBUG: No pattern filter, using all {len(all_nodes)} nodes[/dim]")
+                console.print(
+                    f"[dim]DEBUG: No pattern filter, using all {len(all_nodes)} nodes[/dim]"
+                )
         else:
             matched_nodes = _filter_nodes(all_nodes, pattern)
             if verbose:
-                console.print(f"[dim]DEBUG: Pattern '{pattern}' matched {len(matched_nodes)} nodes[/dim]")
+                console.print(
+                    f"[dim]DEBUG: Pattern '{pattern}' matched {len(matched_nodes)} nodes[/dim]"
+                )
 
         # Handle no matches
         if not matched_nodes:
@@ -139,7 +143,9 @@ def tree(
         # Build root bucket (remove children when ancestor matched)
         root_nodes = _build_root_bucket(matched_nodes, graph_store)
         if verbose:
-            console.print(f"[dim]DEBUG: Root bucket has {len(root_nodes)} root nodes[/dim]")
+            console.print(
+                f"[dim]DEBUG: Root bucket has {len(root_nodes)} root nodes[/dim]"
+            )
 
         # Build and display tree
         _display_tree(root_nodes, graph_store, detail, depth, verbose)
@@ -283,7 +289,9 @@ def _display_tree(
         # No grouping needed - single flat list
         main_tree = Tree("[bold]Code Structure[/bold]")
         for node in sorted(root_nodes, key=lambda n: n.node_id):
-            _add_node_to_tree(main_tree, node, store, detail, max_depth, 1, display_stats)
+            _add_node_to_tree(
+                main_tree, node, store, detail, max_depth, 1, display_stats
+            )
     else:
         # Group by path prefix
         main_tree = Tree("[bold]Code Structure[/bold]")
@@ -295,7 +303,9 @@ def _display_tree(
                 folder_branch = main_tree
 
             for node in sorted(path_groups[prefix], key=lambda n: n.node_id):
-                _add_node_to_tree(folder_branch, node, store, detail, max_depth, 1, display_stats)
+                _add_node_to_tree(
+                    folder_branch, node, store, detail, max_depth, 1, display_stats
+                )
 
     console.print(main_tree)
 
@@ -356,4 +366,6 @@ def _add_node_to_tree(
     # Add children
     children = store.get_children(node.node_id)
     for child in sorted(children, key=lambda n: n.start_line):
-        _add_node_to_tree(branch, child, store, detail, max_depth, current_depth + 1, stats)
+        _add_node_to_tree(
+            branch, child, store, detail, max_depth, current_depth + 1, stats
+        )

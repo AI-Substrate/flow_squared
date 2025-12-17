@@ -5,10 +5,12 @@ Commands:
 - scan: Scan codebase and build code graph
 - init: Initialize .fs2/config.yaml with defaults
 - tree: Display code structure as hierarchical tree
+- get-node: Retrieve a single node by ID as JSON
 """
 
 import typer
 
+from fs2.cli.get_node import get_node
 from fs2.cli.init import init
 from fs2.cli.scan import scan
 from fs2.cli.tree import tree
@@ -30,3 +32,4 @@ def main() -> None:
 app.command(name="scan")(scan)
 app.command(name="init")(init)
 app.command(name="tree")(tree)
+app.command(name="get-node")(get_node)

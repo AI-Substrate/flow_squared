@@ -256,3 +256,171 @@ def scanned_fixtures_graph(_scanned_fixtures_graph_session, monkeypatch):
     monkeypatch.setenv("NO_COLOR", "1")
 
     return ctx
+
+
+# Shared CLI Test Fixtures (per plan-005 T000)
+# These fixtures are used by multiple CLI test files (scan, tree, get-node)
+
+
+@pytest.fixture
+def scanned_project(tmp_path, monkeypatch):
+    """Create a simple project with scanned graph.
+
+    Per plan-005 T000: Shared fixture for CLI tests needing a valid graph.
+    Creates source files, runs scan, returns project path.
+
+    Usage:
+        def test_command(scanned_project, monkeypatch):
+            monkeypatch.chdir(scanned_project)
+            result = runner.invoke(app, ["tree"])
+            assert result.exit_code == 0
+
+    Returns:
+        Path to project root with valid .fs2/graph.pickle.
+    """
+    from typer.testing import CliRunner
+
+    runner = CliRunner()
+
+    # Create config directory
+    config_dir = tmp_path / ".fs2"
+    config_dir.mkdir()
+
+    # Create config file - use relative paths for scan
+    config_file = config_dir / "config.yaml"
+    config_file.write_text("""scan:
+  scan_paths:
+    - "."
+  respect_gitignore: true
+  max_file_size_kb: 500
+tree:
+  graph_path: ".fs2/graph.pickle"
+""")
+
+    # Create source files
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+
+    (src_dir / "calculator.py").write_text("""
+class Calculator:
+    def add(self, a, b):
+        return a + b
+
+    def subtract(self, a, b):
+        return a - b
+""")
+
+    (src_dir / "utils.py").write_text("""
+def helper():
+    return "help"
+
+def format_output(value):
+    return str(value)
+""")
+
+    # Create another subdirectory
+    models_dir = src_dir / "models"
+    models_dir.mkdir()
+
+    (models_dir / "item.py").write_text("""
+class Item:
+    def __init__(self, name):
+        self.name = name
+""")
+
+    # Change to project directory and run scan
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("NO_COLOR", "1")
+
+    from fs2.cli.main import app
+
+    result = runner.invoke(app, ["scan"])
+    assert result.exit_code == 0, f"Scan failed: {result.stdout}"
+
+    return tmp_path
+
+
+@pytest.fixture
+def config_only_project(tmp_path):
+    """Create a project with config but no graph file.
+
+    Per plan-005 T000: Shared fixture for testing "missing graph" errors.
+    Has valid .fs2/config.yaml but no graph.pickle.
+
+    Usage:
+        def test_missing_graph(config_only_project, monkeypatch):
+            monkeypatch.chdir(config_only_project)
+            result = runner.invoke(app, ["tree"])
+            assert result.exit_code == 1
+
+    Returns:
+        Path to project root with config but no graph.
+    """
+    config_dir = tmp_path / ".fs2"
+    config_dir.mkdir()
+
+    config_file = config_dir / "config.yaml"
+    config_file.write_text(f"""scan:
+  scan_paths:
+    - "{tmp_path}"
+tree:
+  graph_path: ".fs2/graph.pickle"
+""")
+
+    return tmp_path
+
+
+@pytest.fixture
+def corrupted_graph_project(tmp_path):
+    """Create a project with a corrupted graph file.
+
+    Per plan-005 T000: Shared fixture for testing "corrupted graph" errors.
+    Has valid config and a graph.pickle that is not valid pickle data.
+
+    Usage:
+        def test_corrupted_graph(corrupted_graph_project, monkeypatch):
+            monkeypatch.chdir(corrupted_graph_project)
+            result = runner.invoke(app, ["get-node", "file:test.py"])
+            assert result.exit_code == 2
+
+    Returns:
+        Path to project root with corrupted graph.
+    """
+    config_dir = tmp_path / ".fs2"
+    config_dir.mkdir()
+
+    config_file = config_dir / "config.yaml"
+    config_file.write_text(f"""scan:
+  scan_paths:
+    - "{tmp_path}"
+tree:
+  graph_path: ".fs2/graph.pickle"
+""")
+
+    # Create corrupted graph file (invalid pickle data)
+    graph_file = config_dir / "graph.pickle"
+    graph_file.write_bytes(b"not valid pickle data - corrupted!")
+
+    return tmp_path
+
+
+@pytest.fixture
+def project_without_config(tmp_path):
+    """Create a project without .fs2/config.yaml.
+
+    Per plan-005 T000: Shared fixture for testing "missing config" errors.
+    Has Python files but no .fs2/ directory at all.
+
+    Usage:
+        def test_missing_config(project_without_config, monkeypatch):
+            monkeypatch.chdir(project_without_config)
+            result = runner.invoke(app, ["scan"])
+            assert result.exit_code == 1
+            assert "init" in result.stdout.lower()
+
+    Returns:
+        Path to project root with no config.
+    """
+    # Just create a Python file, no config
+    (tmp_path / "test.py").write_text("x = 1")
+    return tmp_path
