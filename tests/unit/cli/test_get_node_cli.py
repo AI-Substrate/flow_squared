@@ -198,13 +198,13 @@ class TestGetNodeFileOutput:
         assert "node_id" in data
         assert data["node_id"] == "file:src/calculator.py"
 
-    def test_given_file_flag_when_get_node_then_success_on_stderr(
+    def test_given_file_flag_when_get_node_then_stdout_is_empty(
         self, scanned_project, monkeypatch, tmp_path
     ):
         """
-        Purpose: Proves success message goes to stderr, not stdout.
-        Quality Contribution: Keeps stdout clean even with --file.
-        Acceptance Criteria: Success message appears in output (AC4).
+        Purpose: Proves stdout is empty with --file (success message goes to stderr).
+        Quality Contribution: Keeps stdout clean for piping even with --file (AC4).
+        Acceptance Criteria: Exit 0, stdout empty, file contains valid JSON.
 
         Task: T005
         """
@@ -221,11 +221,15 @@ class TestGetNodeFileOutput:
 
         assert result.exit_code == 0
 
-        # CliRunner mixes stdout/stderr, so just check success message exists
-        # The key is that the file contains only JSON
+        # Stdout should be empty (success message goes to stderr)
+        # CliRunner can't capture Rich Console(stderr=True) output
+        assert result.stdout == "", (
+            f"Expected empty stdout with --file, got: {result.stdout}"
+        )
+
+        # File should contain valid JSON
         assert output_file.exists()
         file_content = output_file.read_text()
-        # Verify file is pure JSON (no success message in file)
         data = json.loads(file_content)
         assert "node_id" in data
 
@@ -243,7 +247,7 @@ class TestGetNodeErrors:
         """
         Purpose: Proves missing node returns user error.
         Quality Contribution: Prevents silent failures.
-        Acceptance Criteria: Exit 1, error message (AC5).
+        Acceptance Criteria: Exit 1, stdout is empty (errors go to stderr) (AC5).
 
         Task: T006
         """
@@ -257,10 +261,11 @@ class TestGetNodeErrors:
         assert result.exit_code == 1, (
             f"Expected exit 1, got {result.exit_code}: {result.stdout}"
         )
-        # Error should mention the node wasn't found
-        assert (
-            "not found" in result.stdout.lower() or "error" in result.stdout.lower()
-        ), f"Expected error message in: {result.stdout}"
+        # Stdout should be empty (error message goes to stderr for clean piping)
+        # CliRunner can't capture Rich Console(stderr=True) output
+        assert result.stdout == "", (
+            f"Expected empty stdout for error case, got: {result.stdout}"
+        )
 
     def test_given_missing_graph_when_get_node_then_exit_one(
         self, config_only_project, monkeypatch
@@ -268,7 +273,7 @@ class TestGetNodeErrors:
         """
         Purpose: Proves missing graph returns user error with guidance.
         Quality Contribution: Guides user to run fs2 scan first.
-        Acceptance Criteria: Exit 1, mentions "scan" (AC6).
+        Acceptance Criteria: Exit 1, stdout is empty (guidance goes to stderr) (AC6).
 
         Task: T007
         """
@@ -282,8 +287,9 @@ class TestGetNodeErrors:
         assert result.exit_code == 1, (
             f"Expected exit 1, got {result.exit_code}: {result.stdout}"
         )
-        assert "scan" in result.stdout.lower(), (
-            f"Expected 'scan' guidance in: {result.stdout}"
+        # Stdout should be empty (guidance message goes to stderr for clean piping)
+        assert result.stdout == "", (
+            f"Expected empty stdout for error case, got: {result.stdout}"
         )
 
     def test_given_corrupted_graph_when_get_node_then_exit_two(
@@ -292,7 +298,7 @@ class TestGetNodeErrors:
         """
         Purpose: Proves corrupted graph returns system error.
         Quality Contribution: Distinguishes user vs system errors.
-        Acceptance Criteria: Exit 2 (AC7).
+        Acceptance Criteria: Exit 2, stdout is empty (error goes to stderr) (AC7).
 
         Task: T008
         """
@@ -306,6 +312,10 @@ class TestGetNodeErrors:
         assert result.exit_code == 2, (
             f"Expected exit 2 for corruption, got {result.exit_code}: {result.stdout}"
         )
+        # Stdout should be empty (error message goes to stderr for clean piping)
+        assert result.stdout == "", (
+            f"Expected empty stdout for error case, got: {result.stdout}"
+        )
 
     def test_given_missing_config_when_get_node_then_exit_one(
         self, project_without_config, monkeypatch
@@ -313,7 +323,7 @@ class TestGetNodeErrors:
         """
         Purpose: Proves missing config returns user error with guidance.
         Quality Contribution: Guides user to run fs2 init first.
-        Acceptance Criteria: Exit 1, mentions "init".
+        Acceptance Criteria: Exit 1, stdout is empty (guidance goes to stderr).
 
         Task: T008a
         """
@@ -327,6 +337,7 @@ class TestGetNodeErrors:
         assert result.exit_code == 1, (
             f"Expected exit 1, got {result.exit_code}: {result.stdout}"
         )
-        assert "init" in result.stdout.lower(), (
-            f"Expected 'init' guidance in: {result.stdout}"
+        # Stdout should be empty (guidance message goes to stderr for clean piping)
+        assert result.stdout == "", (
+            f"Expected empty stdout for error case, got: {result.stdout}"
         )

@@ -137,10 +137,12 @@ The command must produce clean stdout output (no logging, no Rich formatting) so
 - --file option explanation
 - Example usage
 
-### AC9: All CodeNode Fields Present
+### AC9: Essential CodeNode Fields Present
 **Given** a valid node_id
 **When** the JSON is output
-**Then** all 22 CodeNode fields are present in the JSON object
+**Then** essential CodeNode fields are present in the JSON object (node_id, category, content, start_line, language)
+
+**Note**: Per Insight #2 from clarification session - testing essential fields (not hardcoded 22) makes tests resilient to CodeNode schema changes. All fields are serialized; tests verify key fields are present.
 
 ---
 
@@ -196,7 +198,7 @@ None. The research phase thoroughly explored the implementation approach and res
 - AC4: File output option
 - AC5-AC7: Error handling scenarios
 - AC8: Help text verification
-- AC9: JSON schema completeness
+- AC9: Essential CodeNode fields (resilient to schema changes)
 
 **Excluded**: None - Full TDD covers all acceptance criteria
 

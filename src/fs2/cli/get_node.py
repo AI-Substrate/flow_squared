@@ -2,9 +2,8 @@
 
 Retrieves a single CodeNode by ID and outputs as JSON for scripting and tool integration.
 
-Per research finding #01: Use raw print() for JSON output.
-Errors go through Rich Console for formatting (matching tree.py pattern).
-This ensures clean stdout for piping to tools like jq on successful retrieval.
+Per research finding #01: Use raw print() for JSON output, Console(stderr=True) for errors.
+This ensures clean stdout for piping to tools like jq - only JSON on stdout, all else to stderr.
 """
 
 import json
@@ -22,8 +21,8 @@ from fs2.core.adapters.exceptions import GraphStoreError
 from fs2.core.repos import NetworkXGraphStore
 from fs2.core.repos.graph_store import GraphStore
 
-# Console for error messages (matches tree.py pattern)
-console = Console()
+# Console for error/status messages - writes to stderr to keep stdout clean for piping
+console = Console(stderr=True)
 
 
 def get_node(

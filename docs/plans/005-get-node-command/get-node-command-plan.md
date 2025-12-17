@@ -271,10 +271,18 @@ class TestGetNodeErrors:
 
 ## Change Footnotes Ledger
 
-**NOTE**: This section will be populated during implementation by plan-6a-update-progress.
+[^1]: T000 - Shared CLI test fixtures
+  - `file:tests/conftest.py` - Added scanned_project, config_only_project, corrupted_graph_project, project_without_config fixtures
 
-[^1]: [To be added during implementation via plan-6a]
-[^2]: [To be added during implementation via plan-6a]
+[^2]: T009-T015 - get-node command implementation
+  - `function:src/fs2/cli/get_node.py:get_node` - Main command function
+  - `file:src/fs2/cli/main.py` - Registered get-node command
+
+[^3]: T001-T008a - Unit tests
+  - `file:tests/unit/cli/test_get_node_cli.py` - TestGetNodeHelp, TestGetNodeSuccess, TestGetNodePiping, TestGetNodeFileOutput, TestGetNodeErrors classes
+
+[^4]: T016 - Integration tests
+  - `file:tests/integration/test_get_node_cli_integration.py` - TestGetNodeIntegration class
 
 ---
 
