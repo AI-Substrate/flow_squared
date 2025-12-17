@@ -292,6 +292,65 @@ When planning, output MUST include:
 
 ---
 
+## 9. CLI Standards
+
+### R9.1 Standard Option Naming
+
+When a CLI command needs a particular capability, it MUST use these standard option names:
+
+| Capability | Option | Values | Description |
+|------------|--------|--------|-------------|
+| Detail level | `--detail` | `min`, `max` | Output detail level (min=essential, max=everything) |
+| Debug output | `--verbose`, `-v` | flag | System-level debug logging (not user detail) |
+| Node filtering | `--node_filter` | PATTERN | Filter results by node ID pattern (exact match or grep-like) |
+| Help | `--help` | flag | Show command help (Typer default) |
+| Force | `--force`, `-f` | flag | Override safety checks/confirmations |
+| Depth limit | `--depth`, `-d` | INT | Limit traversal/recursion depth |
+
+**Key distinctions**:
+- `--detail` controls user-facing output richness. `--verbose` enables system diagnostics/debug logging.
+- `--node_filter` operates on FlowSpace node IDs (format: `{category}:{file_path}:{qualified_name}`), while positional PATTERN arguments typically filter on file paths.
+
+### R9.2 Exit Codes
+
+All CLI commands MUST use consistent exit codes:
+
+| Code | Meaning | Example |
+|------|---------|---------|
+| 0 | Success | Command completed normally |
+| 1 | User error | Missing config, invalid argument, missing prerequisite |
+| 2 | System error | I/O failure, corruption, unexpected exception |
+
+### R9.3 Option Implementation Pattern
+
+Options MUST use Typer's `Annotated` pattern:
+
+```python
+def command(
+    verbose: Annotated[
+        bool,
+        typer.Option("--verbose", "-v", help="Enable debug logging"),
+    ] = False,
+    detail: Annotated[
+        str,
+        typer.Option("--detail", help="Output detail: min or max"),
+    ] = "min",
+) -> None:
+```
+
+### R9.4 Applicability
+
+- Commands SHOULD only include options that are meaningful for that command
+- Not every command needs `--detail` (only those with varying output levels)
+- `--verbose` SHOULD be available on all commands for debugging
+- `--help` is automatic via Typer
+
+<!-- USER CONTENT START -->
+<!-- Add project-specific CLI rules here -->
+<!-- USER CONTENT END -->
+
+---
+
 ## Quick Reference
 
 ### Import Rules Summary

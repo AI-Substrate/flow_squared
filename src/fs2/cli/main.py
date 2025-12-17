@@ -4,12 +4,14 @@ Provides the Typer app instance with registered commands.
 Commands:
 - scan: Scan codebase and build code graph
 - init: Initialize .fs2/config.yaml with defaults
+- tree: Display code structure as hierarchical tree
 """
 
 import typer
 
 from fs2.cli.init import init
 from fs2.cli.scan import scan
+from fs2.cli.tree import tree
 
 app = typer.Typer(
     name="fs2",
@@ -27,3 +29,4 @@ def main() -> None:
 # Register commands
 app.command(name="scan")(scan)
 app.command(name="init")(init)
+app.command(name="tree")(tree)

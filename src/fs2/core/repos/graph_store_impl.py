@@ -128,6 +128,7 @@ class NetworkXGraphStore(GraphStore):
         """
         self._scan_config = config.require(ScanConfig)
         self._graph: nx.DiGraph = nx.DiGraph()
+        self._metadata: dict[str, Any] | None = None
 
     def add_node(self, node: CodeNode) -> None:
         """Add a CodeNode to the graph.
@@ -330,6 +331,7 @@ class NetworkXGraphStore(GraphStore):
                 )
 
             self._graph = graph
+            self._metadata = metadata
 
             logger.info(
                 "Graph loaded from %s (%d nodes, %d edges, version=%s)",
@@ -358,3 +360,22 @@ class NetworkXGraphStore(GraphStore):
         """
         self._graph.clear()
         logger.debug("Graph cleared")
+
+    def get_metadata(self) -> dict[str, Any]:
+        """Return loaded graph metadata.
+
+        Returns metadata from the most recently loaded graph file.
+        This includes format version, creation timestamp, and counts.
+
+        Returns:
+            Dict with keys: format_version, created_at, node_count, edge_count.
+
+        Raises:
+            GraphStoreError: If no graph has been loaded yet.
+        """
+        if self._metadata is None:
+            raise GraphStoreError(
+                "Graph metadata not loaded. "
+                "Call load() first to load a graph from disk."
+            )
+        return self._metadata

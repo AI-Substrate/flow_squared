@@ -13,6 +13,7 @@ Per Critical Finding 01: Implementations receive ConfigurationService.
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any
 
 from fs2.core.models.code_node import CodeNode
 
@@ -147,5 +148,20 @@ class GraphStore(ABC):
         """Remove all nodes and edges from the graph.
 
         Resets the graph to empty state, ready for fresh scan.
+        """
+        ...
+
+    @abstractmethod
+    def get_metadata(self) -> dict[str, Any]:
+        """Return loaded graph metadata.
+
+        Returns metadata from the most recently loaded graph file.
+        This includes format version, creation timestamp, and counts.
+
+        Returns:
+            Dict with keys: format_version, created_at, node_count, edge_count.
+
+        Raises:
+            GraphStoreError: If no graph has been loaded yet.
         """
         ...

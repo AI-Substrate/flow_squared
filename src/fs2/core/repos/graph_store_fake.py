@@ -14,6 +14,7 @@ Per Critical Finding 01: Receives ConfigurationService, not extracted config.
 Per Critical Finding 02: Adapter ABC with Dual Implementation Pattern.
 """
 
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -71,6 +72,7 @@ class FakeGraphStore(GraphStore):
         self._reverse_edges: dict[str, str] = {}  # child_id → parent_id
         self._call_history: list[dict[str, Any]] = []
         self.simulate_error_for: set[str] = set()
+        self._metadata: dict[str, Any] | None = None
 
     @property
     def call_history(self) -> list[dict[str, Any]]:
@@ -237,3 +239,41 @@ class FakeGraphStore(GraphStore):
         self._nodes.clear()
         self._edges.clear()
         self._reverse_edges.clear()
+
+    def set_metadata(self, metadata: dict[str, Any] | None = None) -> None:
+        """Configure metadata directly for testing.
+
+        Args:
+            metadata: Metadata dict to return from get_metadata().
+                      If None, creates default metadata with current values.
+        """
+        if metadata is None:
+            metadata = {
+                "format_version": "1.0",
+                "created_at": datetime.now(UTC).isoformat(),
+                "node_count": len(self._nodes),
+                "edge_count": sum(len(children) for children in self._edges.values()),
+            }
+        self._metadata = metadata
+
+    def get_metadata(self) -> dict[str, Any]:
+        """Return configured metadata.
+
+        Returns:
+            Dict with metadata (must call set_metadata first or load).
+
+        Raises:
+            GraphStoreError: If metadata not configured.
+        """
+        self._call_history.append({
+            "method": "get_metadata",
+            "args": (),
+            "kwargs": {},
+        })
+
+        if self._metadata is None:
+            raise GraphStoreError(
+                "Graph metadata not loaded. "
+                "Call load() or set_metadata() first."
+            )
+        return self._metadata

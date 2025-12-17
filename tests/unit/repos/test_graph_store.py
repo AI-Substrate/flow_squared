@@ -157,3 +157,110 @@ class TestGraphStoreABC:
 
         assert GraphStore.__doc__ is not None
         assert "ConfigurationService" in GraphStore.__doc__
+
+    def test_graph_store_abc_defines_get_metadata_method(self):
+        """
+        Purpose: Verifies get_metadata() is an abstract method.
+        Quality Contribution: Ensures implementations provide metadata access.
+        Acceptance Criteria: get_metadata in __abstractmethods__.
+
+        Task: T003 (tree command)
+        """
+        from fs2.core.repos.graph_store import GraphStore
+
+        assert "get_metadata" in GraphStore.__abstractmethods__
+
+
+@pytest.mark.unit
+class TestGraphStoreGetMetadataContract:
+    """T003: Tests for GraphStore.get_metadata() contract."""
+
+    def test_given_loaded_graph_when_get_metadata_then_returns_dict(self, tmp_path):
+        """
+        Purpose: Verifies metadata access after load.
+        Quality Contribution: Ensures freshness info available.
+        Acceptance Criteria: Returns dict with expected keys.
+
+        Task: T003
+        """
+        from fs2.config.service import FakeConfigurationService
+        from fs2.config.objects import ScanConfig
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.core.models.code_node import CodeNode
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        # Add a node and save
+        node = CodeNode.create_file(
+            "test.py", "python", "module",
+            0, 100, 1, 10, "# test"
+        )
+        store.add_node(node)
+        graph_path = tmp_path / "test_graph.pickle"
+        store.save(graph_path)
+
+        # Create fresh store and load
+        store2 = NetworkXGraphStore(config)
+        store2.load(graph_path)
+
+        metadata = store2.get_metadata()
+
+        assert isinstance(metadata, dict)
+        assert "format_version" in metadata
+        assert "created_at" in metadata
+        assert "node_count" in metadata
+        assert "edge_count" in metadata
+
+    def test_given_no_load_when_get_metadata_then_raises_error(self):
+        """
+        Purpose: Verifies error when metadata accessed before load.
+        Quality Contribution: Prevents silent failures.
+        Acceptance Criteria: GraphStoreError raised.
+
+        Task: T003
+        """
+        from fs2.config.service import FakeConfigurationService
+        from fs2.config.objects import ScanConfig
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.core.adapters.exceptions import GraphStoreError
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        with pytest.raises(GraphStoreError, match="not loaded"):
+            store.get_metadata()
+
+    def test_given_loaded_graph_when_get_metadata_then_node_count_matches(self, tmp_path):
+        """
+        Purpose: Verifies node_count in metadata is accurate.
+        Quality Contribution: Ensures correct statistics.
+        Acceptance Criteria: node_count matches actual nodes.
+
+        Task: T003
+        """
+        from fs2.config.service import FakeConfigurationService
+        from fs2.config.objects import ScanConfig
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.core.models.code_node import CodeNode
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        # Add 3 nodes
+        for i in range(3):
+            node = CodeNode.create_file(
+                f"test{i}.py", "python", "module",
+                0, 100, 1, 10, f"# test {i}"
+            )
+            store.add_node(node)
+
+        graph_path = tmp_path / "test_graph.pickle"
+        store.save(graph_path)
+
+        # Load and check
+        store2 = NetworkXGraphStore(config)
+        store2.load(graph_path)
+
+        metadata = store2.get_metadata()
+        assert metadata["node_count"] == 3
