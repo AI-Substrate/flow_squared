@@ -675,18 +675,18 @@ class TestSmartContentConfig:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 2.1 | [ ] | Write tests for TemplateService initialization | 2 | Tests cover: template loading, missing template error, syntax validation | - | `tests/test_services/test_template_service.py` |
-| 2.2 | [ ] | Write tests for template selection by category | 2 | Tests cover: all 9 categories map to correct templates | - | Per AC11 |
-| 2.3 | [ ] | Write tests for template rendering with context | 2 | Tests cover: all context variables available, token limits injected | - | Per AC8 |
-| 2.4 | [ ] | Create template directory structure | 1 | Directory exists at `src/fs2/core/templates/smart_content/` | - | With `__init__.py` |
-| 2.5 | [ ] | Implement TemplateService with importlib loading | 3 | All tests from 2.1-2.3 pass | - | Use DictLoader pattern |
-| 2.6 | [ ] | Create smart_content_file.j2 template | 2 | Renders file-level prompts with 200 token limit | - | For `file` category |
-| 2.7 | [ ] | Create smart_content_type.j2 template | 2 | Renders class/struct prompts with 200 token limit | - | For `type` category |
-| 2.8 | [ ] | Create smart_content_callable.j2 template | 2 | Renders function/method prompts with 150 token limit | - | For `callable` category |
-| 2.9 | [ ] | Create smart_content_section.j2 template | 2 | Renders markdown section prompts with 150 token limit | - | For `section` category |
-| 2.10 | [ ] | Create smart_content_block.j2 template | 2 | Renders IaC block prompts with 150 token limit | - | For `block` category |
-| 2.11 | [ ] | Create smart_content_base.j2 fallback template | 2 | Generic template for other categories with 100-150 token limit | - | For `definition`, `statement`, `expression`, `other` |
-| 2.12 | [ ] | Write integration test for all templates | 2 | All templates load and render without error | - | End-to-end template validation |
+| 2.1 | [x] | Write tests for TemplateService initialization | 2 | Tests cover: template loading, missing template error, syntax validation | [📋](tasks/phase-2-template-system/execution.log.md#task-t004-write-templateservice-init-tests) | Completed (RED tests) · log#task-t004-write-templateservice-init-tests [^14] |
+| 2.2 | [x] | Write tests for template selection by category | 2 | Tests cover: all 9 categories map to correct templates | [📋](tasks/phase-2-template-system/execution.log.md#task-t005-write-category-mapping-tests-ac11) | Completed (RED tests) · log#task-t005-write-category-mapping-tests-ac11 [^15] |
+| 2.3 | [x] | Write tests for template rendering with context | 2 | Tests cover: all context variables available, token limits injected | [📋](tasks/phase-2-template-system/execution.log.md#task-t006-write-rendering-context-tests-ac8) | Completed (RED tests) · log#task-t006-write-rendering-context-tests-ac8 [^16] |
+| 2.4 | [x] | Create template directory structure | 1 | Directory exists at `src/fs2/core/templates/smart_content/` | [📋](tasks/phase-2-template-system/execution.log.md#task-t003-add-templates-package-structure) | With `__init__.py` · Completed · log#task-t003-add-templates-package-structure [^13] |
+| 2.5 | [x] | Implement TemplateService with importlib loading | 3 | All tests from 2.1-2.3 pass | [📋](tasks/phase-2-template-system/execution.log.md#task-t007-implement-templateservice-loader-api) | Use DictLoader pattern · Completed · log#task-t007-implement-templateservice-loader-api [^17] |
+| 2.6 | [x] | Create smart_content_file.j2 template | 2 | Renders file-level prompts with 200 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `file` category · Completed · log#task-t009-add-template-files-6 [^18] |
+| 2.7 | [x] | Create smart_content_type.j2 template | 2 | Renders class/struct prompts with 200 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `type` category · Completed · log#task-t009-add-template-files-6 [^18] |
+| 2.8 | [x] | Create smart_content_callable.j2 template | 2 | Renders function/method prompts with 150 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `callable` category · Completed · log#task-t009-add-template-files-6 [^18] |
+| 2.9 | [x] | Create smart_content_section.j2 template | 2 | Renders markdown section prompts with 150 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `section` category · Completed · log#task-t009-add-template-files-6 [^18] |
+| 2.10 | [x] | Create smart_content_block.j2 template | 2 | Renders IaC block prompts with 150 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `block` category · Completed · log#task-t009-add-template-files-6 [^18] |
+| 2.11 | [x] | Create smart_content_base.j2 fallback template | 2 | Generic template for other categories with 100-150 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `definition`, `statement`, `expression`, `other` · Completed · log#task-t009-add-template-files-6 [^18] |
+| 2.12 | [x] | Write integration test for all templates | 2 | All templates load and render without error | [📋](tasks/phase-2-template-system/execution.log.md#task-t010-integration-test-load-render-all-templates) | End-to-end template validation · Completed · log#task-t010-integration-test-load-render-all-templates [^19] |
 
 ### Test Examples (Write First!)
 
@@ -1425,7 +1425,7 @@ class TestGetNodeCLI:
 ### Phase Completion Checklist
 
 - [x] Phase 1: Foundation & Infrastructure - COMPLETE
-- [ ] Phase 2: Template System - NOT STARTED
+- [x] Phase 2: Template System - COMPLETE
 - [ ] Phase 3: Core Service Implementation - NOT STARTED
 - [ ] Phase 4: Batch Processing Engine - NOT STARTED
 - [ ] Phase 5: CLI Integration & Documentation - NOT STARTED
@@ -1496,6 +1496,50 @@ class TestGetNodeCLI:
   - `class:src/fs2/core/services/smart_content/exceptions.py:SmartContentError`
   - `class:src/fs2/core/services/smart_content/exceptions.py:TemplateError`
   - `class:src/fs2/core/services/smart_content/exceptions.py:SmartContentProcessingError`
+
+[^12]: Phase 2 (setup) - Add Jinja2 dependency and package-data include rules
+  - `file:pyproject.toml`
+  - `file:uv.lock`
+
+[^13]: Phase 2 (setup) - Add templates Python packages for importlib.resources
+  - `file:src/fs2/core/templates/__init__.py`
+  - `file:src/fs2/core/templates/smart_content/__init__.py`
+
+[^14]: Task 2.1 - TemplateService initialization tests (RED)
+  - `file:tests/unit/services/test_template_service.py`
+  - `function:tests/unit/services/test_template_service.py:test_given_template_service_when_constructed_then_loads_all_required_templates`
+  - `function:tests/unit/services/test_template_service.py:test_given_missing_template_when_constructed_then_raises_template_error`
+  - `function:tests/unit/services/test_template_service.py:test_given_invalid_template_syntax_when_constructed_then_raises_template_error`
+
+[^15]: Task 2.2 - Category→template mapping tests (RED)
+  - `file:tests/unit/services/test_template_service.py`
+  - `function:tests/unit/services/test_template_service.py:test_given_category_when_resolving_template_then_matches_ac11_mapping`
+  - `function:tests/unit/services/test_template_service.py:test_given_category_when_resolving_max_tokens_then_uses_smart_content_config_defaults`
+
+[^16]: Task 2.3 - Template rendering context tests (RED)
+  - `file:tests/unit/services/test_template_service.py`
+  - `function:tests/unit/services/test_template_service.py:test_given_required_context_vars_when_rendering_then_all_ac8_vars_are_supported`
+  - `function:tests/unit/services/test_template_service.py:test_given_missing_required_context_var_when_rendering_then_raises_template_error`
+
+[^17]: Task 2.5 - Implement TemplateService loader + render API
+  - `file:src/fs2/core/services/smart_content/template_service.py`
+  - `file:src/fs2/core/services/smart_content/__init__.py`
+  - `class:src/fs2/core/services/smart_content/template_service.py:TemplateService`
+  - `method:src/fs2/core/services/smart_content/template_service.py:TemplateService.resolve_template_name`
+  - `method:src/fs2/core/services/smart_content/template_service.py:TemplateService.resolve_max_tokens`
+  - `method:src/fs2/core/services/smart_content/template_service.py:TemplateService.render_for_category`
+
+[^18]: Tasks 2.6–2.11 - Add Smart Content templates (`.j2`)
+  - `file:src/fs2/core/templates/smart_content/smart_content_file.j2`
+  - `file:src/fs2/core/templates/smart_content/smart_content_type.j2`
+  - `file:src/fs2/core/templates/smart_content/smart_content_callable.j2`
+  - `file:src/fs2/core/templates/smart_content/smart_content_section.j2`
+  - `file:src/fs2/core/templates/smart_content/smart_content_block.j2`
+  - `file:src/fs2/core/templates/smart_content/smart_content_base.j2`
+
+[^19]: Task 2.12 - Integration test: all templates load + render
+  - `file:tests/unit/services/test_template_service.py`
+  - `function:tests/unit/services/test_template_service.py:test_given_all_templates_when_rendering_then_no_template_raises`
 
 ---
 

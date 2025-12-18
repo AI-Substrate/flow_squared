@@ -64,16 +64,16 @@ flowchart TD
     style Files fill:#F5F5F5,stroke:#E0E0E0
 
     subgraph Phase["Phase 2: Template System"]
-        T001["T001: Review Phase 1 exports"]:::pending
-        T002["T002: Add Jinja2 dependency + package data"]:::pending
-        T003["T003: Add templates package structure"]:::pending
-        T004["T004: Write TemplateService init tests"]:::pending
-        T005["T005: Write category mapping tests (AC11)"]:::pending
-        T006["T006: Write rendering context tests (AC8)"]:::pending
-        T007["T007: Implement TemplateService loader + API"]:::pending
-        T008["T008: Implement template syntax validation"]:::pending
-        T009["T009: Add template files (6)"]:::pending
-        T010["T010: Integration test: load+render all templates"]:::pending
+        T001["T001: Review Phase 1 exports ✓"]:::completed
+        T002["T002: Add Jinja2 dependency + package data ✓"]:::completed
+        T003["T003: Add templates package structure ✓"]:::completed
+        T004["T004: Write TemplateService init tests ✓"]:::completed
+        T005["T005: Write category mapping tests (AC11) ✓"]:::completed
+        T006["T006: Write rendering context tests (AC8) ✓"]:::completed
+        T007["T007: Implement TemplateService loader + API ✓"]:::completed
+        T008["T008: Implement template syntax validation ✓"]:::completed
+        T009["T009: Add template files (6) ✓"]:::completed
+        T010["T010: Integration test: load+render all templates ✓"]:::completed
 
         T001 --> T002 --> T003 --> T004 --> T007 --> T008 --> T009 --> T010
         T004 --> T005 --> T007
@@ -81,22 +81,22 @@ flowchart TD
     end
 
     subgraph Files["Files"]
-        F1["/workspaces/flow_squared/pyproject.toml"]:::pending
-        F2["/workspaces/flow_squared/uv.lock"]:::pending
+        F1["/workspaces/flow_squared/pyproject.toml ✓"]:::completed
+        F2["/workspaces/flow_squared/uv.lock ✓"]:::completed
 
-        F3["/workspaces/flow_squared/src/fs2/core/templates/__init__.py"]:::pending
-        F4["/workspaces/flow_squared/src/fs2/core/templates/smart_content/__init__.py"]:::pending
-        F5["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_file.j2"]:::pending
-        F6["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_type.j2"]:::pending
-        F7["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_callable.j2"]:::pending
-        F8["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_section.j2"]:::pending
-        F9["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_block.j2"]:::pending
-        F10["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_base.j2"]:::pending
+        F3["/workspaces/flow_squared/src/fs2/core/templates/__init__.py ✓"]:::completed
+        F4["/workspaces/flow_squared/src/fs2/core/templates/smart_content/__init__.py ✓"]:::completed
+        F5["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_file.j2 ✓"]:::completed
+        F6["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_type.j2 ✓"]:::completed
+        F7["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_callable.j2 ✓"]:::completed
+        F8["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_section.j2 ✓"]:::completed
+        F9["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_block.j2 ✓"]:::completed
+        F10["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_base.j2 ✓"]:::completed
 
-        F11["/workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py"]:::pending
-        F12["/workspaces/flow_squared/src/fs2/core/services/smart_content/__init__.py"]:::pending
+        F11["/workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py ✓"]:::completed
+        F12["/workspaces/flow_squared/src/fs2/core/services/smart_content/__init__.py ✓"]:::completed
 
-        F13["/workspaces/flow_squared/tests/unit/services/test_template_service.py"]:::pending
+        F13["/workspaces/flow_squared/tests/unit/services/test_template_service.py ✓"]:::completed
     end
 
     T002 -.-> F1
@@ -137,16 +137,16 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Alignment | Phase 1 artifacts | ⬜ Pending | Confirm Phase 1 exports (config, exceptions) we build on |
-| T002 | Dependencies + Packaging | Packaging | ⬜ Pending | Add `jinja2` and ensure `.j2` templates ship in wheel |
-| T003 | Templates Package | Templates | ⬜ Pending | Add Python packages required for `importlib.resources` loading |
-| T004 | Tests | TemplateService | ⬜ Pending | TDD: init + loading + missing template + syntax errors |
-| T005 | Tests | Mapping | ⬜ Pending | TDD: category→template mapping contract (AC11) |
-| T006 | Tests | Rendering | ⬜ Pending | TDD: context variables + `max_tokens` injection (AC8) |
-| T007 | Core | TemplateService | ⬜ Pending | Implement loader + mapping + render APIs |
-| T008 | Core | Validation | ⬜ Pending | Fail early on invalid templates via `TemplateError` |
-| T009 | Templates | Prompt files | ⬜ Pending | Create 6 category templates used by later phases |
-| T010 | Integration | End-to-end | ⬜ Pending | Prove all templates load+render with representative contexts |
+| T001 | Alignment | Phase 1 artifacts | ✅ Complete | Confirmed Phase 1 exports (config + TemplateError contract) |
+| T002 | Dependencies + Packaging | Packaging | ✅ Complete | Added `jinja2` dependency + Hatch include rules for `.j2` package data |
+| T003 | Templates Package | Templates | ✅ Complete | Added template packages so `importlib.resources` can resolve `fs2.core.templates.smart_content` |
+| T004 | Tests | TemplateService | ✅ Complete | Added RED tests for init-time loading + missing/syntax error handling |
+| T005 | Tests | Mapping | ✅ Complete | Added RED tests for AC11 category mapping + token-limit mapping |
+| T006 | Tests | Rendering | ✅ Complete | Added RED tests for AC8 context contract + strict undefined rendering |
+| T007 | Core | TemplateService | ✅ Complete | Implemented TemplateService loader + mapping + render APIs |
+| T008 | Core | Validation | ✅ Complete | Init-time template compilation/validation verified; failures surface as `TemplateError` |
+| T009 | Templates | Prompt files | ✅ Complete | Added six `.j2` templates (5 specialized + 1 base fallback) |
+| T010 | Integration | End-to-end | ✅ Complete | Added end-to-end test + installed-artifact smoke check evidence |
 
 ---
 
@@ -154,16 +154,16 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|----|------|----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Review Phase 1 deliverables for reuse (SmartContentConfig defaults, `TemplateError` availability, conventions) | 1 | Setup | – | /workspaces/flow_squared/src/fs2/config/objects.py, /workspaces/flow_squared/src/fs2/core/services/smart_content/exceptions.py, /workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-1-foundation-and-infrastructure/tasks.md, /workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-1-foundation-and-infrastructure/execution.log.md | Alignment brief includes the reused symbols + constraints to follow | – | Links to prior phase are captured in Alignment Brief |
-| [ ] | T002 | Add `jinja2` dependency and ensure templates are included in installed artifacts (uv/uvx) | 3 | Setup | T001 | /workspaces/flow_squared/pyproject.toml, /workspaces/flow_squared/uv.lock | `uv run python -c "import jinja2"` succeeds; `uv build` + `uv pip install dist/*.whl` env proves `importlib.resources.files("fs2.core.templates.smart_content")` contains `.j2` entries | – | Per spec dependency note; per Critical Discovery 04 (package-safe loading); install-path smoke check added per sponsor decision |
-| [ ] | T003 | Create templates package structure for `fs2.core.templates.smart_content` | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/core/templates/__init__.py, /workspaces/flow_squared/src/fs2/core/templates/smart_content/__init__.py | `importlib.resources.files(\"fs2.core.templates.smart_content\")` resolves without error | – | Package structure is required before adding `.j2` files |
-| [ ] | T004 | Write failing tests: TemplateService init loads templates, raises `TemplateError` for missing templates, validates syntax at init | 3 | Test | T001, T002, T003 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests fail with clear messages until TemplateService exists and enforces validation behavior | – | Per Critical Discovery 04 + 09; errors must be service-layer `TemplateError` (no leaking `jinja2.TemplateNotFound`) |
-| [ ] | T005 | Write failing tests: category→template mapping + token limit mapping (AC11) including fallback categories | 2 | Test | T001, T004 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests prove all 9 categories map to the expected template: specialized templates for `file`, `type`, `callable`, `section`, `block`; fallback to `smart_content_base.j2` for remaining categories; token limit resolved via `SmartContentConfig.token_limits` | – | Per AC11; explicit fallback mapping per sponsor decision |
-| [ ] | T006 | Write failing tests: render contract exposes AC8 context variables and injects `max_tokens` (token limits from `ConfigurationService.require(SmartContentConfig)`) | 2 | Test | T001, T004 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests verify rendered prompt includes key fields and `max_tokens` is present for each category render path; tests construct TemplateService with `FakeConfigurationService` and confirm `SmartContentConfig.token_limits` is the source of truth | – | Per AC8; follow repo service patterns (config required internally); keep tests deterministic (no network) |
-| [ ] | T007 | Implement TemplateService: accept `ConfigurationService`, call `require(SmartContentConfig)`, load templates via `importlib.resources` + `jinja2.DictLoader`, map categories, render templates | 3 | Core | T004, T005, T006 | /workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py, /workspaces/flow_squared/src/fs2/core/services/smart_content/__init__.py | All TemplateService unit tests pass; Jinja2 uses strict undefined behavior so missing AC8 vars surface as `TemplateError`; token limits always come from `SmartContentConfig.token_limits`; public API does not require filesystem paths | – | Per Critical Discovery 04; follow repo conventions (ConfigurationService + FakeConfigurationService in tests); strict undefined per sponsor decision |
-| [ ] | T008 | Implement syntax validation: pre-compile/parse all templates at init; wrap failures as `TemplateError` including template name | 3 | Core | T007 | /workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py | Dedicated tests prove syntax errors are caught at init (not first render) and surfaced as `TemplateError` | – | Per Critical Discovery 09 |
-| [ ] | T009 | Add 6 Jinja2 template files (file/type/callable/section/block/base) with a stable prompt baseline and `max_tokens` placeholder | 2 | Doc | T003 | /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_file.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_type.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_callable.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_section.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_block.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_base.j2 | Each template renders for representative context without undefined-variable errors; prompt text references `max_tokens` and primary context vars | – | Keep template content simple and policy-neutral; quality tuning later |
-| [ ] | T010 | Write integration test: all templates load and render end-to-end for representative categories | 2 | Integration | T007, T008, T009 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | A single test iterates through template names + categories and asserts render does not raise and includes minimal expected markers | – | Mirrors plan task 2.12; proves package-data + importlib loading |
+| [x] | T001 | Review Phase 1 deliverables for reuse (SmartContentConfig defaults, `TemplateError` availability, conventions) | 1 | Setup | – | /workspaces/flow_squared/src/fs2/config/objects.py, /workspaces/flow_squared/src/fs2/core/services/smart_content/exceptions.py, /workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-1-foundation-and-infrastructure/tasks.md, /workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-1-foundation-and-infrastructure/execution.log.md | Alignment brief includes the reused symbols + constraints to follow | – | Links to prior phase are captured in Alignment Brief · log#task-t001-review-phase-1-exports |
+| [x] | T002 | Add `jinja2` dependency and ensure templates are included in installed artifacts (uv/uvx) | 3 | Setup | T001 | /workspaces/flow_squared/pyproject.toml, /workspaces/flow_squared/uv.lock | `uv run python -c "import jinja2"` succeeds; `uv build` + `uv pip install dist/*.whl` env proves `importlib.resources.files("fs2.core.templates.smart_content")` contains `.j2` entries | – | Per spec dependency note; per Critical Discovery 04 (package-safe loading); install-path smoke check added per sponsor decision · log#task-t002-add-jinja2-dependency-package-data [^12] |
+| [x] | T003 | Create templates package structure for `fs2.core.templates.smart_content` | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/core/templates/__init__.py, /workspaces/flow_squared/src/fs2/core/templates/smart_content/__init__.py | `importlib.resources.files(\"fs2.core.templates.smart_content\")` resolves without error | – | Package structure is required before adding `.j2` files · log#task-t003-add-templates-package-structure [^13] |
+| [x] | T004 | Write failing tests: TemplateService init loads templates, raises `TemplateError` for missing templates, validates syntax at init | 3 | Test | T001, T002, T003 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests fail with clear messages until TemplateService exists and enforces validation behavior | – | Per Critical Discovery 04 + 09; errors must be service-layer `TemplateError` (no leaking `jinja2.TemplateNotFound`) · log#task-t004-write-templateservice-init-tests [^14] |
+| [x] | T005 | Write failing tests: category→template mapping + token limit mapping (AC11) including fallback categories | 2 | Test | T001, T004 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests prove all 9 categories map to the expected template: specialized templates for `file`, `type`, `callable`, `section`, `block`; fallback to `smart_content_base.j2` for remaining categories; token limit resolved via `SmartContentConfig.token_limits` | – | Per AC11; explicit fallback mapping per sponsor decision · log#task-t005-write-category-mapping-tests-ac11 [^15] |
+| [x] | T006 | Write failing tests: render contract exposes AC8 context variables and injects `max_tokens` (token limits from `ConfigurationService.require(SmartContentConfig)`) | 2 | Test | T001, T004 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests verify rendered prompt includes key fields and `max_tokens` is present for each category render path; tests construct TemplateService with `FakeConfigurationService` and confirm `SmartContentConfig.token_limits` is the source of truth | – | Per AC8; follow repo service patterns (config required internally); keep tests deterministic (no network) · log#task-t006-write-rendering-context-tests-ac8 [^16] |
+| [x] | T007 | Implement TemplateService: accept `ConfigurationService`, call `require(SmartContentConfig)`, load templates via `importlib.resources` + `jinja2.DictLoader`, map categories, render templates | 3 | Core | T004, T005, T006 | /workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py, /workspaces/flow_squared/src/fs2/core/services/smart_content/__init__.py | All TemplateService unit tests pass; Jinja2 uses strict undefined behavior so missing AC8 vars surface as `TemplateError`; token limits always come from `SmartContentConfig.token_limits`; public API does not require filesystem paths | – | Per Critical Discovery 04; follow repo conventions (ConfigurationService + FakeConfigurationService in tests); strict undefined per sponsor decision · log#task-t007-implement-templateservice-loader-api [^17] |
+| [x] | T008 | Implement syntax validation: pre-compile/parse all templates at init; wrap failures as `TemplateError` including template name | 3 | Core | T007 | /workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py | Dedicated tests prove syntax errors are caught at init (not first render) and surfaced as `TemplateError` | – | Per Critical Discovery 09 · log#task-t008-implement-template-syntax-validation |
+| [x] | T009 | Add 6 Jinja2 template files (file/type/callable/section/block/base) with a stable prompt baseline and `max_tokens` placeholder | 2 | Doc | T003 | /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_file.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_type.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_callable.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_section.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_block.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_base.j2 | Each template renders for representative context without undefined-variable errors; prompt text references `max_tokens` and primary context vars | – | Keep template content simple and policy-neutral; quality tuning later · log#task-t009-add-template-files-6 [^18] |
+| [x] | T010 | Write integration test: all templates load and render end-to-end for representative categories | 2 | Integration | T007, T008, T009 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | A single test iterates through template names + categories and asserts render does not raise and includes minimal expected markers | – | Mirrors plan task 2.12; proves package-data + importlib loading · log#task-t010-integration-test-load-render-all-templates [^19] |
 
 ---
 
@@ -341,7 +341,14 @@ _Populated during implementation by plan-6._
 
 | ID | Footnote | Type | Affects | Notes |
 |----|----------|------|---------|-------|
-| | | | | |
+| 12 | [^12] | file | `pyproject.toml`, `uv.lock` | Phase 2 T002: add `jinja2` dependency + Hatch include rules |
+| 13 | [^13] | file | `src/fs2/core/templates/__init__.py`, `src/fs2/core/templates/smart_content/__init__.py` | Phase 2 T003: create template packages for `importlib.resources` |
+| 14 | [^14] | test | `tests/unit/services/test_template_service.py` | Phase 2 T004: add init/load/missing/syntax RED tests |
+| 15 | [^15] | test | `tests/unit/services/test_template_service.py` | Phase 2 T005: add AC11 category mapping + token limit RED tests |
+| 16 | [^16] | test | `tests/unit/services/test_template_service.py` | Phase 2 T006: add AC8 render contract + strict undefined RED tests |
+| 17 | [^17] | core | `src/fs2/core/services/smart_content/template_service.py`, `src/fs2/core/services/smart_content/__init__.py` | Phase 2 T007: implement TemplateService loader + API |
+| 18 | [^18] | file | `src/fs2/core/templates/smart_content/*.j2` | Phase 2 T009: add the six smart content templates |
+| 19 | [^19] | test | `tests/unit/services/test_template_service.py` | Phase 2 T010: add end-to-end load+render test (importlib.resources) |
 
 ---
 
@@ -349,6 +356,7 @@ _Populated during implementation by plan-6._
 
 - Execution log (written by plan-6): `/workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-2-template-system/execution.log.md`
 - This dossier: `/workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-2-template-system/tasks.md`
+- Packaging smoke-check workspace: `/workspaces/flow_squared/.tmp/smart-content-phase-2-smoke/`
 
 ---
 
@@ -359,6 +367,8 @@ _Populated during implementation by plan-6. Log anything of interest to your fut
 | Date | Task | Type | Discovery | Resolution | References |
 |------|------|------|-----------|------------|------------|
 | | | | | | |
+| 2025-12-18 | T002 | gotcha | Hatchling wheel build does not include `.j2` templates unless explicitly included | Added Hatch include rules for `src/fs2/core/templates/**/*.j2` in wheel + sdist | log#task-t002-add-jinja2-dependency-package-data |
+| 2025-12-18 | T010 | insight | Installed-artifact smoke check confirmed `.j2` templates are present in the wheel and discoverable via `importlib.resources` | Kept Hatch include rules + added integration test to exercise package-based loading | log#task-t010-integration-test-load-render-all-templates |
 
 | 2025-12-18 | planning | decision | Phase 2 must validate templates from an installed artifact (uv/uvx-style), not just from the source tree | Added installed-artifact smoke check commands and strengthened T002 validation | didyouknow#insight-1 |
 | 2025-12-18 | planning | decision | Jinja2 rendering must fail closed on missing AC8 context vars | Require strict undefined behavior in TemplateService + tests | didyouknow#insight-2 |

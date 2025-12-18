@@ -9,10 +9,11 @@ from fs2.core.services.smart_content.exceptions import (
     SmartContentProcessingError,
     TemplateError,
 )
+from fs2.core.services.smart_content.template_service import TemplateService
 
 __all__ = [
     "SmartContentError",
     "TemplateError",
     "SmartContentProcessingError",
+    "TemplateService",
 ]
-

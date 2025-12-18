@@ -1,0 +1,1283 @@
+diff --git a/docs/plans/008-smart-content/smart-content-plan.md b/docs/plans/008-smart-content/smart-content-plan.md
+index 8025511..d206e0a 100644
+--- a/docs/plans/008-smart-content/smart-content-plan.md
++++ b/docs/plans/008-smart-content/smart-content-plan.md
+@@ -675,18 +675,18 @@ class TestSmartContentConfig:
+ 
+ | # | Status | Task | CS | Success Criteria | Log | Notes |
+ |---|--------|------|----|------------------|-----|-------|
+-| 2.1 | [ ] | Write tests for TemplateService initialization | 2 | Tests cover: template loading, missing template error, syntax validation | - | `tests/test_services/test_template_service.py` |
+-| 2.2 | [ ] | Write tests for template selection by category | 2 | Tests cover: all 9 categories map to correct templates | - | Per AC11 |
+-| 2.3 | [ ] | Write tests for template rendering with context | 2 | Tests cover: all context variables available, token limits injected | - | Per AC8 |
+-| 2.4 | [ ] | Create template directory structure | 1 | Directory exists at `src/fs2/core/templates/smart_content/` | - | With `__init__.py` |
+-| 2.5 | [ ] | Implement TemplateService with importlib loading | 3 | All tests from 2.1-2.3 pass | - | Use DictLoader pattern |
+-| 2.6 | [ ] | Create smart_content_file.j2 template | 2 | Renders file-level prompts with 200 token limit | - | For `file` category |
+-| 2.7 | [ ] | Create smart_content_type.j2 template | 2 | Renders class/struct prompts with 200 token limit | - | For `type` category |
+-| 2.8 | [ ] | Create smart_content_callable.j2 template | 2 | Renders function/method prompts with 150 token limit | - | For `callable` category |
+-| 2.9 | [ ] | Create smart_content_section.j2 template | 2 | Renders markdown section prompts with 150 token limit | - | For `section` category |
+-| 2.10 | [ ] | Create smart_content_block.j2 template | 2 | Renders IaC block prompts with 150 token limit | - | For `block` category |
+-| 2.11 | [ ] | Create smart_content_base.j2 fallback template | 2 | Generic template for other categories with 100-150 token limit | - | For `definition`, `statement`, `expression`, `other` |
+-| 2.12 | [ ] | Write integration test for all templates | 2 | All templates load and render without error | - | End-to-end template validation |
++| 2.1 | [x] | Write tests for TemplateService initialization | 2 | Tests cover: template loading, missing template error, syntax validation | [📋](tasks/phase-2-template-system/execution.log.md#task-t004-write-templateservice-init-tests) | Completed (RED tests) · log#task-t004-write-templateservice-init-tests [^14] |
++| 2.2 | [x] | Write tests for template selection by category | 2 | Tests cover: all 9 categories map to correct templates | [📋](tasks/phase-2-template-system/execution.log.md#task-t005-write-category-mapping-tests-ac11) | Completed (RED tests) · log#task-t005-write-category-mapping-tests-ac11 [^15] |
++| 2.3 | [x] | Write tests for template rendering with context | 2 | Tests cover: all context variables available, token limits injected | [📋](tasks/phase-2-template-system/execution.log.md#task-t006-write-rendering-context-tests-ac8) | Completed (RED tests) · log#task-t006-write-rendering-context-tests-ac8 [^16] |
++| 2.4 | [x] | Create template directory structure | 1 | Directory exists at `src/fs2/core/templates/smart_content/` | [📋](tasks/phase-2-template-system/execution.log.md#task-t003-add-templates-package-structure) | With `__init__.py` · Completed · log#task-t003-add-templates-package-structure [^13] |
++| 2.5 | [x] | Implement TemplateService with importlib loading | 3 | All tests from 2.1-2.3 pass | [📋](tasks/phase-2-template-system/execution.log.md#task-t007-implement-templateservice-loader-api) | Use DictLoader pattern · Completed · log#task-t007-implement-templateservice-loader-api [^17] |
++| 2.6 | [x] | Create smart_content_file.j2 template | 2 | Renders file-level prompts with 200 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `file` category · Completed · log#task-t009-add-template-files-6 [^18] |
++| 2.7 | [x] | Create smart_content_type.j2 template | 2 | Renders class/struct prompts with 200 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `type` category · Completed · log#task-t009-add-template-files-6 [^18] |
++| 2.8 | [x] | Create smart_content_callable.j2 template | 2 | Renders function/method prompts with 150 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `callable` category · Completed · log#task-t009-add-template-files-6 [^18] |
++| 2.9 | [x] | Create smart_content_section.j2 template | 2 | Renders markdown section prompts with 150 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `section` category · Completed · log#task-t009-add-template-files-6 [^18] |
++| 2.10 | [x] | Create smart_content_block.j2 template | 2 | Renders IaC block prompts with 150 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `block` category · Completed · log#task-t009-add-template-files-6 [^18] |
++| 2.11 | [x] | Create smart_content_base.j2 fallback template | 2 | Generic template for other categories with 100-150 token limit | [📋](tasks/phase-2-template-system/execution.log.md#task-t009-add-template-files-6) | For `definition`, `statement`, `expression`, `other` · Completed · log#task-t009-add-template-files-6 [^18] |
++| 2.12 | [x] | Write integration test for all templates | 2 | All templates load and render without error | [📋](tasks/phase-2-template-system/execution.log.md#task-t010-integration-test-load-render-all-templates) | End-to-end template validation · Completed · log#task-t010-integration-test-load-render-all-templates [^19] |
+ 
+ ### Test Examples (Write First!)
+ 
+@@ -1425,7 +1425,7 @@ class TestGetNodeCLI:
+ ### Phase Completion Checklist
+ 
+ - [x] Phase 1: Foundation & Infrastructure - COMPLETE
+-- [ ] Phase 2: Template System - NOT STARTED
++- [x] Phase 2: Template System - COMPLETE
+ - [ ] Phase 3: Core Service Implementation - NOT STARTED
+ - [ ] Phase 4: Batch Processing Engine - NOT STARTED
+ - [ ] Phase 5: CLI Integration & Documentation - NOT STARTED
+@@ -1497,6 +1497,50 @@ class TestGetNodeCLI:
+   - `class:src/fs2/core/services/smart_content/exceptions.py:TemplateError`
+   - `class:src/fs2/core/services/smart_content/exceptions.py:SmartContentProcessingError`
+ 
++[^12]: Phase 2 (setup) - Add Jinja2 dependency and package-data include rules
++  - `file:pyproject.toml`
++  - `file:uv.lock`
++
++[^13]: Phase 2 (setup) - Add templates Python packages for importlib.resources
++  - `file:src/fs2/core/templates/__init__.py`
++  - `file:src/fs2/core/templates/smart_content/__init__.py`
++
++[^14]: Task 2.1 - TemplateService initialization tests (RED)
++  - `file:tests/unit/services/test_template_service.py`
++  - `function:tests/unit/services/test_template_service.py:test_given_template_service_when_constructed_then_loads_all_required_templates`
++  - `function:tests/unit/services/test_template_service.py:test_given_missing_template_when_constructed_then_raises_template_error`
++  - `function:tests/unit/services/test_template_service.py:test_given_invalid_template_syntax_when_constructed_then_raises_template_error`
++
++[^15]: Task 2.2 - Category→template mapping tests (RED)
++  - `file:tests/unit/services/test_template_service.py`
++  - `function:tests/unit/services/test_template_service.py:test_given_category_when_resolving_template_then_matches_ac11_mapping`
++  - `function:tests/unit/services/test_template_service.py:test_given_category_when_resolving_max_tokens_then_uses_smart_content_config_defaults`
++
++[^16]: Task 2.3 - Template rendering context tests (RED)
++  - `file:tests/unit/services/test_template_service.py`
++  - `function:tests/unit/services/test_template_service.py:test_given_required_context_vars_when_rendering_then_all_ac8_vars_are_supported`
++  - `function:tests/unit/services/test_template_service.py:test_given_missing_required_context_var_when_rendering_then_raises_template_error`
++
++[^17]: Task 2.5 - Implement TemplateService loader + render API
++  - `file:src/fs2/core/services/smart_content/template_service.py`
++  - `file:src/fs2/core/services/smart_content/__init__.py`
++  - `class:src/fs2/core/services/smart_content/template_service.py:TemplateService`
++  - `method:src/fs2/core/services/smart_content/template_service.py:TemplateService.resolve_template_name`
++  - `method:src/fs2/core/services/smart_content/template_service.py:TemplateService.resolve_max_tokens`
++  - `method:src/fs2/core/services/smart_content/template_service.py:TemplateService.render_for_category`
++
++[^18]: Tasks 2.6–2.11 - Add Smart Content templates (`.j2`)
++  - `file:src/fs2/core/templates/smart_content/smart_content_file.j2`
++  - `file:src/fs2/core/templates/smart_content/smart_content_type.j2`
++  - `file:src/fs2/core/templates/smart_content/smart_content_callable.j2`
++  - `file:src/fs2/core/templates/smart_content/smart_content_section.j2`
++  - `file:src/fs2/core/templates/smart_content/smart_content_block.j2`
++  - `file:src/fs2/core/templates/smart_content/smart_content_base.j2`
++
++[^19]: Task 2.12 - Integration test: all templates load + render
++  - `file:tests/unit/services/test_template_service.py`
++  - `function:tests/unit/services/test_template_service.py:test_given_all_templates_when_rendering_then_no_template_raises`
++
+ ---
+ 
+ **Plan Status**: DRAFT
+diff --git a/docs/plans/008-smart-content/tasks/phase-2-template-system/tasks.md b/docs/plans/008-smart-content/tasks/phase-2-template-system/tasks.md
+index d45bd74..b644c66 100644
+--- a/docs/plans/008-smart-content/tasks/phase-2-template-system/tasks.md
++++ b/docs/plans/008-smart-content/tasks/phase-2-template-system/tasks.md
+@@ -64,16 +64,16 @@ flowchart TD
+     style Files fill:#F5F5F5,stroke:#E0E0E0
+ 
+     subgraph Phase["Phase 2: Template System"]
+-        T001["T001: Review Phase 1 exports"]:::pending
+-        T002["T002: Add Jinja2 dependency + package data"]:::pending
+-        T003["T003: Add templates package structure"]:::pending
+-        T004["T004: Write TemplateService init tests"]:::pending
+-        T005["T005: Write category mapping tests (AC11)"]:::pending
+-        T006["T006: Write rendering context tests (AC8)"]:::pending
+-        T007["T007: Implement TemplateService loader + API"]:::pending
+-        T008["T008: Implement template syntax validation"]:::pending
+-        T009["T009: Add template files (6)"]:::pending
+-        T010["T010: Integration test: load+render all templates"]:::pending
++        T001["T001: Review Phase 1 exports ✓"]:::completed
++        T002["T002: Add Jinja2 dependency + package data ✓"]:::completed
++        T003["T003: Add templates package structure ✓"]:::completed
++        T004["T004: Write TemplateService init tests ✓"]:::completed
++        T005["T005: Write category mapping tests (AC11) ✓"]:::completed
++        T006["T006: Write rendering context tests (AC8) ✓"]:::completed
++        T007["T007: Implement TemplateService loader + API ✓"]:::completed
++        T008["T008: Implement template syntax validation ✓"]:::completed
++        T009["T009: Add template files (6) ✓"]:::completed
++        T010["T010: Integration test: load+render all templates ✓"]:::completed
+ 
+         T001 --> T002 --> T003 --> T004 --> T007 --> T008 --> T009 --> T010
+         T004 --> T005 --> T007
+@@ -81,22 +81,22 @@ flowchart TD
+     end
+ 
+     subgraph Files["Files"]
+-        F1["/workspaces/flow_squared/pyproject.toml"]:::pending
+-        F2["/workspaces/flow_squared/uv.lock"]:::pending
+-
+-        F3["/workspaces/flow_squared/src/fs2/core/templates/__init__.py"]:::pending
+-        F4["/workspaces/flow_squared/src/fs2/core/templates/smart_content/__init__.py"]:::pending
+-        F5["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_file.j2"]:::pending
+-        F6["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_type.j2"]:::pending
+-        F7["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_callable.j2"]:::pending
+-        F8["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_section.j2"]:::pending
+-        F9["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_block.j2"]:::pending
+-        F10["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_base.j2"]:::pending
+-
+-        F11["/workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py"]:::pending
+-        F12["/workspaces/flow_squared/src/fs2/core/services/smart_content/__init__.py"]:::pending
+-
+-        F13["/workspaces/flow_squared/tests/unit/services/test_template_service.py"]:::pending
++        F1["/workspaces/flow_squared/pyproject.toml ✓"]:::completed
++        F2["/workspaces/flow_squared/uv.lock ✓"]:::completed
++
++        F3["/workspaces/flow_squared/src/fs2/core/templates/__init__.py ✓"]:::completed
++        F4["/workspaces/flow_squared/src/fs2/core/templates/smart_content/__init__.py ✓"]:::completed
++        F5["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_file.j2 ✓"]:::completed
++        F6["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_type.j2 ✓"]:::completed
++        F7["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_callable.j2 ✓"]:::completed
++        F8["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_section.j2 ✓"]:::completed
++        F9["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_block.j2 ✓"]:::completed
++        F10["/workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_base.j2 ✓"]:::completed
++
++        F11["/workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py ✓"]:::completed
++        F12["/workspaces/flow_squared/src/fs2/core/services/smart_content/__init__.py ✓"]:::completed
++
++        F13["/workspaces/flow_squared/tests/unit/services/test_template_service.py ✓"]:::completed
+     end
+ 
+     T002 -.-> F1
+@@ -137,16 +137,16 @@ flowchart TD
+ 
+ | Task | Component(s) | Files | Status | Comment |
+ |------|-------------|-------|--------|---------|
+-| T001 | Alignment | Phase 1 artifacts | ⬜ Pending | Confirm Phase 1 exports (config, exceptions) we build on |
+-| T002 | Dependencies + Packaging | Packaging | ⬜ Pending | Add `jinja2` and ensure `.j2` templates ship in wheel |
+-| T003 | Templates Package | Templates | ⬜ Pending | Add Python packages required for `importlib.resources` loading |
+-| T004 | Tests | TemplateService | ⬜ Pending | TDD: init + loading + missing template + syntax errors |
+-| T005 | Tests | Mapping | ⬜ Pending | TDD: category→template mapping contract (AC11) |
+-| T006 | Tests | Rendering | ⬜ Pending | TDD: context variables + `max_tokens` injection (AC8) |
+-| T007 | Core | TemplateService | ⬜ Pending | Implement loader + mapping + render APIs |
+-| T008 | Core | Validation | ⬜ Pending | Fail early on invalid templates via `TemplateError` |
+-| T009 | Templates | Prompt files | ⬜ Pending | Create 6 category templates used by later phases |
+-| T010 | Integration | End-to-end | ⬜ Pending | Prove all templates load+render with representative contexts |
++| T001 | Alignment | Phase 1 artifacts | ✅ Complete | Confirmed Phase 1 exports (config + TemplateError contract) |
++| T002 | Dependencies + Packaging | Packaging | ✅ Complete | Added `jinja2` dependency + Hatch include rules for `.j2` package data |
++| T003 | Templates Package | Templates | ✅ Complete | Added template packages so `importlib.resources` can resolve `fs2.core.templates.smart_content` |
++| T004 | Tests | TemplateService | ✅ Complete | Added RED tests for init-time loading + missing/syntax error handling |
++| T005 | Tests | Mapping | ✅ Complete | Added RED tests for AC11 category mapping + token-limit mapping |
++| T006 | Tests | Rendering | ✅ Complete | Added RED tests for AC8 context contract + strict undefined rendering |
++| T007 | Core | TemplateService | ✅ Complete | Implemented TemplateService loader + mapping + render APIs |
++| T008 | Core | Validation | ✅ Complete | Init-time template compilation/validation verified; failures surface as `TemplateError` |
++| T009 | Templates | Prompt files | ✅ Complete | Added six `.j2` templates (5 specialized + 1 base fallback) |
++| T010 | Integration | End-to-end | ✅ Complete | Added end-to-end test + installed-artifact smoke check evidence |
+ 
+ ---
+ 
+@@ -154,16 +154,16 @@ flowchart TD
+ 
+ | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
+ |--------|----|------|----|------|--------------|------------------|------------|----------|-------|
+-| [ ] | T001 | Review Phase 1 deliverables for reuse (SmartContentConfig defaults, `TemplateError` availability, conventions) | 1 | Setup | – | /workspaces/flow_squared/src/fs2/config/objects.py, /workspaces/flow_squared/src/fs2/core/services/smart_content/exceptions.py, /workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-1-foundation-and-infrastructure/tasks.md, /workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-1-foundation-and-infrastructure/execution.log.md | Alignment brief includes the reused symbols + constraints to follow | – | Links to prior phase are captured in Alignment Brief |
+-| [ ] | T002 | Add `jinja2` dependency and ensure templates are included in installed artifacts (uv/uvx) | 3 | Setup | T001 | /workspaces/flow_squared/pyproject.toml, /workspaces/flow_squared/uv.lock | `uv run python -c "import jinja2"` succeeds; `uv build` + `uv pip install dist/*.whl` env proves `importlib.resources.files("fs2.core.templates.smart_content")` contains `.j2` entries | – | Per spec dependency note; per Critical Discovery 04 (package-safe loading); install-path smoke check added per sponsor decision |
+-| [ ] | T003 | Create templates package structure for `fs2.core.templates.smart_content` | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/core/templates/__init__.py, /workspaces/flow_squared/src/fs2/core/templates/smart_content/__init__.py | `importlib.resources.files(\"fs2.core.templates.smart_content\")` resolves without error | – | Package structure is required before adding `.j2` files |
+-| [ ] | T004 | Write failing tests: TemplateService init loads templates, raises `TemplateError` for missing templates, validates syntax at init | 3 | Test | T001, T002, T003 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests fail with clear messages until TemplateService exists and enforces validation behavior | – | Per Critical Discovery 04 + 09; errors must be service-layer `TemplateError` (no leaking `jinja2.TemplateNotFound`) |
+-| [ ] | T005 | Write failing tests: category→template mapping + token limit mapping (AC11) including fallback categories | 2 | Test | T001, T004 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests prove all 9 categories map to the expected template: specialized templates for `file`, `type`, `callable`, `section`, `block`; fallback to `smart_content_base.j2` for remaining categories; token limit resolved via `SmartContentConfig.token_limits` | – | Per AC11; explicit fallback mapping per sponsor decision |
+-| [ ] | T006 | Write failing tests: render contract exposes AC8 context variables and injects `max_tokens` (token limits from `ConfigurationService.require(SmartContentConfig)`) | 2 | Test | T001, T004 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests verify rendered prompt includes key fields and `max_tokens` is present for each category render path; tests construct TemplateService with `FakeConfigurationService` and confirm `SmartContentConfig.token_limits` is the source of truth | – | Per AC8; follow repo service patterns (config required internally); keep tests deterministic (no network) |
+-| [ ] | T007 | Implement TemplateService: accept `ConfigurationService`, call `require(SmartContentConfig)`, load templates via `importlib.resources` + `jinja2.DictLoader`, map categories, render templates | 3 | Core | T004, T005, T006 | /workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py, /workspaces/flow_squared/src/fs2/core/services/smart_content/__init__.py | All TemplateService unit tests pass; Jinja2 uses strict undefined behavior so missing AC8 vars surface as `TemplateError`; token limits always come from `SmartContentConfig.token_limits`; public API does not require filesystem paths | – | Per Critical Discovery 04; follow repo conventions (ConfigurationService + FakeConfigurationService in tests); strict undefined per sponsor decision |
+-| [ ] | T008 | Implement syntax validation: pre-compile/parse all templates at init; wrap failures as `TemplateError` including template name | 3 | Core | T007 | /workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py | Dedicated tests prove syntax errors are caught at init (not first render) and surfaced as `TemplateError` | – | Per Critical Discovery 09 |
+-| [ ] | T009 | Add 6 Jinja2 template files (file/type/callable/section/block/base) with a stable prompt baseline and `max_tokens` placeholder | 2 | Doc | T003 | /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_file.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_type.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_callable.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_section.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_block.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_base.j2 | Each template renders for representative context without undefined-variable errors; prompt text references `max_tokens` and primary context vars | – | Keep template content simple and policy-neutral; quality tuning later |
+-| [ ] | T010 | Write integration test: all templates load and render end-to-end for representative categories | 2 | Integration | T007, T008, T009 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | A single test iterates through template names + categories and asserts render does not raise and includes minimal expected markers | – | Mirrors plan task 2.12; proves package-data + importlib loading |
++| [x] | T001 | Review Phase 1 deliverables for reuse (SmartContentConfig defaults, `TemplateError` availability, conventions) | 1 | Setup | – | /workspaces/flow_squared/src/fs2/config/objects.py, /workspaces/flow_squared/src/fs2/core/services/smart_content/exceptions.py, /workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-1-foundation-and-infrastructure/tasks.md, /workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-1-foundation-and-infrastructure/execution.log.md | Alignment brief includes the reused symbols + constraints to follow | – | Links to prior phase are captured in Alignment Brief · log#task-t001-review-phase-1-exports |
++| [x] | T002 | Add `jinja2` dependency and ensure templates are included in installed artifacts (uv/uvx) | 3 | Setup | T001 | /workspaces/flow_squared/pyproject.toml, /workspaces/flow_squared/uv.lock | `uv run python -c "import jinja2"` succeeds; `uv build` + `uv pip install dist/*.whl` env proves `importlib.resources.files("fs2.core.templates.smart_content")` contains `.j2` entries | – | Per spec dependency note; per Critical Discovery 04 (package-safe loading); install-path smoke check added per sponsor decision · log#task-t002-add-jinja2-dependency-package-data [^12] |
++| [x] | T003 | Create templates package structure for `fs2.core.templates.smart_content` | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/core/templates/__init__.py, /workspaces/flow_squared/src/fs2/core/templates/smart_content/__init__.py | `importlib.resources.files(\"fs2.core.templates.smart_content\")` resolves without error | – | Package structure is required before adding `.j2` files · log#task-t003-add-templates-package-structure [^13] |
++| [x] | T004 | Write failing tests: TemplateService init loads templates, raises `TemplateError` for missing templates, validates syntax at init | 3 | Test | T001, T002, T003 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests fail with clear messages until TemplateService exists and enforces validation behavior | – | Per Critical Discovery 04 + 09; errors must be service-layer `TemplateError` (no leaking `jinja2.TemplateNotFound`) · log#task-t004-write-templateservice-init-tests [^14] |
++| [x] | T005 | Write failing tests: category→template mapping + token limit mapping (AC11) including fallback categories | 2 | Test | T001, T004 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests prove all 9 categories map to the expected template: specialized templates for `file`, `type`, `callable`, `section`, `block`; fallback to `smart_content_base.j2` for remaining categories; token limit resolved via `SmartContentConfig.token_limits` | – | Per AC11; explicit fallback mapping per sponsor decision · log#task-t005-write-category-mapping-tests-ac11 [^15] |
++| [x] | T006 | Write failing tests: render contract exposes AC8 context variables and injects `max_tokens` (token limits from `ConfigurationService.require(SmartContentConfig)`) | 2 | Test | T001, T004 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | Tests verify rendered prompt includes key fields and `max_tokens` is present for each category render path; tests construct TemplateService with `FakeConfigurationService` and confirm `SmartContentConfig.token_limits` is the source of truth | – | Per AC8; follow repo service patterns (config required internally); keep tests deterministic (no network) · log#task-t006-write-rendering-context-tests-ac8 [^16] |
++| [x] | T007 | Implement TemplateService: accept `ConfigurationService`, call `require(SmartContentConfig)`, load templates via `importlib.resources` + `jinja2.DictLoader`, map categories, render templates | 3 | Core | T004, T005, T006 | /workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py, /workspaces/flow_squared/src/fs2/core/services/smart_content/__init__.py | All TemplateService unit tests pass; Jinja2 uses strict undefined behavior so missing AC8 vars surface as `TemplateError`; token limits always come from `SmartContentConfig.token_limits`; public API does not require filesystem paths | – | Per Critical Discovery 04; follow repo conventions (ConfigurationService + FakeConfigurationService in tests); strict undefined per sponsor decision · log#task-t007-implement-templateservice-loader-api [^17] |
++| [x] | T008 | Implement syntax validation: pre-compile/parse all templates at init; wrap failures as `TemplateError` including template name | 3 | Core | T007 | /workspaces/flow_squared/src/fs2/core/services/smart_content/template_service.py | Dedicated tests prove syntax errors are caught at init (not first render) and surfaced as `TemplateError` | – | Per Critical Discovery 09 · log#task-t008-implement-template-syntax-validation |
++| [x] | T009 | Add 6 Jinja2 template files (file/type/callable/section/block/base) with a stable prompt baseline and `max_tokens` placeholder | 2 | Doc | T003 | /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_file.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_type.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_callable.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_section.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_block.j2, /workspaces/flow_squared/src/fs2/core/templates/smart_content/smart_content_base.j2 | Each template renders for representative context without undefined-variable errors; prompt text references `max_tokens` and primary context vars | – | Keep template content simple and policy-neutral; quality tuning later · log#task-t009-add-template-files-6 [^18] |
++| [x] | T010 | Write integration test: all templates load and render end-to-end for representative categories | 2 | Integration | T007, T008, T009 | /workspaces/flow_squared/tests/unit/services/test_template_service.py | A single test iterates through template names + categories and asserts render does not raise and includes minimal expected markers | – | Mirrors plan task 2.12; proves package-data + importlib loading · log#task-t010-integration-test-load-render-all-templates [^19] |
+ 
+ ---
+ 
+@@ -341,7 +341,14 @@ _Populated during implementation by plan-6._
+ 
+ | ID | Footnote | Type | Affects | Notes |
+ |----|----------|------|---------|-------|
+-| | | | | |
++| 12 | [^12] | file | `pyproject.toml`, `uv.lock` | Phase 2 T002: add `jinja2` dependency + Hatch include rules |
++| 13 | [^13] | file | `src/fs2/core/templates/__init__.py`, `src/fs2/core/templates/smart_content/__init__.py` | Phase 2 T003: create template packages for `importlib.resources` |
++| 14 | [^14] | test | `tests/unit/services/test_template_service.py` | Phase 2 T004: add init/load/missing/syntax RED tests |
++| 15 | [^15] | test | `tests/unit/services/test_template_service.py` | Phase 2 T005: add AC11 category mapping + token limit RED tests |
++| 16 | [^16] | test | `tests/unit/services/test_template_service.py` | Phase 2 T006: add AC8 render contract + strict undefined RED tests |
++| 17 | [^17] | core | `src/fs2/core/services/smart_content/template_service.py`, `src/fs2/core/services/smart_content/__init__.py` | Phase 2 T007: implement TemplateService loader + API |
++| 18 | [^18] | file | `src/fs2/core/templates/smart_content/*.j2` | Phase 2 T009: add the six smart content templates |
++| 19 | [^19] | test | `tests/unit/services/test_template_service.py` | Phase 2 T010: add end-to-end load+render test (importlib.resources) |
+ 
+ ---
+ 
+@@ -349,6 +356,7 @@ _Populated during implementation by plan-6._
+ 
+ - Execution log (written by plan-6): `/workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-2-template-system/execution.log.md`
+ - This dossier: `/workspaces/flow_squared/docs/plans/008-smart-content/tasks/phase-2-template-system/tasks.md`
++- Packaging smoke-check workspace: `/workspaces/flow_squared/.tmp/smart-content-phase-2-smoke/`
+ 
+ ---
+ 
+@@ -359,6 +367,8 @@ _Populated during implementation by plan-6. Log anything of interest to your fut
+ | Date | Task | Type | Discovery | Resolution | References |
+ |------|------|------|-----------|------------|------------|
+ | | | | | | |
++| 2025-12-18 | T002 | gotcha | Hatchling wheel build does not include `.j2` templates unless explicitly included | Added Hatch include rules for `src/fs2/core/templates/**/*.j2` in wheel + sdist | log#task-t002-add-jinja2-dependency-package-data |
++| 2025-12-18 | T010 | insight | Installed-artifact smoke check confirmed `.j2` templates are present in the wheel and discoverable via `importlib.resources` | Kept Hatch include rules + added integration test to exercise package-based loading | log#task-t010-integration-test-load-render-all-templates |
+ 
+ | 2025-12-18 | planning | decision | Phase 2 must validate templates from an installed artifact (uv/uvx-style), not just from the source tree | Added installed-artifact smoke check commands and strengthened T002 validation | didyouknow#insight-1 |
+ | 2025-12-18 | planning | decision | Jinja2 rendering must fail closed on missing AC8 context vars | Require strict undefined behavior in TemplateService + tests | didyouknow#insight-2 |
+diff --git a/pyproject.toml b/pyproject.toml
+index 7c2dc20..b216e21 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -4,6 +4,7 @@ version = "0.1.0"
+ description = "Flowspace2 - Clean Architecture Python scaffold"
+ requires-python = ">=3.12"
+ dependencies = [
++    "jinja2>=3.1",
+     "networkx>=3.0",
+     "openai>=1.0.0",
+     "pathspec>=0.12",
+@@ -59,6 +60,14 @@ build-backend = "hatchling.build"
+ 
+ [tool.hatch.build.targets.wheel]
+ packages = ["src/fs2"]
++include = [
++    "src/fs2/core/templates/**/*.j2",
++]
++
++[tool.hatch.build.targets.sdist]
++include = [
++    "src/fs2/core/templates/**/*.j2",
++]
+ 
+ [tool.pytest.ini_options]
+ asyncio_mode = "auto"
+diff --git a/src/fs2/core/services/smart_content/__init__.py b/src/fs2/core/services/smart_content/__init__.py
+index 43e6a87..1c0c314 100644
+--- a/src/fs2/core/services/smart_content/__init__.py
++++ b/src/fs2/core/services/smart_content/__init__.py
+@@ -9,10 +9,11 @@ from fs2.core.services.smart_content.exceptions import (
+     SmartContentProcessingError,
+     TemplateError,
+ )
++from fs2.core.services.smart_content.template_service import TemplateService
+ 
+ __all__ = [
+     "SmartContentError",
+     "TemplateError",
+     "SmartContentProcessingError",
++    "TemplateService",
+ ]
+-
+diff --git a/uv.lock b/uv.lock
+index 3b4828c..fce9a9e 100644
+--- a/uv.lock
++++ b/uv.lock
+@@ -199,6 +199,7 @@ name = "fs2"
+ version = "0.1.0"
+ source = { editable = "." }
+ dependencies = [
++    { name = "jinja2" },
+     { name = "networkx" },
+     { name = "openai" },
+     { name = "pathspec" },
+@@ -222,6 +223,7 @@ dev = [
+ 
+ [package.metadata]
+ requires-dist = [
++    { name = "jinja2", specifier = ">=3.1" },
+     { name = "networkx", specifier = ">=3.0" },
+     { name = "openai", specifier = ">=1.0.0" },
+     { name = "pathspec", specifier = ">=0.12" },
+@@ -295,6 +297,18 @@ wheels = [
+     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
+ ]
+ 
++[[package]]
++name = "jinja2"
++version = "3.1.6"
++source = { registry = "https://pypi.org/simple" }
++dependencies = [
++    { name = "markupsafe" },
++]
++sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
++]
++
+ [[package]]
+ name = "jiter"
+ version = "0.12.0"
+@@ -375,6 +389,69 @@ wheels = [
+     { url = "https://files.pythonhosted.org/packages/94/54/e7d793b573f298e1c9013b8c4dade17d481164aa517d1d7148619c2cedbf/markdown_it_py-4.0.0-py3-none-any.whl", hash = "sha256:87327c59b172c5011896038353a81343b6754500a08cd7a4973bb48c6d578147", size = 87321, upload-time = "2025-08-11T12:57:51.923Z" },
+ ]
+ 
++[[package]]
++name = "markupsafe"
++version = "3.0.3"
++source = { registry = "https://pypi.org/simple" }
++sdist = { url = "https://files.pythonhosted.org/packages/7e/99/7690b6d4034fffd95959cbe0c02de8deb3098cc577c67bb6a24fe5d7caa7/markupsafe-3.0.3.tar.gz", hash = "sha256:722695808f4b6457b320fdc131280796bdceb04ab50fe1795cd540799ebe1698", size = 80313, upload-time = "2025-09-27T18:37:40.426Z" }
++wheels = [
++    { url = "https://files.pythonhosted.org/packages/5a/72/147da192e38635ada20e0a2e1a51cf8823d2119ce8883f7053879c2199b5/markupsafe-3.0.3-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:d53197da72cc091b024dd97249dfc7794d6a56530370992a5e1a08983ad9230e", size = 11615, upload-time = "2025-09-27T18:36:30.854Z" },
++    { url = "https://files.pythonhosted.org/packages/9a/81/7e4e08678a1f98521201c3079f77db69fb552acd56067661f8c2f534a718/markupsafe-3.0.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1872df69a4de6aead3491198eaf13810b565bdbeec3ae2dc8780f14458ec73ce", size = 12020, upload-time = "2025-09-27T18:36:31.971Z" },
++    { url = "https://files.pythonhosted.org/packages/1e/2c/799f4742efc39633a1b54a92eec4082e4f815314869865d876824c257c1e/markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:3a7e8ae81ae39e62a41ec302f972ba6ae23a5c5396c8e60113e9066ef893da0d", size = 24332, upload-time = "2025-09-27T18:36:32.813Z" },
++    { url = "https://files.pythonhosted.org/packages/3c/2e/8d0c2ab90a8c1d9a24f0399058ab8519a3279d1bd4289511d74e909f060e/markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d6dd0be5b5b189d31db7cda48b91d7e0a9795f31430b7f271219ab30f1d3ac9d", size = 22947, upload-time = "2025-09-27T18:36:33.86Z" },
++    { url = "https://files.pythonhosted.org/packages/2c/54/887f3092a85238093a0b2154bd629c89444f395618842e8b0c41783898ea/markupsafe-3.0.3-cp312-cp312-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:94c6f0bb423f739146aec64595853541634bde58b2135f27f61c1ffd1cd4d16a", size = 21962, upload-time = "2025-09-27T18:36:35.099Z" },
++    { url = "https://files.pythonhosted.org/packages/c9/2f/336b8c7b6f4a4d95e91119dc8521402461b74a485558d8f238a68312f11c/markupsafe-3.0.3-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:be8813b57049a7dc738189df53d69395eba14fb99345e0a5994914a3864c8a4b", size = 23760, upload-time = "2025-09-27T18:36:36.001Z" },
++    { url = "https://files.pythonhosted.org/packages/32/43/67935f2b7e4982ffb50a4d169b724d74b62a3964bc1a9a527f5ac4f1ee2b/markupsafe-3.0.3-cp312-cp312-musllinux_1_2_riscv64.whl", hash = "sha256:83891d0e9fb81a825d9a6d61e3f07550ca70a076484292a70fde82c4b807286f", size = 21529, upload-time = "2025-09-27T18:36:36.906Z" },
++    { url = "https://files.pythonhosted.org/packages/89/e0/4486f11e51bbba8b0c041098859e869e304d1c261e59244baa3d295d47b7/markupsafe-3.0.3-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:77f0643abe7495da77fb436f50f8dab76dbc6e5fd25d39589a0f1fe6548bfa2b", size = 23015, upload-time = "2025-09-27T18:36:37.868Z" },
++    { url = "https://files.pythonhosted.org/packages/2f/e1/78ee7a023dac597a5825441ebd17170785a9dab23de95d2c7508ade94e0e/markupsafe-3.0.3-cp312-cp312-win32.whl", hash = "sha256:d88b440e37a16e651bda4c7c2b930eb586fd15ca7406cb39e211fcff3bf3017d", size = 14540, upload-time = "2025-09-27T18:36:38.761Z" },
++    { url = "https://files.pythonhosted.org/packages/aa/5b/bec5aa9bbbb2c946ca2733ef9c4ca91c91b6a24580193e891b5f7dbe8e1e/markupsafe-3.0.3-cp312-cp312-win_amd64.whl", hash = "sha256:26a5784ded40c9e318cfc2bdb30fe164bdb8665ded9cd64d500a34fb42067b1c", size = 15105, upload-time = "2025-09-27T18:36:39.701Z" },
++    { url = "https://files.pythonhosted.org/packages/e5/f1/216fc1bbfd74011693a4fd837e7026152e89c4bcf3e77b6692fba9923123/markupsafe-3.0.3-cp312-cp312-win_arm64.whl", hash = "sha256:35add3b638a5d900e807944a078b51922212fb3dedb01633a8defc4b01a3c85f", size = 13906, upload-time = "2025-09-27T18:36:40.689Z" },
++    { url = "https://files.pythonhosted.org/packages/38/2f/907b9c7bbba283e68f20259574b13d005c121a0fa4c175f9bed27c4597ff/markupsafe-3.0.3-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:e1cf1972137e83c5d4c136c43ced9ac51d0e124706ee1c8aa8532c1287fa8795", size = 11622, upload-time = "2025-09-27T18:36:41.777Z" },
++    { url = "https://files.pythonhosted.org/packages/9c/d9/5f7756922cdd676869eca1c4e3c0cd0df60ed30199ffd775e319089cb3ed/markupsafe-3.0.3-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:116bb52f642a37c115f517494ea5feb03889e04df47eeff5b130b1808ce7c219", size = 12029, upload-time = "2025-09-27T18:36:43.257Z" },
++    { url = "https://files.pythonhosted.org/packages/00/07/575a68c754943058c78f30db02ee03a64b3c638586fba6a6dd56830b30a3/markupsafe-3.0.3-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:133a43e73a802c5562be9bbcd03d090aa5a1fe899db609c29e8c8d815c5f6de6", size = 24374, upload-time = "2025-09-27T18:36:44.508Z" },
++    { url = "https://files.pythonhosted.org/packages/a9/21/9b05698b46f218fc0e118e1f8168395c65c8a2c750ae2bab54fc4bd4e0e8/markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ccfcd093f13f0f0b7fdd0f198b90053bf7b2f02a3927a30e63f3ccc9df56b676", size = 22980, upload-time = "2025-09-27T18:36:45.385Z" },
++    { url = "https://files.pythonhosted.org/packages/7f/71/544260864f893f18b6827315b988c146b559391e6e7e8f7252839b1b846a/markupsafe-3.0.3-cp313-cp313-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:509fa21c6deb7a7a273d629cf5ec029bc209d1a51178615ddf718f5918992ab9", size = 21990, upload-time = "2025-09-27T18:36:46.916Z" },
++    { url = "https://files.pythonhosted.org/packages/c2/28/b50fc2f74d1ad761af2f5dcce7492648b983d00a65b8c0e0cb457c82ebbe/markupsafe-3.0.3-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:a4afe79fb3de0b7097d81da19090f4df4f8d3a2b3adaa8764138aac2e44f3af1", size = 23784, upload-time = "2025-09-27T18:36:47.884Z" },
++    { url = "https://files.pythonhosted.org/packages/ed/76/104b2aa106a208da8b17a2fb72e033a5a9d7073c68f7e508b94916ed47a9/markupsafe-3.0.3-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:795e7751525cae078558e679d646ae45574b47ed6e7771863fcc079a6171a0fc", size = 21588, upload-time = "2025-09-27T18:36:48.82Z" },
++    { url = "https://files.pythonhosted.org/packages/b5/99/16a5eb2d140087ebd97180d95249b00a03aa87e29cc224056274f2e45fd6/markupsafe-3.0.3-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8485f406a96febb5140bfeca44a73e3ce5116b2501ac54fe953e488fb1d03b12", size = 23041, upload-time = "2025-09-27T18:36:49.797Z" },
++    { url = "https://files.pythonhosted.org/packages/19/bc/e7140ed90c5d61d77cea142eed9f9c303f4c4806f60a1044c13e3f1471d0/markupsafe-3.0.3-cp313-cp313-win32.whl", hash = "sha256:bdd37121970bfd8be76c5fb069c7751683bdf373db1ed6c010162b2a130248ed", size = 14543, upload-time = "2025-09-27T18:36:51.584Z" },
++    { url = "https://files.pythonhosted.org/packages/05/73/c4abe620b841b6b791f2edc248f556900667a5a1cf023a6646967ae98335/markupsafe-3.0.3-cp313-cp313-win_amd64.whl", hash = "sha256:9a1abfdc021a164803f4d485104931fb8f8c1efd55bc6b748d2f5774e78b62c5", size = 15113, upload-time = "2025-09-27T18:36:52.537Z" },
++    { url = "https://files.pythonhosted.org/packages/f0/3a/fa34a0f7cfef23cf9500d68cb7c32dd64ffd58a12b09225fb03dd37d5b80/markupsafe-3.0.3-cp313-cp313-win_arm64.whl", hash = "sha256:7e68f88e5b8799aa49c85cd116c932a1ac15caaa3f5db09087854d218359e485", size = 13911, upload-time = "2025-09-27T18:36:53.513Z" },
++    { url = "https://files.pythonhosted.org/packages/e4/d7/e05cd7efe43a88a17a37b3ae96e79a19e846f3f456fe79c57ca61356ef01/markupsafe-3.0.3-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:218551f6df4868a8d527e3062d0fb968682fe92054e89978594c28e642c43a73", size = 11658, upload-time = "2025-09-27T18:36:54.819Z" },
++    { url = "https://files.pythonhosted.org/packages/99/9e/e412117548182ce2148bdeacdda3bb494260c0b0184360fe0d56389b523b/markupsafe-3.0.3-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:3524b778fe5cfb3452a09d31e7b5adefeea8c5be1d43c4f810ba09f2ceb29d37", size = 12066, upload-time = "2025-09-27T18:36:55.714Z" },
++    { url = "https://files.pythonhosted.org/packages/bc/e6/fa0ffcda717ef64a5108eaa7b4f5ed28d56122c9a6d70ab8b72f9f715c80/markupsafe-3.0.3-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:4e885a3d1efa2eadc93c894a21770e4bc67899e3543680313b09f139e149ab19", size = 25639, upload-time = "2025-09-27T18:36:56.908Z" },
++    { url = "https://files.pythonhosted.org/packages/96/ec/2102e881fe9d25fc16cb4b25d5f5cde50970967ffa5dddafdb771237062d/markupsafe-3.0.3-cp313-cp313t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8709b08f4a89aa7586de0aadc8da56180242ee0ada3999749b183aa23df95025", size = 23569, upload-time = "2025-09-27T18:36:57.913Z" },
++    { url = "https://files.pythonhosted.org/packages/4b/30/6f2fce1f1f205fc9323255b216ca8a235b15860c34b6798f810f05828e32/markupsafe-3.0.3-cp313-cp313t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:b8512a91625c9b3da6f127803b166b629725e68af71f8184ae7e7d54686a56d6", size = 23284, upload-time = "2025-09-27T18:36:58.833Z" },
++    { url = "https://files.pythonhosted.org/packages/58/47/4a0ccea4ab9f5dcb6f79c0236d954acb382202721e704223a8aafa38b5c8/markupsafe-3.0.3-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:9b79b7a16f7fedff2495d684f2b59b0457c3b493778c9eed31111be64d58279f", size = 24801, upload-time = "2025-09-27T18:36:59.739Z" },
++    { url = "https://files.pythonhosted.org/packages/6a/70/3780e9b72180b6fecb83a4814d84c3bf4b4ae4bf0b19c27196104149734c/markupsafe-3.0.3-cp313-cp313t-musllinux_1_2_riscv64.whl", hash = "sha256:12c63dfb4a98206f045aa9563db46507995f7ef6d83b2f68eda65c307c6829eb", size = 22769, upload-time = "2025-09-27T18:37:00.719Z" },
++    { url = "https://files.pythonhosted.org/packages/98/c5/c03c7f4125180fc215220c035beac6b9cb684bc7a067c84fc69414d315f5/markupsafe-3.0.3-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:8f71bc33915be5186016f675cd83a1e08523649b0e33efdb898db577ef5bb009", size = 23642, upload-time = "2025-09-27T18:37:01.673Z" },
++    { url = "https://files.pythonhosted.org/packages/80/d6/2d1b89f6ca4bff1036499b1e29a1d02d282259f3681540e16563f27ebc23/markupsafe-3.0.3-cp313-cp313t-win32.whl", hash = "sha256:69c0b73548bc525c8cb9a251cddf1931d1db4d2258e9599c28c07ef3580ef354", size = 14612, upload-time = "2025-09-27T18:37:02.639Z" },
++    { url = "https://files.pythonhosted.org/packages/2b/98/e48a4bfba0a0ffcf9925fe2d69240bfaa19c6f7507b8cd09c70684a53c1e/markupsafe-3.0.3-cp313-cp313t-win_amd64.whl", hash = "sha256:1b4b79e8ebf6b55351f0d91fe80f893b4743f104bff22e90697db1590e47a218", size = 15200, upload-time = "2025-09-27T18:37:03.582Z" },
++    { url = "https://files.pythonhosted.org/packages/0e/72/e3cc540f351f316e9ed0f092757459afbc595824ca724cbc5a5d4263713f/markupsafe-3.0.3-cp313-cp313t-win_arm64.whl", hash = "sha256:ad2cf8aa28b8c020ab2fc8287b0f823d0a7d8630784c31e9ee5edea20f406287", size = 13973, upload-time = "2025-09-27T18:37:04.929Z" },
++    { url = "https://files.pythonhosted.org/packages/33/8a/8e42d4838cd89b7dde187011e97fe6c3af66d8c044997d2183fbd6d31352/markupsafe-3.0.3-cp314-cp314-macosx_10_13_x86_64.whl", hash = "sha256:eaa9599de571d72e2daf60164784109f19978b327a3910d3e9de8c97b5b70cfe", size = 11619, upload-time = "2025-09-27T18:37:06.342Z" },
++    { url = "https://files.pythonhosted.org/packages/b5/64/7660f8a4a8e53c924d0fa05dc3a55c9cee10bbd82b11c5afb27d44b096ce/markupsafe-3.0.3-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:c47a551199eb8eb2121d4f0f15ae0f923d31350ab9280078d1e5f12b249e0026", size = 12029, upload-time = "2025-09-27T18:37:07.213Z" },
++    { url = "https://files.pythonhosted.org/packages/da/ef/e648bfd021127bef5fa12e1720ffed0c6cbb8310c8d9bea7266337ff06de/markupsafe-3.0.3-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f34c41761022dd093b4b6896d4810782ffbabe30f2d443ff5f083e0cbbb8c737", size = 24408, upload-time = "2025-09-27T18:37:09.572Z" },
++    { url = "https://files.pythonhosted.org/packages/41/3c/a36c2450754618e62008bf7435ccb0f88053e07592e6028a34776213d877/markupsafe-3.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:457a69a9577064c05a97c41f4e65148652db078a3a509039e64d3467b9e7ef97", size = 23005, upload-time = "2025-09-27T18:37:10.58Z" },
++    { url = "https://files.pythonhosted.org/packages/bc/20/b7fdf89a8456b099837cd1dc21974632a02a999ec9bf7ca3e490aacd98e7/markupsafe-3.0.3-cp314-cp314-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:e8afc3f2ccfa24215f8cb28dcf43f0113ac3c37c2f0f0806d8c70e4228c5cf4d", size = 22048, upload-time = "2025-09-27T18:37:11.547Z" },
++    { url = "https://files.pythonhosted.org/packages/9a/a7/591f592afdc734f47db08a75793a55d7fbcc6902a723ae4cfbab61010cc5/markupsafe-3.0.3-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:ec15a59cf5af7be74194f7ab02d0f59a62bdcf1a537677ce67a2537c9b87fcda", size = 23821, upload-time = "2025-09-27T18:37:12.48Z" },
++    { url = "https://files.pythonhosted.org/packages/7d/33/45b24e4f44195b26521bc6f1a82197118f74df348556594bd2262bda1038/markupsafe-3.0.3-cp314-cp314-musllinux_1_2_riscv64.whl", hash = "sha256:0eb9ff8191e8498cca014656ae6b8d61f39da5f95b488805da4bb029cccbfbaf", size = 21606, upload-time = "2025-09-27T18:37:13.485Z" },
++    { url = "https://files.pythonhosted.org/packages/ff/0e/53dfaca23a69fbfbbf17a4b64072090e70717344c52eaaaa9c5ddff1e5f0/markupsafe-3.0.3-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:2713baf880df847f2bece4230d4d094280f4e67b1e813eec43b4c0e144a34ffe", size = 23043, upload-time = "2025-09-27T18:37:14.408Z" },
++    { url = "https://files.pythonhosted.org/packages/46/11/f333a06fc16236d5238bfe74daccbca41459dcd8d1fa952e8fbd5dccfb70/markupsafe-3.0.3-cp314-cp314-win32.whl", hash = "sha256:729586769a26dbceff69f7a7dbbf59ab6572b99d94576a5592625d5b411576b9", size = 14747, upload-time = "2025-09-27T18:37:15.36Z" },
++    { url = "https://files.pythonhosted.org/packages/28/52/182836104b33b444e400b14f797212f720cbc9ed6ba34c800639d154e821/markupsafe-3.0.3-cp314-cp314-win_amd64.whl", hash = "sha256:bdc919ead48f234740ad807933cdf545180bfbe9342c2bb451556db2ed958581", size = 15341, upload-time = "2025-09-27T18:37:16.496Z" },
++    { url = "https://files.pythonhosted.org/packages/6f/18/acf23e91bd94fd7b3031558b1f013adfa21a8e407a3fdb32745538730382/markupsafe-3.0.3-cp314-cp314-win_arm64.whl", hash = "sha256:5a7d5dc5140555cf21a6fefbdbf8723f06fcd2f63ef108f2854de715e4422cb4", size = 14073, upload-time = "2025-09-27T18:37:17.476Z" },
++    { url = "https://files.pythonhosted.org/packages/3c/f0/57689aa4076e1b43b15fdfa646b04653969d50cf30c32a102762be2485da/markupsafe-3.0.3-cp314-cp314t-macosx_10_13_x86_64.whl", hash = "sha256:1353ef0c1b138e1907ae78e2f6c63ff67501122006b0f9abad68fda5f4ffc6ab", size = 11661, upload-time = "2025-09-27T18:37:18.453Z" },
++    { url = "https://files.pythonhosted.org/packages/89/c3/2e67a7ca217c6912985ec766c6393b636fb0c2344443ff9d91404dc4c79f/markupsafe-3.0.3-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:1085e7fbddd3be5f89cc898938f42c0b3c711fdcb37d75221de2666af647c175", size = 12069, upload-time = "2025-09-27T18:37:19.332Z" },
++    { url = "https://files.pythonhosted.org/packages/f0/00/be561dce4e6ca66b15276e184ce4b8aec61fe83662cce2f7d72bd3249d28/markupsafe-3.0.3-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1b52b4fb9df4eb9ae465f8d0c228a00624de2334f216f178a995ccdcf82c4634", size = 25670, upload-time = "2025-09-27T18:37:20.245Z" },
++    { url = "https://files.pythonhosted.org/packages/50/09/c419f6f5a92e5fadde27efd190eca90f05e1261b10dbd8cbcb39cd8ea1dc/markupsafe-3.0.3-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:fed51ac40f757d41b7c48425901843666a6677e3e8eb0abcff09e4ba6e664f50", size = 23598, upload-time = "2025-09-27T18:37:21.177Z" },
++    { url = "https://files.pythonhosted.org/packages/22/44/a0681611106e0b2921b3033fc19bc53323e0b50bc70cffdd19f7d679bb66/markupsafe-3.0.3-cp314-cp314t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:f190daf01f13c72eac4efd5c430a8de82489d9cff23c364c3ea822545032993e", size = 23261, upload-time = "2025-09-27T18:37:22.167Z" },
++    { url = "https://files.pythonhosted.org/packages/5f/57/1b0b3f100259dc9fffe780cfb60d4be71375510e435efec3d116b6436d43/markupsafe-3.0.3-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:e56b7d45a839a697b5eb268c82a71bd8c7f6c94d6fd50c3d577fa39a9f1409f5", size = 24835, upload-time = "2025-09-27T18:37:23.296Z" },
++    { url = "https://files.pythonhosted.org/packages/26/6a/4bf6d0c97c4920f1597cc14dd720705eca0bf7c787aebc6bb4d1bead5388/markupsafe-3.0.3-cp314-cp314t-musllinux_1_2_riscv64.whl", hash = "sha256:f3e98bb3798ead92273dc0e5fd0f31ade220f59a266ffd8a4f6065e0a3ce0523", size = 22733, upload-time = "2025-09-27T18:37:24.237Z" },
++    { url = "https://files.pythonhosted.org/packages/14/c7/ca723101509b518797fedc2fdf79ba57f886b4aca8a7d31857ba3ee8281f/markupsafe-3.0.3-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:5678211cb9333a6468fb8d8be0305520aa073f50d17f089b5b4b477ea6e67fdc", size = 23672, upload-time = "2025-09-27T18:37:25.271Z" },
++    { url = "https://files.pythonhosted.org/packages/fb/df/5bd7a48c256faecd1d36edc13133e51397e41b73bb77e1a69deab746ebac/markupsafe-3.0.3-cp314-cp314t-win32.whl", hash = "sha256:915c04ba3851909ce68ccc2b8e2cd691618c4dc4c4232fb7982bca3f41fd8c3d", size = 14819, upload-time = "2025-09-27T18:37:26.285Z" },
++    { url = "https://files.pythonhosted.org/packages/1a/8a/0402ba61a2f16038b48b39bccca271134be00c5c9f0f623208399333c448/markupsafe-3.0.3-cp314-cp314t-win_amd64.whl", hash = "sha256:4faffd047e07c38848ce017e8725090413cd80cbc23d86e55c587bf979e579c9", size = 15426, upload-time = "2025-09-27T18:37:27.316Z" },
++    { url = "https://files.pythonhosted.org/packages/70/bc/6f1c2f612465f5fa89b95bead1f44dcb607670fd42891d8fdcd5d039f4f4/markupsafe-3.0.3-cp314-cp314t-win_arm64.whl", hash = "sha256:32001d6a8fc98c8cb5c947787c5d08b0a50663d139f1305bac5885d98d9b40fa", size = 14146, upload-time = "2025-09-27T18:37:28.327Z" },
++]
++
+ [[package]]
+ name = "mdurl"
+ version = "0.1.2"
+diff --git a/docs/plans/008-smart-content/tasks/phase-2-template-system/execution.log.md b/docs/plans/008-smart-content/tasks/phase-2-template-system/execution.log.md
+new file mode 100644
+index 0000000..a2f950d
+--- /dev/null
++++ b/docs/plans/008-smart-content/tasks/phase-2-template-system/execution.log.md
+@@ -0,0 +1,247 @@
++# Execution Log — Phase 2: Template System
++
++This log is appended incrementally during Phase 2 implementation.
++
++---
++
++## Task T001: Review Phase 1 exports
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Reviewed Phase 1 deliverables used by this phase:
++  - `SmartContentConfig.token_limits` in `/workspaces/flow_squared/src/fs2/config/objects.py`
++  - Service-layer `TemplateError` in `/workspaces/flow_squared/src/fs2/core/services/smart_content/exceptions.py`
++  - Phase 1 dossier + execution log for conventions and prior discoveries
++
++### Evidence
++- Documentation-only task; no code changes.
++
++### Files Changed
++- None
++
++**Completed**: 2025-12-18T00:00:00Z
++---
++
++## Task T002: Add Jinja2 dependency + package data
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Added `jinja2` to `pyproject.toml` runtime dependencies.
++- Updated Hatch build configuration to include `src/fs2/core/templates/**/*.j2` in both wheel + sdist builds.
++- Updated `uv.lock` via `uv lock`.
++
++### Evidence
++```bash
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv lock
++Added jinja2 v3.1.6
++Added markupsafe v3.0.3
++
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run python -c "import jinja2; print(jinja2.__version__)"
++3.1.6
++```
++
++### Files Changed
++- `pyproject.toml` — add `jinja2` + Hatch include rules for `.j2` package data
++- `uv.lock` — lockfile updated to include `jinja2` + `markupsafe`
++
++### Discoveries (if any)
++- Installed-artifact `.j2` visibility is validated after the template files exist (covered again by Phase 2 T010 packaging smoke check).
++
++**Completed**: 2025-12-18T00:00:00Z
++---
++
++## Task T003: Add templates package structure
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Added template package modules so `importlib.resources` can resolve:
++  - `fs2.core.templates`
++  - `fs2.core.templates.smart_content`
++
++### Evidence
++```bash
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run python -c 'import importlib.resources as ir; print(ir.files(\"fs2.core.templates.smart_content\"))'
++/workspaces/flow_squared/src/fs2/core/templates/smart_content
++```
++
++### Files Changed
++- `src/fs2/core/templates/__init__.py` — template package root
++- `src/fs2/core/templates/smart_content/__init__.py` — smart content template package
++
++**Completed**: 2025-12-18T00:00:00Z
++---
++
++## Task T004: Write TemplateService init tests
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Added `tests/unit/services/test_template_service.py` with init-focused tests covering:
++  - Required template loading at construction time
++  - Missing-template failure surfaced as service-layer `TemplateError`
++  - Invalid-template syntax failure surfaced as service-layer `TemplateError` at init-time
++
++### Evidence
++```bash
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run pytest -q tests/unit/services/test_template_service.py
++tests/unit/services/test_template_service.py FFF
++
++E   ModuleNotFoundError: No module named 'fs2.core.services.smart_content.template_service'
++```
++
++### Files Changed
++- `tests/unit/services/test_template_service.py` — new RED tests for TemplateService initialization
++
++**Completed**: 2025-12-18T00:00:00Z
++---
++
++## Task T005: Write category mapping tests (AC11)
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Expanded `tests/unit/services/test_template_service.py` with RED tests for:
++  - Category→template mapping per AC11 (specialized set + base fallback)
++  - Category→token limit mapping via `SmartContentConfig.token_limits`
++
++### Evidence
++```bash
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run pytest -q tests/unit/services/test_template_service.py
++tests/unit/services/test_template_service.py FFFFF
++
++E   ModuleNotFoundError: No module named 'fs2.core.services.smart_content.template_service'
++```
++
++### Files Changed
++- `tests/unit/services/test_template_service.py` — add AC11 mapping + token limit tests (RED)
++
++**Completed**: 2025-12-18T00:00:00Z
++---
++
++## Task T006: Write rendering context tests (AC8)
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Expanded `tests/unit/services/test_template_service.py` with RED tests for:
++  - AC8 context contract (all variables supported)
++  - `max_tokens` injection derived from `SmartContentConfig.token_limits`
++  - Fail-closed behavior on missing AC8 vars (strict undefined → `TemplateError`)
++
++### Evidence
++```bash
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run pytest -q tests/unit/services/test_template_service.py
++tests/unit/services/test_template_service.py FFFFFFF
++
++E   ModuleNotFoundError: No module named 'fs2.core.services.smart_content.template_service'
++```
++
++### Files Changed
++- `tests/unit/services/test_template_service.py` — add AC8 render contract + strict undefined tests (RED)
++
++**Completed**: 2025-12-18T00:00:00Z
++---
++
++## Task T007: Implement TemplateService loader + API
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Implemented `TemplateService` with FlowSquared conventions:
++  - Accepts `ConfigurationService` and calls `require(SmartContentConfig)` internally
++  - Uses `importlib.resources` + `jinja2.DictLoader` (no filesystem paths)
++  - Enforces strict undefined rendering (missing AC8 vars surface as `TemplateError`)
++  - Provides category mapping + token limit resolution (AC11)
++
++### Evidence
++```bash
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run pytest -q tests/unit/services/test_template_service.py
++7 passed
++```
++
++### Files Changed
++- `src/fs2/core/services/smart_content/template_service.py` — TemplateService implementation
++- `src/fs2/core/services/smart_content/__init__.py` — export TemplateService
++
++**Completed**: 2025-12-18T00:00:00Z
++---
++
++## Task T008: Implement template syntax validation
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Confirmed TemplateService performs init-time template compilation/validation and wraps syntax failures as service-layer `TemplateError`.
++
++### Evidence
++```bash
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run pytest -q tests/unit/services/test_template_service.py::test_given_invalid_template_syntax_when_constructed_then_raises_template_error
++1 passed
++```
++
++### Files Changed
++- None (behavior implemented in T007; validated here)
++
++**Completed**: 2025-12-18T00:00:00Z
++---
++
++## Task T009: Add template files (6)
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Added six `.j2` templates under `fs2.core.templates.smart_content`:
++  - `smart_content_file.j2`
++  - `smart_content_type.j2`
++  - `smart_content_callable.j2`
++  - `smart_content_section.j2`
++  - `smart_content_block.j2`
++  - `smart_content_base.j2` (fallback)
++
++### Evidence
++```bash
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run python -c 'from fs2.config.objects import SmartContentConfig; from fs2.config.service import FakeConfigurationService; from fs2.core.services.smart_content.template_service import TemplateService; svc=TemplateService(FakeConfigurationService(SmartContentConfig())); ctx={\"name\":\"my_func\",\"qualified_name\":\"MyClass.my_func\",\"category\":\"callable\",\"ts_kind\":\"function_definition\",\"language\":\"python\",\"content\":\"def my_func(): ...\",\"signature\":\"def my_func():\"}; print(svc.render_for_category(\"callable\", ctx)[:120])'
++System: You generate a concise “smart content” summary for a callable (function/method).
++```
++
++### Files Changed
++- `src/fs2/core/templates/smart_content/smart_content_file.j2`
++- `src/fs2/core/templates/smart_content/smart_content_type.j2`
++- `src/fs2/core/templates/smart_content/smart_content_callable.j2`
++- `src/fs2/core/templates/smart_content/smart_content_section.j2`
++- `src/fs2/core/templates/smart_content/smart_content_block.j2`
++- `src/fs2/core/templates/smart_content/smart_content_base.j2`
++
++**Completed**: 2025-12-18T00:00:00Z
++---
++
++## Task T010: Integration test: load-render all templates
++**Started**: 2025-12-18T00:00:00Z  
++**Status**: ✅ Complete
++
++### What I Did
++- Added an end-to-end unit test that:
++  - Constructs `TemplateService` via package-resource loading (`importlib.resources`)
++  - Renders representative contexts for all 9 categories
++- Per Phase 2 guardrails, ran an installed-artifact smoke check to confirm `.j2` templates are present in the wheel and discoverable via `importlib.resources`.
++
++### Evidence
++```bash
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run pytest -q tests/unit/services/test_template_service.py
++8 passed
++
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv build -o /workspaces/flow_squared/.tmp/smart-content-phase-2-smoke/dist
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv venv /workspaces/flow_squared/.tmp/smart-content-phase-2-smoke/venv
++$ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv pip install /workspaces/flow_squared/.tmp/smart-content-phase-2-smoke/dist/*.whl
++$ python -c 'import importlib.resources as ir; p=ir.files(\"fs2.core.templates.smart_content\"); print(sorted([c.name for c in p.iterdir() if c.name.endswith(\".j2\")]))'
++['smart_content_base.j2', 'smart_content_block.j2', 'smart_content_callable.j2', 'smart_content_file.j2', 'smart_content_section.j2', 'smart_content_type.j2']
++```
++
++### Files Changed
++- `tests/unit/services/test_template_service.py` — integration-style render loop over all categories/templates
++
++**Completed**: 2025-12-18T00:00:00Z
++---
+diff --git a/src/fs2/core/services/smart_content/template_service.py b/src/fs2/core/services/smart_content/template_service.py
+new file mode 100644
+index 0000000..cbef106
+--- /dev/null
++++ b/src/fs2/core/services/smart_content/template_service.py
+@@ -0,0 +1,162 @@
++"""TemplateService for Smart Content prompt rendering (Phase 2).
++
++Loads Jinja2 templates from package resources (wheel-safe) and renders prompts
++using a stable context contract (AC8) and category mapping (AC11).
++"""
++
++from __future__ import annotations
++
++import importlib.resources as importlib_resources
++from collections.abc import Mapping, Sequence
++from dataclasses import dataclass
++from typing import TYPE_CHECKING, Any
++
++from jinja2 import DictLoader, Environment, StrictUndefined
++from jinja2.exceptions import TemplateError as JinjaTemplateError
++from jinja2.exceptions import TemplateNotFound, TemplateSyntaxError, UndefinedError
++
++from fs2.config.objects import SmartContentConfig
++from fs2.core.services.smart_content.exceptions import TemplateError
++
++if TYPE_CHECKING:
++    from fs2.config.service import ConfigurationService
++
++
++DEFAULT_TEMPLATE_PACKAGE = "fs2.core.templates.smart_content"
++DEFAULT_REQUIRED_TEMPLATE_NAMES: tuple[str, ...] = (
++    "smart_content_file.j2",
++    "smart_content_type.j2",
++    "smart_content_callable.j2",
++    "smart_content_section.j2",
++    "smart_content_block.j2",
++    "smart_content_base.j2",
++)
++
++
++@dataclass(frozen=True)
++class TemplateSelection:
++    template_name: str
++    max_tokens: int
++
++
++class TemplateService:
++    """Service for loading and rendering Smart Content templates."""
++
++    def __init__(
++        self,
++        config: ConfigurationService,
++        *,
++        template_package: str = DEFAULT_TEMPLATE_PACKAGE,
++        required_template_names: Sequence[str] = DEFAULT_REQUIRED_TEMPLATE_NAMES,
++        template_sources: Mapping[str, str] | None = None,
++    ) -> None:
++        self._config = config
++        self._smart_config = config.require(SmartContentConfig)
++        self._template_package = template_package
++        self._required_template_names = tuple(required_template_names)
++
++        if template_sources is None:
++            template_sources = self._load_template_sources_from_package(
++                template_package,
++                self._required_template_names,
++            )
++
++        self._template_sources = dict(template_sources)
++        self._env = Environment(
++            loader=DictLoader(self._template_sources),
++            undefined=StrictUndefined,
++            autoescape=False,
++        )
++
++        self._validate_templates_at_init()
++
++    def list_template_names(self) -> list[str]:
++        return sorted(self._template_sources.keys())
++
++    def resolve_template_name(self, category: str) -> str:
++        mapping = {
++            "file": "smart_content_file.j2",
++            "type": "smart_content_type.j2",
++            "callable": "smart_content_callable.j2",
++            "section": "smart_content_section.j2",
++            "block": "smart_content_block.j2",
++            "definition": "smart_content_base.j2",
++            "statement": "smart_content_base.j2",
++            "expression": "smart_content_base.j2",
++            "other": "smart_content_base.j2",
++        }
++        return mapping.get(category, "smart_content_base.j2")
++
++    def resolve_max_tokens(self, category: str) -> int:
++        limits = self._smart_config.token_limits
++        if category in limits:
++            return limits[category]
++        if "other" in limits:
++            return limits["other"]
++        raise TemplateError(f"No token limit configured for category: {category}")
++
++    def select_for_category(self, category: str) -> TemplateSelection:
++        return TemplateSelection(
++            template_name=self.resolve_template_name(category),
++            max_tokens=self.resolve_max_tokens(category),
++        )
++
++    def render_template(self, template_name: str, context: Mapping[str, Any]) -> str:
++        try:
++            template = self._env.get_template(template_name)
++            return template.render(dict(context))
++        except (TemplateNotFound, TemplateSyntaxError, UndefinedError, JinjaTemplateError) as e:
++            raise TemplateError(f"Template render failed for '{template_name}': {e}") from e
++
++    def render_for_category(self, category: str, context: Mapping[str, Any]) -> str:
++        selection = self.select_for_category(category)
++
++        render_context = dict(context)
++        render_context.setdefault("category", category)
++        render_context.setdefault("max_tokens", selection.max_tokens)
++
++        return self.render_template(selection.template_name, render_context)
++
++    @staticmethod
++    def _load_template_sources_from_package(
++        template_package: str,
++        required_template_names: Sequence[str],
++    ) -> dict[str, str]:
++        base = importlib_resources.files(template_package)
++        sources: dict[str, str] = {}
++
++        missing: list[str] = []
++        for name in required_template_names:
++            candidate = base.joinpath(name)
++            try:
++                if not candidate.is_file():
++                    missing.append(name)
++                    continue
++                sources[name] = candidate.read_text(encoding="utf-8")
++            except FileNotFoundError:
++                missing.append(name)
++
++        if missing:
++            missing_str = ", ".join(missing)
++            raise TemplateError(
++                f"TemplateService initialization failed: missing templates: {missing_str}"
++            )
++
++        return sources
++
++    def _validate_templates_at_init(self) -> None:
++        for name in self._required_template_names:
++            try:
++                self._env.get_template(name)
++            except TemplateNotFound as e:
++                raise TemplateError(
++                    f"TemplateService initialization failed: missing template: {name}"
++                ) from e
++            except TemplateSyntaxError as e:
++                raise TemplateError(
++                    f"TemplateService initialization failed: invalid template syntax in '{name}': {e}"
++                ) from e
++            except JinjaTemplateError as e:
++                raise TemplateError(
++                    f"TemplateService initialization failed: template error in '{name}': {e}"
++                ) from e
+diff --git a/src/fs2/core/templates/__init__.py b/src/fs2/core/templates/__init__.py
+new file mode 100644
+index 0000000..cdb98cf
+--- /dev/null
++++ b/src/fs2/core/templates/__init__.py
+@@ -0,0 +1,6 @@
++"""Package data for fs2 prompt templates.
++
++Templates are loaded via `importlib.resources` to ensure compatibility when
++installed from a wheel (no filesystem path assumptions).
++"""
++
+diff --git a/src/fs2/core/templates/smart_content/__init__.py b/src/fs2/core/templates/smart_content/__init__.py
+new file mode 100644
+index 0000000..4caf7bc
+--- /dev/null
++++ b/src/fs2/core/templates/smart_content/__init__.py
+@@ -0,0 +1,5 @@
++"""Smart content prompt templates (Jinja2).
++
++This package contains `.j2` templates loaded via `importlib.resources`.
++"""
++
+diff --git a/src/fs2/core/templates/smart_content/smart_content_base.j2 b/src/fs2/core/templates/smart_content/smart_content_base.j2
+new file mode 100644
+index 0000000..40fd15d
+--- /dev/null
++++ b/src/fs2/core/templates/smart_content/smart_content_base.j2
+@@ -0,0 +1,16 @@
++System: You generate a concise “smart content” summary for a code node.
++
++Category: {{ category }}
++Name: {{ name }}
++Qualified name: {{ qualified_name }}
++Tree-sitter kind: {{ ts_kind }}
++Language: {{ language }}
++
++Signature: {{ signature }}
++
++Source:
++{{ content }}
++
++Constraints:
++- Max tokens: {{ max_tokens }}
++
+diff --git a/src/fs2/core/templates/smart_content/smart_content_block.j2 b/src/fs2/core/templates/smart_content/smart_content_block.j2
+new file mode 100644
+index 0000000..928e595
+--- /dev/null
++++ b/src/fs2/core/templates/smart_content/smart_content_block.j2
+@@ -0,0 +1,16 @@
++System: You generate a concise “smart content” summary for an infrastructure/config block.
++
++Category: {{ category }}
++Name: {{ name }}
++Qualified name: {{ qualified_name }}
++Tree-sitter kind: {{ ts_kind }}
++Language: {{ language }}
++
++Signature: {{ signature }}
++
++Source:
++{{ content }}
++
++Constraints:
++- Max tokens: {{ max_tokens }}
++
+diff --git a/src/fs2/core/templates/smart_content/smart_content_callable.j2 b/src/fs2/core/templates/smart_content/smart_content_callable.j2
+new file mode 100644
+index 0000000..ad0e1c1
+--- /dev/null
++++ b/src/fs2/core/templates/smart_content/smart_content_callable.j2
+@@ -0,0 +1,16 @@
++System: You generate a concise “smart content” summary for a callable (function/method).
++
++Category: {{ category }}
++Name: {{ name }}
++Qualified name: {{ qualified_name }}
++Tree-sitter kind: {{ ts_kind }}
++Language: {{ language }}
++
++Signature: {{ signature }}
++
++Source:
++{{ content }}
++
++Constraints:
++- Max tokens: {{ max_tokens }}
++
+diff --git a/src/fs2/core/templates/smart_content/smart_content_file.j2 b/src/fs2/core/templates/smart_content/smart_content_file.j2
+new file mode 100644
+index 0000000..05a9f56
+--- /dev/null
++++ b/src/fs2/core/templates/smart_content/smart_content_file.j2
+@@ -0,0 +1,16 @@
++System: You generate a concise “smart content” summary for a source file.
++
++Category: {{ category }}
++Name: {{ name }}
++Qualified name: {{ qualified_name }}
++Tree-sitter kind: {{ ts_kind }}
++Language: {{ language }}
++
++Signature: {{ signature }}
++
++Source:
++{{ content }}
++
++Constraints:
++- Max tokens: {{ max_tokens }}
++
+diff --git a/src/fs2/core/templates/smart_content/smart_content_section.j2 b/src/fs2/core/templates/smart_content/smart_content_section.j2
+new file mode 100644
+index 0000000..6c6395c
+--- /dev/null
++++ b/src/fs2/core/templates/smart_content/smart_content_section.j2
+@@ -0,0 +1,16 @@
++System: You generate a concise “smart content” summary for a document section.
++
++Category: {{ category }}
++Name: {{ name }}
++Qualified name: {{ qualified_name }}
++Tree-sitter kind: {{ ts_kind }}
++Language: {{ language }}
++
++Signature: {{ signature }}
++
++Source:
++{{ content }}
++
++Constraints:
++- Max tokens: {{ max_tokens }}
++
+diff --git a/src/fs2/core/templates/smart_content/smart_content_type.j2 b/src/fs2/core/templates/smart_content/smart_content_type.j2
+new file mode 100644
+index 0000000..1f5e9ff
+--- /dev/null
++++ b/src/fs2/core/templates/smart_content/smart_content_type.j2
+@@ -0,0 +1,16 @@
++System: You generate a concise “smart content” summary for a type (class/struct/interface).
++
++Category: {{ category }}
++Name: {{ name }}
++Qualified name: {{ qualified_name }}
++Tree-sitter kind: {{ ts_kind }}
++Language: {{ language }}
++
++Signature: {{ signature }}
++
++Source:
++{{ content }}
++
++Constraints:
++- Max tokens: {{ max_tokens }}
++
+diff --git a/tests/unit/services/test_template_service.py b/tests/unit/services/test_template_service.py
+new file mode 100644
+index 0000000..ee2cb22
+--- /dev/null
++++ b/tests/unit/services/test_template_service.py
+@@ -0,0 +1,296 @@
++"""Tests for TemplateService (Smart Content Phase 2).
++
++TDD Phase: RED - these tests should fail until TemplateService is implemented.
++
++Focus:
++- Critical Discovery 04: package-safe loading via importlib.resources
++- Critical Discovery 09: validate templates at initialization (fail early)
++- Critical Discovery 12: surface failures as service-layer TemplateError
++"""
++
++import pytest
++
++
++@pytest.mark.unit
++def test_given_template_service_when_constructed_then_loads_all_required_templates():
++    """TemplateService loads required templates at init.
++
++    Purpose: Proves TemplateService initializes with required templates loaded
++    Quality Contribution: Prevents runtime template-not-found failures
++    """
++    from fs2.config.objects import SmartContentConfig
++    from fs2.config.service import FakeConfigurationService
++    from fs2.core.services.smart_content.exceptions import TemplateError
++    from fs2.core.services.smart_content.template_service import TemplateService
++
++    config = FakeConfigurationService(SmartContentConfig())
++    sources = {
++        "smart_content_file.j2": "name={{ name }}",
++        "smart_content_type.j2": "name={{ name }}",
++        "smart_content_callable.j2": "name={{ name }}",
++        "smart_content_section.j2": "name={{ name }}",
++        "smart_content_block.j2": "name={{ name }}",
++        "smart_content_base.j2": "name={{ name }}",
++    }
++
++    try:
++        service = TemplateService(config, template_sources=sources)
++    except TemplateError as e:  # pragma: no cover - expected in RED until implemented
++        raise AssertionError(f"Unexpected TemplateError during init: {e}") from e
++
++    assert set(service.list_template_names()) == set(sources.keys())
++
++
++@pytest.mark.unit
++def test_given_missing_template_when_constructed_then_raises_template_error():
++    """TemplateService fails early if required templates are missing.
++
++    Purpose: Proves init-time validation catches missing templates
++    Quality Contribution: Fails fast with actionable errors
++    """
++    from fs2.config.objects import SmartContentConfig
++    from fs2.config.service import FakeConfigurationService
++    from fs2.core.services.smart_content.exceptions import TemplateError
++    from fs2.core.services.smart_content.template_service import TemplateService
++
++    config = FakeConfigurationService(SmartContentConfig())
++    sources = {
++        "smart_content_base.j2": "ok",
++    }
++
++    with pytest.raises(TemplateError, match=r"missing"):
++        TemplateService(
++            config,
++            required_template_names=[
++                "smart_content_base.j2",
++                "smart_content_callable.j2",
++            ],
++            template_sources=sources,
++        )
++
++
++@pytest.mark.unit
++def test_given_invalid_template_syntax_when_constructed_then_raises_template_error():
++    """TemplateService fails early on template syntax errors.
++
++    Purpose: Proves templates are validated at init (not at render-time)
++    Quality Contribution: Avoids delayed failures during prompt rendering
++    """
++    from fs2.config.objects import SmartContentConfig
++    from fs2.config.service import FakeConfigurationService
++    from fs2.core.services.smart_content.exceptions import TemplateError
++    from fs2.core.services.smart_content.template_service import TemplateService
++
++    config = FakeConfigurationService(SmartContentConfig())
++    sources = {
++        "smart_content_base.j2": "{% if %}",  # invalid Jinja2 syntax
++    }
++
++    with pytest.raises(TemplateError, match=r"syntax|parse|template"):
++        TemplateService(
++            config,
++            required_template_names=["smart_content_base.j2"],
++            template_sources=sources,
++        )
++
++
++@pytest.mark.unit
++def test_given_category_when_resolving_template_then_matches_ac11_mapping():
++    """TemplateService maps categories to templates per AC11 (with fallback).
++
++    Purpose: Proves category→template mapping contract (AC11)
++    Quality Contribution: Prevents wrong prompt shapes for node categories
++    """
++    from fs2.config.objects import SmartContentConfig
++    from fs2.config.service import FakeConfigurationService
++    from fs2.core.services.smart_content.template_service import TemplateService
++
++    config_obj = SmartContentConfig()
++    config = FakeConfigurationService(config_obj)
++    sources = {
++        "smart_content_file.j2": "ok",
++        "smart_content_type.j2": "ok",
++        "smart_content_callable.j2": "ok",
++        "smart_content_section.j2": "ok",
++        "smart_content_block.j2": "ok",
++        "smart_content_base.j2": "ok",
++    }
++
++    service = TemplateService(config, template_sources=sources)
++
++    assert service.resolve_template_name("file") == "smart_content_file.j2"
++    assert service.resolve_template_name("type") == "smart_content_type.j2"
++    assert service.resolve_template_name("callable") == "smart_content_callable.j2"
++    assert service.resolve_template_name("section") == "smart_content_section.j2"
++    assert service.resolve_template_name("block") == "smart_content_block.j2"
++
++    assert service.resolve_template_name("definition") == "smart_content_base.j2"
++    assert service.resolve_template_name("statement") == "smart_content_base.j2"
++    assert service.resolve_template_name("expression") == "smart_content_base.j2"
++    assert service.resolve_template_name("other") == "smart_content_base.j2"
++
++
++@pytest.mark.unit
++def test_given_category_when_resolving_max_tokens_then_uses_smart_content_config_defaults():
++    """TemplateService resolves per-category max_tokens from SmartContentConfig.
++
++    Purpose: Proves token limits are config-driven (Phase 1 dependency)
++    Quality Contribution: Prevents hard-coded token budgets across services
++    """
++    from fs2.config.objects import SmartContentConfig
++    from fs2.config.service import FakeConfigurationService
++    from fs2.core.services.smart_content.template_service import TemplateService
++
++    config_obj = SmartContentConfig()
++    config = FakeConfigurationService(config_obj)
++    sources = {
++        "smart_content_file.j2": "ok",
++        "smart_content_type.j2": "ok",
++        "smart_content_callable.j2": "ok",
++        "smart_content_section.j2": "ok",
++        "smart_content_block.j2": "ok",
++        "smart_content_base.j2": "ok",
++    }
++
++    service = TemplateService(config, template_sources=sources)
++
++    for category, expected in config_obj.token_limits.items():
++        assert service.resolve_max_tokens(category) == expected
++
++
++@pytest.mark.unit
++def test_given_required_context_vars_when_rendering_then_all_ac8_vars_are_supported():
++    """TemplateService render supports the AC8 context contract.
++
++    Purpose: Proves all AC8 variables are available to templates
++    Quality Contribution: Prevents silent prompt degradation from missing fields
++    """
++    from fs2.config.objects import SmartContentConfig
++    from fs2.config.service import FakeConfigurationService
++    from fs2.core.services.smart_content.template_service import TemplateService
++
++    config_obj = SmartContentConfig(
++        token_limits={
++            "file": 200,
++            "type": 200,
++            "callable": 999,
++            "section": 150,
++            "block": 150,
++            "definition": 150,
++            "statement": 100,
++            "expression": 100,
++            "other": 100,
++        }
++    )
++    config = FakeConfigurationService(config_obj)
++    sources = {
++        "smart_content_callable.j2": (
++            "name={{ name }}|qualified_name={{ qualified_name }}|category={{ category }}|"
++            "ts_kind={{ ts_kind }}|language={{ language }}|content={{ content }}|"
++            "signature={{ signature }}|max_tokens={{ max_tokens }}"
++        ),
++    }
++
++    service = TemplateService(
++        config,
++        required_template_names=["smart_content_callable.j2"],
++        template_sources=sources,
++    )
++
++    rendered = service.render_for_category(
++        "callable",
++        {
++            "name": "my_func",
++            "qualified_name": "MyClass.my_func",
++            "category": "callable",
++            "ts_kind": "function_definition",
++            "language": "python",
++            "content": "def my_func(): ...",
++            "signature": "def my_func():",
++        },
++    )
++
++    assert "name=my_func" in rendered
++    assert "qualified_name=MyClass.my_func" in rendered
++    assert "category=callable" in rendered
++    assert "ts_kind=function_definition" in rendered
++    assert "language=python" in rendered
++    assert "signature=def my_func():" in rendered
++    assert "max_tokens=999" in rendered
++
++
++@pytest.mark.unit
++def test_given_missing_required_context_var_when_rendering_then_raises_template_error():
++    """TemplateService fails closed on missing AC8 context vars.
++
++    Purpose: Proves strict undefined behavior for contract enforcement
++    Quality Contribution: Ensures missing vars do not silently omit content
++    """
++    from fs2.config.objects import SmartContentConfig
++    from fs2.config.service import FakeConfigurationService
++    from fs2.core.services.smart_content.exceptions import TemplateError
++    from fs2.core.services.smart_content.template_service import TemplateService
++
++    config = FakeConfigurationService(SmartContentConfig())
++    sources = {"smart_content_callable.j2": "signature={{ signature }}"}
++
++    service = TemplateService(
++        config,
++        required_template_names=["smart_content_callable.j2"],
++        template_sources=sources,
++    )
++
++    with pytest.raises(TemplateError):
++        service.render_for_category(
++            "callable",
++            {
++                "name": "my_func",
++                "qualified_name": "MyClass.my_func",
++                "category": "callable",
++                "ts_kind": "function_definition",
++                "language": "python",
++                "content": "def my_func(): ...",
++            },
++        )
++
++
++@pytest.mark.unit
++def test_given_all_templates_when_rendering_then_no_template_raises():
++    """All packaged templates load and render end-to-end.
++
++    Purpose: Proves package-data + importlib.resources loading works when installed
++    Quality Contribution: Prevents runtime failures due to missing template files
++    """
++    from fs2.config.objects import SmartContentConfig
++    from fs2.config.service import FakeConfigurationService
++    from fs2.core.services.smart_content.template_service import TemplateService
++
++    service = TemplateService(FakeConfigurationService(SmartContentConfig()))
++
++    categories = [
++        "file",
++        "type",
++        "callable",
++        "section",
++        "block",
++        "definition",
++        "statement",
++        "expression",
++        "other",
++    ]
++
++    for category in categories:
++        rendered = service.render_for_category(
++            category,
++            {
++                "name": f"example_{category}",
++                "qualified_name": f"Example.{category}",
++                "ts_kind": "example_kind",
++                "language": "python",
++                "content": "example content",
++                "signature": "example signature",
++            },
++        )
++
++        assert f"Category: {category}" in rendered
++        assert "Max tokens:" in rendered
