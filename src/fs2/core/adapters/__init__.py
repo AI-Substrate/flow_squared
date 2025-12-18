@@ -25,6 +25,14 @@ Public API:
 - FileScannerError: File scanning operation failed
 - ASTParserError: AST parsing operation failed
 - GraphStoreError: Graph storage operation failed
+- LLMAdapter: ABC for LLM provider access
+- FakeLLMAdapter: Test double for LLMAdapter
+- OpenAIAdapter: OpenAI API integration
+- AzureOpenAIAdapter: Azure OpenAI API integration
+- LLMAdapterError: Base LLM adapter error
+- LLMAuthenticationError: LLM authentication failed
+- LLMRateLimitError: LLM rate limit exceeded
+- LLMContentFilterError: LLM content filtered
 
 See tests/docs/test_sample_adapter_pattern.py for complete usage documentation.
 """
@@ -40,6 +48,10 @@ from fs2.core.adapters.exceptions import (
     AuthenticationError,
     FileScannerError,
     GraphStoreError,
+    LLMAdapterError,
+    LLMAuthenticationError,
+    LLMContentFilterError,
+    LLMRateLimitError,
 )
 from fs2.core.adapters.file_scanner import FileScanner
 from fs2.core.adapters.file_scanner_fake import FakeFileScanner
@@ -47,6 +59,10 @@ from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 from fs2.core.adapters.log_adapter import LogAdapter
 from fs2.core.adapters.log_adapter_console import ConsoleLogAdapter
 from fs2.core.adapters.log_adapter_fake import FakeLogAdapter
+from fs2.core.adapters.llm_adapter import LLMAdapter
+from fs2.core.adapters.llm_adapter_azure import AzureOpenAIAdapter
+from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+from fs2.core.adapters.llm_adapter_openai import OpenAIAdapter
 from fs2.core.adapters.sample_adapter import SampleAdapter
 from fs2.core.adapters.sample_adapter_fake import FakeSampleAdapter, SampleAdapterConfig
 
@@ -70,4 +86,12 @@ __all__ = [
     "FileScannerError",
     "ASTParserError",
     "GraphStoreError",
+    "LLMAdapter",
+    "FakeLLMAdapter",
+    "OpenAIAdapter",
+    "AzureOpenAIAdapter",
+    "LLMAdapterError",
+    "LLMAuthenticationError",
+    "LLMRateLimitError",
+    "LLMContentFilterError",
 ]

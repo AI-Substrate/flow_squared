@@ -89,3 +89,56 @@ azure:
 #   api_key: ${AZURE_OPENAI_API_KEY}
 #
 # Or use .env file in project root for all secrets.
+
+# ============================================================================
+# LLM SERVICE CONFIGURATION
+# ============================================================================
+#
+# The llm section configures the LLMService for smart content generation.
+# Provider can be: azure, openai, or fake (for testing)
+#
+# Example for Azure:
+#   llm:
+#     provider: azure
+#     api_key: ${AZURE_OPENAI_API_KEY}
+#     base_url: https://your-resource.openai.azure.com/
+#     azure_deployment_name: gpt-4
+#     azure_api_version: 2024-12-01-preview
+#
+# Example for OpenAI:
+#   llm:
+#     provider: openai
+#     api_key: ${OPENAI_API_KEY}
+#
+# Example for testing (no API calls):
+#   llm:
+#     provider: fake
+
+llm:
+  # Provider: azure | openai | fake
+  provider: fake  # Change to 'azure' or 'openai' for real API
+
+  # API key - use ${VAR} placeholder, NOT literal secret!
+  # api_key: ${AZURE_OPENAI_API_KEY}  # For Azure
+  # api_key: ${OPENAI_API_KEY}         # For OpenAI
+  api_key: null
+
+  # Base URL / Endpoint
+  # Required for Azure (e.g., https://your-resource.openai.azure.com/)
+  # Optional for OpenAI (uses default api.openai.com)
+  base_url: null
+
+  # Azure-specific (required when provider=azure)
+  azure_deployment_name: null  # e.g., gpt-4
+  azure_api_version: null      # e.g., 2024-12-01-preview
+
+  # Model name (for logging/display)
+  model: null  # e.g., gpt-4
+
+  # Generation parameters
+  temperature: 0.1
+  max_tokens: 1024
+
+  # Resilience settings
+  timeout: 120      # Request timeout in seconds (1-600)
+  max_retries: 3    # Retry count for 429/502/503 errors

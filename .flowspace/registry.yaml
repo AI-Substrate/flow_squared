@@ -56,4 +56,22 @@ repositories:
     created_at: '2025-11-26T08:39:22.716237'
     updated_at: '2025-11-26T08:39:23.025034'
     last_indexed: null
+  flowspace:
+    name: flowspace
+    condensed_path: .flowspace/repos/flowspace/condensed.jsonl
+    description: ''
+    status: active
+    weight: 1.0
+    tags: []
+    scan_paths: null
+    output_dir: null
+    watch_enabled: false
+    ignore_patterns: null
+    file_count: 1142
+    total_nodes: 6282
+    index_duration: null
+    graph_load_time: null
+    created_at: '2025-12-17T23:55:40.808096'
+    updated_at: '2025-12-17T23:55:44.050180'
+    last_indexed: null
 default_repo: main

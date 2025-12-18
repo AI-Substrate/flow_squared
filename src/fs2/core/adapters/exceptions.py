@@ -142,3 +142,78 @@ class GraphNotFoundError(AdapterError):
         super().__init__(
             message or f"Graph not found at {path}. Run 'fs2 scan' first."
         )
+
+
+# LLM Adapter Exception Hierarchy
+# Per Finding 04: Exception translation at adapter boundary
+# Per AC7: Status-code-based exception translation (no SDK exception imports)
+
+
+class LLMAdapterError(AdapterError):
+    """Base error for LLM adapter operations.
+
+    All LLM-specific errors inherit from this class to enable
+    catch-all patterns for LLM operations at the service layer.
+
+    Note: This error is raised for generic LLM failures that don't
+    fit into more specific categories.
+    """
+
+
+class LLMAuthenticationError(LLMAdapterError):
+    """LLM authentication failed.
+
+    Raised when the LLM provider rejects the API key or credentials.
+    Corresponds to HTTP 401 status code.
+
+    Common causes:
+    - Invalid API key
+    - Expired credentials
+    - Key not authorized for deployment
+
+    Recovery:
+    - Check API key is correct
+    - Verify ${ENV_VAR} placeholder expanded correctly
+    - Ensure key has access to the deployment
+    """
+
+
+class LLMRateLimitError(LLMAdapterError):
+    """LLM rate limit exceeded.
+
+    Raised when the LLM provider returns a rate limit error.
+    Corresponds to HTTP 429 status code.
+
+    Note: The adapter should have already retried with exponential
+    backoff before raising this error.
+
+    Common causes:
+    - Too many requests in time window
+    - Token quota exceeded
+    - Concurrent request limit hit
+
+    Recovery:
+    - Wait and retry (automatic via adapter)
+    - Reduce request frequency
+    - Increase quota with provider
+    """
+
+
+class LLMContentFilterError(LLMAdapterError):
+    """LLM content was filtered by provider safety systems.
+
+    Raised when Azure OpenAI or other providers reject content
+    due to safety/content filtering policies.
+    Corresponds to HTTP 400 with "content_filter" in error.
+
+    Note: The adapter may choose to return a graceful response
+    (was_filtered=True) instead of raising this error.
+
+    Common causes:
+    - Prompt triggered content policy
+    - Response would violate safety guidelines
+
+    Recovery:
+    - Rephrase the prompt
+    - Review content policy guidelines
+    """

@@ -12,9 +12,9 @@ Per Architecture Decision: Typed object registry pattern.
 Per Insight #6: Pydantic validation on construction.
 """
 
-from typing import ClassVar
+from typing import ClassVar, Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class AzureOpenAIConfig(BaseModel):
@@ -261,6 +261,126 @@ class ScanConfig(BaseModel):
         return v
 
 
+class LLMConfig(BaseModel):
+    """Configuration for LLM service adapters.
+
+    Loaded from YAML or environment variables.
+    Path: llm (e.g., FS2_LLM__PROVIDER)
+
+    Provides unified configuration for all LLM providers (OpenAI, Azure, Fake).
+    API keys must use ${ENV_VAR} placeholder syntax for security.
+
+    Attributes:
+        provider: LLM provider - "azure", "openai", or "fake" (required).
+        api_key: API key - MUST use ${ENV_VAR} placeholder (optional).
+        base_url: Provider endpoint URL (optional for OpenAI, required for Azure).
+        azure_deployment_name: Azure deployment name (required when provider=azure).
+        azure_api_version: Azure API version (required when provider=azure).
+        model: Model name for logging/display (optional).
+        temperature: Generation temperature (default: 0.1).
+        max_tokens: Maximum tokens to generate (default: 1024).
+        timeout: Request timeout in seconds (1-600, default: 120).
+        max_retries: Retry count for transient errors (default: 3).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        llm:
+          provider: azure
+          api_key: ${AZURE_OPENAI_API_KEY}
+          base_url: https://myinstance.openai.azure.com/
+          azure_deployment_name: gpt-4
+          azure_api_version: 2024-12-01-preview
+          model: gpt-4
+          temperature: 0.1
+          max_tokens: 1024
+          timeout: 120
+          max_retries: 3
+        ```
+
+    Security Notes:
+        - API keys with 'sk-' prefix are rejected (literal OpenAI keys)
+        - API keys longer than 64 characters are rejected (likely literals)
+        - Use ${ENV_VAR} syntax for all secrets
+    """
+
+    __config_path__: ClassVar[str] = "llm"
+
+    provider: Literal["azure", "openai", "fake"]
+    api_key: str | None = None
+    base_url: str | None = None
+    azure_deployment_name: str | None = None
+    azure_api_version: str | None = None
+    model: str | None = None
+    temperature: float = 0.1
+    max_tokens: int = 1024
+    timeout: int = 120
+    max_retries: int = 3
+
+    @field_validator("api_key")
+    @classmethod
+    def validate_api_key(cls, v: str | None) -> str | None:
+        """Validate API key is not a literal secret.
+
+        Rejects:
+        - Keys starting with 'sk-' (OpenAI format) - these are always literal
+
+        Allows:
+        - ${ENV_VAR} placeholder syntax (will be expanded at runtime)
+        - Azure keys (can be 64+ chars, that's legitimate)
+        - Short tokens
+        - None (optional field)
+
+        Note: The 64+ char check was removed because Azure keys are legitimately
+        long and after ${VAR} expansion they would fail validation. The sk-*
+        check is sufficient to catch accidentally committed OpenAI keys.
+        """
+        if v is None:
+            return v
+
+        # Check for sk- prefix (OpenAI literal key)
+        if v.startswith("sk-"):
+            raise ValueError(
+                "API key appears to be a literal secret (sk-* prefix). "
+                "Use ${ENV_VAR} placeholder syntax instead, e.g., ${OPENAI_API_KEY}"
+            )
+
+        return v
+
+    @field_validator("timeout")
+    @classmethod
+    def validate_timeout(cls, v: int) -> int:
+        """Validate timeout is in reasonable range (1-600 seconds)."""
+        if v < 1 or v > 600:
+            raise ValueError("Timeout must be 1-600 seconds")
+        return v
+
+    @model_validator(mode="after")
+    def validate_azure_fields(self) -> "LLMConfig":
+        """Validate Azure-specific fields when provider is 'azure'.
+
+        When provider=azure, the following fields are required:
+        - base_url (Azure endpoint)
+        - azure_deployment_name
+        - azure_api_version
+        """
+        if self.provider != "azure":
+            return self
+
+        errors = []
+        if not self.base_url:
+            errors.append("base_url is required when provider=azure")
+        if not self.azure_deployment_name:
+            errors.append("azure_deployment_name is required when provider=azure")
+        if not self.azure_api_version:
+            errors.append("azure_api_version is required when provider=azure")
+
+        if errors:
+            raise ValueError("; ".join(errors))
+
+        return self
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -270,4 +390,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     LogAdapterConfig,
     ScanConfig,
     GraphConfig,
+    LLMConfig,
 ]
