@@ -28,7 +28,8 @@
       "Bash(uv run ruff check:*)",
       "Bash(uv pip install:*)",
       "Bash(python -m ruff check:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run:*)"
     ],
     "deny": [],
     "ask": []

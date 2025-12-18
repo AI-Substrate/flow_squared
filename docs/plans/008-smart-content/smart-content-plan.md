@@ -779,18 +779,18 @@ class TestTemplateService:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 3.1 | [ ] | Write tests for SmartContentService initialization | 2 | Tests cover: DI pattern, config extraction, template validation | - | ConfigurationService registry pattern |
-| 3.2 | [ ] | Write tests for hash-based skip logic | 3 | Tests cover: AC5 skip when hash matches, AC6 regenerate when mismatch | - | Critical acceptance criteria |
-| 3.3 | [ ] | Write tests for content truncation | 2 | Tests cover: AC13 truncation at token limit, WARNING log, marker | - | Uses TokenCounter |
-| 3.4 | [ ] | Write tests for single-node processing | 3 | Tests cover: prompt generation, LLM call, result storage | - | Uses FakeLLMAdapter |
-| 3.5 | [ ] | Write tests for empty/trivial content handling | 2 | Tests cover: skip empty nodes, placeholder smart_content | - | Per Discovery 08 |
-| 3.6 | [ ] | Write tests for error handling strategies | 2 | Tests cover: auth error fails, rate limit retries, filter fallback | - | Per Discovery 07 |
-| 3.7 | [ ] | Implement SmartContentService skeleton | 2 | Constructor follows DI pattern, config extracted | - | Per Discovery 01 |
-| 3.8 | [ ] | Implement hash-based skip/regenerate logic | 3 | AC5 and AC6 tests pass | - | Compare content_hash |
-| 3.9 | [ ] | Implement content truncation | 2 | AC13 tests pass, WARNING logged | - | Use TokenCounter |
-| 3.10 | [ ] | Implement single-node generate_smart_content | 3 | All tests from 3.4 pass | - | Returns updated CodeNode |
-| 3.11 | [ ] | Implement error handling strategies | 2 | All tests from 3.6 pass | - | Per-error-type handling |
-| 3.12 | [ ] | Write integration test with FakeLLMAdapter | 2 | End-to-end single node processing works | - | AC10 verification |
+| 3.1 | [x] | Write tests for SmartContentService initialization | 2 | Tests cover: DI pattern, config extraction, template validation | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t001-t006-t012) | Complete [^20] |
+| 3.2 | [x] | Write tests for hash-based skip logic | 3 | Tests cover: AC5 skip when hash matches, AC6 regenerate when mismatch | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t001-t006-t012) | Complete [^20] |
+| 3.3 | [x] | Write tests for content truncation | 2 | Tests cover: AC13 truncation at token limit, WARNING log, marker | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t001-t006-t012) | Complete [^20] |
+| 3.4 | [x] | Write tests for single-node processing | 3 | Tests cover: prompt generation, LLM call, result storage | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t001-t006-t012) | Complete [^20] |
+| 3.5 | [x] | Write tests for empty/trivial content handling | 2 | Tests cover: skip empty nodes, placeholder smart_content | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t001-t006-t012) | Complete [^20] |
+| 3.6 | [x] | Write tests for error handling strategies | 2 | Tests cover: auth error fails, rate limit retries, filter fallback | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t001-t006-t012) | Complete [^20] |
+| 3.7 | [x] | Implement SmartContentService skeleton | 2 | Constructor follows DI pattern, config extracted | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t007-t011) | Complete [^21] |
+| 3.8 | [x] | Implement hash-based skip/regenerate logic | 3 | AC5 and AC6 tests pass | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t007-t011) | Complete [^22] |
+| 3.9 | [x] | Implement content truncation | 2 | AC13 tests pass, WARNING logged | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t007-t011) | Complete [^23] |
+| 3.10 | [x] | Implement single-node generate_smart_content | 3 | All tests from 3.4 pass | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t007-t011) | Complete [^24] |
+| 3.11 | [x] | Implement error handling strategies | 2 | All tests from 3.6 pass | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t007-t011) | Complete [^25] |
+| 3.12 | [x] | Write integration test with FakeLLMAdapter | 2 | End-to-end single node processing works | [📋](tasks/phase-3-core-service-implementation/execution.log.md#task-t001-t006-t012) | Complete [^26] |
 
 ### Test Examples (Write First!)
 
@@ -1426,7 +1426,7 @@ class TestGetNodeCLI:
 
 - [x] Phase 1: Foundation & Infrastructure - COMPLETE
 - [x] Phase 2: Template System - COMPLETE
-- [ ] Phase 3: Core Service Implementation - NOT STARTED
+- [x] Phase 3: Core Service Implementation - COMPLETE
 - [ ] Phase 4: Batch Processing Engine - NOT STARTED
 - [ ] Phase 5: CLI Integration & Documentation - NOT STARTED
 
@@ -1540,6 +1540,39 @@ class TestGetNodeCLI:
 [^19]: Task 2.12 - Integration test: all templates load + render
   - `file:tests/unit/services/test_template_service.py`
   - `function:tests/unit/services/test_template_service.py:test_given_all_templates_when_rendering_then_no_template_raises`
+
+### Phase 3: Core Service Implementation
+
+[^20]: Phase 3 T001-T006+T012 - SmartContentService tests (RED phase)
+  - `file:tests/unit/services/test_smart_content_service.py`
+  - 18 test cases covering: init, hash-based skip/regenerate, truncation, processing, error handling, integration
+
+[^21]: Phase 3 T007 - SmartContentService skeleton
+  - `class:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService`
+  - `file:src/fs2/core/services/smart_content/__init__.py`
+
+[^22]: Phase 3 T008 - Hash-based skip/regenerate logic
+  - `method:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService._should_skip`
+  - `method:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService.generate_smart_content`
+
+[^23]: Phase 3 T009 - Content truncation implementation
+  - `method:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService._prepare_content`
+
+[^24]: Phase 3 T010 - Single-node processing
+  - `method:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService._build_context`
+  - `method:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService._is_empty_or_trivial`
+  - `method:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService._create_placeholder_node`
+
+[^25]: Phase 3 T011 - Error handling strategies
+  - `method:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService._generate_with_error_handling`
+
+[^26]: Phase 3 T012 - Integration and concurrency tests
+  - `function:tests/unit/services/test_smart_content_service.py:test_integration_end_to_end_with_fake_llm`
+  - `function:tests/unit/services/test_smart_content_service.py:test_concurrent_processing_does_not_serialize`
+
+[^27]: Phase 3 Prerequisites - CodeNode smart_content_hash field and FakeLLMAdapter set_delay
+  - `field:src/fs2/core/models/code_node.py:CodeNode.smart_content_hash`
+  - `method:src/fs2/core/adapters/llm_adapter_fake.py:FakeLLMAdapter.set_delay`
 
 ---
 

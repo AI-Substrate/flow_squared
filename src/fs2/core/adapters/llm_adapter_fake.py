@@ -20,8 +20,13 @@ Usage:
     await adapter.generate("Second")
     assert len(adapter.call_history) == 2
     assert adapter.call_history[0]["max_tokens"] == 100
+
+    # Async delay simulation (for concurrency testing)
+    adapter.set_delay(0.1)  # 100ms delay
+    # Multiple concurrent calls will demonstrate true parallelism
 """
 
+import asyncio
 from typing import Any
 
 from fs2.core.adapters.llm_adapter import LLMAdapter
@@ -51,6 +56,7 @@ class FakeLLMAdapter(LLMAdapter):
         """Initialize the fake adapter with empty state."""
         self._response_content: str = "[FakeLLMAdapter placeholder response]"
         self._error: Exception | None = None
+        self._delay_seconds: float = 0.0
         self.call_history: list[dict[str, Any]] = []
 
     @property
@@ -75,10 +81,27 @@ class FakeLLMAdapter(LLMAdapter):
         """
         self._error = error
 
+    def set_delay(self, seconds: float) -> None:
+        """Set an async delay for generate() calls.
+
+        Use this to simulate network latency and verify concurrent
+        execution in worker pools (per CD06b).
+
+        Args:
+            seconds: Number of seconds to delay each generate() call.
+
+        Example:
+            >>> adapter.set_delay(0.1)  # 100ms delay
+            >>> # 5 concurrent calls should complete in ~100ms if parallel
+            >>> # Would take ~500ms if serialized
+        """
+        self._delay_seconds = seconds
+
     def reset(self) -> None:
         """Reset the adapter to its initial state."""
         self._response_content = "[FakeLLMAdapter placeholder response]"
         self._error = None
+        self._delay_seconds = 0.0
         self.call_history = []
 
     async def generate(
@@ -112,6 +135,10 @@ class FakeLLMAdapter(LLMAdapter):
                 "temperature": temperature,
             }
         )
+
+        # Apply async delay if configured (for concurrency testing)
+        if self._delay_seconds > 0:
+            await asyncio.sleep(self._delay_seconds)
 
         # Raise error if configured
         if self._error is not None:

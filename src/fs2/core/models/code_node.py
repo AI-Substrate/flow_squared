@@ -166,6 +166,7 @@ class CodeNode:
 
     # === Future Placeholders ===
     smart_content: str | None = None
+    smart_content_hash: str | None = None  # content_hash when smart_content was generated
     embedding: list[float] | None = None
 
     # === Factory Methods ===
@@ -189,6 +190,7 @@ class CodeNode:
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
+        smart_content_hash: str | None = None,
         embedding: list[float] | None = None,
     ) -> "CodeNode":
         """Create a file-level CodeNode.
@@ -231,6 +233,7 @@ class CodeNode:
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,
+            smart_content_hash=smart_content_hash,
             embedding=embedding,
         )
 
@@ -258,6 +261,7 @@ class CodeNode:
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
+        smart_content_hash: str | None = None,
         embedding: list[float] | None = None,
     ) -> "CodeNode":
         """Create a type-level CodeNode (class, struct, interface, enum).
@@ -304,6 +308,7 @@ class CodeNode:
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,
+            smart_content_hash=smart_content_hash,
             embedding=embedding,
         )
 
@@ -331,6 +336,7 @@ class CodeNode:
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
+        smart_content_hash: str | None = None,
         embedding: list[float] | None = None,
     ) -> "CodeNode":
         """Create a callable CodeNode (function, method, lambda).
@@ -377,6 +383,7 @@ class CodeNode:
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,
+            smart_content_hash=smart_content_hash,
             embedding=embedding,
         )
 
@@ -404,6 +411,7 @@ class CodeNode:
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
+        smart_content_hash: str | None = None,
         embedding: list[float] | None = None,
     ) -> "CodeNode":
         """Create a section CodeNode (markdown heading, document section).
@@ -450,6 +458,7 @@ class CodeNode:
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,
+            smart_content_hash=smart_content_hash,
             embedding=embedding,
         )
 
@@ -477,6 +486,7 @@ class CodeNode:
         truncated: bool = False,
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
+        smart_content_hash: str | None = None,
         embedding: list[float] | None = None,
     ) -> "CodeNode":
         """Create a block CodeNode (terraform block, dockerfile instruction).
@@ -523,5 +533,6 @@ class CodeNode:
             truncated=truncated,
             truncated_at_line=truncated_at_line,
             smart_content=smart_content,
+            smart_content_hash=smart_content_hash,
             embedding=embedding,
         )

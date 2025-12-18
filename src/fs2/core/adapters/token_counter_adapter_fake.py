@@ -25,6 +25,7 @@ class FakeTokenCounterAdapter(TokenCounterAdapter):
         self._default_count: int = 0
         self._counts_by_text: dict[str, int] = {}
         self._call_history: list[dict[str, Any]] = []
+        self._error: Exception | None = None
 
     @property
     def call_history(self) -> list[dict[str, Any]]:
@@ -39,6 +40,12 @@ class FakeTokenCounterAdapter(TokenCounterAdapter):
         """Set an explicit token count for a specific text."""
         self._counts_by_text[text] = count
 
+    def set_error(self, error: Exception) -> None:
+        """Set an error to raise on count_tokens calls."""
+        self._error = error
+
     def count_tokens(self, text: str) -> int:
         self._call_history.append({"method": "count_tokens", "args": {"text": text}})
+        if self._error is not None:
+            raise self._error
         return self._counts_by_text.get(text, self._default_count)
