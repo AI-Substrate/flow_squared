@@ -54,7 +54,10 @@ def make_code_node(
             signature="def test():",
         )
     else:
-        # Generic - use file factory with manual node_id override
+        # Generic - use file factory with dataclasses.replace() override
+        # (CodeNode is frozen; keep factory as source of truth for new fields).
+        import dataclasses
+
         node = CodeNode.create_file(
             file_path=file_path,
             language="python",
@@ -65,24 +68,13 @@ def make_code_node(
             end_line=10,
             content="# test content",
         )
-        # Create new node with correct node_id (frozen dataclass workaround)
-        return CodeNode(
+        return dataclasses.replace(
+            node,
             node_id=node_id,
             category=category,
-            ts_kind=node.ts_kind,
             name=name,
             qualified_name=name,
-            start_line=node.start_line,
-            end_line=node.end_line,
-            start_column=node.start_column,
-            end_column=node.end_column,
-            start_byte=node.start_byte,
-            end_byte=node.end_byte,
-            content=node.content,
             signature=None,
-            language=node.language,
-            is_named=node.is_named,
-            field_name=node.field_name,
         )
 
 

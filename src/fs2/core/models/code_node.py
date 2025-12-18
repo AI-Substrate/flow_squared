@@ -17,6 +17,8 @@ Per Alignment Brief: Dual classification, position-based anonymous IDs
 from dataclasses import dataclass
 from pathlib import Path
 
+from fs2.core.utils.hash import compute_content_hash
+
 
 def classify_node(ts_kind: str) -> str:
     """Map tree-sitter node type to universal category.
@@ -64,7 +66,9 @@ def classify_node(ts_kind: str) -> str:
     if any(x in ts_kind for x in ("function", "method", "lambda", "procedure")):
         return "callable"
 
-    if any(x in ts_kind for x in ("class", "struct", "interface", "enum", "type_alias")):
+    if any(
+        x in ts_kind for x in ("class", "struct", "interface", "enum", "type_alias")
+    ):
         return "type"
 
     if "heading" in ts_kind:
@@ -108,6 +112,7 @@ class CodeNode:
         start_byte: 0-indexed byte offset (for slicing)
         end_byte: 0-indexed end byte
         content: Full source text of this node
+        content_hash: SHA-256 hash of content (change detection)
         signature: First line(s) of declaration for quick reference
         language: Source language/grammar name
         is_named: Tree-sitter distinction (True = structural, False = punctuation)
@@ -141,6 +146,7 @@ class CodeNode:
 
     # === Content ===
     content: str
+    content_hash: str
     signature: str | None
 
     # === Metadata ===
@@ -215,6 +221,7 @@ class CodeNode:
             start_byte=start_byte,
             end_byte=end_byte,
             content=content,
+            content_hash=compute_content_hash(content),
             signature=None,
             language=language,
             is_named=is_named,
@@ -287,6 +294,7 @@ class CodeNode:
             start_byte=start_byte,
             end_byte=end_byte,
             content=content,
+            content_hash=compute_content_hash(content),
             signature=signature,
             language=language,
             is_named=is_named,
@@ -359,6 +367,7 @@ class CodeNode:
             start_byte=start_byte,
             end_byte=end_byte,
             content=content,
+            content_hash=compute_content_hash(content),
             signature=signature,
             language=language,
             is_named=is_named,
@@ -431,6 +440,7 @@ class CodeNode:
             start_byte=start_byte,
             end_byte=end_byte,
             content=content,
+            content_hash=compute_content_hash(content),
             signature=signature,
             language=language,
             is_named=is_named,
@@ -503,6 +513,7 @@ class CodeNode:
             start_byte=start_byte,
             end_byte=end_byte,
             content=content,
+            content_hash=compute_content_hash(content),
             signature=signature,
             language=language,
             is_named=is_named,

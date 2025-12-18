@@ -84,7 +84,7 @@ class TestNetworkXGraphStoreNodeOperations:
 
     def test_add_node_preserves_all_code_node_fields(self):
         """
-        Purpose: Verifies add_node stores CodeNode with all 17 fields preserved.
+        Purpose: Verifies add_node stores CodeNode with all fields preserved.
         Quality Contribution: Ensures data integrity for stored nodes.
         Acceptance Criteria: All fields retrievable after add.
 
@@ -94,11 +94,13 @@ class TestNetworkXGraphStoreNodeOperations:
         from fs2.config.objects import ScanConfig
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.utils.hash import compute_content_hash
 
         config = FakeConfigurationService(ScanConfig())
         store = NetworkXGraphStore(config)
 
         # Create node with explicit values for all fields
+        content = "# Full content here"
         node = CodeNode(
             node_id="file:src/test.py",
             category="file",
@@ -111,7 +113,8 @@ class TestNetworkXGraphStoreNodeOperations:
             end_column=50,
             start_byte=0,
             end_byte=5000,
-            content="# Full content here",
+            content=content,
+            content_hash=compute_content_hash(content),
             signature=None,
             language="python",
             is_named=True,
@@ -140,6 +143,7 @@ class TestNetworkXGraphStoreNodeOperations:
         assert retrieved.start_byte == node.start_byte
         assert retrieved.end_byte == node.end_byte
         assert retrieved.content == node.content
+        assert retrieved.content_hash == node.content_hash
         assert retrieved.signature == node.signature
         assert retrieved.language == node.language
         assert retrieved.is_named == node.is_named

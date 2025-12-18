@@ -14,7 +14,7 @@ Per Insight #6: Pydantic validation on construction.
 
 from typing import ClassVar, Literal
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class AzureOpenAIConfig(BaseModel):
@@ -381,6 +381,65 @@ class LLMConfig(BaseModel):
         return self
 
 
+class SmartContentConfig(BaseModel):
+    """Configuration for Smart Content generation.
+
+    Loaded from YAML or environment variables.
+    Path: smart_content (e.g., FS2_SMART_CONTENT__MAX_WORKERS)
+
+    Attributes:
+        max_workers: Number of parallel workers for batch processing (default: 50).
+        max_input_tokens: Token limit for prompt input truncation (default: 50000).
+        token_limits: Per-category output token limits for smart content generation.
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        smart_content:
+          max_workers: 50
+          max_input_tokens: 50000
+          token_limits:
+            file: 200
+            type: 200
+            callable: 150
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "smart_content"
+
+    max_workers: int = 50
+    max_input_tokens: int = 50000
+    token_limits: dict[str, int] = Field(
+        default_factory=lambda: {
+            "file": 200,
+            "type": 200,
+            "callable": 150,
+            "section": 150,
+            "block": 150,
+            "definition": 150,
+            "statement": 100,
+            "expression": 100,
+            "other": 100,
+        }
+    )
+
+    @field_validator("max_workers")
+    @classmethod
+    def validate_max_workers(cls, v: int) -> int:
+        """Validate max_workers is positive."""
+        if v < 1:
+            raise ValueError("max_workers must be >= 1")
+        return v
+
+    @field_validator("max_input_tokens")
+    @classmethod
+    def validate_max_input_tokens(cls, v: int) -> int:
+        """Validate max_input_tokens is positive."""
+        if v < 1:
+            raise ValueError("max_input_tokens must be >= 1")
+        return v
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -391,4 +450,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     ScanConfig,
     GraphConfig,
     LLMConfig,
+    SmartContentConfig,
 ]

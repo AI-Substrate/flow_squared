@@ -40,6 +40,20 @@ class AdapterError(Exception):
     """
 
 
+class TokenCounterError(AdapterError):
+    """Token counting failed.
+
+    Raised when the TokenCounter adapter cannot count tokens due to
+    tokenizer initialization failures, encoding errors, or other
+    underlying library issues.
+
+    Recovery:
+    - Verify `tiktoken` is installed (required dependency)
+    - Verify LLM model name is configured if model-specific encoding is used
+    - Retry with simpler input if content is malformed
+    """
+
+
 class AuthenticationError(AdapterError):
     """Authentication failed.
 

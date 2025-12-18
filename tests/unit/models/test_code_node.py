@@ -22,6 +22,7 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
+from fs2.core.utils.hash import compute_content_hash
 
 @pytest.mark.unit
 class TestCodeNodeStructure:
@@ -50,6 +51,9 @@ class TestCodeNodeStructure:
             start_byte=200,
             end_byte=350,
             content="def add(self, a, b):\n    return a + b",
+            content_hash=compute_content_hash(
+                "def add(self, a, b):\n    return a + b"
+            ),
             signature="def add(self, a, b):",
             language="python",
             is_named=True,
@@ -82,6 +86,7 @@ class TestCodeNodeStructure:
             start_byte=0,
             end_byte=400,
             content="class User:\n    pass",
+            content_hash=compute_content_hash("class User:\n    pass"),
             signature="class User:",
             language="python",
             is_named=True,
@@ -115,6 +120,7 @@ class TestCodeNodeStructure:
             start_byte=200,
             end_byte=350,
             content="def add(self, a, b): return a + b",
+            content_hash=compute_content_hash("def add(self, a, b): return a + b"),
             signature="def add(self, a, b):",
             language="python",
             is_named=True,
@@ -152,6 +158,7 @@ class TestCodeNodeStructure:
             start_byte=800,
             end_byte=820,
             content="lambda x: x + 1",
+            content_hash=compute_content_hash("lambda x: x + 1"),
             signature="lambda x: x + 1",
             language="python",
             is_named=True,
@@ -185,6 +192,7 @@ class TestCodeNodeStructure:
             start_byte=1200,
             end_byte=1500,
             content="def process(): ...",
+            content_hash=compute_content_hash("def process(): ..."),
             signature="def process():",
             language="python",
             is_named=True,
@@ -228,6 +236,7 @@ class TestCodeNodeStructure:
             start_byte=0,
             end_byte=len(full_content),
             content=full_content,
+            content_hash=compute_content_hash(full_content),
             signature="def calculate(x, y):",
             language="python",
             is_named=True,
@@ -261,6 +270,7 @@ class TestCodeNodeStructure:
             start_byte=100,
             end_byte=200,
             content="def add(self, a, b): return a + b",
+            content_hash=compute_content_hash("def add(self, a, b): return a + b"),
             signature="def add(self, a, b):",
             language="python",
             is_named=True,
@@ -294,6 +304,7 @@ class TestCodeNodeStructure:
             start_byte=0,
             end_byte=100,
             content="def main(): pass",
+            content_hash=compute_content_hash("def main(): pass"),
             signature="def main():",
             language="python",
             is_named=True,
@@ -328,6 +339,7 @@ class TestCodeNodeStructure:
             start_byte=0,
             end_byte=50,
             content="def func(): pass",
+            content_hash=compute_content_hash("def func(): pass"),
             signature="def func():",
             language="python",
             is_named=True,
@@ -349,6 +361,7 @@ class TestCodeNodeStructure:
             start_byte=100,
             end_byte=110,
             content="def broken(",
+            content_hash=compute_content_hash("def broken("),
             signature="def broken(",
             language="python",
             is_named=False,
@@ -381,6 +394,7 @@ class TestCodeNodeStructure:
             start_byte=0,
             end_byte=5000,
             content="# small file content",
+            content_hash=compute_content_hash("# small file content"),
             signature=None,
             language="python",
             is_named=True,
@@ -403,6 +417,7 @@ class TestCodeNodeStructure:
             start_byte=0,
             end_byte=1000000,
             content="# first 1000 lines only...",
+            content_hash=compute_content_hash("# first 1000 lines only..."),
             signature=None,
             language="python",
             is_named=True,
@@ -436,6 +451,7 @@ class TestCodeNodeStructure:
             start_byte=0,
             end_byte=100,
             content="def main(): pass",
+            content_hash=compute_content_hash("def main(): pass"),
             signature="def main():",
             language="python",
             is_named=True,
@@ -459,6 +475,7 @@ class TestCodeNodeStructure:
             start_byte=0,
             end_byte=100,
             content="def main(): pass",
+            content_hash=compute_content_hash("def main(): pass"),
             signature="def main():",
             language="python",
             is_named=True,
@@ -498,6 +515,32 @@ class TestCodeNodeFactories:
 
         assert node.category == "file"
         assert node.node_id == "file:src/main.py"
+
+    def test_create_file_when_called_then_populates_content_hash(self):
+        """
+        Purpose: Proves CodeNode factories compute content_hash from content.
+        Quality Contribution: Enables hash-based regeneration without mutating frozen nodes.
+        Acceptance Criteria: content_hash equals SHA-256 hexdigest of content.
+
+        Task: T008
+        """
+        from fs2.core.models.code_node import CodeNode
+        from fs2.core.utils.hash import compute_content_hash
+
+        content = "# Main module\nimport os\n..."
+
+        node = CodeNode.create_file(
+            file_path="src/main.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=len(content),
+            start_line=1,
+            end_line=3,
+            content=content,
+        )
+
+        assert node.content_hash == compute_content_hash(content)
         assert node.ts_kind == "module"
         assert node.language == "python"
         assert node.name == "main.py"
