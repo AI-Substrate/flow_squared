@@ -141,6 +141,34 @@ FILENAME_TO_LANGUAGE: dict[str, str] = {
     ".gitattributes": "gitattributes",
 }
 
+# Languages that should be parsed into functions/classes/methods (whitelist)
+# All other languages default to file-level only (safer for unknown languages)
+#
+# These are "real code" languages where extracting callable/type nodes is valuable.
+# Content, config, markup, and infrastructure languages are NOT in this list.
+CODE_LANGUAGES: set[str] = {
+    # Systems programming
+    "c", "cpp", "rust", "go", "zig", "d", "nim",
+    # JVM
+    "java", "kotlin", "scala", "groovy",
+    # .NET
+    "csharp", "fsharp",
+    # Web
+    "javascript", "typescript", "tsx", "php",
+    # Scripting
+    "python", "ruby", "perl", "lua",
+    # Functional
+    "haskell", "ocaml", "elixir", "erlang", "clojure", "scheme", "racket", "commonlisp",
+    # Mobile
+    "swift", "dart",
+    # Scientific
+    "r", "julia", "matlab", "fortran",
+    # GPU/Shaders
+    "cuda", "glsl", "hlsl", "wgsl",
+    # Other
+    "v",
+}
+
 
 class TreeSitterParser(ASTParser):
     """Production implementation of ASTParser using tree-sitter.
@@ -308,17 +336,19 @@ class TreeSitterParser(ASTParser):
         )
         nodes.append(file_node)
 
-        # Traverse tree and extract named nodes
-        self._extract_nodes(
-            node=tree.root_node,
-            file_path=str(rel_path),
-            language=language,
-            content=content_str,
-            nodes=nodes,
-            depth=1,
-            parent_qualified_name=None,
-            parent_node_id=file_node.node_id,
-        )
+        # Only extract child nodes for code languages (whitelist)
+        # All other languages (config, content, markup, etc.) get file-level only
+        if language in CODE_LANGUAGES:
+            self._extract_nodes(
+                node=tree.root_node,
+                file_path=str(rel_path),
+                language=language,
+                content=content_str,
+                nodes=nodes,
+                depth=1,
+                parent_qualified_name=None,
+                parent_node_id=file_node.node_id,
+            )
 
         return nodes
 
@@ -392,6 +422,17 @@ class TreeSitterParser(ASTParser):
             # Classify the node
             ts_kind = child.type
             category = classify_node(ts_kind)
+
+            # Skip nodes that are too granular (don't create nodes, don't traverse)
+            # These are implementation details, not meaningful code structures
+            skip_entirely = {
+                "lambda",  # Inline lambdas inside functions - not standalone
+                "lambda_parameters",  # Just parameter names like 'n', 'x'
+                "parameters",  # Function parameter lists
+                "argument_list",  # Call arguments
+            }
+            if ts_kind in skip_entirely:
+                continue
 
             # Skip container nodes that are just structural wrappers
             # These should be traversed but not create CodeNodes

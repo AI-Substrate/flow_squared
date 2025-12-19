@@ -59,6 +59,30 @@ scan:
 
 See [Scanning Guide](docs/how/scanning.md) for details on node types, troubleshooting, and advanced configuration.
 
+## Language Support
+
+fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages are categorized as:
+
+**Code Languages (40)** - Parsed into functions, classes, methods:
+- Systems: C, C++, Rust, Go, Zig, D, Nim
+- JVM: Java, Kotlin, Scala, Groovy
+- .NET: C#, F#
+- Web: JavaScript, TypeScript, TSX, PHP
+- Scripting: Python, Ruby, Perl, Lua
+- Functional: Haskell, OCaml, Elixir, Erlang, Clojure, Scheme, Racket, Common Lisp
+- Mobile: Swift, Dart
+- Scientific: R, Julia, MATLAB, Fortran
+- GPU/Shaders: CUDA, GLSL, HLSL, WGSL
+
+**File-only Languages** - Summarized as whole documents:
+- Config: JSON, YAML, TOML, XML, INI
+- Documentation: Markdown, RST, LaTeX
+- Infrastructure: Dockerfile, Makefile, Terraform (HCL)
+- Shell: Bash, Fish, PowerShell
+- Query: SQL, GraphQL
+
+Unknown languages default to file-only (safe).
+
 ## Key Patterns
 
 - **ABC-based interfaces** with `@abstractmethod` for explicit contracts

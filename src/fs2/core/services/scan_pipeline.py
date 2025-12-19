@@ -157,6 +157,10 @@ class ScanPipeline:
         # smart_content and smart_content_hash values to SmartContentStage.
         context.prior_nodes = self._load_prior_nodes(context)
 
+        # Clear graph after extracting prior_nodes - we build fresh each scan
+        if context.graph_store is not None:
+            context.graph_store.clear()
+
         # Run each stage sequentially
         for stage in self._stages:
             context = stage.process(context)

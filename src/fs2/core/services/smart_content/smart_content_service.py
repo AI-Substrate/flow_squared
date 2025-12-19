@@ -42,7 +42,9 @@ logger = logging.getLogger(__name__)
 
 
 # Minimum content length to warrant LLM processing
-_MIN_CONTENT_LENGTH = 10
+# Nodes smaller than this get placeholder text instead of LLM calls
+# 50 bytes filters out trivial declarations, empty blocks, etc.
+_MIN_CONTENT_LENGTH = 50
 
 # Progress callback interval (user request: every 10 items)
 _PROGRESS_INTERVAL = 10
