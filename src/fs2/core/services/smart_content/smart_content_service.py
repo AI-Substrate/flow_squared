@@ -2,20 +2,23 @@
 
 Provides:
 - Single-node smart content generation via LLMService
+- Batch processing with asyncio Queue + Worker Pool pattern (Phase 4)
 - Hash-based skip logic (AC5) and regeneration (AC6)
 - Token-based content truncation (AC13)
 - Error handling with graceful degradation (CD07)
 
 Per CD01: Accepts ConfigurationService, extracts config internally.
 Per CD03: Returns new CodeNode instances (frozen immutability).
+Per CD10: Stateless service - batch processing uses local variables.
 Per CD12: Catches domain exceptions only, never SDK exceptions.
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fs2.config.objects import SmartContentConfig
 from fs2.core.adapters.exceptions import (
@@ -229,3 +232,176 @@ class SmartContentService:
             raise SmartContentProcessingError(
                 f"Rate limit exceeded for node {node.node_id}: {e}"
             ) from e
+
+    # =========================================================================
+    # Phase 4: Batch Processing with Queue + Worker Pool
+    # =========================================================================
+
+    async def process_batch(self, nodes: list[CodeNode]) -> dict[str, Any]:
+        """Process multiple nodes in parallel using asyncio Queue + Worker Pool.
+
+        Implements AC7 (batch processing with configurable workers) using the
+        pattern from Critical Discovery 06.
+
+        Args:
+            nodes: List of CodeNodes to process.
+
+        Returns:
+            Dict containing:
+            - processed: Count of successfully processed nodes
+            - skipped: Count of nodes skipped (hash match)
+            - errors: List of (node_id, error_message) tuples
+            - results: Dict mapping node_id -> updated CodeNode
+            - total: Total input nodes
+
+        Note:
+            Per CD10 (Stateless Service Design): Uses local variables for queue
+            and stats_lock, not instance attributes. This prevents race conditions
+            when multiple batches run concurrently on the same service instance.
+        """
+        # Initialize stats - local variable per CD10
+        stats: dict[str, Any] = {
+            "processed": 0,
+            "skipped": 0,
+            "errors": [],
+            "results": {},
+            "total": len(nodes),
+        }
+
+        if not nodes:
+            return stats
+
+        # Create queue and lock - local variables per CD10
+        queue: asyncio.Queue[CodeNode | None] = asyncio.Queue()
+        stats_lock = asyncio.Lock()
+
+        # Pre-filter and enqueue using existing _should_skip (per /didyouknow Insight #2)
+        work_count = 0
+        for node in nodes:
+            if not self._should_skip(node):
+                await queue.put(node)
+                work_count += 1
+            else:
+                stats["skipped"] += 1
+
+        if work_count == 0:
+            logger.info(
+                "Batch complete: 0 processed, %d skipped (all nodes up-to-date)",
+                stats["skipped"],
+            )
+            return stats
+
+        # Cap workers to actual work items (T010: don't spawn idle workers)
+        actual_workers = min(self._config.max_workers, work_count)
+        logger.info(
+            "Starting %d workers for %d items (max_workers=%d)",
+            actual_workers,
+            work_count,
+            self._config.max_workers,
+        )
+
+        # Create synchronized workers (T012: asyncio.Event barrier)
+        worker_ready_event = asyncio.Event()
+        workers_ready = [0]  # Use list for nonlocal mutation
+
+        async def create_synchronized_worker(worker_id: int) -> None:
+            """Worker factory with synchronized startup barrier."""
+            workers_ready[0] += 1
+            if workers_ready[0] >= actual_workers:
+                worker_ready_event.set()  # Last worker signals all
+            else:
+                await worker_ready_event.wait()  # Others wait
+
+            await self._worker_loop(
+                worker_id=worker_id,
+                queue=queue,
+                stats_lock=stats_lock,
+                stats=stats,
+            )
+
+        workers = [
+            asyncio.create_task(
+                create_synchronized_worker(i),
+                name=f"smart-content-worker-{i}",
+            )
+            for i in range(actual_workers)
+        ]
+
+        # SENTINEL SHUTDOWN PATTERN
+        # -------------------------
+        # Sentinels (None) MUST be enqueued:
+        #   1. AFTER all work items (so workers process work first)
+        #   2. BEFORE gather() (so workers can receive them)
+        # One sentinel per worker ensures all workers exit cleanly.
+        for _ in range(actual_workers):
+            await queue.put(None)
+
+        # Wait for all workers to complete
+        await asyncio.gather(*workers)
+
+        logger.info(
+            "Batch complete: %d processed, %d skipped, %d errors",
+            stats["processed"],
+            stats["skipped"],
+            len(stats["errors"]),
+        )
+
+        return stats
+
+    async def _worker_loop(
+        self,
+        worker_id: int,
+        queue: asyncio.Queue[CodeNode | None],
+        stats_lock: asyncio.Lock,
+        stats: dict[str, Any],
+    ) -> None:
+        """Worker coroutine that processes items from queue.
+
+        Args:
+            worker_id: Identifier for this worker (for logging).
+            queue: Work queue (passed as param per CD10, not self._queue).
+            stats_lock: Lock for thread-safe stats updates.
+            stats: Shared stats dict (processed, errors, results).
+        """
+        logger.debug("Worker %d started", worker_id)
+
+        while True:
+            item = await queue.get()
+
+            if item is None:  # Sentinel for shutdown
+                logger.debug("Worker %d received stop signal", worker_id)
+                break
+
+            node = item
+            try:
+                updated_node = await self.generate_smart_content(node)
+
+                async with stats_lock:
+                    stats["processed"] += 1
+                    stats["results"][node.node_id] = updated_node
+
+                    # Progress logging every 50 items (per /didyouknow Insight #3)
+                    if stats["processed"] % 50 == 0:
+                        remaining = stats["total"] - stats["processed"] - stats["skipped"] - len(stats["errors"])
+                        logger.info(
+                            "Progress: %d/%d processed, %d remaining",
+                            stats["processed"],
+                            stats["total"],
+                            remaining,
+                        )
+
+            except LLMAuthenticationError:
+                # Auth errors should fail the entire batch - re-raise
+                raise
+
+            except Exception as e:
+                logger.error(
+                    "Worker %d error processing %s: %s",
+                    worker_id,
+                    node.node_id,
+                    str(e),
+                )
+                async with stats_lock:
+                    stats["errors"].append((node.node_id, str(e)))
+
+        logger.debug("Worker %d finished", worker_id)

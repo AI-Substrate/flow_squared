@@ -980,20 +980,20 @@ class TestSmartContentService:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 4.1 | [ ] | Write tests for asyncio.Queue initialization | 2 | Tests cover: queue created, items enqueued correctly | - | Foundation |
-| 4.2 | [ ] | Write tests for pre-filter hash check before enqueueing | 2 | Tests cover: only nodes needing processing enqueued | - | Efficiency |
-| 4.3 | [ ] | Write tests for synchronized worker startup | 3 | Tests cover: all workers start together after barrier | - | Critical for fairness |
-| 4.4 | [ ] | Write tests for worker processing loop | 3 | Tests cover: workers pull from queue, process, update stats | - | Core functionality |
-| 4.5 | [ ] | Write tests for sentinel shutdown pattern | 2 | Tests cover: workers exit cleanly on None sentinel | - | Graceful shutdown |
-| 4.6 | [ ] | Write tests for thread-safe stats tracking | 2 | Tests cover: stats updated correctly under concurrency | - | Uses asyncio.Lock |
-| 4.7 | [ ] | Write tests for progress logging | 2 | Tests cover: INFO logged every 100 items | - | Observability |
-| 4.8 | [ ] | Write tests for partial failure handling | 2 | Tests cover: worker errors don't stop other workers | - | Per Discovery 07 |
-| 4.9 | [ ] | Write tests for configurable worker count | 2 | Tests cover: max_workers from config used | - | Via SmartContentConfig |
-| 4.10 | [ ] | Write tests for worker count capping | 2 | Tests cover: actual_workers = min(max_workers, queue.qsize()) | - | Don't spawn idle workers |
-| 4.11 | [ ] | Implement process_batch with Queue + Worker Pool | 4 | All tests from 4.1-4.10 pass | - | Main implementation |
-| 4.12 | [ ] | Implement create_synchronized_worker | 2 | Barrier tests pass | - | Uses asyncio.Event |
-| 4.13 | [ ] | Implement _worker_loop | 3 | Processing and stats tests pass | - | Core worker logic |
-| 4.14 | [ ] | Write integration test with 500 nodes | 2 | Batch completes correctly with 50 workers | - | High-throughput validation |
+| 4.1 | [x] | Write tests for asyncio.Queue initialization | 2 | Tests cover: queue created, items enqueued correctly | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Foundation |
+| 4.2 | [x] | Write tests for pre-filter hash check before enqueueing | 2 | Tests cover: only nodes needing processing enqueued | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Efficiency |
+| 4.3 | [x] | Write tests for synchronized worker startup | 3 | Tests cover: all workers start together after barrier | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Critical for fairness |
+| 4.4 | [x] | Write tests for worker processing loop | 3 | Tests cover: workers pull from queue, process, update stats | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Core functionality |
+| 4.5 | [x] | Write tests for sentinel shutdown pattern | 2 | Tests cover: workers exit cleanly on None sentinel | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Graceful shutdown |
+| 4.6 | [x] | Write tests for thread-safe stats tracking | 2 | Tests cover: stats updated correctly under concurrency | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Uses asyncio.Lock |
+| 4.7 | [x] | Write tests for progress logging | 2 | Tests cover: INFO logged every 50 items | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Observability; Changed 100→50 |
+| 4.8 | [x] | Write tests for partial failure handling | 2 | Tests cover: worker errors don't stop other workers | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Per Discovery 07 |
+| 4.9 | [x] | Write tests for configurable worker count | 2 | Tests cover: max_workers from config used | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Via SmartContentConfig |
+| 4.10 | [x] | Write tests for worker count capping | 2 | Tests cover: actual_workers = min(max_workers, queue.qsize()) | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t001-t010-red-phase) | [^28] Don't spawn idle workers |
+| 4.11 | [x] | Implement process_batch with Queue + Worker Pool | 4 | All tests from 4.1-4.10 pass | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t011-t014-green-phase) | [^29] Main implementation |
+| 4.12 | [x] | Implement create_synchronized_worker | 2 | Barrier tests pass | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t011-t014-green-phase) | [^30] Uses asyncio.Event |
+| 4.13 | [x] | Implement _worker_loop | 3 | Processing and stats tests pass | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t011-t014-green-phase) | [^31] Core worker logic |
+| 4.14 | [x] | Write integration test with 500 nodes | 2 | Batch completes correctly with 50 workers | [📋](tasks/phase-4-batch-processing-engine/execution.log.md#task-t011-t014-green-phase) | [^32] High-throughput validation |
 
 ### Test Examples (Write First!)
 
@@ -1427,7 +1427,7 @@ class TestGetNodeCLI:
 - [x] Phase 1: Foundation & Infrastructure - COMPLETE
 - [x] Phase 2: Template System - COMPLETE
 - [x] Phase 3: Core Service Implementation - COMPLETE
-- [ ] Phase 4: Batch Processing Engine - NOT STARTED
+- [x] Phase 4: Batch Processing Engine - COMPLETE
 - [ ] Phase 5: CLI Integration & Documentation - NOT STARTED
 
 ### STOP Rule
@@ -1574,7 +1574,25 @@ class TestGetNodeCLI:
   - `field:src/fs2/core/models/code_node.py:CodeNode.smart_content_hash`
   - `method:src/fs2/core/adapters/llm_adapter_fake.py:FakeLLMAdapter.set_delay`
 
+### Phase 4: Batch Processing Engine
+
+[^28]: Phase 4 T001-T010 - Batch processing tests (RED phase)
+  - `file:tests/unit/services/test_smart_content_batch.py`
+  - 18 test cases covering: queue init, pre-filter, synchronized startup, worker loop, sentinel shutdown, thread-safe stats, progress logging, partial failures, configurable workers, worker capping, integration
+
+[^29]: Phase 4 T011 - process_batch implementation
+  - `method:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService.process_batch`
+
+[^30]: Phase 4 T012 - create_synchronized_worker implementation
+  - `function:src/fs2/core/services/smart_content/smart_content_service.py:create_synchronized_worker` (inner function in process_batch)
+
+[^31]: Phase 4 T013 - _worker_loop implementation
+  - `method:src/fs2/core/services/smart_content/smart_content_service.py:SmartContentService._worker_loop`
+
+[^32]: Phase 4 T014 - Integration test with 500 nodes
+  - `function:tests/unit/services/test_smart_content_batch.py:test_given_500_nodes_with_50ms_delay_then_completes_under_2s`
+
 ---
 
-**Plan Status**: DRAFT
-**Next Step**: Run `/plan-4-complete-the-plan` to validate readiness
+**Plan Status**: ACTIVE (Phase 4 Complete, Phase 5 Ready)
+**Next Step**: Run `/plan-5-phase-tasks-and-brief --phase 5` to generate Phase 5 tasks
