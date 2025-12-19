@@ -1,12 +1,16 @@
 """fs2 scan command implementation.
 
 Orchestrates the ScanPipeline to scan a codebase and build the code graph.
-Displays progress feedback and summary output using Rich.
+Displays progress feedback and summary output using ConsoleAdapter.
 
 Per Phase 6 (Scan Pipeline Integration):
 - Supports --no-smart-content flag to skip AI enrichment
 - Shows smart content statistics in summary (enriched, preserved, errors)
 - Shows clear stage banners with Rich formatting
+
+Per Clean Architecture:
+- Uses ConsoleAdapter ABC for all console output (no direct Rich usage)
+- CLI layer creates RichConsoleAdapter and passes to helpers
 """
 
 import logging
@@ -14,27 +18,15 @@ import sys
 from typing import Annotated
 
 import typer
-from rich.console import Console
 from rich.logging import RichHandler
-from rich.panel import Panel
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    SpinnerColumn,
-    TaskProgressColumn,
-    TextColumn,
-    TimeElapsedColumn,
-)
-from rich.rule import Rule
 
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.config.service import FS2ConfigurationService
-from fs2.core.adapters import FileSystemScanner, TreeSitterParser
+from fs2.core.adapters import FileSystemScanner, RichConsoleAdapter, TreeSitterParser
+from fs2.core.adapters.console_adapter import ConsoleAdapter
 from fs2.core.repos import NetworkXGraphStore
 from fs2.core.services import ScanPipeline
 
-console = Console()
 logger = logging.getLogger("fs2.cli.scan")
 
 
@@ -67,17 +59,19 @@ def scan(
     When LLM is configured, also generates AI-powered smart content
     (summaries) for each code node. Use --no-smart-content to skip.
     """
+    # Create console adapter (injectable for testing)
+    console: ConsoleAdapter = RichConsoleAdapter()
+
     # Configure logging for verbose mode
     if verbose:
         _setup_verbose_logging()
 
     try:
         # ===== STAGE 1: CONFIGURATION =====
-        console.print()
-        console.print(Rule("[bold cyan]CONFIGURATION[/bold cyan]", style="cyan"))
+        console.stage_banner("CONFIGURATION")
 
         config = FS2ConfigurationService()
-        console.print("  [green]✓[/green] Loaded .fs2/config.yaml")
+        console.print_success("Loaded .fs2/config.yaml")
 
         # Create SmartContentService if LLM is configured and not disabled
         smart_content_service = None
@@ -85,23 +79,33 @@ def scan(
 
         if no_smart_content:
             smart_content_status = "skipped (--no-smart-content)"
-            console.print(f"  [dim]Smart content: {smart_content_status}[/dim]")
+            console.print_info(f"Smart content: {smart_content_status}")
         else:
             smart_content_service, smart_content_status = _create_smart_content_service(
-                config
+                config, console
             )
             if smart_content_service:
-                console.print("  [green]✓[/green] Smart content: [green]enabled[/green]")
+                console.print_success("Smart content: enabled")
             else:
-                console.print(f"  [yellow]![/yellow] Smart content: [dim]{smart_content_status}[/dim]")
+                console.print_warning(f"Smart content: {smart_content_status}")
 
         # ===== STAGE 2: FILE DISCOVERY =====
-        console.print()
-        console.print(Rule("[bold cyan]DISCOVERY[/bold cyan]", style="cyan"))
+        console.stage_banner("DISCOVERY")
 
         file_scanner = FileSystemScanner(config)
         ast_parser = TreeSitterParser(config)
         graph_store = NetworkXGraphStore(config)
+
+        # Create progress callback for smart content (uses console adapter)
+        def smart_content_progress(progress, error_message):
+            """Display smart content progress using console adapter."""
+            if error_message:
+                console.print_error(error_message)
+            else:
+                console.print_progress(
+                    f"Progress: {progress.processed}/{progress.total} processed, "
+                    f"{progress.remaining} remaining"
+                )
 
         # Create pipeline
         pipeline = ScanPipeline(
@@ -110,65 +114,65 @@ def scan(
             ast_parser=ast_parser,
             graph_store=graph_store,
             smart_content_service=smart_content_service,
+            smart_content_progress_callback=smart_content_progress if smart_content_service else None,
         )
 
         # ===== STAGE 3: PARSING =====
-        console.print()
-        console.print(Rule("[bold cyan]PARSING[/bold cyan]", style="cyan"))
+        console.stage_banner("PARSING")
 
         # Run the pipeline
         summary = pipeline.run()
 
-        console.print(f"  [green]✓[/green] Scanned {summary.files_scanned} files")
-        console.print(f"  [green]✓[/green] Created {summary.nodes_created} nodes")
+        console.print_success(f"Scanned {summary.files_scanned} files")
+        console.print_success(f"Created {summary.nodes_created} nodes")
 
         # ===== STAGE 4: SMART CONTENT =====
         if smart_content_service:
-            console.print()
-            console.print(Rule("[bold cyan]SMART CONTENT[/bold cyan]", style="cyan"))
+            console.stage_banner("SMART CONTENT")
 
             enriched = summary.metrics.get("smart_content_enriched", 0)
             preserved = summary.metrics.get("smart_content_preserved", 0)
             errors = summary.metrics.get("smart_content_errors", 0)
 
             if enriched > 0:
-                console.print(f"  [green]✓[/green] Enriched: [green]{enriched}[/green] nodes")
+                console.print_success(f"Enriched: {enriched} nodes")
             if preserved > 0:
-                console.print(f"  [blue]↻[/blue] Preserved: [blue]{preserved}[/blue] nodes (unchanged)")
+                console.print_progress(f"Preserved: {preserved} nodes (unchanged)")
             if errors > 0:
-                console.print(f"  [yellow]![/yellow] Errors: [yellow]{errors}[/yellow] nodes")
+                console.print_error(f"Errors: {errors} nodes")
         elif not no_smart_content:
-            console.print()
-            console.print(Rule("[dim]SMART CONTENT (skipped)[/dim]", style="dim"))
-            console.print(f"  [dim]{smart_content_status}[/dim]")
+            console.stage_banner_skipped("SMART CONTENT")
+            console.print_info(smart_content_status)
 
         # ===== STAGE 5: STORAGE =====
-        console.print()
-        console.print(Rule("[bold cyan]STORAGE[/bold cyan]", style="cyan"))
-        console.print("  [green]✓[/green] Graph saved to .fs2/graph.pickle")
+        console.stage_banner("STORAGE")
+        console.print_success("Graph saved to .fs2/graph.pickle")
 
         # ===== SUMMARY =====
-        console.print()
-        _display_final_summary(summary, smart_content_service is not None)
+        console.print_line()
+        _display_final_summary(console, summary, smart_content_service is not None)
 
         # Check for total failure
         if summary.files_scanned > 0 and len(summary.errors) >= summary.files_scanned:
             raise typer.Exit(code=2)
 
     except MissingConfigurationError:
-        console.print(
-            "[red]Error:[/red] No configuration found.\n"
-            "  Run [bold]fs2 init[/bold] first to create .fs2/config.yaml"
+        console.print_error(
+            "No configuration found. Run 'fs2 init' first to create .fs2/config.yaml"
         )
         raise typer.Exit(code=1) from None
 
 
 def _setup_verbose_logging() -> None:
     """Configure logging for verbose mode with Rich output."""
+    from rich.console import Console
+
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(message)s",
-        handlers=[RichHandler(console=console, show_path=False, rich_tracebacks=True)],
+        handlers=[
+            RichHandler(console=Console(), show_path=False, rich_tracebacks=True)
+        ],
     )
 
 
@@ -194,14 +198,16 @@ def _should_show_progress(no_progress: bool, force_progress: bool) -> bool:
     return sys.stdout.isatty()
 
 
-def _display_final_summary(summary, smart_content_enabled: bool) -> None:
+def _display_final_summary(
+    console: ConsoleAdapter, summary, smart_content_enabled: bool
+) -> None:
     """Display final summary panel."""
     if summary.success:
-        status = "[green]SUCCESS[/green]"
+        status = "SUCCESS"
     elif summary.errors:
-        status = "[yellow]COMPLETED WITH ERRORS[/yellow]"
+        status = "COMPLETED WITH ERRORS"
     else:
-        status = "[red]FAILED[/red]"
+        status = "FAILED"
 
     lines = [
         f"Status: {status}",
@@ -213,19 +219,21 @@ def _display_final_summary(summary, smart_content_enabled: bool) -> None:
         enriched = summary.metrics.get("smart_content_enriched", 0)
         preserved = summary.metrics.get("smart_content_preserved", 0)
         errors = summary.metrics.get("smart_content_errors", 0)
-        lines.append(f"Smart Content: {enriched} enriched, {preserved} preserved, {errors} errors")
+        lines.append(
+            f"Smart Content: {enriched} enriched, {preserved} preserved, {errors} errors"
+        )
 
     if summary.errors:
         lines.append(f"Errors: {len(summary.errors)}")
 
-    console.print(Panel(
+    console.panel(
         "\n".join(lines),
-        title="[bold]Scan Complete[/bold]",
-        border_style="green" if summary.success else "yellow",
-    ))
+        title="Scan Complete",
+        success=summary.success,
+    )
 
 
-def _create_smart_content_service(config):
+def _create_smart_content_service(config, console: ConsoleAdapter):
     """Create SmartContentService if LLM is configured.
 
     Returns:
@@ -268,6 +276,7 @@ def _create_smart_content_service(config):
             llm_adapter = AzureOpenAIAdapter(config)
         elif llm_config.provider == "fake":
             from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+
             llm_adapter = FakeLLMAdapter()
         else:
             return None, f"unsupported provider: {llm_config.provider}"
@@ -290,5 +299,5 @@ def _create_smart_content_service(config):
         error_msg = str(e)
         if len(error_msg) > 100:
             error_msg = error_msg[:100] + "..."
-        console.print(f"  [yellow]Warning:[/yellow] {error_msg}")
+        console.print_warning(f"Smart content setup error: {error_msg}")
         return None, f"error: {type(e).__name__}"

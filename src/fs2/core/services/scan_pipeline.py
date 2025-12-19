@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from fs2.core.models.code_node import CodeNode
     from fs2.core.repos.graph_store import GraphStore
     from fs2.core.services.smart_content.smart_content_service import (
+        ProgressCallback,
         SmartContentService,
     )
 
@@ -85,6 +86,7 @@ class ScanPipeline:
         graph_store: "GraphStore",
         stages: list[PipelineStage] | None = None,
         smart_content_service: "SmartContentService | None" = None,
+        smart_content_progress_callback: "ProgressCallback | None" = None,
     ):
         """Initialize pipeline with config and adapters.
 
@@ -98,6 +100,9 @@ class ScanPipeline:
             smart_content_service: Optional SmartContentService for AI summaries.
                                    If None, SmartContentStage still runs but
                                    skips generation gracefully.
+            smart_content_progress_callback: Optional callback for smart content
+                                             progress updates (called every 10 items
+                                             and on errors).
 
         Raises:
             MissingConfigurationError: If ScanConfig not in registry.
@@ -113,6 +118,7 @@ class ScanPipeline:
         self._ast_parser = ast_parser
         self._graph_store = graph_store
         self._smart_content_service = smart_content_service
+        self._smart_content_progress_callback = smart_content_progress_callback
 
         # Default stages if not provided
         # Order: Discovery → Parsing → SmartContent → Storage
@@ -143,6 +149,7 @@ class ScanPipeline:
             ast_parser=self._ast_parser,
             graph_store=self._graph_store,
             smart_content_service=self._smart_content_service,
+            smart_content_progress_callback=self._smart_content_progress_callback,
         )
 
         # Load prior graph state for smart content preservation (Subtask 001)

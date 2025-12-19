@@ -17,10 +17,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import replace
+from collections.abc import Callable
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any
-
-from rich.console import Console
 
 from fs2.config.objects import SmartContentConfig
 from fs2.core.adapters.exceptions import (
@@ -40,11 +39,44 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-console = Console()
 
 
 # Minimum content length to warrant LLM processing
 _MIN_CONTENT_LENGTH = 10
+
+# Progress callback interval (user request: every 10 items)
+_PROGRESS_INTERVAL = 10
+
+
+@dataclass(frozen=True)
+class SmartContentProgress:
+    """Progress information for smart content batch processing.
+
+    Used for callback reporting without exposing implementation details.
+    CLI can use this to display progress bars, status messages, etc.
+    """
+
+    processed: int
+    """Number of nodes successfully processed."""
+
+    total: int
+    """Total number of nodes in the batch."""
+
+    skipped: int
+    """Number of nodes skipped (hash unchanged)."""
+
+    errors: int
+    """Number of nodes that failed processing."""
+
+    @property
+    def remaining(self) -> int:
+        """Calculate remaining nodes to process."""
+        return self.total - self.processed - self.skipped - self.errors
+
+
+# Type alias for progress callback
+# Called with progress info; error_message is set only for error events
+ProgressCallback = Callable[[SmartContentProgress, str | None], None]
 
 
 class SmartContentService:
@@ -240,7 +272,11 @@ class SmartContentService:
     # Phase 4: Batch Processing with Queue + Worker Pool
     # =========================================================================
 
-    async def process_batch(self, nodes: list[CodeNode]) -> dict[str, Any]:
+    async def process_batch(
+        self,
+        nodes: list[CodeNode],
+        progress_callback: ProgressCallback | None = None,
+    ) -> dict[str, Any]:
         """Process multiple nodes in parallel using asyncio Queue + Worker Pool.
 
         Implements AC7 (batch processing with configurable workers) using the
@@ -248,6 +284,9 @@ class SmartContentService:
 
         Args:
             nodes: List of CodeNodes to process.
+            progress_callback: Optional callback for progress updates.
+                Called every 10 items and on errors. Receives SmartContentProgress
+                and optional error message (for error events).
 
         Returns:
             Dict containing:
@@ -320,6 +359,7 @@ class SmartContentService:
                 queue=queue,
                 stats_lock=stats_lock,
                 stats=stats,
+                progress_callback=progress_callback,
             )
 
         workers = [
@@ -357,6 +397,7 @@ class SmartContentService:
         queue: asyncio.Queue[CodeNode | None],
         stats_lock: asyncio.Lock,
         stats: dict[str, Any],
+        progress_callback: ProgressCallback | None = None,
     ) -> None:
         """Worker coroutine that processes items from queue.
 
@@ -365,8 +406,18 @@ class SmartContentService:
             queue: Work queue (passed as param per CD10, not self._queue).
             stats_lock: Lock for thread-safe stats updates.
             stats: Shared stats dict (processed, errors, results).
+            progress_callback: Optional callback for progress reporting.
         """
         logger.debug("Worker %d started", worker_id)
+
+        def _make_progress() -> SmartContentProgress:
+            """Create progress object from current stats (must hold lock)."""
+            return SmartContentProgress(
+                processed=stats["processed"],
+                total=stats["total"],
+                skipped=stats["skipped"],
+                errors=len(stats["errors"]),
+            )
 
         while True:
             item = await queue.get()
@@ -383,8 +434,8 @@ class SmartContentService:
                     stats["processed"] += 1
                     stats["results"][node.node_id] = updated_node
 
-                    # Progress logging every 50 items (per /didyouknow Insight #3)
-                    if stats["processed"] % 50 == 0:
+                    # Progress callback every N items (user request: every 10)
+                    if stats["processed"] % _PROGRESS_INTERVAL == 0:
                         remaining = stats["total"] - stats["processed"] - stats["skipped"] - len(stats["errors"])
                         logger.info(
                             "Progress: %d/%d processed, %d remaining",
@@ -392,12 +443,15 @@ class SmartContentService:
                             stats["total"],
                             remaining,
                         )
+                        if progress_callback:
+                            progress_callback(_make_progress(), None)
 
             except LLMAuthenticationError:
                 # Auth errors should fail the entire batch - re-raise
                 raise
 
             except Exception as e:
+                error_msg = f"{node.node_id}: {e}"
                 logger.error(
                     "Worker %d error processing %s: %s",
                     worker_id,
@@ -406,5 +460,8 @@ class SmartContentService:
                 )
                 async with stats_lock:
                     stats["errors"].append((node.node_id, str(e)))
+                    # Call callback for errors (immediate feedback)
+                    if progress_callback:
+                        progress_callback(_make_progress(), error_msg)
 
         logger.debug("Worker %d finished", worker_id)

@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from fs2.core.models.scan_result import ScanResult
     from fs2.core.repos.graph_store import GraphStore
     from fs2.core.services.smart_content.smart_content_service import (
+        ProgressCallback,
         SmartContentService,
     )
 
@@ -83,3 +84,8 @@ class PipelineContext:
     # None when --no-smart-content flag is used or LLM not configured.
     # Per Session 2 Insight #3: Stage reads service from context, not constructor.
     smart_content_service: "SmartContentService | None" = None
+
+    # Progress callback for smart content batch processing.
+    # Called every 10 items and on errors with SmartContentProgress info.
+    # CLI uses this to display real-time progress (blue for progress, red for errors).
+    smart_content_progress_callback: "ProgressCallback | None" = None

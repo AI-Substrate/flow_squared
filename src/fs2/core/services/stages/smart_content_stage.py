@@ -123,7 +123,12 @@ class SmartContentStage:
 
         # Step 4: Call async process_batch via asyncio.run() (sync→async bridge)
         try:
-            batch_result = asyncio.run(service.process_batch(needs_generation))
+            batch_result = asyncio.run(
+                service.process_batch(
+                    needs_generation,
+                    progress_callback=context.smart_content_progress_callback,
+                )
+            )
         except RuntimeError as e:
             if "cannot be called from a running event loop" in str(e):
                 # Per Insight #3: Helpful error for async context

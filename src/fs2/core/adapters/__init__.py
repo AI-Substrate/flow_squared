@@ -10,6 +10,8 @@ Public API:
 - ConsoleLogAdapter: Development logging to stdout/stderr
 - FakeLogAdapter: Test double for logging (captures messages)
 - ConsoleAdapter: ABC for console I/O (print/input)
+- RichConsoleAdapter: Rich library implementation for beautiful terminal output
+- FakeConsoleAdapter: Test double for console output (captures messages)
 - SampleAdapter: ABC demonstrating full adapter pattern (process/validate)
 - FakeSampleAdapter: Test double for SampleAdapter (canonical implementation example)
 - SampleAdapterConfig: Configuration for SampleAdapter
@@ -41,6 +43,8 @@ from fs2.core.adapters.ast_parser import ASTParser
 from fs2.core.adapters.ast_parser_fake import FakeASTParser
 from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 from fs2.core.adapters.console_adapter import ConsoleAdapter
+from fs2.core.adapters.console_adapter_fake import FakeConsoleAdapter
+from fs2.core.adapters.console_adapter_rich import RichConsoleAdapter
 from fs2.core.adapters.exceptions import (
     AdapterConnectionError,
     AdapterError,
@@ -76,6 +80,8 @@ __all__ = [
     "ConsoleLogAdapter",
     "FakeLogAdapter",
     "ConsoleAdapter",
+    "RichConsoleAdapter",
+    "FakeConsoleAdapter",
     "SampleAdapter",
     "FakeSampleAdapter",
     "SampleAdapterConfig",
