@@ -239,6 +239,11 @@ class SmartContentService:
                 prompt,
                 max_tokens=max_output_tokens,
             )
+
+            # Check for content filter FIRST (Azure returns was_filtered=True with empty content)
+            if response.was_filtered:
+                return "[Content filtered] - summary could not be generated due to content policies"
+
             content = response.content
 
             # Check for empty/whitespace response
@@ -254,7 +259,7 @@ class SmartContentService:
             raise
 
         except LLMContentFilterError:
-            # Content filter: return fallback placeholder
+            # Content filter exception (raised by some adapters)
             return "[Content filtered] - summary could not be generated due to content policies"
 
         except LLMRateLimitError as e:

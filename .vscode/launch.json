@@ -1,0 +1,47 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "fs2 scan",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "fs2.cli.main",
+            "args": ["scan"],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "fs2 scan --no-smart-content",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "fs2.cli.main",
+            "args": ["scan", "--no-smart-content"],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "fs2 scan --verbose",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "fs2.cli.main",
+            "args": ["scan", "--verbose"],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

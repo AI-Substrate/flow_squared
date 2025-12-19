@@ -33,3 +33,7 @@ app.command(name="scan")(scan)
 app.command(name="init")(init)
 app.command(name="tree")(tree)
 app.command(name="get-node")(get_node)
+
+
+if __name__ == "__main__":
+    app()
