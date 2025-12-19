@@ -342,7 +342,7 @@ class TestSmartContentStageProcess:
 
         # Create context with nodes and service
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello(): pass")
+        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
         context.nodes = [node]
         context.smart_content_service = service
 
@@ -367,7 +367,7 @@ class TestSmartContentStageProcess:
         service, _ = _create_smart_content_service(response="This is the summary")
 
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello(): pass")
+        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
         context.nodes = [node]
         context.smart_content_service = service
 
@@ -392,7 +392,7 @@ class TestSmartContentStageProcess:
         service, _ = _create_smart_content_service(response="Summary")
 
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello(): pass")
+        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
         context.nodes = [node]
         context.smart_content_service = service
 
@@ -423,7 +423,7 @@ class TestSmartContentStageProcess:
         llm_adapter.set_error(LLMRateLimitError("Rate limit exceeded"))
 
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello(): pass")
+        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
         context.nodes = [node]
         context.smart_content_service = service
 
@@ -462,7 +462,7 @@ class TestSmartContentStageSkip:
         from fs2.core.services.stages.smart_content_stage import SmartContentStage
 
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello(): pass")
+        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
         context.nodes = [node]
         context.smart_content_service = None  # No service!
 

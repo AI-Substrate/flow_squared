@@ -431,8 +431,8 @@ class TestSmartContentIntegration:
         # Create isolated project
         src = tmp_path / "src"
         src.mkdir()
-        (src / "calc.py").write_text("def add(a, b): return a + b")
-        (src / "utils.py").write_text("def helper(): pass")
+        (src / "calc.py").write_text("def add(a, b):\n    '''Add two numbers together and return the result.'''\n    return a + b")
+        (src / "utils.py").write_text("def helper():\n    '''A helper function that performs utility operations.'''\n    pass")
 
         # Create config
         config = FakeConfigurationService(
@@ -505,7 +505,7 @@ class TestSmartContentIntegration:
         # Create isolated project
         src = tmp_path / "src"
         src.mkdir()
-        (src / "stable.py").write_text("def stable(): pass")
+        (src / "stable.py").write_text("def stable():\n    '''A stable function that does not change between scans.'''\n    return True")
 
         graph_path = tmp_path / "graph.pickle"
 
