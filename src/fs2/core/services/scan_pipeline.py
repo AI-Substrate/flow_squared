@@ -9,11 +9,18 @@ Per Alignment Brief:
 - Default stages: Discovery → Parsing → Storage
 - Custom stages can override defaults
 - Returns ScanSummary with success, counts, errors, metrics
+
+Per Subtask 001 (Graph Loading for Smart Content Preservation):
+- Loads existing graph before running stages
+- Builds prior_nodes dict for O(1) lookup by node_id
+- Enables hash-based skip logic (AC5/AC6) for smart content
 """
 
+import logging
 from typing import TYPE_CHECKING
 
 from fs2.config.objects import ScanConfig
+from fs2.core.adapters.exceptions import GraphStoreError
 from fs2.core.models.scan_summary import ScanSummary
 from fs2.core.services.pipeline_context import PipelineContext
 from fs2.core.services.pipeline_stage import PipelineStage
@@ -25,7 +32,10 @@ if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
     from fs2.core.adapters.ast_parser import ASTParser
     from fs2.core.adapters.file_scanner import FileScanner
+    from fs2.core.models.code_node import CodeNode
     from fs2.core.repos.graph_store import GraphStore
+
+logger = logging.getLogger(__name__)
 
 
 class ScanPipeline:
@@ -89,8 +99,11 @@ class ScanPipeline:
     def run(self) -> ScanSummary:
         """Execute the pipeline and return summary.
 
-        Creates a PipelineContext, runs each stage in order,
-        and builds a ScanSummary from the final context state.
+        Creates a PipelineContext, loads prior graph state, runs each
+        stage in order, and builds a ScanSummary from the final context.
+
+        Per Subtask 001: Loads existing graph before stages execute to
+        enable hash-based skip logic (AC5/AC6) for smart content.
 
         Returns:
             ScanSummary with success, files_scanned, nodes_created,
@@ -104,6 +117,11 @@ class ScanPipeline:
             graph_store=self._graph_store,
         )
 
+        # Load prior graph state for smart content preservation (Subtask 001)
+        # This enables hash-based skip logic (AC5/AC6) by providing prior
+        # smart_content and smart_content_hash values to SmartContentStage.
+        context.prior_nodes = self._load_prior_nodes(context)
+
         # Run each stage sequentially
         for stage in self._stages:
             context = stage.process(context)
@@ -116,3 +134,48 @@ class ScanPipeline:
             errors=context.errors,
             metrics=context.metrics,
         )
+
+    def _load_prior_nodes(self, context: PipelineContext) -> dict[str, "CodeNode"] | None:
+        """Load prior graph state into a dict for O(1) lookup.
+
+        Per Subtask 001 (Graph Loading for Smart Content Preservation):
+        - Loads existing graph from context.graph_path
+        - Builds dict mapping node_id -> CodeNode for efficient merge
+        - Returns None on first scan (no graph exists) or corrupted graph
+
+        Args:
+            context: PipelineContext with graph_store and graph_path.
+
+        Returns:
+            Dict mapping node_id to CodeNode, or None if no prior graph.
+        """
+        if context.graph_store is None:
+            logger.warning("No graph_store in context, skipping prior graph loading")
+            return None
+
+        try:
+            # Load existing graph
+            context.graph_store.load(context.graph_path)
+
+            # Build dict for O(1) lookup by node_id
+            nodes = context.graph_store.get_all_nodes()
+            prior_nodes: dict[str, CodeNode] = {node.node_id: node for node in nodes}
+
+            logger.info(
+                "Loaded %d prior nodes from %s for smart content preservation",
+                len(prior_nodes),
+                context.graph_path,
+            )
+
+            return prior_nodes
+
+        except GraphStoreError as e:
+            # First scan (no graph exists) or corrupted graph
+            # This is expected on first scan, so log at debug level
+            logger.debug(
+                "No prior graph loaded from %s: %s. "
+                "This is normal for first scan or if graph was deleted.",
+                context.graph_path,
+                str(e),
+            )
+            return None

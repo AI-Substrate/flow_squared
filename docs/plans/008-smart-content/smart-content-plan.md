@@ -20,6 +20,7 @@
    - [Phase 3: Core Service Implementation](#phase-3-core-service-implementation)
    - [Phase 4: Batch Processing Engine](#phase-4-batch-processing-engine)
    - [Phase 5: CLI Integration & Documentation](#phase-5-cli-integration--documentation)
+   - [Phase 6: Scan Pipeline Integration](#phase-6-scan-pipeline-integration)
 6. [Cross-Cutting Concerns](#cross-cutting-concerns)
 7. [Complexity Tracking](#complexity-tracking)
 8. [Progress Tracking](#progress-tracking)
@@ -1378,6 +1379,159 @@ class TestGetNodeCLI:
 
 ---
 
+### Phase 6: Scan Pipeline Integration
+
+**Objective**: Wire SmartContentService into the scan pipeline so smart content is generated automatically during `fs2 scan`.
+
+**Deliverables**:
+- SmartContentStage pipeline stage (between ParsingStage and StorageStage)
+- PipelineContext update with `smart_content_service` field
+- ScanPipeline constructor update to accept SmartContentService
+- `--no-smart-content` CLI flag for opt-out fast scans
+- Scan summary output showing smart content stats
+- Integration test proving end-to-end flow
+
+**Dependencies**: Phase 4 (process_batch available)
+
+**Critical Note**: This phase was missing from the original plan. The spec's Phase 5 was "Integration: Wire to scan pipeline, end-to-end testing" but the plan incorrectly changed it to just CLI flags. Without this phase, smart content is never generated during scanning, making the CLI flags useless.
+
+**Risks**:
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| LLM rate limiting for large codebases | Medium | Medium | --no-smart-content flag; hash-based skip on re-scans |
+| Scan time increase (50-500ms per node) | High | Medium | Parallel processing (50 workers); opt-out flag |
+| LLM unavailable/auth failure | Medium | High | Graceful degradation; scan completes without smart content |
+| asyncio.run() in sync pipeline | Low | Low | Standard Python pattern; well-tested |
+
+### Architecture
+
+```
+Current Pipeline:
+  DiscoveryStage → ParsingStage → StorageStage
+
+New Pipeline:
+  DiscoveryStage → ParsingStage → SmartContentStage → StorageStage
+                                       ↓
+                            asyncio.run(process_batch())
+                                       ↓
+                            context.nodes updated with smart_content
+```
+
+**Key Design Decisions**:
+1. **New stage vs. inline code**: New SmartContentStage for separation of concerns
+2. **Sync→async bridge**: Use `asyncio.run()` inside stage (pipeline is sync)
+3. **Opt-out default**: Smart content enabled by default; `--no-smart-content` to skip
+4. **Graceful degradation**: LLM errors don't fail entire scan; partial results reported
+
+### Tasks (TDD Approach)
+
+| # | Status | Task | CS | Success Criteria | Log | Notes |
+|---|--------|------|----|------------------|-----|-------|
+| 6.1 | [ ] | Write tests for SmartContentStage.process() | 2 | Tests cover: service validation, batch call, node updates, metrics | - | Core stage tests |
+| 6.2 | [ ] | Write tests for stage skipping when service is None | 1 | Tests cover: graceful skip, no errors | - | Edge case |
+| 6.3 | [ ] | Implement SmartContentStage | 2 | All tests pass; asyncio.run() bridge works | - | Between Parsing and Storage |
+| 6.4 | [ ] | Update PipelineContext with smart_content_service field | 1 | Field added, type hints correct | - | DI support |
+| 6.5 | [ ] | Update ScanPipeline constructor | 2 | Accepts service, injects into context, conditional stage | - | Pipeline wiring |
+| 6.6 | [ ] | Write tests for --no-smart-content flag | 2 | Tests prove: flag skips stage, summary reflects, graph saved | - | CLI opt-out |
+| 6.7 | [ ] | Add --no-smart-content flag to scan.py | 2 | Flag works, conditional DI wiring | - | Typer option |
+| 6.8 | [ ] | Update scan summary output for smart content stats | 1 | Shows: processed, skipped, errors | - | Observability |
+| 6.9 | [ ] | Write integration test: scan → smart content → graph | 3 | End-to-end verified with FakeLLMAdapter | - | Full pipeline test |
+| 6.10 | [ ] | Manual testing with real Azure OpenAI | 2 | Scan real codebase, verify quality | - | Pre-release validation |
+
+### Test Examples (Write First!)
+
+```python
+# tests/unit/services/stages/test_smart_content_stage.py
+class TestSmartContentStage:
+    async def test_process_calls_batch_processing(self):
+        """
+        Purpose: Proves stage calls SmartContentService.process_batch()
+        Quality Contribution: Ensures smart content is generated
+        Acceptance Criteria: All nodes processed, context.nodes updated
+        """
+        fake_llm = FakeLLMAdapter()
+        fake_llm.set_response("AI summary")
+        service = create_smart_content_service(fake_llm)
+
+        context = PipelineContext(
+            nodes=[create_node("file:test.py")],
+            smart_content_service=service,
+        )
+
+        stage = SmartContentStage()
+        result = stage.process(context)
+
+        assert result.nodes[0].smart_content == "AI summary"
+        assert result.metrics["smart_content_processed"] == 1
+
+    def test_no_smart_content_flag_skips_stage(self):
+        """
+        Purpose: Proves --no-smart-content skips smart content generation
+        Quality Contribution: Enables fast scans
+        Acceptance Criteria: Stage not in pipeline, scan completes
+        """
+        result = runner.invoke(app, ["scan", "--no-smart-content"])
+        assert result.exit_code == 0
+        assert "smart content: skipped" in result.stdout.lower()
+```
+
+### Implementation Reference
+
+```python
+# src/fs2/core/services/stages/smart_content_stage.py
+class SmartContentStage:
+    """Pipeline stage for AI-powered smart content generation."""
+
+    @property
+    def name(self) -> str:
+        return "smart_content"
+
+    def process(self, context: PipelineContext) -> PipelineContext:
+        if context.smart_content_service is None:
+            raise ValueError("SmartContentStage requires smart_content_service")
+
+        if not context.nodes:
+            context.metrics["smart_content_processed"] = 0
+            return context
+
+        # Bridge sync pipeline to async service
+        stats = asyncio.run(context.smart_content_service.process_batch(context.nodes))
+
+        # Update nodes with enriched versions
+        updated_nodes = []
+        for node in context.nodes:
+            if node.node_id in stats["results"]:
+                updated_nodes.append(stats["results"][node.node_id])
+            else:
+                updated_nodes.append(node)
+
+        context.nodes = updated_nodes
+        context.metrics["smart_content_processed"] = stats["processed"]
+        context.metrics["smart_content_skipped"] = stats["skipped"]
+        context.metrics["smart_content_errors"] = len(stats["errors"])
+
+        return context
+```
+
+### Non-Happy-Path Coverage
+- [ ] LLM authentication failure (graceful degradation)
+- [ ] Rate limit errors (partial success)
+- [ ] Empty node list
+- [ ] All nodes skipped (hash matches)
+- [ ] service is None (validation error)
+- [ ] asyncio.run() in already-running loop (edge case)
+
+### Acceptance Criteria
+- [ ] SmartContentStage processes all nodes during scan
+- [ ] Hash-based skip works (unchanged nodes not re-processed)
+- [ ] --no-smart-content flag available and functional
+- [ ] Scan summary shows smart content statistics
+- [ ] LLM errors don't crash entire scan
+- [ ] Integration test proves end-to-end flow
+- [ ] Manual testing with real LLM passed
+
+---
+
 ## Cross-Cutting Concerns
 
 ### Security Considerations
@@ -1428,7 +1582,10 @@ class TestGetNodeCLI:
 - [x] Phase 2: Template System - COMPLETE
 - [x] Phase 3: Core Service Implementation - COMPLETE
 - [x] Phase 4: Batch Processing Engine - COMPLETE
-- [ ] Phase 5: CLI Integration & Documentation - NOT STARTED
+- [ ] Phase 5: CLI Integration & Documentation - NOT STARTED (depends on Phase 6)
+- [ ] Phase 6: Scan Pipeline Integration - NOT STARTED **← IMPLEMENT FIRST**
+
+**Execution Order Note**: Phase 6 should be implemented BEFORE Phase 5. The CLI flags in Phase 5 are useless without scan pipeline integration (Phase 6) generating smart content. The spec's original Phase 5 was "Wire to scan pipeline" but the plan incorrectly changed it to CLI flags only.
 
 ### STOP Rule
 
@@ -1592,7 +1749,46 @@ class TestGetNodeCLI:
 [^32]: Phase 4 T014 - Integration test with 500 nodes
   - `function:tests/unit/services/test_smart_content_batch.py:test_given_500_nodes_with_50ms_delay_then_completes_under_2s`
 
+### Phase 6: Scan Pipeline Integration
+
+_Footnotes [^33]-[^42] reserved for Phase 6 implementation. Populated by plan-6 during execution._
+
+[^33]: Phase 6 T001-T002 - SmartContentStage tests (RED phase)
+  - `file:tests/unit/services/stages/test_smart_content_stage.py` _(pending)_
+
+[^34]: Phase 6 T003 - SmartContentStage implementation
+  - `file:src/fs2/core/services/stages/smart_content_stage.py` _(pending)_
+
+[^35]: Phase 6 T004 - PipelineContext update
+  - `file:src/fs2/core/services/pipeline_context.py` _(pending)_
+
+[^36]: Phase 6 T005 - ScanPipeline constructor update
+  - `file:src/fs2/core/services/scan_pipeline.py` _(pending)_
+
+[^37]: Phase 6 T006-T007 - CLI --no-smart-content flag
+  - `file:tests/unit/cli/test_scan_cli.py` _(pending)_
+  - `file:src/fs2/cli/scan.py` _(pending)_
+
+[^38]: Phase 6 T008 - Scan summary output update
+  - `file:src/fs2/cli/scan.py` _(pending)_
+
+[^39]: Phase 6 T009 - Integration test
+  - `file:tests/integration/test_scan_with_smart_content.py` _(pending)_
+
 ---
 
-**Plan Status**: ACTIVE (Phase 4 Complete, Phase 5 Ready)
-**Next Step**: Run `/plan-5-phase-tasks-and-brief --phase 5` to generate Phase 5 tasks
+---
+
+## Subtasks Registry
+
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-graph-loading-for-smart-content-preservation | 2025-12-19 | Phase 6: Scan Pipeline Integration | T003, T004, T005 | Hash-based skip logic (AC5) requires prior smart_content preservation across scans; freshly parsed nodes have smart_content=None | [x] Complete | [Link](tasks/phase-6-scan-pipeline-integration/001-subtask-graph-loading-for-smart-content-preservation.md) |
+
+---
+
+**Plan Status**: ACTIVE (Phase 4 Complete, Phase 6 Next)
+**Execution Order**: Phase 6 (Scan Integration) → Phase 5 (CLI flags)
+**Next Step**: Run `/plan-5-phase-tasks-and-brief --phase 6` to generate Phase 6 tasks

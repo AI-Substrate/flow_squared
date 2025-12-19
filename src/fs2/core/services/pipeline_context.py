@@ -68,3 +68,9 @@ class PipelineContext:
     file_scanner: "FileScanner | None" = None
     ast_parser: "ASTParser | None" = None
     graph_store: "GraphStore | None" = None
+
+    # Prior graph state for smart content preservation (Phase 6 Subtask 001)
+    # Populated by ScanPipeline.run() from existing graph before stages execute.
+    # Enables hash-based skip logic (AC5/AC6) by preserving smart_content across scans.
+    # None on first scan (no prior graph exists), dict[str, CodeNode] on subsequent scans.
+    prior_nodes: "dict[str, CodeNode] | None" = None

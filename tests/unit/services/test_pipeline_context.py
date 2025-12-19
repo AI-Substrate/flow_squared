@@ -262,3 +262,101 @@ class TestPipelineContextCustomGraphPath:
         ctx = PipelineContext(scan_config=ScanConfig(), graph_path=custom_path)
 
         assert ctx.graph_path == custom_path
+
+
+class TestPipelineContextPriorNodes:
+    """Tests for prior_nodes field supporting smart content preservation.
+
+    Per Subtask 001: Graph Loading for Smart Content Preservation.
+    Enables hash-based skip logic (AC5/AC6) by loading prior graph state.
+    """
+
+    def test_given_pipeline_context_when_created_then_prior_nodes_defaults_to_none(self):
+        """
+        Purpose: Verifies prior_nodes defaults to None (first scan case).
+        Quality Contribution: First scans work without prior graph.
+        Acceptance Criteria: prior_nodes is None by default.
+
+        Why: First-scan safety - if no graph exists, prior_nodes = None.
+        Contract: PipelineContext.prior_nodes defaults to None.
+        """
+        from fs2.core.services.pipeline_context import PipelineContext
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+
+        assert ctx.prior_nodes is None
+
+    def test_given_pipeline_context_when_setting_prior_nodes_dict_then_stores_it(self):
+        """
+        Purpose: Verifies prior_nodes accepts dict[str, CodeNode].
+        Quality Contribution: Enables O(1) lookup for merge logic.
+        Acceptance Criteria: Dict is stored and retrievable.
+
+        Why: Pipeline loads graph and builds dict for fast node lookup.
+        Contract: prior_nodes can be set to dict mapping node_id to CodeNode.
+        """
+        from fs2.core.services.pipeline_context import PipelineContext
+        from fs2.core.models.code_node import CodeNode
+
+        node = CodeNode.create_file(
+            file_path="test.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=100,
+            start_line=1,
+            end_line=10,
+            content="# test",
+        )
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+        ctx.prior_nodes = {node.node_id: node}
+
+        assert ctx.prior_nodes is not None
+        assert node.node_id in ctx.prior_nodes
+        assert ctx.prior_nodes[node.node_id] == node
+
+    def test_given_pipeline_context_with_prior_nodes_when_looking_up_then_o1_access(self):
+        """
+        Purpose: Verifies dict enables O(1) node lookup by node_id.
+        Quality Contribution: Efficient merge in SmartContentStage.
+        Acceptance Criteria: Can retrieve specific node by node_id.
+
+        Why: Workshop decision - node matching by node_id for O(1) lookup.
+        Contract: prior_nodes[node_id] returns CodeNode in O(1).
+        """
+        from fs2.core.services.pipeline_context import PipelineContext
+        from fs2.core.models.code_node import CodeNode
+
+        # Create multiple nodes
+        node1 = CodeNode.create_file(
+            file_path="a.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=100,
+            start_line=1,
+            end_line=10,
+            content="# a",
+        )
+        node2 = CodeNode.create_file(
+            file_path="b.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=100,
+            start_line=1,
+            end_line=10,
+            content="# b",
+        )
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+        ctx.prior_nodes = {
+            node1.node_id: node1,
+            node2.node_id: node2,
+        }
+
+        # Direct lookup - O(1)
+        assert ctx.prior_nodes.get("file:a.py") == node1
+        assert ctx.prior_nodes.get("file:b.py") == node2
+        assert ctx.prior_nodes.get("file:nonexistent.py") is None

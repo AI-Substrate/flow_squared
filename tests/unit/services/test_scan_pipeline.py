@@ -505,3 +505,241 @@ class TestScanPipelineCustomStages:
 
         # If default stages ran, we'd have discovery_files metric
         assert "discovery_files" in summary.metrics
+
+
+class TestScanPipelinePriorNodesLoading:
+    """Tests for loading prior graph state into context.prior_nodes.
+
+    Per Subtask 001: Graph Loading for Smart Content Preservation.
+    Enables hash-based skip logic (AC5/AC6) by loading prior graph.
+    """
+
+    def test_given_existing_graph_when_running_then_prior_nodes_populated(self):
+        """
+        Purpose: Verifies pipeline loads existing graph into context.prior_nodes.
+        Quality Contribution: Enables smart content preservation across scans.
+        Acceptance Criteria: context.prior_nodes is dict with loaded nodes.
+
+        Why: Pipeline must load prior graph for hash-based skip logic to work.
+        Contract: If graph exists, prior_nodes is populated with loaded nodes.
+        """
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        # Create prior node with smart_content
+        prior_node = CodeNode.create_file(
+            file_path="existing.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=100,
+            start_line=1,
+            end_line=10,
+            content="# existing",
+        )
+        # Pre-load into store (simulating previous scan saved it)
+        store.set_nodes([prior_node])
+
+        # Create a custom stage that captures the context
+        captured_context = []
+
+        class ContextCapturingStage:
+            @property
+            def name(self) -> str:
+                return "capture"
+
+            def process(self, context: PipelineContext) -> PipelineContext:
+                captured_context.append(context)
+                return context
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            stages=[ContextCapturingStage()],
+        )
+
+        pipeline.run()
+
+        # Verify prior_nodes was populated
+        assert len(captured_context) == 1
+        ctx = captured_context[0]
+        assert ctx.prior_nodes is not None
+        assert isinstance(ctx.prior_nodes, dict)
+        assert prior_node.node_id in ctx.prior_nodes
+        assert ctx.prior_nodes[prior_node.node_id] == prior_node
+
+    def test_given_no_graph_exists_when_running_then_prior_nodes_is_none(self):
+        """
+        Purpose: Verifies first-scan case handles gracefully.
+        Quality Contribution: First scans work without error.
+        Acceptance Criteria: context.prior_nodes is None on first scan.
+
+        Why: First-scan safety - if no graph exists, prior_nodes = None.
+        Contract: If graph doesn't exist, prior_nodes remains None.
+        """
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        # Simulate no existing graph by making load() raise GraphStoreError
+        store.simulate_error_for.add("load")
+
+        # Create a custom stage that captures the context
+        captured_context = []
+
+        class ContextCapturingStage:
+            @property
+            def name(self) -> str:
+                return "capture"
+
+            def process(self, context: PipelineContext) -> PipelineContext:
+                captured_context.append(context)
+                return context
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            stages=[ContextCapturingStage()],
+        )
+
+        summary = pipeline.run()
+
+        # Verify prior_nodes is None (not an error condition)
+        assert len(captured_context) == 1
+        ctx = captured_context[0]
+        assert ctx.prior_nodes is None
+        # Scan should still succeed
+        assert summary.success is True
+
+    def test_given_corrupted_graph_when_running_then_prior_nodes_is_none_and_logs_warning(self):
+        """
+        Purpose: Verifies corrupted graph is handled gracefully.
+        Quality Contribution: Scan continues even with bad prior state.
+        Acceptance Criteria: prior_nodes is None, warning logged, scan continues.
+
+        Why: Corrupted graph safety - log warning, continue with fresh scan.
+        Contract: If graph corrupted, prior_nodes = None, scan proceeds.
+        """
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        # Simulate corrupted graph (load raises error)
+        store.simulate_error_for.add("load")
+
+        # Create a custom stage that captures the context
+        captured_context = []
+
+        class ContextCapturingStage:
+            @property
+            def name(self) -> str:
+                return "capture"
+
+            def process(self, context: PipelineContext) -> PipelineContext:
+                captured_context.append(context)
+                return context
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            stages=[ContextCapturingStage()],
+        )
+
+        summary = pipeline.run()
+
+        # Verify graceful handling
+        assert len(captured_context) == 1
+        ctx = captured_context[0]
+        assert ctx.prior_nodes is None
+        assert summary.success is True  # Scan continues
+
+    def test_given_existing_graph_when_running_then_prior_nodes_is_dict_by_node_id(self):
+        """
+        Purpose: Verifies prior_nodes dict is keyed by node_id.
+        Quality Contribution: Enables O(1) lookup for merge logic.
+        Acceptance Criteria: Dict keys are node_id strings.
+
+        Why: Workshop decision - node matching by node_id for O(1) lookup.
+        Contract: prior_nodes dict uses node_id as key.
+        """
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        # Create multiple prior nodes
+        node1 = CodeNode.create_file(
+            file_path="a.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=50,
+            start_line=1,
+            end_line=5,
+            content="# a",
+        )
+        node2 = CodeNode.create_callable(
+            file_path="a.py",
+            language="python",
+            ts_kind="function_definition",
+            name="foo",
+            qualified_name="foo",
+            start_byte=10,
+            end_byte=40,
+            start_line=2,
+            end_line=4,
+            start_column=0,
+            end_column=10,
+            content="def foo(): pass",
+            signature="def foo():",
+            parent_node_id="file:a.py",
+        )
+        store.set_nodes([node1, node2])
+
+        # Capture context
+        captured_context = []
+
+        class ContextCapturingStage:
+            @property
+            def name(self) -> str:
+                return "capture"
+
+            def process(self, context: PipelineContext) -> PipelineContext:
+                captured_context.append(context)
+                return context
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            stages=[ContextCapturingStage()],
+        )
+
+        pipeline.run()
+
+        # Verify dict structure
+        ctx = captured_context[0]
+        assert ctx.prior_nodes is not None
+        assert "file:a.py" in ctx.prior_nodes
+        assert "callable:a.py:foo" in ctx.prior_nodes
+        assert ctx.prior_nodes["file:a.py"] == node1
+        assert ctx.prior_nodes["callable:a.py:foo"] == node2
