@@ -6,7 +6,7 @@ and adapters via constructor, runs stages in order, returns ScanSummary.
 Per Alignment Brief:
 - Receives ConfigurationService, calls config.require(ScanConfig)
 - Receives adapters via constructor, injects into PipelineContext
-- Default stages: Discovery → Parsing → Storage
+- Default stages: Discovery → Parsing → SmartContent → Storage
 - Custom stages can override defaults
 - Returns ScanSummary with success, counts, errors, metrics
 
@@ -14,6 +14,12 @@ Per Subtask 001 (Graph Loading for Smart Content Preservation):
 - Loads existing graph before running stages
 - Builds prior_nodes dict for O(1) lookup by node_id
 - Enables hash-based skip logic (AC5/AC6) for smart content
+
+Per Phase 6 T005 (ScanPipeline Constructor):
+- Accepts optional SmartContentService
+- Injects service into PipelineContext.smart_content_service
+- SmartContentStage placed between ParsingStage and StorageStage
+- Stage order: Discovery → Parsing → SmartContent → Storage
 """
 
 import logging
@@ -26,6 +32,7 @@ from fs2.core.services.pipeline_context import PipelineContext
 from fs2.core.services.pipeline_stage import PipelineStage
 from fs2.core.services.stages.discovery_stage import DiscoveryStage
 from fs2.core.services.stages.parsing_stage import ParsingStage
+from fs2.core.services.stages.smart_content_stage import SmartContentStage
 from fs2.core.services.stages.storage_stage import StorageStage
 
 if TYPE_CHECKING:
@@ -34,6 +41,9 @@ if TYPE_CHECKING:
     from fs2.core.adapters.file_scanner import FileScanner
     from fs2.core.models.code_node import CodeNode
     from fs2.core.repos.graph_store import GraphStore
+    from fs2.core.services.smart_content.smart_content_service import (
+        SmartContentService,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -48,18 +58,23 @@ class ScanPipeline:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            smart_content_service=smart_service,  # Optional
         )
         summary = pipeline.run()
         ```
 
     The pipeline:
     1. Creates PipelineContext with injected adapters
-    2. Runs each stage in order (Discovery → Parsing → Storage)
+    2. Runs each stage in order (Discovery → Parsing → SmartContent → Storage)
     3. Collects errors without stopping
     4. Returns ScanSummary with final metrics
 
     Custom stages can be provided via the `stages` parameter to override
-    the default Discovery → Parsing → Storage sequence.
+    the default Discovery → Parsing → SmartContent → Storage sequence.
+
+    Stage Order (per Session 2 Insight #5):
+        SmartContentStage MUST be between ParsingStage and StorageStage.
+        This ensures nodes are enriched before graph persistence.
     """
 
     def __init__(
@@ -69,6 +84,7 @@ class ScanPipeline:
         ast_parser: "ASTParser",
         graph_store: "GraphStore",
         stages: list[PipelineStage] | None = None,
+        smart_content_service: "SmartContentService | None" = None,
     ):
         """Initialize pipeline with config and adapters.
 
@@ -79,20 +95,31 @@ class ScanPipeline:
             ast_parser: ASTParser adapter for code parsing.
             graph_store: GraphStore repository for persistence.
             stages: Optional custom stage list. If None, uses default stages.
+            smart_content_service: Optional SmartContentService for AI summaries.
+                                   If None, SmartContentStage still runs but
+                                   skips generation gracefully.
 
         Raises:
             MissingConfigurationError: If ScanConfig not in registry.
+
+        Note:
+            When custom stages are provided, caller is responsible for stage
+            ordering. SmartContentStage MUST be between ParsingStage and
+            StorageStage (per Session 2 Insight #5).
         """
         # Extract config internally (per Critical Finding 01)
         self._scan_config = config.require(ScanConfig)
         self._file_scanner = file_scanner
         self._ast_parser = ast_parser
         self._graph_store = graph_store
+        self._smart_content_service = smart_content_service
 
         # Default stages if not provided
+        # Order: Discovery → Parsing → SmartContent → Storage
         self._stages = stages if stages is not None else [
             DiscoveryStage(),
             ParsingStage(),
+            SmartContentStage(),
             StorageStage(),
         ]
 
@@ -115,6 +142,7 @@ class ScanPipeline:
             file_scanner=self._file_scanner,
             ast_parser=self._ast_parser,
             graph_store=self._graph_store,
+            smart_content_service=self._smart_content_service,
         )
 
         # Load prior graph state for smart content preservation (Subtask 001)

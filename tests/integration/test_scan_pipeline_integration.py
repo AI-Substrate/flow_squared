@@ -387,3 +387,226 @@ class TestGitignoreIntegration:
         assert "utils.py" in file_names
         assert "debug.log" not in file_names
         assert "calculator.cpython-312.pyc" not in file_names
+
+
+# ===========================================================================
+# T009: Smart Content Integration Tests (Phase 6)
+# ===========================================================================
+
+
+class TestSmartContentIntegration:
+    """T009: Integration tests for smart content pipeline metrics.
+
+    Per Phase 6 Tasks:
+    - Verifies SmartContentService.process_batch() is called
+    - Verifies metrics (enriched, preserved, errors) are recorded
+    - Verifies hash-based preservation works
+
+    NOTE: Due to NetworkXGraphStore module-level state, these tests verify
+    metrics rather than inspecting store.get_all_nodes() which may include
+    stale data from prior test runs.
+    """
+
+    def test_given_smart_content_service_when_scanning_then_metrics_recorded(
+        self, tmp_path: Path
+    ):
+        """
+        Purpose: Verifies pipeline records smart content metrics.
+        Quality Contribution: End-to-end metric validation.
+        Acceptance Criteria: smart_content_enriched > 0, errors == 0.
+
+        Why: Metrics prove SmartContentService was called and succeeded.
+        Contract: scan with service → metrics show enrichment count.
+        """
+        from fs2.config.objects import SmartContentConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
+        from fs2.core.services.llm_service import LLMService
+        from fs2.core.services.smart_content.smart_content_service import (
+            SmartContentService,
+        )
+        from fs2.core.services.smart_content.template_service import TemplateService
+
+        # Create isolated project
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "calc.py").write_text("def add(a, b): return a + b")
+        (src / "utils.py").write_text("def helper(): pass")
+
+        # Create config
+        config = FakeConfigurationService(
+            ScanConfig(scan_paths=[str(src)], respect_gitignore=True),
+            SmartContentConfig(max_workers=2),
+        )
+
+        # Create fake LLM adapter
+        llm_adapter = FakeLLMAdapter()
+        llm_adapter.set_response("Test summary.")
+
+        # Build SmartContentService
+        llm_service = LLMService(config, llm_adapter)
+        template_service = TemplateService(config)
+        token_counter = FakeTokenCounterAdapter(config)
+        smart_service = SmartContentService(
+            config=config,
+            llm_service=llm_service,
+            template_service=template_service,
+            token_counter=token_counter,
+        )
+
+        # Create adapters and pipeline
+        scanner = FileSystemScanner(config)
+        parser = TreeSitterParser(config)
+        store = NetworkXGraphStore(config)
+
+        pipeline = ScanPipeline(
+            config=config,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            smart_content_service=smart_service,
+        )
+
+        summary = pipeline.run()
+
+        # Verify success and metrics
+        assert summary.success is True
+        assert summary.files_scanned == 2
+        assert summary.metrics.get("smart_content_enriched", 0) > 0, \
+            "Expected smart_content_enriched > 0"
+        assert summary.metrics.get("smart_content_errors", 0) == 0, \
+            "Expected smart_content_errors == 0"
+
+        # Verify LLM was actually called
+        assert len(llm_adapter.call_history) > 0, "Expected LLM to be called"
+
+    def test_given_second_scan_when_files_unchanged_then_preservation_metrics(
+        self, tmp_path: Path
+    ):
+        """
+        Purpose: Verifies hash-based preservation works via metrics.
+        Quality Contribution: Cost optimization validation.
+        Acceptance Criteria: Second scan shows preserved > 0.
+
+        Why: Hash-based skip is critical for cost control.
+        Contract: Unchanged files → preserved metric increases.
+        """
+        from fs2.config.objects import SmartContentConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
+        from fs2.core.services.llm_service import LLMService
+        from fs2.core.services.smart_content.smart_content_service import (
+            SmartContentService,
+        )
+        from fs2.core.services.smart_content.template_service import TemplateService
+
+        # Create isolated project
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "stable.py").write_text("def stable(): pass")
+
+        graph_path = tmp_path / "graph.pickle"
+
+        config = FakeConfigurationService(
+            ScanConfig(scan_paths=[str(src)]),
+            SmartContentConfig(max_workers=2),
+        )
+
+        llm_adapter = FakeLLMAdapter()
+        llm_adapter.set_response("First scan summary.")
+
+        llm_service = LLMService(config, llm_adapter)
+        template_service = TemplateService(config)
+        token_counter = FakeTokenCounterAdapter(config)
+        smart_service = SmartContentService(
+            config=config,
+            llm_service=llm_service,
+            template_service=template_service,
+            token_counter=token_counter,
+        )
+
+        # First scan
+        store1 = NetworkXGraphStore(config)
+        pipeline1 = ScanPipeline(
+            config=config,
+            file_scanner=FileSystemScanner(config),
+            ast_parser=TreeSitterParser(config),
+            graph_store=store1,
+            smart_content_service=smart_service,
+        )
+
+        summary1 = pipeline1.run()
+        first_call_count = len(llm_adapter.call_history)
+
+        # Save graph
+        store1.save(graph_path)
+
+        # Reset LLM adapter
+        llm_adapter.reset()
+        llm_adapter.set_response("Second scan - should not see.")
+
+        # Second scan with loaded graph
+        store2 = NetworkXGraphStore(config)
+        store2.load(graph_path)
+
+        pipeline2 = ScanPipeline(
+            config=config,
+            file_scanner=FileSystemScanner(config),
+            ast_parser=TreeSitterParser(config),
+            graph_store=store2,
+            smart_content_service=smart_service,
+        )
+
+        summary2 = pipeline2.run()
+        second_call_count = len(llm_adapter.call_history)
+
+        # Verify preservation metrics
+        assert summary2.metrics.get("smart_content_preserved", 0) > 0, \
+            "Expected preservation on second scan"
+        # Fewer LLM calls on second scan
+        assert second_call_count < first_call_count, \
+            f"Expected fewer LLM calls on second scan ({second_call_count} vs {first_call_count})"
+
+    def test_given_no_smart_service_when_scanning_then_zero_metrics(
+        self, tmp_path: Path
+    ):
+        """
+        Purpose: Verifies metrics are zero when no service configured.
+        Quality Contribution: --no-smart-content mode validation.
+        Acceptance Criteria: enriched=0, preserved=0, errors=0.
+
+        Why: No service means no smart content processing.
+        Contract: smart_content_service=None → all metrics 0.
+        """
+        from fs2.config.service import FakeConfigurationService
+
+        # Create fresh project
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "simple.py").write_text('def hello(): return "world"')
+
+        config = FakeConfigurationService(
+            ScanConfig(scan_paths=[str(src)], respect_gitignore=True)
+        )
+
+        pipeline = ScanPipeline(
+            config=config,
+            file_scanner=FileSystemScanner(config),
+            ast_parser=TreeSitterParser(config),
+            graph_store=NetworkXGraphStore(config),
+            smart_content_service=None,
+        )
+
+        summary = pipeline.run()
+
+        # Verify success
+        assert summary.success is True
+        assert summary.files_scanned == 1
+        assert summary.nodes_created > 0
+
+        # Verify zero smart content metrics
+        assert summary.metrics.get("smart_content_enriched", 0) == 0
+        assert summary.metrics.get("smart_content_preserved", 0) == 0
+        assert summary.metrics.get("smart_content_errors", 0) == 0

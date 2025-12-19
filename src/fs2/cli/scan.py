@@ -1,7 +1,12 @@
 """fs2 scan command implementation.
 
 Orchestrates the ScanPipeline to scan a codebase and build the code graph.
-Displays progress feedback and summary output.
+Displays progress feedback and summary output using Rich.
+
+Per Phase 6 (Scan Pipeline Integration):
+- Supports --no-smart-content flag to skip AI enrichment
+- Shows smart content statistics in summary (enriched, preserved, errors)
+- Shows clear stage banners with Rich formatting
 """
 
 import logging
@@ -11,6 +16,17 @@ from typing import Annotated
 import typer
 from rich.console import Console
 from rich.logging import RichHandler
+from rich.panel import Panel
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
+from rich.rule import Rule
 
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.config.service import FS2ConfigurationService
@@ -20,9 +36,6 @@ from fs2.core.services import ScanPipeline
 
 console = Console()
 logger = logging.getLogger("fs2.cli.scan")
-
-# Progress threshold (files) - show spinner for large scans
-PROGRESS_THRESHOLD = 50
 
 
 def scan(
@@ -38,60 +51,107 @@ def scan(
         bool,
         typer.Option("--progress", help="Force progress spinner even in non-TTY"),
     ] = False,
+    no_smart_content: Annotated[
+        bool,
+        typer.Option(
+            "--no-smart-content",
+            help="Skip AI-powered smart content generation (faster scans)",
+        ),
+    ] = False,
 ) -> None:
     """Scan the codebase and build the code graph.
 
     Walks configured directories, parses source files with tree-sitter,
     and stores the resulting code structure in a graph.
 
-    \b
-    Example:
-        $ fs2 scan
-        ✓ Scanned 50 files, created 200 nodes
-          Graph saved to .fs2/graph.pickle
-
-    \b
-    Verbose mode:
-        $ fs2 scan --verbose
-        Discovering files...
-        Parsing src/main.py...
-        Parsing src/utils.py...
-        ✓ Scanned 2 files, created 10 nodes
+    When LLM is configured, also generates AI-powered smart content
+    (summaries) for each code node. Use --no-smart-content to skip.
     """
     # Configure logging for verbose mode
     if verbose:
         _setup_verbose_logging()
 
-    # Determine if progress should be shown (for future progress bar)
-    show_progress = _should_show_progress(no_progress, progress)  # noqa: F841
-
     try:
-        # Load configuration
-        config = FS2ConfigurationService()
+        # ===== STAGE 1: CONFIGURATION =====
+        console.print()
+        console.print(Rule("[bold cyan]CONFIGURATION[/bold cyan]", style="cyan"))
 
-        # Create adapters
+        config = FS2ConfigurationService()
+        console.print("  [green]✓[/green] Loaded .fs2/config.yaml")
+
+        # Create SmartContentService if LLM is configured and not disabled
+        smart_content_service = None
+        smart_content_status = "disabled"
+
+        if no_smart_content:
+            smart_content_status = "skipped (--no-smart-content)"
+            console.print(f"  [dim]Smart content: {smart_content_status}[/dim]")
+        else:
+            smart_content_service, smart_content_status = _create_smart_content_service(
+                config
+            )
+            if smart_content_service:
+                console.print("  [green]✓[/green] Smart content: [green]enabled[/green]")
+            else:
+                console.print(f"  [yellow]![/yellow] Smart content: [dim]{smart_content_status}[/dim]")
+
+        # ===== STAGE 2: FILE DISCOVERY =====
+        console.print()
+        console.print(Rule("[bold cyan]DISCOVERY[/bold cyan]", style="cyan"))
+
         file_scanner = FileSystemScanner(config)
         ast_parser = TreeSitterParser(config)
         graph_store = NetworkXGraphStore(config)
 
-        # Create and run pipeline
+        # Create pipeline
         pipeline = ScanPipeline(
             config=config,
             file_scanner=file_scanner,
             ast_parser=ast_parser,
             graph_store=graph_store,
+            smart_content_service=smart_content_service,
         )
 
-        # Show discovery phase if verbose
-        if verbose:
-            console.print("Discovering files...")
+        # ===== STAGE 3: PARSING =====
+        console.print()
+        console.print(Rule("[bold cyan]PARSING[/bold cyan]", style="cyan"))
 
+        # Run the pipeline
         summary = pipeline.run()
 
-        # Display output
-        _display_summary(summary, verbose=verbose)
+        console.print(f"  [green]✓[/green] Scanned {summary.files_scanned} files")
+        console.print(f"  [green]✓[/green] Created {summary.nodes_created} nodes")
 
-        # Check for total failure (all files errored)
+        # ===== STAGE 4: SMART CONTENT =====
+        if smart_content_service:
+            console.print()
+            console.print(Rule("[bold cyan]SMART CONTENT[/bold cyan]", style="cyan"))
+
+            enriched = summary.metrics.get("smart_content_enriched", 0)
+            preserved = summary.metrics.get("smart_content_preserved", 0)
+            errors = summary.metrics.get("smart_content_errors", 0)
+
+            if enriched > 0:
+                console.print(f"  [green]✓[/green] Enriched: [green]{enriched}[/green] nodes")
+            if preserved > 0:
+                console.print(f"  [blue]↻[/blue] Preserved: [blue]{preserved}[/blue] nodes (unchanged)")
+            if errors > 0:
+                console.print(f"  [yellow]![/yellow] Errors: [yellow]{errors}[/yellow] nodes")
+        elif not no_smart_content:
+            console.print()
+            console.print(Rule("[dim]SMART CONTENT (skipped)[/dim]", style="dim"))
+            console.print(f"  [dim]{smart_content_status}[/dim]")
+
+        # ===== STAGE 5: STORAGE =====
+        console.print()
+        console.print(Rule("[bold cyan]STORAGE[/bold cyan]", style="cyan"))
+        console.print("  [green]✓[/green] Graph saved to .fs2/graph.pickle")
+
+        # ===== SUMMARY =====
+        console.print()
+        _display_final_summary(summary, smart_content_service is not None)
+
+        # Check for total failure
         if summary.files_scanned > 0 and len(summary.errors) >= summary.files_scanned:
             raise typer.Exit(code=2)
 
@@ -134,42 +194,101 @@ def _should_show_progress(no_progress: bool, force_progress: bool) -> bool:
     return sys.stdout.isatty()
 
 
-def _display_summary(summary, verbose: bool = False) -> None:
-    """Display scan summary to user.
-
-    Args:
-        summary: ScanSummary from pipeline run.
-        verbose: Whether to show detailed output.
-    """
-    # Determine success indicator
+def _display_final_summary(summary, smart_content_enabled: bool) -> None:
+    """Display final summary panel."""
     if summary.success:
-        indicator = "[green]✓[/green]"
+        status = "[green]SUCCESS[/green]"
     elif summary.errors:
-        indicator = "[yellow]⚠[/yellow]"
+        status = "[yellow]COMPLETED WITH ERRORS[/yellow]"
     else:
-        indicator = "[red]✗[/red]"
+        status = "[red]FAILED[/red]"
 
-    # Main summary line
-    file_word = "file" if summary.files_scanned == 1 else "files"
-    node_word = "node" if summary.nodes_created == 1 else "nodes"
+    lines = [
+        f"Status: {status}",
+        f"Files: {summary.files_scanned}",
+        f"Nodes: {summary.nodes_created}",
+    ]
+
+    if smart_content_enabled:
+        enriched = summary.metrics.get("smart_content_enriched", 0)
+        preserved = summary.metrics.get("smart_content_preserved", 0)
+        errors = summary.metrics.get("smart_content_errors", 0)
+        lines.append(f"Smart Content: {enriched} enriched, {preserved} preserved, {errors} errors")
 
     if summary.errors:
-        error_count = len(summary.errors)
-        error_word = "error" if error_count == 1 else "errors"
-        console.print(
-            f"{indicator} Scanned {summary.files_scanned} {file_word}, "
-            f"created {summary.nodes_created} {node_word} "
-            f"({error_count} {error_word})"
+        lines.append(f"Errors: {len(summary.errors)}")
+
+    console.print(Panel(
+        "\n".join(lines),
+        title="[bold]Scan Complete[/bold]",
+        border_style="green" if summary.success else "yellow",
+    ))
+
+
+def _create_smart_content_service(config):
+    """Create SmartContentService if LLM is configured.
+
+    Returns:
+        Tuple of (service, status_string).
+        service is None if not configured.
+        status_string describes what happened.
+    """
+    from fs2.config.objects import LLMConfig, SmartContentConfig
+
+    # Check if LLM is configured
+    try:
+        llm_config = config.require(LLMConfig)
+    except MissingConfigurationError:
+        return None, "not configured (no llm section in config.yaml)"
+
+    # Check if SmartContentConfig exists
+    try:
+        config.require(SmartContentConfig)
+    except MissingConfigurationError:
+        return None, "not configured (no smart_content section in config.yaml)"
+
+    # Check if provider is set
+    if not llm_config.provider:
+        return None, "not configured (no provider set)"
+
+    # Try to create the service
+    try:
+        from fs2.core.adapters.llm_adapter_azure import AzureOpenAIAdapter
+        from fs2.core.adapters.token_counter_adapter_tiktoken import (
+            TiktokenTokenCounterAdapter,
         )
-        # Show error details in verbose mode
-        if verbose:
-            for error in summary.errors:
-                console.print(f"  [dim]- {error}[/dim]")
-    else:
-        console.print(
-            f"{indicator} Scanned {summary.files_scanned} {file_word}, "
-            f"created {summary.nodes_created} {node_word}"
+        from fs2.core.services.llm_service import LLMService
+        from fs2.core.services.smart_content.smart_content_service import (
+            SmartContentService,
+        )
+        from fs2.core.services.smart_content.template_service import TemplateService
+
+        # Create adapter based on provider
+        if llm_config.provider == "azure":
+            llm_adapter = AzureOpenAIAdapter(config)
+        elif llm_config.provider == "fake":
+            from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+            llm_adapter = FakeLLMAdapter()
+        else:
+            return None, f"unsupported provider: {llm_config.provider}"
+
+        llm_service = LLMService(config, llm_adapter)
+        template_service = TemplateService(config)
+        token_counter = TiktokenTokenCounterAdapter(config)
+
+        service = SmartContentService(
+            config=config,
+            llm_service=llm_service,
+            template_service=template_service,
+            token_counter=token_counter,
         )
 
-    # Graph location
-    console.print("  Graph saved to .fs2/graph.pickle")
+        return service, "enabled"
+
+    except Exception as e:
+        # Show the actual error - no silent failures!
+        error_msg = str(e)
+        if len(error_msg) > 100:
+            error_msg = error_msg[:100] + "..."
+        console.print(f"  [yellow]Warning:[/yellow] {error_msg}")
+        return None, f"error: {type(e).__name__}"

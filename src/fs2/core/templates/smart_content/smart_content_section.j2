@@ -1,16 +1,20 @@
-System: You generate a concise “smart content” summary for a document section.
+You are a documentation assistant. Generate a concise summary for this document section.
 
-Category: {{ category }}
-Name: {{ name }}
-Qualified name: {{ qualified_name }}
-Tree-sitter kind: {{ ts_kind }}
-Language: {{ language }}
+Section Information:
+- Category: {{ category }}
+- Name: {{ name }}
+- Qualified name: {{ qualified_name }}
+- Tree-sitter kind: {{ ts_kind }}
+- Language: {{ language }}
+{% if signature %}- Signature: {{ signature }}{% endif %}
 
-Signature: {{ signature }}
-
-Source:
+Section Content:
+```
 {{ content }}
+```
 
-Constraints:
-- Max tokens: {{ max_tokens }}
-
+Instructions:
+- Write a 1-2 sentence summary explaining what this section covers
+- Focus on the key points and purpose
+- Max {{ max_tokens }} tokens
+- Respond with ONLY the summary text, no prefixes or formatting

@@ -1751,19 +1751,23 @@ class SmartContentStage:
 
 ### Phase 6: Scan Pipeline Integration
 
-_Footnotes [^33]-[^42] reserved for Phase 6 implementation. Populated by plan-6 during execution._
+_Footnotes [^33]-[^42] reserved for Phase 6 implementation._
 
-[^33]: Phase 6 T001-T002 - SmartContentStage tests (RED phase)
-  - `file:tests/unit/services/stages/test_smart_content_stage.py` _(pending)_
+[^33]: Phase 6 Subtask 001 ST001-ST002 - PipelineContext.prior_nodes (TDD complete)
+  - `field:src/fs2/core/services/pipeline_context.py:PipelineContext.prior_nodes`
+  - `file:tests/unit/services/test_pipeline_context.py` (3 tests added)
 
-[^34]: Phase 6 T003 - SmartContentStage implementation
-  - `file:src/fs2/core/services/stages/smart_content_stage.py` _(pending)_
+[^34]: Phase 6 Subtask 001 ST003-ST004 - ScanPipeline graph loading (TDD complete)
+  - `method:src/fs2/core/services/scan_pipeline.py:ScanPipeline._load_prior_nodes`
+  - `file:tests/unit/services/test_scan_pipeline.py` (4 tests added)
 
-[^35]: Phase 6 T004 - PipelineContext update
-  - `file:src/fs2/core/services/pipeline_context.py` _(pending)_
+[^35]: Phase 6 Subtask 001 ST005-ST006 - SmartContentStage merge logic (TDD complete)
+  - `class:src/fs2/core/services/stages/smart_content_stage.py:SmartContentStage`
+  - `method:src/fs2/core/services/stages/smart_content_stage.py:SmartContentStage._merge_prior_smart_content`
+  - `file:tests/unit/services/stages/test_smart_content_stage.py` (5 tests added)
 
-[^36]: Phase 6 T005 - ScanPipeline constructor update
-  - `file:src/fs2/core/services/scan_pipeline.py` _(pending)_
+[^36]: Phase 6 T003 - SmartContentStage LLM integration _(pending - merge logic done via Subtask 001)_
+  - `file:src/fs2/core/services/stages/smart_content_stage.py` _(pending: add process_batch call)_
 
 [^37]: Phase 6 T006-T007 - CLI --no-smart-content flag
   - `file:tests/unit/cli/test_scan_cli.py` _(pending)_

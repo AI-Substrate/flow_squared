@@ -20,6 +20,8 @@ import logging
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
+from rich.console import Console
+
 from fs2.config.objects import SmartContentConfig
 from fs2.core.adapters.exceptions import (
     LLMAuthenticationError,
@@ -38,6 +40,7 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+console = Console()
 
 
 # Minimum content length to warrant LLM processing

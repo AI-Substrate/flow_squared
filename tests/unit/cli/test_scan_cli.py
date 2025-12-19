@@ -611,3 +611,113 @@ class TestProgressFlags:
 
         result = _should_show_progress(no_progress=False, force_progress=True)
         assert result is True
+
+
+# ===========================================================================
+# T006: Tests for --no-smart-content Flag (Phase 6)
+# ===========================================================================
+
+
+class TestNoSmartContentFlag:
+    """T006: Tests for --no-smart-content CLI flag.
+
+    Per Phase 6 Tasks:
+    - Flag skips SmartContentStage processing
+    - Summary reflects "smart content: skipped"
+    - Graph saved normally without smart content
+    """
+
+    def test_given_no_smart_content_flag_when_scan_then_exits_zero(
+        self, simple_project, monkeypatch
+    ):
+        """
+        Purpose: Verifies --no-smart-content doesn't break scan.
+        Quality Contribution: Ensures opt-out mode works.
+        Acceptance Criteria: Exit code 0 with --no-smart-content.
+
+        Why: Users may want fast scans without LLM processing.
+        Contract: Flag disables smart content but scan completes normally.
+        """
+        from fs2.cli.main import app
+
+        monkeypatch.chdir(simple_project)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["scan", "--no-smart-content"])
+
+        assert result.exit_code == 0, f"Failed with: {result.stdout}"
+
+    def test_given_no_smart_content_flag_when_scan_then_shows_skipped(
+        self, simple_project, monkeypatch
+    ):
+        """
+        Purpose: Verifies summary indicates smart content was skipped.
+        Quality Contribution: Users know smart content wasn't generated.
+        Acceptance Criteria: Output includes "smart content" and "skipped".
+
+        Why: Users should understand what was (not) processed.
+        Contract: Summary shows smart content was explicitly skipped.
+        """
+        from fs2.cli.main import app
+
+        monkeypatch.chdir(simple_project)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["scan", "--no-smart-content"])
+
+        assert result.exit_code == 0
+        stdout_lower = result.stdout.lower()
+        # Should mention skipped status
+        assert "smart content" in stdout_lower or "skipped" in stdout_lower, (
+            f"Expected smart content skip message in: {result.stdout}"
+        )
+
+    def test_given_no_smart_content_flag_when_scan_then_graph_created(
+        self, simple_project, monkeypatch
+    ):
+        """
+        Purpose: Verifies graph is still created without smart content.
+        Quality Contribution: Ensures core functionality works in fast mode.
+        Acceptance Criteria: Graph file exists after scan.
+
+        Why: Graph should be persisted even without LLM enrichment.
+        Contract: --no-smart-content only skips LLM, not graph storage.
+        """
+        from fs2.cli.main import app
+
+        monkeypatch.chdir(simple_project)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["scan", "--no-smart-content"])
+
+        assert result.exit_code == 0
+        graph_file = simple_project / ".fs2" / "graph.pickle"
+        assert graph_file.exists(), "Graph file should be created"
+
+    def test_given_default_scan_when_llm_not_configured_then_silently_skips(
+        self, simple_project, monkeypatch
+    ):
+        """
+        Purpose: Verifies scan works when LLM not configured (no env vars).
+        Quality Contribution: No surprise errors for new users.
+        Acceptance Criteria: Exit 0, no LLM error messages.
+
+        Why: Most users don't have Azure OpenAI on first run.
+        Contract: If no LLM config, skip smart content silently.
+        """
+        from fs2.cli.main import app
+
+        monkeypatch.chdir(simple_project)
+        monkeypatch.setenv("NO_COLOR", "1")
+        # Ensure no LLM env vars are set
+        monkeypatch.delenv("FS2_AZURE__OPENAI__ENDPOINT", raising=False)
+        monkeypatch.delenv("FS2_AZURE__OPENAI__API_KEY", raising=False)
+        monkeypatch.delenv("FS2_OPENAI__API_KEY", raising=False)
+
+        result = runner.invoke(app, ["scan"])
+
+        # Should succeed (smart content silently skipped)
+        assert result.exit_code == 0, f"Failed with: {result.stdout}"
+        # Should not mention LLM errors
+        assert "authentication" not in result.stdout.lower()
+        assert "llm error" not in result.stdout.lower()

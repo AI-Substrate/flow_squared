@@ -1,15 +1,24 @@
-"""Unit tests for SmartContentStage merge logic.
+"""Unit tests for SmartContentStage.
 
-Purpose: Verifies SmartContentStage correctly merges prior smart_content
-from context.prior_nodes before processing.
+Purpose: Verifies SmartContentStage correctly:
+1. Merges prior smart_content from context.prior_nodes (Subtask 001)
+2. Calls SmartContentService.process_batch() for generation (T001)
+3. Handles missing service gracefully (T002)
+4. Records metrics and handles errors (T001)
 
 Per Subtask 001: Graph Loading for Smart Content Preservation.
 Enables hash-based skip logic (AC5/AC6) by preserving smart_content across scans.
+
+Per Phase 6 Tasks:
+- T001: Tests for stage.process() calling batch processing
+- T002: Tests for graceful skip when service is None
+- T003: Implementation with asyncio.run() bridge
 
 Per Alignment Brief:
 - Merge logic copies prior smart_content/smart_content_hash if content_hash matches
 - Uses dataclasses.replace() for CodeNode immutability (CD03)
 - Handles prior_nodes=None gracefully (first scan case)
+- Stage reads smart_content_service from context (per Session 2 Insight #3)
 """
 
 from dataclasses import replace
@@ -273,3 +282,220 @@ class TestSmartContentStageMergeLogic:
 
         # New: not copied
         assert result_new.smart_content is None
+
+
+# ===========================================================================
+# T001: SmartContentStage.process() Tests (Phase 6)
+# ===========================================================================
+
+
+def _create_smart_content_service(*, response: str = "AI summary"):
+    """Create SmartContentService with test dependencies."""
+    from fs2.config.objects import SmartContentConfig
+    from fs2.config.service import FakeConfigurationService
+    from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+    from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
+    from fs2.core.services.llm_service import LLMService
+    from fs2.core.services.smart_content.smart_content_service import (
+        SmartContentService,
+    )
+    from fs2.core.services.smart_content.template_service import TemplateService
+
+    config = FakeConfigurationService(SmartContentConfig(max_workers=5))
+    llm_adapter = FakeLLMAdapter()
+    llm_adapter.set_response(response)
+    llm_service = LLMService(config, llm_adapter)
+    template_service = TemplateService(config)
+    token_counter = FakeTokenCounterAdapter(config)
+
+    service = SmartContentService(
+        config=config,
+        llm_service=llm_service,
+        template_service=template_service,
+        token_counter=token_counter,
+    )
+    return service, llm_adapter
+
+
+class TestSmartContentStageProcess:
+    """Tests for SmartContentStage.process() batch processing (T001).
+
+    Per Phase 6 Tasks:
+    - Stage calls SmartContentService.process_batch() on nodes
+    - Stage updates context.nodes with enriched nodes
+    - Stage records metrics in context.metrics
+    - Stage handles errors gracefully
+    """
+
+    def test_given_nodes_when_process_then_calls_batch_processing(self):
+        """
+        Purpose: Verifies stage calls SmartContentService.process_batch() with nodes.
+        Quality Contribution: Proves stage delegates to service correctly.
+        Acceptance Criteria: process_batch() called with context.nodes.
+
+        Why: Stage must delegate to service for LLM processing.
+        Contract: Stage calls process_batch() with nodes needing generation.
+        """
+        from fs2.core.services.stages.smart_content_stage import SmartContentStage
+
+        service, llm_adapter = _create_smart_content_service(response="Generated summary")
+
+        # Create context with nodes and service
+        context = PipelineContext(scan_config=ScanConfig())
+        node = _make_file_node("test.py", "def hello(): pass")
+        context.nodes = [node]
+        context.smart_content_service = service
+
+        # Process
+        stage = SmartContentStage()
+        result_context = stage.process(context)
+
+        # Verify LLM was called (proves process_batch was invoked)
+        assert len(llm_adapter.call_history) == 1
+
+    def test_given_nodes_when_process_then_updates_context_nodes(self):
+        """
+        Purpose: Verifies stage updates context.nodes with enriched nodes.
+        Quality Contribution: Proves nodes get smart_content after processing.
+        Acceptance Criteria: context.nodes contain smart_content after process().
+
+        Why: Stage must replace nodes with enriched versions.
+        Contract: After process(), nodes have smart_content populated.
+        """
+        from fs2.core.services.stages.smart_content_stage import SmartContentStage
+
+        service, _ = _create_smart_content_service(response="This is the summary")
+
+        context = PipelineContext(scan_config=ScanConfig())
+        node = _make_file_node("test.py", "def hello(): pass")
+        context.nodes = [node]
+        context.smart_content_service = service
+
+        stage = SmartContentStage()
+        result_context = stage.process(context)
+
+        # Verify nodes are enriched
+        assert len(result_context.nodes) == 1
+        assert result_context.nodes[0].smart_content == "This is the summary"
+
+    def test_given_nodes_when_process_then_records_metrics(self):
+        """
+        Purpose: Verifies stage records smart content metrics in context.metrics.
+        Quality Contribution: Enables scan summary to show processing stats.
+        Acceptance Criteria: context.metrics contains processed, preserved, errors.
+
+        Why: CLI needs metrics to display in scan summary.
+        Contract: Stage sets smart_content_* metrics in context.metrics.
+        """
+        from fs2.core.services.stages.smart_content_stage import SmartContentStage
+
+        service, _ = _create_smart_content_service(response="Summary")
+
+        context = PipelineContext(scan_config=ScanConfig())
+        node = _make_file_node("test.py", "def hello(): pass")
+        context.nodes = [node]
+        context.smart_content_service = service
+
+        stage = SmartContentStage()
+        result_context = stage.process(context)
+
+        # Verify metrics recorded (per Session 2 Insight #2: enriched, preserved, errors)
+        assert "smart_content_enriched" in result_context.metrics
+        assert "smart_content_preserved" in result_context.metrics
+        assert "smart_content_errors" in result_context.metrics
+        assert result_context.metrics["smart_content_enriched"] == 1
+        assert result_context.metrics["smart_content_preserved"] == 0
+        assert result_context.metrics["smart_content_errors"] == 0
+
+    def test_given_service_error_when_process_then_appends_to_errors(self):
+        """
+        Purpose: Verifies stage appends processing errors to context.errors.
+        Quality Contribution: Ensures scan doesn't fail on individual node errors.
+        Acceptance Criteria: Errors in context.errors, processing continues.
+
+        Why: LLM errors shouldn't fail entire scan.
+        Contract: Errors appended to context.errors, scan continues.
+        """
+        from fs2.core.adapters.exceptions import LLMRateLimitError
+        from fs2.core.services.stages.smart_content_stage import SmartContentStage
+
+        service, llm_adapter = _create_smart_content_service()
+        llm_adapter.set_error(LLMRateLimitError("Rate limit exceeded"))
+
+        context = PipelineContext(scan_config=ScanConfig())
+        node = _make_file_node("test.py", "def hello(): pass")
+        context.nodes = [node]
+        context.smart_content_service = service
+
+        stage = SmartContentStage()
+        result_context = stage.process(context)
+
+        # Verify error recorded in metrics, not raised
+        assert result_context.metrics["smart_content_errors"] == 1
+        # Node should still be in results (without smart_content)
+        assert len(result_context.nodes) == 1
+
+
+# ===========================================================================
+# T002: Stage Skip Tests When Service is None
+# ===========================================================================
+
+
+class TestSmartContentStageSkip:
+    """Tests for SmartContentStage behavior when service is None (T002).
+
+    Per Phase 6 Tasks:
+    - Stage should skip gracefully when smart_content_service is None
+    - This happens when --no-smart-content flag is used
+    - No ValueError raised; processing continues without smart content
+    """
+
+    def test_given_no_service_when_process_then_skips_gracefully(self):
+        """
+        Purpose: Verifies stage skips processing when service is None.
+        Quality Contribution: Enables --no-smart-content flag behavior.
+        Acceptance Criteria: No error, nodes unchanged, metrics show skipped.
+
+        Why: --no-smart-content flag sets service to None in context.
+        Contract: If service is None, return nodes unchanged without error.
+        """
+        from fs2.core.services.stages.smart_content_stage import SmartContentStage
+
+        context = PipelineContext(scan_config=ScanConfig())
+        node = _make_file_node("test.py", "def hello(): pass")
+        context.nodes = [node]
+        context.smart_content_service = None  # No service!
+
+        stage = SmartContentStage()
+        result_context = stage.process(context)
+
+        # Verify nodes unchanged (no smart_content added)
+        assert len(result_context.nodes) == 1
+        assert result_context.nodes[0].smart_content is None
+
+    def test_given_empty_nodes_when_process_then_returns_immediately(self):
+        """
+        Purpose: Verifies stage handles empty nodes list efficiently.
+        Quality Contribution: No unnecessary processing for empty input.
+        Acceptance Criteria: Metrics set to 0, no service call.
+
+        Why: Empty scans should complete quickly.
+        Contract: If nodes is empty, return immediately with zero metrics.
+        """
+        from fs2.core.services.stages.smart_content_stage import SmartContentStage
+
+        service, llm_adapter = _create_smart_content_service()
+
+        context = PipelineContext(scan_config=ScanConfig())
+        context.nodes = []  # Empty!
+        context.smart_content_service = service
+
+        stage = SmartContentStage()
+        result_context = stage.process(context)
+
+        # Verify no LLM calls made
+        assert len(llm_adapter.call_history) == 0
+        # Verify empty nodes returned
+        assert len(result_context.nodes) == 0
+        # Verify metrics show zeros
+        assert result_context.metrics.get("smart_content_enriched", 0) == 0

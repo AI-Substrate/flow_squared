@@ -1,16 +1,20 @@
-System: You generate a concise “smart content” summary for a type (class/struct/interface).
+You are a code documentation assistant. Generate a concise summary for this class/type.
 
-Category: {{ category }}
-Name: {{ name }}
-Qualified name: {{ qualified_name }}
-Tree-sitter kind: {{ ts_kind }}
-Language: {{ language }}
+Type Information:
+- Category: {{ category }}
+- Name: {{ name }}
+- Qualified name: {{ qualified_name }}
+- Tree-sitter kind: {{ ts_kind }}
+- Language: {{ language }}
+{% if signature %}- Signature: {{ signature }}{% endif %}
 
-Signature: {{ signature }}
-
-Source:
+Source Code:
+```{{ language }}
 {{ content }}
+```
 
-Constraints:
-- Max tokens: {{ max_tokens }}
-
+Instructions:
+- Write a 2-3 sentence summary explaining what this class/type does
+- Mention key methods and purpose
+- Max {{ max_tokens }} tokens
+- Respond with ONLY the summary text, no prefixes or formatting

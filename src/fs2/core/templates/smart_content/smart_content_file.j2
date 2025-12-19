@@ -1,16 +1,19 @@
-System: You generate a concise “smart content” summary for a source file.
+You are a code documentation assistant. Generate a concise summary for this source file.
 
-Category: {{ category }}
-Name: {{ name }}
-Qualified name: {{ qualified_name }}
-Tree-sitter kind: {{ ts_kind }}
-Language: {{ language }}
+File Information:
+- Category: {{ category }}
+- Name: {{ name }}
+- Qualified name: {{ qualified_name }}
+- Tree-sitter kind: {{ ts_kind }}
+- Language: {{ language }}
 
-Signature: {{ signature }}
-
-Source:
+Source Code:
+```{{ language }}
 {{ content }}
+```
 
-Constraints:
-- Max tokens: {{ max_tokens }}
-
+Instructions:
+- Write a 2-3 sentence summary explaining what this file contains and its purpose
+- Mention key classes, functions, or exports
+- Max {{ max_tokens }} tokens
+- Respond with ONLY the summary text, no prefixes or formatting

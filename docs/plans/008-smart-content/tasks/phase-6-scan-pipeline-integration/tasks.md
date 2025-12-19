@@ -723,3 +723,182 @@ docs/plans/008-smart-content/
 **Notes**:
 - Subtask must complete before T003 can fully implement merge logic
 - Consider running `/plan-6-implement-phase --subtask 001-subtask-graph-loading-for-smart-content-preservation` first
+
+---
+
+## Critical Insights Discussion - Session 2 (Pre-Implementation)
+
+**Session**: 2025-12-19
+**Context**: Phase 6 T001-T010 Implementation Readiness
+**Analyst**: AI Clarity Agent
+**Reviewer**: Development Team
+**Format**: Water Cooler Conversation (5 Critical Insights)
+**Prerequisite**: Subtask 001 complete, ready for main phase implementation
+
+---
+
+### Insight 1: Results Dict → List Reconstruction Pattern
+
+**Did you know**: After `process_batch()` returns `{node_id: CodeNode}`, we must overlay results onto `context.nodes` list—getting this wrong could lose enriched nodes or create duplicates.
+
+**Implications**:
+- Results dict keyed by node_id, context.nodes is ordered list
+- Some nodes have prior smart_content (from merge), some are in results, some errored
+- Order preservation matters for deterministic output
+
+**Options Considered**:
+- Option A: Simple overlay - iterate list, replace if in results dict
+- Option B: In-place mutation - modify list during iteration
+- Option C: Build from results + preserved - loses order
+
+**AI Recommendation**: Option A - Simple Overlay
+
+**Discussion Summary**: Simple overlay preserves order, handles all cases uniformly, easy to test.
+
+**Decision**: Use simple overlay pattern for results reconstruction
+
+**Action Items**:
+- [x] Implementation guidance for T003
+
+**Affects**: T003 (SmartContentStage implementation)
+
+---
+
+### Insight 2: Metrics Have Two Skip Sources
+
+**Did you know**: "Skipped" means different things at stage level (merged from prior) vs service level (batch internal skip)—could lead to confusing or double-counted metrics.
+
+**Implications**:
+- Stage merge: nodes with content_hash match get prior smart_content
+- Batch skip: nodes passed to batch that already have smart_content_hash
+- If we filter before batch, batch.skipped should be 0
+- User-facing metrics need clear semantics
+
+**Options Considered**:
+- Option A: Stage-level only - "skipped" = preserved from prior
+- Option B: Combine both - total skipped from all sources
+- Option C: Separate metrics - preserved vs skipped vs processed
+
+**AI Recommendation**: Option A - Stage-Level Only
+
+**Discussion Summary**: User-relevant meaning, batch.skipped should be 0 with filtering.
+
+**Decision**: Use stage-level metrics; "skipped" = preserved from prior scan
+
+**Action Items**:
+- [x] T008 summary: "X enriched, Y preserved, Z errors"
+
+**Affects**: T003 (metrics recording), T008 (summary output wording)
+
+---
+
+### Insight 3: Stage Gets Service via Context, Not Constructor
+
+**Did you know**: SmartContentStage needs SmartContentService access, and the DI pattern choice affects how the entire pipeline flows.
+
+**Implications**:
+- StorageStage uses context.graph_store pattern
+- Constructor injection would break stateless stage pattern
+- Context injection enables graceful skip when service is None
+
+**Options Considered**:
+- Option A: Context injection - stage reads context.smart_content_service
+- Option B: Constructor injection - stage owns service reference
+- Option C: Hybrid - optional constructor with context fallback
+
+**AI Recommendation**: Option A - Context Injection
+
+**Discussion Summary**: Consistent with graph_store pattern, enables graceful skip for --no-smart-content.
+
+**Decision**: SmartContentService accessed via context.smart_content_service
+
+**Action Items**:
+- [x] T004: Add smart_content_service field to PipelineContext
+- [x] T003: Stage reads from context, skips gracefully if None
+- [x] T007: CLI sets or omits service based on flag
+
+**Affects**: T003, T004, T005, T007
+
+---
+
+### Insight 4: Error Classification Is Incomplete
+
+**Did you know**: While auth=fatal and rate limit=warn, TemplateError isn't caught—a template bug would crash the entire scan.
+
+**Implications**:
+- LLMAuthenticationError: re-raise (fatal)
+- LLMRateLimitError: wrap, continue
+- LLMContentFilterError: placeholder, continue
+- TemplateError: NOT CAUGHT → crash
+
+**Options Considered**:
+- Option A: Catch TemplateError in stage
+- Option B: Catch TemplateError in service worker
+- Option C: Let template errors crash (fail fast)
+- Option D: Validate templates at startup
+
+**AI Recommendation**: Option B + D (Belt and Suspenders)
+
+**Discussion Summary**: Validate at startup for obvious bugs, catch in worker for edge cases.
+
+**Decision**: Catch TemplateError in worker + consider startup validation
+
+**Action Items**:
+- [x] T003: Add TemplateError to worker catch block
+
+**Affects**: T003 (error handling)
+
+---
+
+### Insight 5: No Stage Order Validation
+
+**Did you know**: If custom stages put SmartContentStage after StorageStage, nodes save without smart content—silently.
+
+**Implications**:
+- Default order is correct (we control it)
+- Custom stages could be misordered
+- No error or warning for wrong order
+
+**Options Considered**:
+- Option A: Runtime order validation
+- Option B: Document the requirement
+- Option C: Stage dependency declarations
+- Option D: Accept the risk
+
+**AI Recommendation**: Option B (Document)
+
+**Discussion Summary**: Default order is correct; custom stages = custom responsibility.
+
+**Decision**: Document stage ordering requirement, no runtime validation
+
+**Action Items**:
+- [x] T005: Add docstring explaining order requirement
+
+**Affects**: T005 (ScanPipeline documentation)
+
+---
+
+## Session 2 Summary
+
+**Insights Surfaced**: 5 implementation-focused insights
+**Decisions Made**: 5 decisions for T001-T010 implementation
+**Action Items Created**: Implementation guidance integrated into task notes
+**Areas Updated**:
+- T003: +overlay pattern, +metrics semantics, +context injection, +TemplateError handling
+- T004: +smart_content_service field (in addition to prior_nodes)
+- T005: +stage order documentation
+- T007: +context-based service injection
+- T008: +metrics wording ("enriched, preserved, errors")
+
+**Shared Understanding Achieved**: ✓
+
+**Confidence Level**: High - Implementation patterns clarified, error handling complete, DI flow decided.
+
+**Next Steps**:
+1. Proceed with `/plan-6-implement-phase` for T001-T010
+2. Follow TDD: T001/T002 (RED) → T003 (GREEN) → T004 → T005 → T006 (RED) → T007 (GREEN) → T008 → T009 → T010
+
+**Notes**:
+- Subtask 001 is complete - prior_nodes infrastructure ready
+- All 5 insights affect T003 primarily - it's the critical implementation task
+- Context injection pattern matches existing graph_store/file_scanner patterns

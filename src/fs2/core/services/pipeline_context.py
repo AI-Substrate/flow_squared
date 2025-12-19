@@ -24,6 +24,9 @@ if TYPE_CHECKING:
     from fs2.core.models.code_node import CodeNode
     from fs2.core.models.scan_result import ScanResult
     from fs2.core.repos.graph_store import GraphStore
+    from fs2.core.services.smart_content.smart_content_service import (
+        SmartContentService,
+    )
 
 
 @dataclass
@@ -74,3 +77,9 @@ class PipelineContext:
     # Enables hash-based skip logic (AC5/AC6) by preserving smart_content across scans.
     # None on first scan (no prior graph exists), dict[str, CodeNode] on subsequent scans.
     prior_nodes: "dict[str, CodeNode] | None" = None
+
+    # SmartContentService for AI-powered smart content generation (Phase 6 T004)
+    # Injected by ScanPipeline when smart content is enabled.
+    # None when --no-smart-content flag is used or LLM not configured.
+    # Per Session 2 Insight #3: Stage reads service from context, not constructor.
+    smart_content_service: "SmartContentService | None" = None

@@ -9,15 +9,25 @@ Per Subtask 001 (Graph Loading for Smart Content Preservation):
 - Handles prior_nodes=None gracefully (first scan case)
 
 Per Phase 6 Tasks:
-- T003: Implements SmartContentStage with merge logic
+- T003: Implements SmartContentStage with asyncio.run() bridge
 - Uses SmartContentService.process_batch() for generation
-- Catches LLMAuthenticationError for fatal exit
+- Catches LLMAuthenticationError for fatal exit (re-raised)
 - Handles asyncio.run() for sync pipeline calling async service
+- Catches nested loop RuntimeError with helpful message
+
+Per Session 2 Critical Insights:
+- Insight #1: Simple overlay pattern for results reconstruction
+- Insight #2: Stage-level metrics (enriched, preserved, errors)
+- Insight #3: Service accessed via context.smart_content_service
+- Insight #4: TemplateError caught in worker (handled by service)
 """
 
+import asyncio
 import logging
 from dataclasses import replace
 from typing import TYPE_CHECKING
+
+from fs2.core.adapters.exceptions import LLMAuthenticationError
 
 if TYPE_CHECKING:
     from fs2.core.models.code_node import CodeNode
@@ -58,15 +68,23 @@ class SmartContentStage:
     def process(self, context: "PipelineContext") -> "PipelineContext":
         """Generate smart content for nodes in context.
 
+        Per Phase 6 T003: Full implementation with asyncio.run() bridge.
+
         Args:
-            context: Pipeline context with nodes and optional prior_nodes.
+            context: Pipeline context with nodes, prior_nodes, and
+                     optional smart_content_service.
 
         Returns:
-            Context with nodes updated with smart_content.
+            Context with nodes updated with smart_content, and metrics set.
 
-        Note:
-            Full implementation pending Phase 6 T003.
-            Currently only performs merge logic from Subtask 001.
+        Raises:
+            LLMAuthenticationError: If auth fails (fatal, re-raised).
+            RuntimeError: If called from async context (helpful message).
+
+        Notes:
+            - If smart_content_service is None, skips gracefully (--no-smart-content)
+            - Uses asyncio.run() to bridge sync pipeline to async service
+            - Metrics: smart_content_enriched, smart_content_preserved, smart_content_errors
         """
         # Step 1: Merge prior smart_content for unchanged nodes (Subtask 001)
         merged_nodes = self._merge_prior_smart_content(
@@ -75,14 +93,73 @@ class SmartContentStage:
         )
         context.nodes = merged_nodes
 
-        # Step 2: Generate smart_content for remaining nodes (Phase 6 T003)
-        # TODO: Call SmartContentService.process_batch() here
-        # For now, just log what we'd do
+        # Count how many were preserved from prior
+        preserved_count = sum(
+            1 for node in context.nodes if node.smart_content is not None
+        )
+
+        # Step 2: Check for service (per Session 2 Insight #3)
+        service = context.smart_content_service
+        if service is None:
+            # No service = --no-smart-content flag or no LLM config
+            logger.debug("SmartContentStage: No service, skipping smart content generation")
+            context.metrics["smart_content_enriched"] = 0
+            context.metrics["smart_content_preserved"] = preserved_count
+            context.metrics["smart_content_errors"] = 0
+            return context
+
+        # Step 3: Filter nodes that need generation (don't already have smart_content)
         needs_generation = [n for n in context.nodes if n.smart_content is None]
+
+        if not needs_generation:
+            logger.info(
+                "SmartContentStage: All %d nodes already have smart content (preserved)",
+                len(context.nodes),
+            )
+            context.metrics["smart_content_enriched"] = 0
+            context.metrics["smart_content_preserved"] = preserved_count
+            context.metrics["smart_content_errors"] = 0
+            return context
+
+        # Step 4: Call async process_batch via asyncio.run() (sync→async bridge)
+        try:
+            batch_result = asyncio.run(service.process_batch(needs_generation))
+        except RuntimeError as e:
+            if "cannot be called from a running event loop" in str(e):
+                # Per Insight #3: Helpful error for async context
+                raise RuntimeError(
+                    "SmartContentStage cannot run inside an existing async event loop. "
+                    "This happens when fs2 is called from Jupyter notebooks, async tests, "
+                    "or other async contexts. Use --no-smart-content flag or run fs2 "
+                    "from a synchronous context (normal CLI)."
+                ) from e
+            raise
+        except LLMAuthenticationError:
+            # Auth errors are fatal (per Session 1 Insight #5)
+            raise
+
+        # Step 5: Overlay results onto context.nodes (per Session 2 Insight #1)
+        # Simple overlay pattern: iterate list, replace if in results dict
+        results_dict = batch_result.get("results", {})
+        updated_nodes = []
+        for node in context.nodes:
+            if node.node_id in results_dict:
+                updated_nodes.append(results_dict[node.node_id])
+            else:
+                updated_nodes.append(node)
+        context.nodes = updated_nodes
+
+        # Step 6: Record metrics (per Session 2 Insight #2)
+        # "enriched" = LLM-generated, "preserved" = copied from prior, "errors" = failed
+        context.metrics["smart_content_enriched"] = batch_result.get("processed", 0)
+        context.metrics["smart_content_preserved"] = preserved_count
+        context.metrics["smart_content_errors"] = len(batch_result.get("errors", []))
+
         logger.info(
-            "SmartContentStage: %d nodes merged from prior, %d need generation",
-            len(context.nodes) - len(needs_generation),
-            len(needs_generation),
+            "SmartContentStage: %d enriched, %d preserved, %d errors",
+            context.metrics["smart_content_enriched"],
+            context.metrics["smart_content_preserved"],
+            context.metrics["smart_content_errors"],
         )
 
         return context

@@ -333,9 +333,9 @@ uv run mypy src/fs2/core/services/
 - [x] PipelineContext is mutable dataclass (not frozen)
 - [x] CD03 (frozen dataclass) applies to CodeNode, not context
 - [x] Workshop decisions captured (pipeline owns loading, node_id matching, vanish deleted)
-- [ ] Tests written (ST001, ST003, ST005) – created by this subtask
+- [x] Tests written (ST001, ST003, ST005) – COMPLETE (12 tests total)
 
-**Awaiting GO/NO-GO from human sponsor before implementation.**
+**Implementation COMPLETE - All tests passing (150 in services/)**
 
 ---
 
@@ -345,9 +345,15 @@ _Populated by plan-6 after implementation. Each footnote links implementation ev
 
 | Footnote | Node ID | Type | Tasks | Description |
 |----------|---------|------|-------|-------------|
-| | | | | |
+| [^33] | `field:src/fs2/core/services/pipeline_context.py:PipelineContext.prior_nodes` | field | ST001, ST002 | PipelineContext.prior_nodes field |
+| [^33] | `file:tests/unit/services/test_pipeline_context.py` | file | ST001 | 3 tests for prior_nodes |
+| [^34] | `method:src/fs2/core/services/scan_pipeline.py:ScanPipeline._load_prior_nodes` | method | ST003, ST004 | Graph loading logic |
+| [^34] | `file:tests/unit/services/test_scan_pipeline.py` | file | ST003 | 4 tests for graph loading |
+| [^35] | `class:src/fs2/core/services/stages/smart_content_stage.py:SmartContentStage` | class | ST005, ST006 | SmartContentStage with merge logic |
+| [^35] | `method:src/fs2/core/services/stages/smart_content_stage.py:SmartContentStage._merge_prior_smart_content` | method | ST006 | Merge prior smart_content |
+| [^35] | `file:tests/unit/services/stages/test_smart_content_stage.py` | file | ST005 | 5 tests for merge logic |
 
-_Reserved footnotes: Per plan ledger._
+_Cross-reference: Plan § 12 Change Footnotes Ledger [^33]-[^35]_
 
 ---
 
