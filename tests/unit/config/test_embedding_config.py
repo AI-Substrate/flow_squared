@@ -509,3 +509,218 @@ scan:
 
         # Assert
         assert config.max_workers == 25
+
+
+@pytest.mark.unit
+class TestAzureEmbeddingConfigDefaults:
+    """T001: Tests for AzureEmbeddingConfig nested configuration per DYK-1."""
+
+    def test_given_endpoint_and_api_key_when_constructed_then_stores_values(self):
+        """
+        Purpose: Per DYK-1: Proves AzureEmbeddingConfig stores connection details.
+        Quality Contribution: Enables Azure adapter to connect.
+        Acceptance Criteria: endpoint, api_key, deployment_name, api_version stored.
+
+        Task: T001
+        """
+        from fs2.config.objects import AzureEmbeddingConfig
+
+        # Arrange / Act
+        config = AzureEmbeddingConfig(
+            endpoint="https://my-resource.openai.azure.com",
+            api_key="test-api-key",
+            deployment_name="text-embedding-3-small",
+            api_version="2024-02-01",
+        )
+
+        # Assert
+        assert config.endpoint == "https://my-resource.openai.azure.com"
+        assert config.api_key == "test-api-key"
+        assert config.deployment_name == "text-embedding-3-small"
+        assert config.api_version == "2024-02-01"
+
+    def test_given_only_required_fields_when_constructed_then_uses_defaults(self):
+        """
+        Purpose: Proves AzureEmbeddingConfig has sensible defaults.
+        Quality Contribution: Minimizes required config for simple setups.
+        Acceptance Criteria: deployment_name and api_version have defaults.
+
+        Task: T001
+        """
+        from fs2.config.objects import AzureEmbeddingConfig
+
+        # Arrange / Act
+        config = AzureEmbeddingConfig(
+            endpoint="https://my-resource.openai.azure.com",
+            api_key="test-api-key",
+        )
+
+        # Assert
+        assert config.deployment_name == "text-embedding-3-small"
+        assert config.api_version == "2024-02-01"
+
+
+@pytest.mark.unit
+class TestAzureEmbeddingConfigValidation:
+    """T001: Tests for AzureEmbeddingConfig validation rules."""
+
+    def test_given_empty_endpoint_when_constructed_then_validation_error(self):
+        """
+        Purpose: Proves endpoint cannot be empty.
+        Quality Contribution: Fails fast on misconfiguration.
+        Acceptance Criteria: Empty endpoint raises ValidationError.
+
+        Task: T001
+        """
+        from fs2.config.objects import AzureEmbeddingConfig
+
+        # Arrange / Act / Assert
+        with pytest.raises(ValidationError, match="endpoint"):
+            AzureEmbeddingConfig(
+                endpoint="",
+                api_key="test-api-key",
+            )
+
+    def test_given_empty_api_key_when_constructed_then_validation_error(self):
+        """
+        Purpose: Proves api_key cannot be empty.
+        Quality Contribution: Fails fast on misconfiguration.
+        Acceptance Criteria: Empty api_key raises ValidationError.
+
+        Task: T001
+        """
+        from fs2.config.objects import AzureEmbeddingConfig
+
+        # Arrange / Act / Assert
+        with pytest.raises(ValidationError, match="api_key"):
+            AzureEmbeddingConfig(
+                endpoint="https://my-resource.openai.azure.com",
+                api_key="",
+            )
+
+
+@pytest.mark.unit
+class TestEmbeddingConfigAzureNested:
+    """T001: Tests for azure nested config in EmbeddingConfig per DYK-1."""
+
+    def test_given_no_azure_config_when_constructed_then_azure_is_none(self):
+        """
+        Purpose: Proves azure config is optional by default.
+        Quality Contribution: Allows mode=fake without azure config.
+        Acceptance Criteria: azure is None when not provided.
+
+        Task: T001
+        """
+        from fs2.config.objects import EmbeddingConfig
+
+        # Arrange / Act
+        config = EmbeddingConfig(mode="fake")
+
+        # Assert
+        assert config.azure is None
+
+    def test_given_azure_config_when_constructed_then_stores_azure(self):
+        """
+        Purpose: Proves azure nested config is stored correctly.
+        Quality Contribution: Enables complete Azure configuration.
+        Acceptance Criteria: Nested azure config accessible.
+
+        Task: T001
+        """
+        from fs2.config.objects import AzureEmbeddingConfig, EmbeddingConfig
+
+        # Arrange
+        azure_config = AzureEmbeddingConfig(
+            endpoint="https://my-resource.openai.azure.com",
+            api_key="test-api-key",
+        )
+
+        # Act
+        config = EmbeddingConfig(mode="azure", azure=azure_config)
+
+        # Assert
+        assert config.azure is not None
+        assert config.azure.endpoint == "https://my-resource.openai.azure.com"
+        assert config.azure.api_key == "test-api-key"
+
+    def test_given_yaml_with_azure_when_loaded_then_azure_nested_config_loaded(
+        self, tmp_path, monkeypatch, clean_config_env
+    ):
+        """
+        Purpose: Proves nested azure config loads from YAML.
+        Quality Contribution: Validates YAML binding works with nesting.
+        Acceptance Criteria: embedding.azure.* fields loaded correctly.
+
+        Task: T001
+        """
+        from fs2.config.objects import EmbeddingConfig
+        from fs2.config.service import FS2ConfigurationService
+
+        # Arrange
+        config_dir = tmp_path / ".fs2"
+        config_dir.mkdir()
+        (config_dir / "config.yaml").write_text(
+            """embedding:
+  mode: azure
+  azure:
+    endpoint: https://test.openai.azure.com
+    api_key: yaml-api-key
+    deployment_name: my-embedding-model
+    api_version: "2024-06-01"
+scan:
+  scan_paths:
+    - "."
+"""
+        )
+        monkeypatch.chdir(tmp_path)
+
+        # Act
+        service = FS2ConfigurationService()
+        config = service.require(EmbeddingConfig)
+
+        # Assert
+        assert config.mode == "azure"
+        assert config.azure is not None
+        assert config.azure.endpoint == "https://test.openai.azure.com"
+        assert config.azure.api_key == "yaml-api-key"
+        assert config.azure.deployment_name == "my-embedding-model"
+        assert config.azure.api_version == "2024-06-01"
+
+    def test_given_env_with_azure_when_loaded_then_azure_nested_config_loaded(
+        self, tmp_path, monkeypatch, clean_config_env
+    ):
+        """
+        Purpose: Proves nested azure config loads from env vars.
+        Quality Contribution: Validates env binding works with nesting.
+        Acceptance Criteria: FS2_EMBEDDING__AZURE__* fields loaded correctly.
+
+        Task: T001
+        """
+        from fs2.config.objects import EmbeddingConfig
+        from fs2.config.service import FS2ConfigurationService
+
+        # Arrange
+        config_dir = tmp_path / ".fs2"
+        config_dir.mkdir()
+        (config_dir / "config.yaml").write_text(
+            """scan:
+  scan_paths:
+    - "."
+"""
+        )
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("FS2_EMBEDDING__MODE", "azure")
+        monkeypatch.setenv(
+            "FS2_EMBEDDING__AZURE__ENDPOINT", "https://env.openai.azure.com"
+        )
+        monkeypatch.setenv("FS2_EMBEDDING__AZURE__API_KEY", "env-api-key")
+
+        # Act
+        service = FS2ConfigurationService()
+        config = service.require(EmbeddingConfig)
+
+        # Assert
+        assert config.mode == "azure"
+        assert config.azure is not None
+        assert config.azure.endpoint == "https://env.openai.azure.com"
+        assert config.azure.api_key == "env-api-key"

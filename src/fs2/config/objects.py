@@ -440,6 +440,53 @@ class SmartContentConfig(BaseModel):
         return v
 
 
+class AzureEmbeddingConfig(BaseModel):
+    """Azure OpenAI embedding configuration.
+
+    Nested configuration for Azure-specific embedding settings.
+    Per DYK-1: Missing connection config - this provides endpoint, api_key,
+    deployment_name, and api_version for Azure embedding adapter.
+
+    Attributes:
+        endpoint: Azure OpenAI endpoint URL.
+        api_key: Azure OpenAI API key.
+        deployment_name: Model deployment name (default: text-embedding-3-small).
+        api_version: Azure API version (default: 2024-02-01).
+
+    YAML example:
+        ```yaml
+        embedding:
+          mode: azure
+          azure:
+            endpoint: https://my-resource.openai.azure.com
+            api_key: ${FS2_AZURE_EMBEDDING_API_KEY}
+            deployment_name: text-embedding-3-small
+            api_version: 2024-02-01
+        ```
+    """
+
+    endpoint: str
+    api_key: str
+    deployment_name: str = "text-embedding-3-small"
+    api_version: str = "2024-02-01"
+
+    @field_validator("endpoint")
+    @classmethod
+    def validate_endpoint(cls, v: str) -> str:
+        """Validate endpoint is not empty."""
+        if not v or not v.strip():
+            raise ValueError("endpoint must not be empty")
+        return v
+
+    @field_validator("api_key")
+    @classmethod
+    def validate_api_key(cls, v: str) -> str:
+        """Validate api_key is not empty."""
+        if not v or not v.strip():
+            raise ValueError("api_key must not be empty")
+        return v
+
+
 class ChunkConfig(BaseModel):
     """Chunking parameters for a specific content type.
 
@@ -543,6 +590,9 @@ class EmbeddingConfig(BaseModel):
     mode: Literal["azure", "openai_compatible", "fake"] = "azure"
     dimensions: int = 1024
     max_workers: int = 50
+
+    # Azure-specific configuration (per DYK-1)
+    azure: AzureEmbeddingConfig | None = None
 
     # Per-content-type chunking configuration (Finding 04)
     code: ChunkConfig = Field(
