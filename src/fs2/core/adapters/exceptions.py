@@ -231,3 +231,84 @@ class LLMContentFilterError(LLMAdapterError):
     - Rephrase the prompt
     - Review content policy guidelines
     """
+
+
+# Embedding Adapter Exception Hierarchy
+# Per Plan 1.3: Exception hierarchy follows existing pattern
+# Per DYK-4: EmbeddingRateLimitError includes retry metadata
+
+
+class EmbeddingAdapterError(AdapterError):
+    """Base error for embedding adapter operations.
+
+    All embedding-specific errors inherit from this class to enable
+    catch-all patterns for embedding operations at the service layer.
+
+    Note: This error is raised for generic embedding failures that don't
+    fit into more specific categories.
+    """
+
+
+class EmbeddingAuthenticationError(EmbeddingAdapterError):
+    """Embedding service authentication failed.
+
+    Raised when the embedding provider rejects the API key or credentials.
+    Corresponds to HTTP 401 status code.
+
+    Common causes:
+    - Invalid API key
+    - Expired credentials
+    - Key not authorized for embedding endpoint
+
+    Recovery:
+    - Check API key is correct
+    - Verify ${ENV_VAR} placeholder expanded correctly
+    - Ensure key has access to the embedding deployment
+    """
+
+
+class EmbeddingRateLimitError(EmbeddingAdapterError):
+    """Embedding service rate limit exceeded.
+
+    Raised when the embedding provider returns a rate limit error.
+    Corresponds to HTTP 429 status code.
+
+    Per DYK-4: Includes retry metadata for intelligent backoff:
+    - retry_after: Seconds to wait (from Retry-After header, or None)
+    - attempts_made: Number of attempts before this error was raised
+
+    Note: The adapter should have already retried with exponential
+    backoff before raising this error.
+
+    Common causes:
+    - Too many requests in time window
+    - Token quota exceeded
+    - Concurrent request limit hit
+
+    Recovery:
+    - Wait and retry (automatic via adapter)
+    - Reduce request frequency
+    - Increase quota with provider
+
+    Attributes:
+        retry_after: Seconds to wait before retry, or None if unknown.
+        attempts_made: Number of attempts made before giving up.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        retry_after: float | None = None,
+        attempts_made: int = 0,
+    ):
+        """Initialize with message and retry metadata.
+
+        Args:
+            message: Error description.
+            retry_after: Seconds to wait (from Retry-After header), or None.
+            attempts_made: Number of retry attempts made.
+        """
+        super().__init__(message)
+        self.retry_after = retry_after
+        self.attempts_made = attempts_made

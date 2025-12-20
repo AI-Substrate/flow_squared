@@ -440,6 +440,168 @@ class SmartContentConfig(BaseModel):
         return v
 
 
+class ChunkConfig(BaseModel):
+    """Chunking parameters for a specific content type.
+
+    Used by EmbeddingConfig to define per-content-type chunking behavior.
+    Per Critical Finding 04: Content-type aware configuration pattern.
+    Per DYK-3: overlap_tokens >= 0 (0 is valid for smart_content).
+
+    Attributes:
+        max_tokens: Maximum tokens per chunk. Must be > 0.
+        overlap_tokens: Overlap between consecutive chunks. Must be >= 0 and < max_tokens.
+
+    Example:
+        ```python
+        # Code: smaller chunks for better search precision
+        code_config = ChunkConfig(max_tokens=400, overlap_tokens=50)
+
+        # Documentation: larger chunks for context
+        docs_config = ChunkConfig(max_tokens=800, overlap_tokens=120)
+
+        # Smart content: single large chunk (no overlap needed)
+        smart_config = ChunkConfig(max_tokens=8000, overlap_tokens=0)
+        ```
+    """
+
+    max_tokens: int
+    overlap_tokens: int
+
+    @field_validator("max_tokens")
+    @classmethod
+    def validate_max_tokens(cls, v: int) -> int:
+        """Validate max_tokens is positive."""
+        if v <= 0:
+            raise ValueError("max_tokens must be positive")
+        return v
+
+    @field_validator("overlap_tokens")
+    @classmethod
+    def validate_overlap_tokens(cls, v: int) -> int:
+        """Validate overlap_tokens is non-negative (per DYK-3: 0 is valid)."""
+        if v < 0:
+            raise ValueError("overlap_tokens must be >= 0")
+        return v
+
+    @model_validator(mode="after")
+    def validate_overlap_less_than_max(self) -> "ChunkConfig":
+        """Validate overlap is strictly less than max_tokens."""
+        if self.overlap_tokens >= self.max_tokens:
+            raise ValueError(
+                f"overlap_tokens ({self.overlap_tokens}) must be less than "
+                f"max_tokens ({self.max_tokens})"
+            )
+        return self
+
+
+class EmbeddingConfig(BaseModel):
+    """Configuration for embedding generation service.
+
+    Loaded from YAML or environment variables.
+    Path: embedding (e.g., FS2_EMBEDDING__MAX_WORKERS)
+
+    Per Critical Finding 04: Content-type aware chunking configuration.
+    Per DYK-4: Retry configuration following Flowspace pattern.
+    Per Alignment Finding 10: Default dimensions=1024 for text-embedding-3-small.
+
+    Attributes:
+        mode: Embedding provider - "azure", "openai_compatible", or "fake".
+        dimensions: Embedding vector dimensions (default: 1024).
+        max_workers: Number of parallel workers for batch processing (default: 50).
+        code: ChunkConfig for code content (default: 400/50).
+        documentation: ChunkConfig for documentation (default: 800/120).
+        smart_content: ChunkConfig for smart content (default: 8000/0).
+        max_retries: Max retry attempts for 429/5xx errors (default: 3).
+        base_delay: Base delay in seconds for exponential backoff (default: 2.0).
+        max_delay: Maximum delay cap in seconds (default: 60.0).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        embedding:
+          mode: azure
+          max_workers: 50
+          # Retry configuration (per Flowspace pattern)
+          max_retries: 3
+          base_delay: 2.0
+          max_delay: 60.0
+          # Chunking configuration
+          code:
+            max_tokens: 400
+            overlap_tokens: 50
+          documentation:
+            max_tokens: 800
+            overlap_tokens: 120
+          smart_content:
+            max_tokens: 8000
+            overlap_tokens: 0
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "embedding"
+
+    mode: Literal["azure", "openai_compatible", "fake"] = "azure"
+    dimensions: int = 1024
+    max_workers: int = 50
+
+    # Per-content-type chunking configuration (Finding 04)
+    code: ChunkConfig = Field(
+        default_factory=lambda: ChunkConfig(max_tokens=400, overlap_tokens=50)
+    )
+    documentation: ChunkConfig = Field(
+        default_factory=lambda: ChunkConfig(max_tokens=800, overlap_tokens=120)
+    )
+    smart_content: ChunkConfig = Field(
+        default_factory=lambda: ChunkConfig(max_tokens=8000, overlap_tokens=0)
+    )
+
+    # Retry configuration (DYK-4: Flowspace pattern)
+    max_retries: int = 3
+    base_delay: float = 2.0
+    max_delay: float = 60.0
+
+    @field_validator("dimensions")
+    @classmethod
+    def validate_dimensions(cls, v: int) -> int:
+        """Validate dimensions is positive (per Alignment Finding 10)."""
+        if v <= 0:
+            raise ValueError("dimensions must be > 0")
+        return v
+
+    @field_validator("max_workers")
+    @classmethod
+    def validate_max_workers(cls, v: int) -> int:
+        """Validate max_workers is positive."""
+        if v < 1:
+            raise ValueError("max_workers must be >= 1")
+        return v
+
+    @field_validator("max_retries")
+    @classmethod
+    def validate_max_retries(cls, v: int) -> int:
+        """Validate max_retries is non-negative."""
+        if v < 0:
+            raise ValueError("max_retries must be >= 0")
+        return v
+
+    @field_validator("base_delay")
+    @classmethod
+    def validate_base_delay(cls, v: float) -> float:
+        """Validate base_delay is positive."""
+        if v <= 0:
+            raise ValueError("base_delay must be > 0")
+        return v
+
+    @model_validator(mode="after")
+    def validate_max_delay_gte_base(self) -> "EmbeddingConfig":
+        """Validate max_delay is at least as large as base_delay."""
+        if self.max_delay < self.base_delay:
+            raise ValueError(
+                f"max_delay ({self.max_delay}) must be >= base_delay ({self.base_delay})"
+            )
+        return self
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -451,4 +613,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     GraphConfig,
     LLMConfig,
     SmartContentConfig,
+    EmbeddingConfig,
 ]

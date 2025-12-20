@@ -9,9 +9,12 @@ Design Principles:
 - Dual classification: ts_kind (grammar-specific) + category (universal)
 - Content-rich: Full source text for embeddings and AI
 - No embedded children: Hierarchy via graph edges (child_of), not nested objects
+- Dual embedding: Both raw content and smart content embeddings for flexible search
 
 Per Critical Findings: 09 (frozen), 11 (node ID), 12 (truncation)
 Per Alignment Brief: Dual classification, position-based anonymous IDs
+Per DYK-1: Embeddings as tuple[tuple[float, ...], ...] for chunk-level storage
+Per DYK-2: Separate smart_content_embedding field for AI-generated descriptions
 """
 
 from dataclasses import dataclass
@@ -121,8 +124,14 @@ class CodeNode:
         parent_node_id: Node ID of parent in hierarchy (None for file nodes)
         truncated: True if content was truncated due to size limits
         truncated_at_line: Line number where truncation occurred
-        smart_content: AI-generated summary (future, defaults to None)
-        embedding: Vector representation (future, defaults to None)
+        smart_content: AI-generated summary (defaults to None)
+        smart_content_hash: content_hash when smart_content was generated
+        embedding: Vector embeddings for raw content chunks.
+                   Type: tuple[tuple[float, ...], ...] | None (per DYK-1)
+                   Each inner tuple is a 1024-dim embedding for one chunk.
+        smart_content_embedding: Vector embeddings for AI-generated descriptions.
+                                 Type: tuple[tuple[float, ...], ...] | None (per DYK-2)
+                                 Separate from raw embedding for flexible search strategies.
     """
 
     # === Identity ===
@@ -164,10 +173,14 @@ class CodeNode:
     truncated: bool = False
     truncated_at_line: int | None = None
 
-    # === Future Placeholders ===
+    # === AI-Generated Content ===
     smart_content: str | None = None
     smart_content_hash: str | None = None  # content_hash when smart_content was generated
-    embedding: list[float] | None = None
+
+    # === Embedding Fields (per DYK-1 and DYK-2) ===
+    # Type: tuple[tuple[float, ...], ...] | None - chunk-level storage
+    embedding: tuple[tuple[float, ...], ...] | None = None
+    smart_content_embedding: tuple[tuple[float, ...], ...] | None = None
 
     # === Factory Methods ===
 
@@ -191,7 +204,8 @@ class CodeNode:
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
         smart_content_hash: str | None = None,
-        embedding: list[float] | None = None,
+        embedding: tuple[tuple[float, ...], ...] | None = None,
+        smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
     ) -> "CodeNode":
         """Create a file-level CodeNode.
 
@@ -235,6 +249,7 @@ class CodeNode:
             smart_content=smart_content,
             smart_content_hash=smart_content_hash,
             embedding=embedding,
+            smart_content_embedding=smart_content_embedding,
         )
 
     @classmethod
@@ -262,7 +277,8 @@ class CodeNode:
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
         smart_content_hash: str | None = None,
-        embedding: list[float] | None = None,
+        embedding: tuple[tuple[float, ...], ...] | None = None,
+        smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
     ) -> "CodeNode":
         """Create a type-level CodeNode (class, struct, interface, enum).
 
@@ -310,6 +326,7 @@ class CodeNode:
             smart_content=smart_content,
             smart_content_hash=smart_content_hash,
             embedding=embedding,
+            smart_content_embedding=smart_content_embedding,
         )
 
     @classmethod
@@ -337,7 +354,8 @@ class CodeNode:
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
         smart_content_hash: str | None = None,
-        embedding: list[float] | None = None,
+        embedding: tuple[tuple[float, ...], ...] | None = None,
+        smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
     ) -> "CodeNode":
         """Create a callable CodeNode (function, method, lambda).
 
@@ -385,6 +403,7 @@ class CodeNode:
             smart_content=smart_content,
             smart_content_hash=smart_content_hash,
             embedding=embedding,
+            smart_content_embedding=smart_content_embedding,
         )
 
     @classmethod
@@ -412,7 +431,8 @@ class CodeNode:
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
         smart_content_hash: str | None = None,
-        embedding: list[float] | None = None,
+        embedding: tuple[tuple[float, ...], ...] | None = None,
+        smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
     ) -> "CodeNode":
         """Create a section CodeNode (markdown heading, document section).
 
@@ -460,6 +480,7 @@ class CodeNode:
             smart_content=smart_content,
             smart_content_hash=smart_content_hash,
             embedding=embedding,
+            smart_content_embedding=smart_content_embedding,
         )
 
     @classmethod
@@ -487,7 +508,8 @@ class CodeNode:
         truncated_at_line: int | None = None,
         smart_content: str | None = None,
         smart_content_hash: str | None = None,
-        embedding: list[float] | None = None,
+        embedding: tuple[tuple[float, ...], ...] | None = None,
+        smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
     ) -> "CodeNode":
         """Create a block CodeNode (terraform block, dockerfile instruction).
 
@@ -535,4 +557,5 @@ class CodeNode:
             smart_content=smart_content,
             smart_content_hash=smart_content_hash,
             embedding=embedding,
+            smart_content_embedding=smart_content_embedding,
         )
