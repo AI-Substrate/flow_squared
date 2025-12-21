@@ -5,9 +5,15 @@ Purpose: Verify FakeEmbeddingAdapter implementation for testing.
 
 Per DYK-5: Uses content_hash lookup with deterministic fallback.
 Per Finding 05: Returns list[float], not numpy.
+
+Subtask 001: Additional tests for FixtureIndex integration.
+Per DYK-2: Adapter converts tuple[tuple[float, ...], ...] to list[float].
 """
 
 import pytest
+
+from fs2.core.models.code_node import CodeNode
+from fs2.core.models.fixture_index import FixtureIndex
 
 
 @pytest.mark.unit
@@ -267,3 +273,182 @@ class TestFakeEmbeddingAdapterReset:
 
         # Assert
         assert len(adapter.call_history) == 0
+
+
+@pytest.mark.unit
+class TestFakeEmbeddingAdapterWithFixtureIndex:
+    """ST005: Tests for FakeEmbeddingAdapter with FixtureIndex integration.
+
+    Per DYK-2: Adapter converts tuple[tuple[float, ...], ...] to list[float].
+    Per Subtask 001: fixture_index is optional and provides real embeddings.
+    """
+
+    @pytest.fixture
+    def fixture_index(self):
+        """Create a FixtureIndex with sample nodes for testing."""
+        nodes = [
+            CodeNode.create_file(
+                file_path="test.py",
+                language="python",
+                ts_kind="module",
+                start_byte=0,
+                end_byte=100,
+                start_line=1,
+                end_line=10,
+                content="def add(a, b): return a + b",
+                embedding=((0.1, 0.2, 0.3, 0.4),),
+            ),
+            CodeNode.create_callable(
+                file_path="test.py",
+                language="python",
+                ts_kind="function_definition",
+                name="subtract",
+                qualified_name="subtract",
+                start_line=1,
+                end_line=1,
+                start_column=0,
+                end_column=30,
+                start_byte=0,
+                end_byte=30,
+                content="def subtract(a, b): return a - b",
+                signature="def subtract(a, b):",
+                embedding=((0.5, 0.6, 0.7, 0.8),),
+            ),
+        ]
+        return FixtureIndex.from_nodes(nodes)
+
+    def test_given_fixture_index_when_construct_then_succeeds(self, fixture_index):
+        """
+        Purpose: Proves FakeEmbeddingAdapter accepts fixture_index parameter.
+        Quality Contribution: Enables fixture-backed testing.
+        Acceptance Criteria: Adapter can be constructed with fixture_index.
+
+        Task: ST005
+        """
+        from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+
+        # Arrange / Act
+        adapter = FakeEmbeddingAdapter(fixture_index=fixture_index)
+
+        # Assert
+        assert adapter is not None
+
+    async def test_given_fixture_index_when_embed_known_content_then_returns_real_embedding(
+        self, fixture_index
+    ):
+        """
+        Purpose: Proves fixture_index lookup returns real embeddings.
+        Quality Contribution: Tests can use real pre-computed embeddings.
+        Acceptance Criteria: Known content returns fixture embedding as list[float].
+
+        Task: ST005
+        Per DYK-2: Adapter converts tuple to list.
+        """
+        from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+
+        # Arrange
+        adapter = FakeEmbeddingAdapter(fixture_index=fixture_index)
+        content = "def add(a, b): return a + b"
+
+        # Act
+        result = await adapter.embed_text(content)
+
+        # Assert - Per DYK-2: first chunk converted to list[float]
+        assert result == [0.1, 0.2, 0.3, 0.4]
+        assert isinstance(result, list)
+        assert all(isinstance(x, float) for x in result)
+
+    async def test_given_fixture_index_when_embed_unknown_content_then_returns_deterministic(
+        self, fixture_index
+    ):
+        """
+        Purpose: Proves unknown content falls back to deterministic embedding.
+        Quality Contribution: Graceful fallback for non-fixture content.
+        Acceptance Criteria: Unknown content gets deterministic embedding.
+
+        Task: ST005
+        """
+        from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+
+        # Arrange
+        adapter = FakeEmbeddingAdapter(fixture_index=fixture_index, dimensions=1024)
+
+        # Act
+        result = await adapter.embed_text("unknown content xyz123")
+
+        # Assert - Falls back to deterministic
+        assert len(result) == 1024
+        assert isinstance(result, list)
+
+    async def test_given_set_response_and_fixture_index_when_embed_then_set_response_wins(
+        self, fixture_index
+    ):
+        """
+        Purpose: Proves set_response takes priority over fixture_index.
+        Quality Contribution: Tests retain explicit control when needed.
+        Acceptance Criteria: set_response overrides fixture lookup.
+
+        Task: ST005
+        """
+        from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+
+        # Arrange
+        adapter = FakeEmbeddingAdapter(fixture_index=fixture_index)
+        adapter.set_response([1.0, 2.0, 3.0])
+
+        # Act - This content is in the fixture, but set_response should win
+        result = await adapter.embed_text("def add(a, b): return a + b")
+
+        # Assert
+        assert result == [1.0, 2.0, 3.0]
+
+    async def test_given_fixture_index_when_embed_batch_with_mixed_content_then_lookup_per_text(
+        self, fixture_index
+    ):
+        """
+        Purpose: Proves embed_batch looks up each text independently.
+        Quality Contribution: Batch operations work with fixture index.
+        Acceptance Criteria: Each text gets its own lookup result.
+
+        Task: ST005
+        """
+        from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+
+        # Arrange
+        adapter = FakeEmbeddingAdapter(fixture_index=fixture_index, dimensions=8)
+        texts = [
+            "def add(a, b): return a + b",  # In fixture
+            "unknown content",  # Not in fixture
+            "def subtract(a, b): return a - b",  # In fixture
+        ]
+
+        # Act
+        results = await adapter.embed_batch(texts)
+
+        # Assert
+        assert len(results) == 3
+        # First result from fixture
+        assert results[0] == [0.1, 0.2, 0.3, 0.4]
+        # Second result is deterministic fallback (length 8)
+        assert len(results[1]) == 8
+        # Third result from fixture
+        assert results[2] == [0.5, 0.6, 0.7, 0.8]
+
+    async def test_given_no_fixture_index_when_embed_then_uses_deterministic(self):
+        """
+        Purpose: Proves None fixture_index doesn't break adapter.
+        Quality Contribution: Backwards compatibility with existing tests.
+        Acceptance Criteria: No fixture_index works as before.
+
+        Task: ST005
+        """
+        from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+
+        # Arrange
+        adapter = FakeEmbeddingAdapter(dimensions=512)
+
+        # Act
+        result = await adapter.embed_text("any text")
+
+        # Assert
+        assert len(result) == 512

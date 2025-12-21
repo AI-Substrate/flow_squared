@@ -1,0 +1,144 @@
+# Application Configuration File
+#
+# This file contains all configuration options for the application.
+# Values can be overridden via environment variables using the pattern:
+# APP_SECTION__KEY (double underscore for nesting)
+#
+# Example: APP_SERVER__PORT=9000 overrides server.port
+
+[app]
+name = "webapp"
+version = "1.0.0"
+environment = "development"
+debug = true
+secret_key = "change-me-in-production"
+
+[server]
+host = "0.0.0.0"
+port = 8080
+workers = 4
+timeout_seconds = 30
+max_request_size_mb = 10
+
+# TLS configuration (optional)
+[server.tls]
+enabled = false
+cert_file = "/etc/ssl/certs/server.crt"
+key_file = "/etc/ssl/private/server.key"
+
+[database]
+driver = "postgresql"
+host = "localhost"
+port = 5432
+name = "webapp_dev"
+user = "webapp"
+password = "password"
+ssl_mode = "disable"
+
+# Connection pool settings
+[database.pool]
+min_connections = 5
+max_connections = 20
+acquire_timeout_seconds = 30
+idle_timeout_seconds = 600
+max_lifetime_seconds = 1800
+
+[cache]
+driver = "redis"
+url = "redis://localhost:6379/0"
+prefix = "webapp:"
+default_ttl_seconds = 3600
+
+# Fallback to in-memory cache if Redis unavailable
+[cache.fallback]
+enabled = true
+max_size_mb = 100
+
+[logging]
+level = "info"
+format = "json"
+output = "stdout"
+
+# Additional log destinations
+[[logging.destinations]]
+type = "file"
+path = "/var/log/webapp/app.log"
+max_size_mb = 100
+max_backups = 5
+compress = true
+
+[[logging.destinations]]
+type = "syslog"
+address = "localhost:514"
+facility = "local0"
+enabled = false
+
+[auth]
+enabled = true
+token_lifetime_hours = 24
+refresh_token_lifetime_days = 30
+max_failed_attempts = 5
+lockout_duration_minutes = 15
+
+# OAuth providers
+[auth.providers.google]
+enabled = true
+client_id = "your-google-client-id"
+client_secret = "your-google-client-secret"
+scopes = ["email", "profile"]
+
+[auth.providers.github]
+enabled = true
+client_id = "your-github-client-id"
+client_secret = "your-github-client-secret"
+scopes = ["user:email", "read:user"]
+
+[auth.jwt]
+algorithm = "HS256"
+issuer = "webapp"
+audience = ["webapp-api"]
+
+[api]
+rate_limit_requests = 100
+rate_limit_window_seconds = 60
+cors_origins = ["http://localhost:3000", "https://webapp.example.com"]
+cors_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+cors_headers = ["Authorization", "Content-Type"]
+
+[api.pagination]
+default_page_size = 20
+max_page_size = 100
+
+[metrics]
+enabled = true
+endpoint = "/metrics"
+include_runtime = true
+include_database = true
+include_cache = true
+
+[health]
+endpoint = "/health"
+include_details = true
+
+[features]
+# Feature flags for gradual rollout
+new_dashboard = false
+beta_api_v2 = false
+experimental_cache = false
+
+[notifications]
+enabled = true
+
+[notifications.email]
+enabled = true
+from_address = "noreply@example.com"
+smtp_host = "smtp.example.com"
+smtp_port = 587
+smtp_user = "webapp"
+smtp_password = "password"
+use_tls = true
+
+[notifications.slack]
+enabled = false
+webhook_url = "https://hooks.slack.com/services/xxx/yyy/zzz"
+channel = "#alerts"

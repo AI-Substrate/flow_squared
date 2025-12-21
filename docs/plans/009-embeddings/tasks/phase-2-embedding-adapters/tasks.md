@@ -191,17 +191,17 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|-----------------------------------|-----|------|--------------|-------------------------------|-------------------------------|----------|-------|
-| [x] | T001 | Add AzureEmbeddingConfig nested in EmbeddingConfig | 2 | Core | – | /workspaces/flow_squared/src/fs2/config/objects.py, /workspaces/flow_squared/tests/unit/config/test_embedding_config.py | Tests pass for nested azure config, mode=azure requires azure.endpoint | – | Per DYK-1: Missing connection config. Fields: endpoint, api_key, deployment_name, api_version |
-| [x] | T002 | Write failing tests for EmbeddingAdapter ABC | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter.py | Tests exist and fail with ImportError | – | Per Plan 2.1, interface compliance tests |
-| [x] | T003 | Implement EmbeddingAdapter ABC | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter.py | T002 tests pass, ABC has embed_text + embed_batch | – | Follow LLMAdapter pattern |
-| [x] | T004 | Write failing tests for AzureEmbeddingAdapter | 3 | Test | T003 | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_azure.py | Tests exist and cover auth, embed, rate limit, backoff | – | Per Plan 2.5, uses exceptions from Phase 1 |
-| [x] | T005 | Implement AzureEmbeddingAdapter | 3 | Core | T004 | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_azure.py | T004 tests pass, retry logic with DYK-4 metadata | – | Per Plan 2.6, max 60s backoff cap. Per DYK-2: pass dimensions to API, warn if response length mismatches |
-| [x] | T006 | Validate Azure adapter with scratch script | 2 | Integration | T005 | /workspaces/flow_squared/scratch/test_azure_embedding.py | Real API call returns 1024-dim embedding | – | ✅ Validated with oaijodoaustralia endpoint. embed_text, embed_batch, similarity all pass. |
-| [x] | T007 | Write failing tests for OpenAICompatibleAdapter | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_openai.py | Tests exist and cover OpenAI API compliance | – | Per Plan 2.7, generic OpenAI API |
-| [x] | T008 | Implement OpenAICompatibleEmbeddingAdapter | 2 | Core | T007 | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_openai.py | T007 tests pass, OpenAI API integration | – | Per Plan 2.8 |
-| [x] | T009 | Generate fixture graph with real embeddings | 2 | Setup | T006 | /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl | Graph contains nodes with real embeddings | – | Optional: Azure now works. FakeEmbeddingAdapter uses hash-based fallback which is sufficient for testing. |
-| [x] | T010 | Write failing tests for FakeEmbeddingAdapter | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_fake.py | Tests exist and fail with ImportError | – | Simplified: No longer depends on fixture graph |
-| [x] | T011 | Implement FakeEmbeddingAdapter | 2 | Core | T010 | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_fake.py | T010 tests pass, graph content lookup works | – | Per DYK-5: Uses deterministic hash-based fallback for consistent test behavior |
+| [x] | T001 | Add AzureEmbeddingConfig nested in EmbeddingConfig | 2 | Core | – | /workspaces/flow_squared/src/fs2/config/objects.py, /workspaces/flow_squared/tests/unit/config/test_embedding_config.py | Tests pass for nested azure config, mode=azure requires azure.endpoint | – | Per DYK-1 · log#task-t001 [^12] |
+| [x] | T002 | Write failing tests for EmbeddingAdapter ABC | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter.py | Tests exist and fail with ImportError | – | Per Plan 2.1 · log#task-t002-t003 [^12] |
+| [x] | T003 | Implement EmbeddingAdapter ABC | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter.py | T002 tests pass, ABC has embed_text + embed_batch | – | LLMAdapter pattern · log#task-t002-t003 [^12] |
+| [x] | T004 | Write failing tests for AzureEmbeddingAdapter | 3 | Test | T003 | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_azure.py | Tests exist and cover auth, embed, rate limit, backoff | – | Per Plan 2.5 · log#task-t004-t005 [^12] |
+| [x] | T005 | Implement AzureEmbeddingAdapter | 3 | Core | T004 | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_azure.py | T004 tests pass, retry logic with DYK-4 metadata | – | Per Plan 2.6, max 60s cap · log#task-t004-t005 [^12] |
+| [x] | T006 | Validate Azure adapter with scratch script | 2 | Integration | T005 | /workspaces/flow_squared/scratch/test_azure_embedding.py | Real API call returns 1024-dim embedding | – | ✅ oaijodoaustralia · log#task-t006 [^12] |
+| [x] | T007 | Write failing tests for OpenAICompatibleAdapter | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_openai.py | Tests exist and cover OpenAI API compliance | – | Per Plan 2.7 · log#task-t007-t008 [^12] |
+| [x] | T008 | Implement OpenAICompatibleEmbeddingAdapter | 2 | Core | T007 | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_openai.py | T007 tests pass, OpenAI API integration | – | Per Plan 2.8 · log#task-t007-t008 [^12] |
+| [x] | T009 | Generate fixture graph with real embeddings | 2 | Setup | T006 | /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl | Graph contains nodes with real embeddings | 001-subtask-fixture-graph-fakes | Subtask complete · log#task-t009 [^11] |
+| [x] | T010 | Write failing tests for FakeEmbeddingAdapter | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_fake.py | Tests exist and fail with ImportError | – | 17 tests · log#task-t010-t011 [^12] |
+| [x] | T011 | Implement FakeEmbeddingAdapter | 2 | Core | T010 | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_fake.py | T010 tests pass, graph content lookup works | 001-subtask-fixture-graph-fakes | fixture_index support · log#task-t010-t011 [^11][^12] |
 
 ---
 
@@ -483,11 +483,38 @@ uv run python -m mypy src/fs2/core/adapters/embedding_adapter*.py
 
 ## Phase Footnote Stubs
 
-_Will be populated during implementation. See [../../embeddings-plan.md#change-footnotes-ledger](../../embeddings-plan.md#change-footnotes-ledger) for authority._
+_Populated during implementation. See [../../embeddings-plan.md#change-footnotes-ledger](../../embeddings-plan.md#change-footnotes-ledger) for authority._
 
 | Footnote | Task | Description | Resolution |
 |----------|------|-------------|------------|
-| – | – | – | – |
+| [^11] | T009, T011 | Subtask 001: Fixture Graph Fakes | 12 ST tasks complete |
+| [^12] | T001-T008, T010-T011 | Phase 2: Embedding Adapters | All tasks complete |
+
+[^11]: Subtask 001 - Fixture Graph Fakes (12 tasks completed)
+  - `file:src/fs2/core/models/fixture_index.py` - FixtureIndex model
+  - `file:src/fs2/core/adapters/embedding_adapter_fake.py` - FakeEmbeddingAdapter with fixture_index
+  - `file:src/fs2/core/adapters/llm_adapter_fake.py` - FakeLLMAdapter with fixture_index
+  - `file:scripts/generate_fixture_graph.py` - Fixture generation script
+  - `file:tests/fixtures/fixture_graph.pkl` - Pre-computed embeddings
+  - `file:tests/fixtures/README.md` - Documentation
+  - `file:tests/conftest.py` - Pytest fixtures (lines 429-603)
+  - `file:tests/integration/test_fixture_graph_integration.py` - Integration tests
+  - `file:tests/unit/models/test_fixture_index.py` - FixtureIndex unit tests
+  - `file:tests/unit/adapters/test_embedding_adapter_fake.py` - FakeEmbeddingAdapter tests
+  - `file:tests/unit/adapters/test_llm_adapter_fake.py` - FakeLLMAdapter tests
+  - `dir:tests/fixtures/samples/` - 19 sample files across 15 languages
+
+[^12]: Phase 2 - Embedding Adapters (Tasks 2.1-2.8)
+  - `file:src/fs2/core/adapters/embedding_adapter.py` - EmbeddingAdapter ABC
+  - `file:src/fs2/core/adapters/embedding_adapter_azure.py` - AzureEmbeddingAdapter
+  - `file:src/fs2/core/adapters/embedding_adapter_openai.py` - OpenAICompatibleEmbeddingAdapter
+  - `file:src/fs2/core/adapters/embedding_adapter_fake.py` - FakeEmbeddingAdapter
+  - `file:src/fs2/config/objects.py:AzureEmbeddingConfig` - Azure connection config
+  - `file:tests/unit/adapters/test_embedding_adapter.py` - ABC tests (11)
+  - `file:tests/unit/adapters/test_embedding_adapter_azure.py` - Azure tests (13)
+  - `file:tests/unit/adapters/test_embedding_adapter_openai.py` - OpenAI tests (6)
+  - `file:tests/unit/adapters/test_embedding_adapter_fake.py` - Fake tests (17)
+  - `file:scratch/test_azure_embedding.py` - Real API validation script
 
 ---
 

@@ -3,12 +3,22 @@
 Test double for LLM adapters with explicit control via set_response().
 Per AC4: Tests explicitly configure expected response via set_response().
 Per Finding 09: Default returns placeholder; tests control output.
+Per DYK-1: Uses extract_code_from_prompt() to find code blocks for smart_content lookup.
 
 Usage:
     adapter = FakeLLMAdapter()
     adapter.set_response("Expected output")
     response = await adapter.generate("Any prompt")
     assert response.content == "Expected output"
+
+    # Fixture-backed lookup (Subtask 001)
+    index = FixtureIndex.from_nodes(nodes)
+    adapter = FakeLLMAdapter(fixture_index=index)
+    prompt = '''```python
+    def add(a, b): return a + b
+    ```'''
+    response = await adapter.generate(prompt)
+    # Returns pre-computed smart_content from fixture graph
 
     # Error simulation
     adapter.set_error(LLMRateLimitError("Test error"))
@@ -26,11 +36,16 @@ Usage:
     # Multiple concurrent calls will demonstrate true parallelism
 """
 
+from __future__ import annotations
+
 import asyncio
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fs2.core.adapters.llm_adapter import LLMAdapter
 from fs2.core.models.llm_response import LLMResponse
+
+if TYPE_CHECKING:
+    from fs2.core.models.fixture_index import FixtureIndex
 
 
 class FakeLLMAdapter(LLMAdapter):
@@ -38,6 +53,18 @@ class FakeLLMAdapter(LLMAdapter):
 
     Provides explicit control over responses via set_response() and
     tracks all calls for assertion in tests.
+
+    Features:
+    - set_response(): Configure a fixed response (highest priority)
+    - fixture_index: Optional FixtureIndex for smart_content lookup via code extraction
+    - set_error(): Configure an exception to raise
+    - call_history: Track all generate() calls for assertions
+    - set_delay(): Simulate network latency for concurrency testing
+
+    Priority order (Subtask 001):
+    1. set_response() - explicit test control always wins
+    2. fixture_index lookup - returns pre-computed smart_content for code
+    3. Placeholder fallback - default response
 
     Attributes:
         call_history: List of all generate() calls with arguments.
@@ -50,10 +77,25 @@ class FakeLLMAdapter(LLMAdapter):
         'Hello!'
         >>> adapter.call_history
         [{'prompt': 'Say hi', 'max_tokens': None, 'temperature': None}]
+
+        >>> # With fixture_index
+        >>> index = FixtureIndex.from_nodes(nodes)
+        >>> adapter = FakeLLMAdapter(fixture_index=index)
+        >>> prompt = "```python\\ndef add(a, b): return a + b\\n```"
+        >>> response = await adapter.generate(prompt)
+        >>> # Returns smart_content from fixture for the extracted code
     """
 
-    def __init__(self) -> None:
-        """Initialize the fake adapter with empty state."""
+    def __init__(self, fixture_index: "FixtureIndex | None" = None) -> None:
+        """Initialize the fake adapter with optional fixture index.
+
+        Args:
+            fixture_index: Optional FixtureIndex for smart_content lookup.
+                          When provided, generate() will extract code blocks
+                          from prompts and look up smart_content before
+                          falling back to placeholder.
+        """
+        self._fixture_index = fixture_index
         self._response_content: str = "[FakeLLMAdapter placeholder response]"
         self._error: Exception | None = None
         self._delay_seconds: float = 0.0
@@ -104,6 +146,37 @@ class FakeLLMAdapter(LLMAdapter):
         self._delay_seconds = 0.0
         self.call_history = []
 
+    def _lookup_fixture_smart_content(self, prompt: str) -> str | None:
+        """Look up smart_content from fixture_index by extracting code from prompt.
+
+        Per DYK-1: Prompts contain templates/instructions with code blocks.
+        We extract the code from markdown fences and look up smart_content.
+
+        Args:
+            prompt: The input prompt potentially containing code blocks.
+
+        Returns:
+            Smart content string if found, None otherwise.
+        """
+        if self._fixture_index is None:
+            return None
+
+        # Import here to avoid circular import
+        from fs2.core.models.fixture_index import FixtureIndex
+
+        # Extract code from markdown code block
+        code = FixtureIndex.extract_code_from_prompt(prompt)
+        if code is None:
+            return None
+
+        # Strip whitespace to match stored content exactly
+        code = code.strip()
+        if not code:
+            return None
+
+        # Look up smart_content by the extracted code content
+        return self._fixture_index.lookup_smart_content(code)
+
     async def generate(
         self,
         prompt: str,
@@ -114,7 +187,12 @@ class FakeLLMAdapter(LLMAdapter):
         """Generate a fake response.
 
         Records the call in call_history and returns the configured
-        response or raises the configured error.
+        response, fixture lookup, placeholder, or raises error.
+
+        Priority order:
+        1. set_response() - explicit test control
+        2. fixture_index lookup - smart_content for extracted code
+        3. Placeholder fallback - default response
 
         Args:
             prompt: The input prompt (recorded in call_history).
@@ -122,7 +200,7 @@ class FakeLLMAdapter(LLMAdapter):
             temperature: Temperature (recorded in call_history).
 
         Returns:
-            LLMResponse with configured content.
+            LLMResponse with content.
 
         Raises:
             Exception configured via set_error().
@@ -144,10 +222,20 @@ class FakeLLMAdapter(LLMAdapter):
         if self._error is not None:
             raise self._error
 
-        # Return configured response
+        # Determine response content with priority order
+        content = self._response_content  # Default/set_response
+
+        # Only look up fixture if set_response hasn't been explicitly called
+        # (i.e., still using placeholder)
+        if self._response_content == "[FakeLLMAdapter placeholder response]":
+            fixture_smart_content = self._lookup_fixture_smart_content(prompt)
+            if fixture_smart_content is not None:
+                content = fixture_smart_content
+
+        # Return response
         return LLMResponse(
-            content=self._response_content,
-            tokens_used=len(self._response_content.split()),  # Simple token estimate
+            content=content,
+            tokens_used=len(content.split()),  # Simple token estimate
             model="fake-model",
             provider=self.provider_name,
             finish_reason="stop",

@@ -1,0 +1,111 @@
+{
+  "name": "webapp-frontend",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Modern web application frontend built with React and TypeScript",
+  "author": {
+    "name": "Development Team",
+    "email": "team@example.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/webapp-frontend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/example/webapp-frontend/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "npm run lint -- --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "prepare": "husky install",
+    "clean": "rm -rf dist coverage .cache",
+    "analyze": "vite-bundle-visualizer"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "@tanstack/react-query": "^5.8.0",
+    "zustand": "^4.4.6",
+    "axios": "^1.6.2",
+    "date-fns": "^2.30.0",
+    "zod": "^3.22.4",
+    "@hookform/resolvers": "^3.3.2",
+    "react-hook-form": "^7.48.2",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.38",
+    "@types/react-dom": "^18.2.17",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.1.0",
+    "postcss": "^8.4.31",
+    "prettier": "^3.1.0",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.3.2",
+    "vite": "^5.0.2",
+    "vitest": "^0.34.6",
+    "@vitest/coverage-v8": "^0.34.6",
+    "@vitest/ui": "^0.34.6",
+    "@testing-library/react": "^14.1.0",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/user-event": "^14.5.1",
+    "jsdom": "^22.1.0",
+    "msw": "^2.0.8",
+    "@storybook/react": "^7.5.3",
+    "@storybook/react-vite": "^7.5.3"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "packageManager": "npm@10.2.3"
+}

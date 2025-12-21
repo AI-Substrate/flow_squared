@@ -591,15 +591,15 @@ class TestEmbeddingConfig:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 2.0 | [ ] | Generate embedding fixtures file | 2 | 30+ samples (code, docs, smart content) with real embeddings. Run: `python scripts/generate_embedding_fixtures.py` | - | /workspaces/flow_squared/tests/fixtures/embedding_fixtures.json (requires FS2_AZURE__EMBEDDING__* env vars) |
-| 2.1 | [ ] | Write tests for EmbeddingAdapter ABC | 2 | Tests cover: interface compliance, method signatures | - | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter.py |
-| 2.2 | [ ] | Implement EmbeddingAdapter ABC | 2 | ABC defined with embed_text, embed_batch methods | - | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter.py |
-| 2.3 | [ ] | Write tests for FakeEmbeddingAdapter | 2 | Tests cover: fixture loading, deterministic responses, hash-based fallback | - | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_fake.py |
-| 2.4 | [ ] | Implement FakeEmbeddingAdapter | 2 | Returns pre-computed embeddings from fixture file; hash-based fallback for unknown content | - | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_fake.py |
-| 2.5 | [ ] | Write tests for AzureEmbeddingAdapter | 3 | Tests cover: auth, embed, rate limit with asyncio.Event coordination, exponential backoff (max 60s) | - | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_azure.py |
-| 2.6 | [ ] | Implement AzureEmbeddingAdapter | 3 | Azure OpenAI integration with retry logic and global rate limit event | - | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_azure.py |
-| 2.7 | [ ] | Write tests for OpenAICompatibleAdapter | 2 | Tests cover: generic OpenAI API compliance | - | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_openai.py |
-| 2.8 | [ ] | Implement OpenAICompatibleAdapter | 2 | OpenAI-compatible API integration | - | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_openai.py |
+| 2.0 | [x] | Generate embedding fixtures file | 2 | 30+ samples (code, docs, smart content) with real embeddings. Run: `just generate-fixtures` | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | Subtask 001 complete · 397 nodes · fixture_graph.pkl [^11] |
+| 2.1 | [x] | Write tests for EmbeddingAdapter ABC | 2 | Tests cover: interface compliance, method signatures | [📋](tasks/phase-2-embedding-adapters/execution.log.md#task-t002-t003) | 11 tests · test_embedding_adapter.py [^12] |
+| 2.2 | [x] | Implement EmbeddingAdapter ABC | 2 | ABC defined with embed_text, embed_batch methods | [📋](tasks/phase-2-embedding-adapters/execution.log.md#task-t002-t003) | embedding_adapter.py [^12] |
+| 2.3 | [x] | Write tests for FakeEmbeddingAdapter | 2 | Tests cover: fixture loading, deterministic responses, hash-based fallback | [📋](tasks/phase-2-embedding-adapters/execution.log.md#task-t010-t011) | 17 tests · fixture_index support [^12] |
+| 2.4 | [x] | Implement FakeEmbeddingAdapter | 2 | Returns pre-computed embeddings from fixture graph; hash-based fallback for unknown content | [📋](tasks/phase-2-embedding-adapters/execution.log.md#task-t010-t011) | embedding_adapter_fake.py [^12] |
+| 2.5 | [x] | Write tests for AzureEmbeddingAdapter | 3 | Tests cover: auth, embed, rate limit, exponential backoff (max 60s) | [📋](tasks/phase-2-embedding-adapters/execution.log.md#task-t004-t005) | 13 tests · test_embedding_adapter_azure.py [^12] |
+| 2.6 | [x] | Implement AzureEmbeddingAdapter | 3 | Azure OpenAI integration with retry logic | [📋](tasks/phase-2-embedding-adapters/execution.log.md#task-t004-t005) | embedding_adapter_azure.py [^12] |
+| 2.7 | [x] | Write tests for OpenAICompatibleAdapter | 2 | Tests cover: generic OpenAI API compliance | [📋](tasks/phase-2-embedding-adapters/execution.log.md#task-t007-t008) | 6 tests · test_embedding_adapter_openai.py [^12] |
+| 2.8 | [x] | Implement OpenAICompatibleAdapter | 2 | OpenAI-compatible API integration | [📋](tasks/phase-2-embedding-adapters/execution.log.md#task-t007-t008) | embedding_adapter_openai.py [^12] |
 
 ### Test Examples (Write First!)
 
@@ -641,11 +641,11 @@ class TestFakeEmbeddingAdapter:
 - [ ] Invalid API response handled
 
 ### Acceptance Criteria
-- [ ] All adapter files follow naming convention
-- [ ] FakeEmbeddingAdapter works with fixture file
-- [ ] Azure adapter handles rate limits with backoff
-- [ ] All tests passing (4 adapter test files)
-- [ ] Embeddings returned as list[float] (not numpy)
+- [x] All adapter files follow naming convention
+- [x] FakeEmbeddingAdapter works with fixture graph (fixture_index)
+- [x] Azure adapter handles rate limits with backoff
+- [x] All tests passing (4 adapter test files)
+- [x] Embeddings returned as list[float] (not numpy)
 
 ---
 
@@ -1491,6 +1491,36 @@ async def test_semantic_search_finds_similar_code():
 [^9]: `tests/unit/adapters/test_embedding_exceptions.py` - 11 tests for exception hierarchy
 [^10]: `tests/unit/models/test_code_node_embedding.py` - 15 tests for CodeNode embedding fields
 
+**Phase 2: Embedding Adapters** (Completed 2025-12-21):
+
+[^12]: Phase 2 - Embedding Adapters (Tasks 2.1-2.8)
+  - `file:src/fs2/core/adapters/embedding_adapter.py` - EmbeddingAdapter ABC
+  - `file:src/fs2/core/adapters/embedding_adapter_azure.py` - AzureEmbeddingAdapter
+  - `file:src/fs2/core/adapters/embedding_adapter_openai.py` - OpenAICompatibleEmbeddingAdapter
+  - `file:src/fs2/core/adapters/embedding_adapter_fake.py` - FakeEmbeddingAdapter
+  - `file:src/fs2/config/objects.py:AzureEmbeddingConfig` - Azure connection config
+  - `file:tests/unit/adapters/test_embedding_adapter.py` - ABC tests (11)
+  - `file:tests/unit/adapters/test_embedding_adapter_azure.py` - Azure tests (13)
+  - `file:tests/unit/adapters/test_embedding_adapter_openai.py` - OpenAI tests (6)
+  - `file:tests/unit/adapters/test_embedding_adapter_fake.py` - Fake tests (17)
+  - `file:scratch/test_azure_embedding.py` - Real API validation script
+
+**Subtask 001: Fixture Graph Fakes** (Completed 2025-12-21):
+
+[^11]: Subtask 001 - Fixture Graph Fakes (12 tasks completed)
+  - `file:src/fs2/core/models/fixture_index.py` - FixtureIndex model
+  - `file:src/fs2/core/adapters/embedding_adapter_fake.py` - FakeEmbeddingAdapter with fixture_index
+  - `file:src/fs2/core/adapters/llm_adapter_fake.py` - FakeLLMAdapter with fixture_index
+  - `file:scripts/generate_fixture_graph.py` - Fixture generation script
+  - `file:tests/fixtures/fixture_graph.pkl` - Pre-computed embeddings
+  - `file:tests/fixtures/README.md` - Documentation
+  - `file:tests/conftest.py` - Pytest fixtures (lines 429-603)
+  - `file:tests/integration/test_fixture_graph_integration.py` - Integration tests
+  - `file:tests/unit/models/test_fixture_index.py` - FixtureIndex unit tests
+  - `file:tests/unit/adapters/test_embedding_adapter_fake.py` - FakeEmbeddingAdapter tests
+  - `file:tests/unit/adapters/test_llm_adapter_fake.py` - FakeLLMAdapter tests
+  - `dir:tests/fixtures/samples/` - 19 sample files across 15 languages
+
 ---
 
 ## Deviation Ledger
@@ -1508,6 +1538,16 @@ No constitution or architecture deviations required.
 **ADR Seeds** (from spec):
 - ADR-001: Chunking vs Truncation Strategy (recommend: chunking)
 - ADR-002: Embedding Provider Architecture (recommend: ABC pattern)
+
+---
+
+## Subtasks Registry
+
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-fixture-graph-fakes | 2025-12-20 | Phase 2: Embedding Adapters | T009, T011 | Phase 2 completed with hash-based fallback; need real pre-computed embeddings/smart_content for Search feature | [x] Complete | [Link](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.md) · [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) · Subtask 001 complete · 12/12 ST tasks done [^11] |
 
 ---
 

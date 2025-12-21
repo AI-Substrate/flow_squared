@@ -424,3 +424,179 @@ def project_without_config(tmp_path):
     # Just create a Python file, no config
     (tmp_path / "test.py").write_text("x = 1")
     return tmp_path
+
+
+# Phase 2: Fixture Graph and Fake Adapters (Subtask 001)
+
+
+@dataclass
+class FixtureGraphContext:
+    """Context for tests using the fixture graph.
+
+    Per Subtask 001: Provides pre-configured fakes backed by fixture graph
+    with real embeddings and smart_content.
+
+    Attributes:
+        fixture_index: FixtureIndex for O(1) lookup by content_hash.
+        embedding_adapter: FakeEmbeddingAdapter with fixture_index.
+        llm_adapter: FakeLLMAdapter with fixture_index.
+        graph_path: Path to the fixture_graph.pkl file.
+    """
+
+    fixture_index: "FixtureIndex"  # noqa: F821
+    embedding_adapter: "FakeEmbeddingAdapter"  # noqa: F821
+    llm_adapter: "FakeLLMAdapter"  # noqa: F821
+    graph_path: "Path"  # noqa: F821
+
+
+@pytest.fixture(scope="session")
+def _fixture_graph_session():
+    """Session-scoped fixture that loads the fixture graph once.
+
+    Internal fixture - use fixture_graph instead.
+    Loads tests/fixtures/fixture_graph.pkl and builds FixtureIndex.
+
+    Per DYK-5: Fail fast with actionable error if fixture graph is missing.
+
+    Returns:
+        FixtureGraphContext with index, adapters, and path.
+
+    Raises:
+        pytest.skip: If fixture_graph.pkl is missing.
+    """
+    from pathlib import Path
+
+    from fs2.config.objects import GraphConfig, ScanConfig
+    from fs2.config.service import FakeConfigurationService
+    from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+    from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+    from fs2.core.models.fixture_index import FixtureIndex
+    from fs2.core.repos import NetworkXGraphStore
+
+    # Get fixture graph path
+    fixture_graph_path = Path(__file__).parent / "fixtures" / "fixture_graph.pkl"
+
+    # Per DYK-5: Fail fast with actionable error
+    if not fixture_graph_path.exists():
+        pytest.skip(
+            f"Fixture graph not found: {fixture_graph_path}\n"
+            "Run 'just generate-fixtures' to create it."
+        )
+
+    # Load the graph
+    config = FakeConfigurationService(
+        ScanConfig(scan_paths=["."]),
+        GraphConfig(graph_path=str(fixture_graph_path)),
+    )
+    store = NetworkXGraphStore(config)
+    store.load(fixture_graph_path)
+
+    # Build index from all nodes
+    nodes = list(store.get_all_nodes())
+    index = FixtureIndex.from_nodes(nodes)
+
+    # Create adapters with fixture index
+    embedding_adapter = FakeEmbeddingAdapter(fixture_index=index)
+    llm_adapter = FakeLLMAdapter(fixture_index=index)
+
+    return FixtureGraphContext(
+        fixture_index=index,
+        embedding_adapter=embedding_adapter,
+        llm_adapter=llm_adapter,
+        graph_path=fixture_graph_path,
+    )
+
+
+@pytest.fixture
+def fixture_graph(_fixture_graph_session):
+    """Function-scoped fixture providing access to fixture graph and fakes.
+
+    Per Subtask 001: Provides pre-configured fakes backed by fixture graph
+    with real embeddings and smart_content.
+
+    Per DYK-3: Injectable fakes for clean test code.
+    Per DYK-5: Fail fast with actionable error if missing.
+
+    Usage:
+        def test_with_real_embeddings(fixture_graph):
+            embedding = await fixture_graph.embedding_adapter.embed_text(
+                "def add(a, b): return a + b"
+            )
+            # Returns real embedding if content is in fixture
+            assert len(embedding) > 0
+
+        def test_with_smart_content(fixture_graph):
+            response = await fixture_graph.llm_adapter.generate(
+                "```python\ndef add(a, b): return a + b\n```"
+            )
+            # Returns real smart_content if code is in fixture
+
+    Returns:
+        FixtureGraphContext with fixture_index, embedding_adapter, llm_adapter.
+    """
+    ctx = _fixture_graph_session
+
+    # Reset adapters for each test (clear call_history, errors, etc.)
+    ctx.embedding_adapter.reset()
+    ctx.llm_adapter.reset()
+
+    return ctx
+
+
+@pytest.fixture
+def fixture_index(_fixture_graph_session):
+    """Convenience fixture providing just the FixtureIndex.
+
+    Per Subtask 001: Direct access to FixtureIndex for lookup tests.
+
+    Usage:
+        def test_lookup_embedding(fixture_index):
+            embedding = fixture_index.lookup_embedding("some content")
+            if embedding:
+                assert len(embedding[0]) > 0
+
+    Returns:
+        FixtureIndex with all nodes from fixture_graph.pkl.
+    """
+    return _fixture_graph_session.fixture_index
+
+
+@pytest.fixture
+def fake_embedding_adapter(_fixture_graph_session):
+    """Convenience fixture providing FakeEmbeddingAdapter with fixture index.
+
+    Per Subtask 001: Pre-configured adapter for embedding tests.
+    Reset before each test to clear call_history.
+
+    Usage:
+        async def test_embed_known_content(fake_embedding_adapter):
+            embedding = await fake_embedding_adapter.embed_text("known content")
+            assert len(embedding) > 0
+
+    Returns:
+        FakeEmbeddingAdapter backed by fixture graph.
+    """
+    ctx = _fixture_graph_session
+    ctx.embedding_adapter.reset()
+    return ctx.embedding_adapter
+
+
+@pytest.fixture
+def fake_llm_adapter(_fixture_graph_session):
+    """Convenience fixture providing FakeLLMAdapter with fixture index.
+
+    Per Subtask 001: Pre-configured adapter for LLM tests.
+    Reset before each test to clear call_history.
+
+    Usage:
+        async def test_generate_with_known_code(fake_llm_adapter):
+            prompt = "```python\ndef add(a, b): return a + b\n```"
+            response = await fake_llm_adapter.generate(prompt)
+            # Returns smart_content from fixture if code matches
+
+    Returns:
+        FakeLLMAdapter backed by fixture graph.
+    """
+    ctx = _fixture_graph_session
+    ctx.llm_adapter.reset()
+    return ctx.llm_adapter

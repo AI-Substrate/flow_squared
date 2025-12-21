@@ -64,3 +64,9 @@ example-tree:
 # Example: show tree with depth limit
 example-tree-depth:
     uv run fs2 tree --depth 2
+
+# === Fixture Generation ===
+
+# Generate fixture graph for testing (requires Azure credentials for embeddings)
+generate-fixtures:
+    uv run python scripts/generate_fixture_graph.py

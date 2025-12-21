@@ -545,16 +545,26 @@ class EmbeddingConfig(BaseModel):
     """Configuration for embedding generation service.
 
     Loaded from YAML or environment variables.
-    Path: embedding (e.g., FS2_EMBEDDING__MAX_WORKERS)
+    Path: embedding (e.g., FS2_EMBEDDING__BATCH_SIZE)
 
     Per Critical Finding 04: Content-type aware chunking configuration.
     Per DYK-4: Retry configuration following Flowspace pattern.
     Per Alignment Finding 10: Default dimensions=1024 for text-embedding-3-small.
 
+    Batching Architecture (per FlowSpace pattern):
+        The embedding API supports batch input - multiple texts in ONE API call.
+        This is much more efficient than parallel individual calls.
+
+        - batch_size: Number of texts per API call (default: 16, max: 2048 for Azure)
+        - Service collects items, splits into fixed batches, processes sequentially
+        - Optional: max_concurrent_batches for parallel batch processing
+
     Attributes:
         mode: Embedding provider - "azure", "openai_compatible", or "fake".
         dimensions: Embedding vector dimensions (default: 1024).
-        max_workers: Number of parallel workers for batch processing (default: 50).
+        batch_size: Number of texts per API call (default: 16). Azure max is 2048.
+        max_concurrent_batches: Number of batches to process concurrently (default: 1).
+            Set higher for faster processing if rate limits allow.
         code: ChunkConfig for code content (default: 400/50).
         documentation: ChunkConfig for documentation (default: 800/120).
         smart_content: ChunkConfig for smart content (default: 8000/0).
@@ -567,7 +577,8 @@ class EmbeddingConfig(BaseModel):
         # .fs2/config.yaml
         embedding:
           mode: azure
-          max_workers: 50
+          batch_size: 16           # Texts per API call (max 2048 for Azure)
+          max_concurrent_batches: 1  # Concurrent batch processing (optional)
           # Retry configuration (per Flowspace pattern)
           max_retries: 3
           base_delay: 2.0
@@ -589,7 +600,8 @@ class EmbeddingConfig(BaseModel):
 
     mode: Literal["azure", "openai_compatible", "fake"] = "azure"
     dimensions: int = 1024
-    max_workers: int = 50
+    batch_size: int = 16  # Texts per API call (FlowSpace pattern)
+    max_concurrent_batches: int = 1  # Concurrent batch processing
 
     # Azure-specific configuration (per DYK-1)
     azure: AzureEmbeddingConfig | None = None
@@ -618,12 +630,22 @@ class EmbeddingConfig(BaseModel):
             raise ValueError("dimensions must be > 0")
         return v
 
-    @field_validator("max_workers")
+    @field_validator("batch_size")
     @classmethod
-    def validate_max_workers(cls, v: int) -> int:
-        """Validate max_workers is positive."""
+    def validate_batch_size(cls, v: int) -> int:
+        """Validate batch_size is between 1 and 2048 (Azure API limit)."""
         if v < 1:
-            raise ValueError("max_workers must be >= 1")
+            raise ValueError("batch_size must be >= 1")
+        if v > 2048:
+            raise ValueError("batch_size must be <= 2048 (Azure API limit)")
+        return v
+
+    @field_validator("max_concurrent_batches")
+    @classmethod
+    def validate_max_concurrent_batches(cls, v: int) -> int:
+        """Validate max_concurrent_batches is positive."""
+        if v < 1:
+            raise ValueError("max_concurrent_batches must be >= 1")
         return v
 
     @field_validator("max_retries")

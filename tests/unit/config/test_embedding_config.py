@@ -151,11 +151,11 @@ class TestEmbeddingConfigDefaults:
         # Assert
         assert config.dimensions == 1024
 
-    def test_given_no_args_when_constructed_then_has_max_workers_50(self):
+    def test_given_no_args_when_constructed_then_has_batch_size_16(self):
         """
-        Purpose: Proves default max_workers matches SmartContentConfig pattern.
-        Quality Contribution: Ensures consistent worker defaults.
-        Acceptance Criteria: max_workers == 50.
+        Purpose: Proves default batch_size follows FlowSpace pattern (API-level batching).
+        Quality Contribution: Ensures reasonable batch size for API efficiency.
+        Acceptance Criteria: batch_size == 16.
 
         Task: T003
         """
@@ -165,7 +165,23 @@ class TestEmbeddingConfigDefaults:
         config = EmbeddingConfig()
 
         # Assert
-        assert config.max_workers == 50
+        assert config.batch_size == 16
+
+    def test_given_no_args_when_constructed_then_has_max_concurrent_batches_1(self):
+        """
+        Purpose: Proves default max_concurrent_batches is sequential (safe default).
+        Quality Contribution: Avoids rate limiting with conservative default.
+        Acceptance Criteria: max_concurrent_batches == 1.
+
+        Task: T003
+        """
+        from fs2.config.objects import EmbeddingConfig
+
+        # Arrange / Act
+        config = EmbeddingConfig()
+
+        # Assert
+        assert config.max_concurrent_batches == 1
 
     def test_given_no_args_when_constructed_then_has_code_chunk_defaults(self):
         """
@@ -449,7 +465,7 @@ class TestEmbeddingConfigLoading:
         (config_dir / "config.yaml").write_text(
             """embedding:
   mode: fake
-  max_workers: 10
+  batch_size: 32
   max_retries: 5
   base_delay: 1.0
   max_delay: 30.0
@@ -469,7 +485,7 @@ scan:
 
         # Assert
         assert config.mode == "fake"
-        assert config.max_workers == 10
+        assert config.batch_size == 32
         assert config.max_retries == 5
         assert config.base_delay == 1.0
         assert config.max_delay == 30.0
@@ -494,21 +510,21 @@ scan:
         config_dir.mkdir()
         (config_dir / "config.yaml").write_text(
             """embedding:
-  max_workers: 10
+  batch_size: 32
 scan:
   scan_paths:
     - "."
 """
         )
         monkeypatch.chdir(tmp_path)
-        monkeypatch.setenv("FS2_EMBEDDING__MAX_WORKERS", "25")
+        monkeypatch.setenv("FS2_EMBEDDING__BATCH_SIZE", "64")
 
         # Act
         service = FS2ConfigurationService()
         config = service.require(EmbeddingConfig)
 
         # Assert
-        assert config.max_workers == 25
+        assert config.batch_size == 64
 
 
 @pytest.mark.unit
