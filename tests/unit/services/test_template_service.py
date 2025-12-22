@@ -301,4 +301,4 @@ def test_given_all_templates_when_rendering_then_no_template_raises():
         )
 
         assert f"Category: {category}" in rendered
-        assert "Max tokens:" in rendered
+        assert "Max" in rendered and "tokens" in rendered

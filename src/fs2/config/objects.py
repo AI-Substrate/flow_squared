@@ -411,15 +411,15 @@ class SmartContentConfig(BaseModel):
     max_input_tokens: int = 50000
     token_limits: dict[str, int] = Field(
         default_factory=lambda: {
-            "file": 1000,
-            "type": 1000,
-            "callable": 1000,
-            "section": 1000,
-            "block": 1000,
-            "definition": 1000,
-            "statement": 1000,
-            "expression": 1000,
-            "other": 1000,
+            "file": 200,
+            "type": 200,
+            "callable": 150,
+            "section": 150,
+            "block": 150,
+            "definition": 150,
+            "statement": 100,
+            "expression": 100,
+            "other": 100,
         }
     )
 

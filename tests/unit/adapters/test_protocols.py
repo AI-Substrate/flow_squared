@@ -167,10 +167,10 @@ class TestConsoleAdapterABC:
 
         assert "input" in abstract_methods
 
-    def test_given_console_adapter_abc_then_exactly_two_methods_are_abstract(self):
+    def test_given_console_adapter_abc_then_exactly_eleven_methods_are_abstract(self):
         """
-        Purpose: Proves ConsoleAdapter requires exactly 2 abstract methods
-        Quality Contribution: Ensures minimal interface definition
+        Purpose: Proves ConsoleAdapter requires exactly 11 abstract methods
+        Quality Contribution: Ensures complete rich console interface definition
         """
         from fs2.core.adapters.console_adapter import ConsoleAdapter
 
@@ -180,7 +180,11 @@ class TestConsoleAdapterABC:
             if getattr(method, "__isabstractmethod__", False)
         ]
 
-        assert set(abstract_methods) == {"print", "input"}
+        assert set(abstract_methods) == {
+            "print", "print_line", "print_success", "print_error",
+            "print_warning", "print_progress", "print_info",
+            "stage_banner", "stage_banner_skipped", "panel", "input"
+        }
 
 
 @pytest.mark.unit

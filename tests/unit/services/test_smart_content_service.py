@@ -163,7 +163,7 @@ async def test_given_matching_hash_when_processing_then_skips_llm_call():
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
         smart_content="Existing summary",
         smart_content_hash="abc123",  # Will be overwritten by factory
@@ -226,7 +226,7 @@ async def test_given_mismatched_hash_when_processing_then_regenerates():
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
         smart_content="Old summary",
         smart_content_hash="old_hash_does_not_match",
@@ -288,7 +288,7 @@ async def test_given_none_smart_content_hash_when_processing_then_generates():
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
     )
     assert node.smart_content_hash is None  # Verify precondition
@@ -430,7 +430,7 @@ async def test_given_small_content_when_processing_then_no_truncation():
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def small_func(): pass",
+        content="def small_func():\n    \"\"\"A small test function.\"\"\"\n    return 42",
         signature="def small_func():",
     )
 
@@ -492,7 +492,7 @@ async def test_given_node_when_processing_then_renders_correct_context():
         end_column=0,
         start_byte=0,
         end_byte=100,
-        content="def my_func(x, y): return x + y",
+        content="def my_func(x, y):\n    \"\"\"Add two numbers together.\"\"\"\n    return x + y  # Sum",
         signature="def my_func(x, y):",
     )
 
@@ -553,7 +553,7 @@ async def test_given_node_when_processing_then_returns_new_instance():
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
     )
 
@@ -613,7 +613,7 @@ async def test_given_empty_llm_response_when_processing_then_raises_error():
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
     )
 
@@ -668,7 +668,7 @@ async def test_given_whitespace_llm_response_when_processing_then_raises_error()
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
     )
 
@@ -849,7 +849,7 @@ async def test_given_auth_error_when_processing_then_raises():
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
     )
 
@@ -904,7 +904,7 @@ async def test_given_content_filter_when_processing_then_returns_fallback():
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
     )
 
@@ -964,7 +964,7 @@ async def test_given_rate_limit_when_processing_then_logs_warning(caplog):
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
     )
 
@@ -1026,7 +1026,7 @@ async def test_given_token_counter_error_when_processing_then_raises_smart_conte
         end_column=0,
         start_byte=0,
         end_byte=50,
-        content="def my_func(): pass",
+        content="def my_func():\n    \"\"\"A test function.\"\"\"\n    return 42  # Implementation",
         signature="def my_func():",
     )
 
@@ -1154,7 +1154,7 @@ async def test_concurrent_processing_does_not_serialize():
             end_column=0,
             start_byte=0,
             end_byte=50,
-            content=f"def func_{i}(): pass",
+            content=f"def func_{i}():\n    \"\"\"Test function {i}.\"\"\"\n    return {i}  # Implementation",
             signature=f"def func_{i}():",
         )
         nodes.append(node)

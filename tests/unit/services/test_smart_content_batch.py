@@ -56,8 +56,11 @@ def _create_test_service(*, max_workers: int = 50, response: str = "Test summary
     return service, llm_adapter, config
 
 
-def _create_test_node(name: str, content: str = "def {name}(): pass"):
-    """Create a CodeNode for testing."""
+def _create_test_node(name: str, content: str = "def {name}():\n    \"\"\"Test function for {name}.\"\"\"\n    return 42  # Implementation"):
+    """Create a CodeNode for testing.
+
+    Default content is >50 chars to exceed _MIN_CONTENT_LENGTH threshold.
+    """
     from fs2.core.models.code_node import CodeNode
 
     content_str = content.format(name=name) if "{name}" in content else content
