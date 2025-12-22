@@ -20,6 +20,7 @@ from fs2.core.utils.hash import compute_content_hash
 def sample_node():
     """Create a sample CodeNode for testing."""
     from fs2.core.models.code_node import CodeNode
+    from fs2.core.models.content_type import ContentType
 
     return CodeNode(
         node_id="callable:src/calc.py:Calculator.add",
@@ -37,6 +38,7 @@ def sample_node():
         content_hash=compute_content_hash("def add(self, a, b):\n    return a + b"),
         signature="def add(self, a, b):",
         language="python",
+        content_type=ContentType.CODE,
         is_named=True,
         field_name="body",
     )

@@ -29,6 +29,7 @@ from fs2.config.objects import ScanConfig
 from fs2.core.adapters.ast_parser import ASTParser
 from fs2.core.adapters.exceptions import ASTParserError
 from fs2.core.models.code_node import CodeNode, classify_node
+from fs2.core.models.content_type import ContentType
 
 if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
@@ -142,10 +143,8 @@ FILENAME_TO_LANGUAGE: dict[str, str] = {
 }
 
 # Languages that should be parsed into functions/classes/methods (whitelist)
-# All other languages default to file-level only (safer for unknown languages)
-#
 # These are "real code" languages where extracting callable/type nodes is valuable.
-# Content, config, markup, and infrastructure languages are NOT in this list.
+# Used to determine ContentType.CODE vs ContentType.CONTENT.
 CODE_LANGUAGES: set[str] = {
     # Systems programming
     "c", "cpp", "rust", "go", "zig", "d", "nim",
@@ -167,6 +166,15 @@ CODE_LANGUAGES: set[str] = {
     "cuda", "glsl", "hlsl", "wgsl",
     # Other
     "v",
+}
+
+# Languages with extractable structure (includes CODE + structured content).
+# These get child node extraction (sections, blocks, callables, types).
+EXTRACTABLE_LANGUAGES: set[str] = CODE_LANGUAGES | {
+    # Documentation (sections/headings)
+    "markdown", "rst",
+    # Infrastructure (blocks)
+    "hcl", "dockerfile",
 }
 
 
@@ -321,11 +329,15 @@ class TreeSitterParser(ASTParser):
         # Extract nodes
         nodes: list[CodeNode] = []
 
+        # Determine content type at scan time
+        content_type = ContentType.CODE if language in CODE_LANGUAGES else ContentType.CONTENT
+
         # Add file node
         lines = content_str.split("\n")
         file_node = CodeNode.create_file(
             file_path=str(rel_path),
             language=language,
+            content_type=content_type,
             ts_kind=tree.root_node.type,
             start_byte=0,
             end_byte=len(content),
@@ -336,13 +348,14 @@ class TreeSitterParser(ASTParser):
         )
         nodes.append(file_node)
 
-        # Only extract child nodes for code languages (whitelist)
-        # All other languages (config, content, markup, etc.) get file-level only
-        if language in CODE_LANGUAGES:
+        # Extract child nodes for languages with extractable structure
+        # CODE languages get callables/types, structured content gets sections/blocks
+        if language in EXTRACTABLE_LANGUAGES:
             self._extract_nodes(
                 node=tree.root_node,
                 file_path=str(rel_path),
                 language=language,
+                content_type=content_type,
                 content=content_str,
                 nodes=nodes,
                 depth=1,
@@ -370,11 +383,15 @@ class TreeSitterParser(ASTParser):
         except ValueError:
             rel_path = file_path
 
+        # Determine content type (grammar unavailable, but still classify by language)
+        content_type = ContentType.CODE if language in CODE_LANGUAGES else ContentType.CONTENT
+
         lines = content.split("\n")
         return [
             CodeNode.create_file(
                 file_path=str(rel_path),
                 language=language,
+                content_type=content_type,
                 ts_kind="source_file",
                 start_byte=0,
                 end_byte=len(content.encode("utf-8")),
@@ -389,6 +406,7 @@ class TreeSitterParser(ASTParser):
         node,
         file_path: str,
         language: str,
+        content_type: ContentType,
         content: str,
         nodes: list[CodeNode],
         depth: int,
@@ -404,6 +422,7 @@ class TreeSitterParser(ASTParser):
             node: Current tree-sitter node.
             file_path: Relative file path for node IDs.
             language: Language name.
+            content_type: CODE or CONTENT classification.
             content: Full file content.
             nodes: List to append extracted CodeNodes to.
             depth: Current depth in tree.
@@ -452,6 +471,7 @@ class TreeSitterParser(ASTParser):
                     node=child,
                     file_path=file_path,
                     language=language,
+                    content_type=content_type,
                     content=content,
                     nodes=nodes,
                     depth=depth,
@@ -467,6 +487,7 @@ class TreeSitterParser(ASTParser):
                     node=child,
                     file_path=file_path,
                     language=language,
+                    content_type=content_type,
                     content=content,
                     nodes=nodes,
                     depth=depth,
@@ -500,6 +521,7 @@ class TreeSitterParser(ASTParser):
                 category=category,
                 file_path=file_path,
                 language=language,
+                content_type=content_type,
                 ts_kind=ts_kind,
                 name=name,
                 qualified_name=qualified_name,
@@ -523,6 +545,7 @@ class TreeSitterParser(ASTParser):
                 node=child,
                 file_path=file_path,
                 language=language,
+                content_type=content_type,
                 content=content,
                 nodes=nodes,
                 depth=depth + 1,
@@ -579,6 +602,7 @@ class TreeSitterParser(ASTParser):
         category: str,
         file_path: str,
         language: str,
+        content_type: ContentType,
         ts_kind: str,
         name: str,
         qualified_name: str,
@@ -599,6 +623,7 @@ class TreeSitterParser(ASTParser):
 
         Args:
             category: Node category (type, callable, section, block).
+            content_type: CODE or CONTENT classification.
             ... all other CodeNode fields
             parent_node_id: Node ID of parent for hierarchy edges.
 
@@ -609,6 +634,7 @@ class TreeSitterParser(ASTParser):
             return CodeNode.create_type(
                 file_path=file_path,
                 language=language,
+                content_type=content_type,
                 ts_kind=ts_kind,
                 name=name,
                 qualified_name=qualified_name,
@@ -629,6 +655,7 @@ class TreeSitterParser(ASTParser):
             return CodeNode.create_callable(
                 file_path=file_path,
                 language=language,
+                content_type=content_type,
                 ts_kind=ts_kind,
                 name=name,
                 qualified_name=qualified_name,
@@ -649,6 +676,7 @@ class TreeSitterParser(ASTParser):
             return CodeNode.create_section(
                 file_path=file_path,
                 language=language,
+                content_type=content_type,
                 ts_kind=ts_kind,
                 name=name,
                 qualified_name=qualified_name,
@@ -669,6 +697,7 @@ class TreeSitterParser(ASTParser):
             return CodeNode.create_block(
                 file_path=file_path,
                 language=language,
+                content_type=content_type,
                 ts_kind=ts_kind,
                 name=name,
                 qualified_name=qualified_name,

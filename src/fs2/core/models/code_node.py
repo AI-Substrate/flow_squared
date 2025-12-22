@@ -20,6 +20,7 @@ Per DYK-2: Separate smart_content_embedding field for AI-generated descriptions
 from dataclasses import dataclass
 from pathlib import Path
 
+from fs2.core.models.content_type import ContentType
 from fs2.core.utils.hash import compute_content_hash
 
 
@@ -121,6 +122,7 @@ class CodeNode:
         is_named: Tree-sitter distinction (True = structural, False = punctuation)
         field_name: Relationship to parent in tree-sitter grammar
         is_error: True if this node is an ERROR node (unparseable chunk)
+        content_type: CODE or CONTENT classification (set at scan time, default: CODE)
         parent_node_id: Node ID of parent in hierarchy (None for file nodes)
         truncated: True if content was truncated due to size limits
         truncated_at_line: Line number where truncation occurred
@@ -166,6 +168,9 @@ class CodeNode:
     # === Error Flag ===
     is_error: bool = False
 
+    # === Content Type (with default for backwards compatibility) ===
+    content_type: ContentType = ContentType.CODE  # CODE or CONTENT, set at scan time
+
     # === Hierarchy ===
     parent_node_id: str | None = None
 
@@ -181,6 +186,7 @@ class CodeNode:
     # Type: tuple[tuple[float, ...], ...] | None - chunk-level storage
     embedding: tuple[tuple[float, ...], ...] | None = None
     smart_content_embedding: tuple[tuple[float, ...], ...] | None = None
+    embedding_hash: str | None = None  # content_hash when embedding was generated (for staleness detection)
 
     # === Factory Methods ===
 
@@ -196,6 +202,7 @@ class CodeNode:
         end_line: int,
         content: str,
         *,
+        content_type: ContentType = ContentType.CODE,
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
@@ -206,12 +213,14 @@ class CodeNode:
         smart_content_hash: str | None = None,
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
+        embedding_hash: str | None = None,
     ) -> "CodeNode":
         """Create a file-level CodeNode.
 
         Args:
             file_path: Relative path to the file
             language: Source language/grammar
+            content_type: CODE or CONTENT classification
             ts_kind: Tree-sitter root node type (e.g., "module", "program")
             start_byte: 0-indexed start byte
             end_byte: 0-indexed end byte
@@ -240,6 +249,7 @@ class CodeNode:
             content_hash=compute_content_hash(content),
             signature=None,
             language=language,
+            content_type=content_type,
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
@@ -250,6 +260,7 @@ class CodeNode:
             smart_content_hash=smart_content_hash,
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
+            embedding_hash=embedding_hash,
         )
 
     @classmethod
@@ -269,6 +280,7 @@ class CodeNode:
         content: str,
         signature: str,
         *,
+        content_type: ContentType = ContentType.CODE,
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
@@ -279,6 +291,7 @@ class CodeNode:
         smart_content_hash: str | None = None,
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
+        embedding_hash: str | None = None,
     ) -> "CodeNode":
         """Create a type-level CodeNode (class, struct, interface, enum).
 
@@ -286,6 +299,7 @@ class CodeNode:
             file_path: Relative path to the file
             language: Source language/grammar
             ts_kind: Tree-sitter node type (e.g., "class_definition")
+            content_type: CODE or CONTENT classification (default: CODE)
             name: Simple type name
             qualified_name: Hierarchical name within file
             start_line: 1-indexed start line
@@ -317,6 +331,7 @@ class CodeNode:
             content_hash=compute_content_hash(content),
             signature=signature,
             language=language,
+            content_type=content_type,
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
@@ -327,6 +342,7 @@ class CodeNode:
             smart_content_hash=smart_content_hash,
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
+            embedding_hash=embedding_hash,
         )
 
     @classmethod
@@ -346,6 +362,7 @@ class CodeNode:
         content: str,
         signature: str,
         *,
+        content_type: ContentType = ContentType.CODE,
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
@@ -356,6 +373,7 @@ class CodeNode:
         smart_content_hash: str | None = None,
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
+        embedding_hash: str | None = None,
     ) -> "CodeNode":
         """Create a callable CodeNode (function, method, lambda).
 
@@ -363,6 +381,7 @@ class CodeNode:
             file_path: Relative path to the file
             language: Source language/grammar
             ts_kind: Tree-sitter node type (e.g., "function_definition")
+            content_type: CODE or CONTENT classification (default: CODE)
             name: Simple callable name
             qualified_name: Hierarchical name within file
             start_line: 1-indexed start line
@@ -394,6 +413,7 @@ class CodeNode:
             content_hash=compute_content_hash(content),
             signature=signature,
             language=language,
+            content_type=content_type,
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
@@ -404,6 +424,7 @@ class CodeNode:
             smart_content_hash=smart_content_hash,
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
+            embedding_hash=embedding_hash,
         )
 
     @classmethod
@@ -423,6 +444,7 @@ class CodeNode:
         content: str,
         signature: str,
         *,
+        content_type: ContentType = ContentType.CONTENT,
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
@@ -433,6 +455,7 @@ class CodeNode:
         smart_content_hash: str | None = None,
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
+        embedding_hash: str | None = None,
     ) -> "CodeNode":
         """Create a section CodeNode (markdown heading, document section).
 
@@ -440,6 +463,7 @@ class CodeNode:
             file_path: Relative path to the file
             language: Source language/grammar (e.g., "markdown")
             ts_kind: Tree-sitter node type (e.g., "atx_heading")
+            content_type: CODE or CONTENT classification (default: CONTENT)
             name: Section title
             qualified_name: Hierarchical name within file
             start_line: 1-indexed start line
@@ -471,6 +495,7 @@ class CodeNode:
             content_hash=compute_content_hash(content),
             signature=signature,
             language=language,
+            content_type=content_type,
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
@@ -481,6 +506,7 @@ class CodeNode:
             smart_content_hash=smart_content_hash,
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
+            embedding_hash=embedding_hash,
         )
 
     @classmethod
@@ -500,6 +526,7 @@ class CodeNode:
         content: str,
         signature: str,
         *,
+        content_type: ContentType = ContentType.CONTENT,
         is_named: bool = True,
         field_name: str | None = None,
         is_error: bool = False,
@@ -510,6 +537,7 @@ class CodeNode:
         smart_content_hash: str | None = None,
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
+        embedding_hash: str | None = None,
     ) -> "CodeNode":
         """Create a block CodeNode (terraform block, dockerfile instruction).
 
@@ -517,6 +545,7 @@ class CodeNode:
             file_path: Relative path to the file
             language: Source language/grammar (e.g., "hcl")
             ts_kind: Tree-sitter node type (e.g., "block", "FROM_instruction")
+            content_type: CODE or CONTENT classification (default: CONTENT)
             name: Block identifier
             qualified_name: Hierarchical name within file
             start_line: 1-indexed start line
@@ -548,6 +577,7 @@ class CodeNode:
             content_hash=compute_content_hash(content),
             signature=signature,
             language=language,
+            content_type=content_type,
             is_named=is_named,
             field_name=field_name,
             is_error=is_error,
@@ -558,4 +588,5 @@ class CodeNode:
             smart_content_hash=smart_content_hash,
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
+            embedding_hash=embedding_hash,
         )

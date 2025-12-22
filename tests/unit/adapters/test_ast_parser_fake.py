@@ -42,6 +42,7 @@ class TestFakeASTParser:
         from fs2.config.objects import ScanConfig
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
         from fs2.core.models import CodeNode
+        from fs2.core.models.content_type import ContentType
 
         config = FakeConfigurationService(ScanConfig())
         parser = FakeASTParser(config)
@@ -50,6 +51,7 @@ class TestFakeASTParser:
             CodeNode.create_file(
                 file_path="src/main.py",
                 language="python",
+                content_type=ContentType.CODE,
                 ts_kind="module",
                 start_byte=0,
                 end_byte=100,

@@ -671,15 +671,15 @@ class TestFakeEmbeddingAdapter:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 3.1 | [ ] | Write tests for content chunking | 3 | Tests cover: code vs docs, overlap, token boundaries, tiktoken fallback for unknown models | - | /workspaces/flow_squared/tests/unit/services/test_embedding_chunking.py |
-| 3.2 | [ ] | Implement chunking logic | 3 | Content split by type with correct overlap. Uses TokenCounterAdapter. | - | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py: _chunk_content() |
-| 3.3 | [ ] | Write tests for hash-based skip | 2 | Tests cover: skip unchanged, process changed | - | /workspaces/flow_squared/tests/unit/services/test_embedding_skip.py |
-| 3.4 | [ ] | Implement skip logic | 2 | Unchanged content preserves embeddings | - | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py: _should_skip() |
-| 3.5 | [ ] | Write tests for process_batch | 3 | Tests cover: parallel processing, progress, errors, **concurrent batches don't interfere (stateless CD10)** | - | /workspaces/flow_squared/tests/unit/services/test_embedding_service.py |
-| 3.6 | [ ] | Implement process_batch | 3 | Async worker pool with stats tracking. **All batch state local to method (no instance mutation)** | - | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py: process_batch() |
-| 3.7 | [ ] | Write tests for rate limit coordination | 2 | Tests cover: global backoff when one worker hits limit via asyncio.Event | - | /workspaces/flow_squared/tests/unit/services/test_embedding_rate_limit.py |
-| 3.8 | [ ] | Implement rate limit coordination | 2 | asyncio.Event signals all workers to pause | - | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py: _handle_rate_limit() |
-| 3.9 | [ ] | Write test for tiktoken model fallback | 2 | Tests: unknown model logs warning, uses cl100k_base fallback | - | /workspaces/flow_squared/tests/unit/services/test_token_counter_fallback.py |
+| 3.1 | [x] | Write tests for content chunking | 3 | Tests cover: code vs docs, overlap, token boundaries, tiktoken fallback for unknown models | [📋](./tasks/phase-3-embedding-service/execution.log.md#task-t001-write-tests-for-content-chunking) | 17 tests · test_embedding_chunking.py [^13] |
+| 3.2 | [x] | Implement chunking logic | 3 | Content split by type with correct overlap. Uses TokenCounterAdapter. | [📋](./tasks/phase-3-embedding-service/execution.log.md#task-t002-implement-chunk-content) | ChunkItem dataclass + _chunk_content() [^13] |
+| 3.3 | [x] | Write tests for hash-based skip | 2 | Tests cover: skip unchanged, process changed | [📋](./tasks/phase-3-embedding-service/execution.log.md#task-t003-write-tests-for-hash-based-skip-logic) | 8 tests · test_embedding_skip.py [^13] |
+| 3.4 | [x] | Implement skip logic | 2 | Unchanged content preserves embeddings | [📋](./tasks/phase-3-embedding-service/execution.log.md#task-t004-implement-should-skip) | _should_skip() with dual field check [^13] |
+| 3.5 | [x] | Write tests for process_batch | 3 | Tests cover: parallel processing, progress, errors, **concurrent batches don't interfere (stateless CD10)** | [📋](./tasks/phase-3-embedding-service/execution.log.md#task-t007-write-tests-for-process-batch) | 11 tests · test_embedding_service.py [^13] |
+| 3.6 | [x] | Implement process_batch | 3 | Async worker pool with stats tracking. **All batch state local to method (no instance mutation)** | [📋](./tasks/phase-3-embedding-service/execution.log.md#task-t008-implement-process-batch) | process_batch() + ChunkItem reassembly [^13] |
+| 3.7 | [x] | Write tests for rate limit coordination | 2 | Tests cover: global backoff when one worker hits limit via asyncio.Event | [📋](./tasks/phase-3-embedding-service/execution.log.md#task-t009-t010-rate-limit-handling) | 6 tests · test_embedding_rate_limit.py [^13] |
+| 3.8 | [x] | Implement rate limit coordination | 2 | asyncio.Event signals all workers to pause | [📋](./tasks/phase-3-embedding-service/execution.log.md#task-t009-t010-rate-limit-handling) | Error resilience in process_batch [^13] |
+| 3.9 | [x] | Write test for tiktoken model fallback | 2 | Tests: unknown model logs warning, uses o200k_base fallback | [📋](./tasks/phase-3-embedding-service/execution.log.md#task-t011-tiktoken-model-fallback) | 5 tests · test_token_counter_fallback.py [^13] |
 
 ### Test Examples (Write First!)
 
@@ -1458,8 +1458,8 @@ async def test_semantic_search_finds_similar_code():
 
 ### Phase Completion Checklist
 - [x] Phase 1: Core Infrastructure - **COMPLETE** (2025-12-20) - [📋 Execution Log](./tasks/phase-1-core-infrastructure/execution.log.md)
-- [ ] Phase 2: Embedding Adapters - PENDING
-- [ ] Phase 3: Embedding Service - PENDING
+- [x] Phase 2: Embedding Adapters - **COMPLETE** (2025-12-21) - [📋 Execution Log](./tasks/phase-2-embedding-adapters/execution.log.md)
+- [x] Phase 3: Embedding Service - **COMPLETE** (2025-12-22) - [📋 Execution Log](./tasks/phase-3-embedding-service/execution.log.md)
 - [ ] Phase 4: Pipeline Integration - PENDING
 - [ ] Phase 5: Testing & Validation - PENDING
 - [ ] Phase 6: Documentation - PENDING
@@ -1504,6 +1504,27 @@ async def test_semantic_search_finds_similar_code():
   - `file:tests/unit/adapters/test_embedding_adapter_openai.py` - OpenAI tests (6)
   - `file:tests/unit/adapters/test_embedding_adapter_fake.py` - Fake tests (17)
   - `file:scratch/test_azure_embedding.py` - Real API validation script
+
+**Phase 3: Embedding Service** (Completed 2025-12-22):
+
+[^13]: Phase 3 - Embedding Service (13 tasks: T001-T013) · 58 tests passing
+  - `file:src/fs2/core/services/embedding/embedding_service.py` - EmbeddingService with ChunkItem, _chunk_content(), _should_skip(), _collect_batches(), process_batch()
+  - `file:src/fs2/core/services/embedding/__init__.py` - Package init
+  - `file:src/fs2/core/models/content_type.py` - ContentType enum (CODE/CONTENT)
+  - `file:tests/unit/services/test_embedding_chunking.py` - 17 tests for content-type chunking
+  - `file:tests/unit/services/test_embedding_skip.py` - 8 tests for hash-based skip logic
+  - `file:tests/unit/services/test_embedding_batch_collection.py` - 11 tests for batch splitting
+  - `file:tests/unit/services/test_embedding_service.py` - 11 tests for process_batch()
+  - `file:tests/unit/services/test_embedding_rate_limit.py` - 6 tests for rate limit handling
+  - `file:tests/unit/services/test_token_counter_fallback.py` - 5 tests for tiktoken o200k_base fallback
+  - `file:tests/unit/models/test_content_type.py` - 16 tests for ContentType enum
+  - `method:src/fs2/core/services/embedding/embedding_service.py:EmbeddingService._chunk_content` - Content-type aware chunking (DYK-5)
+  - `method:src/fs2/core/services/embedding/embedding_service.py:EmbeddingService._should_skip` - Hash-based skip with dual field check (DYK-2)
+  - `method:src/fs2/core/services/embedding/embedding_service.py:EmbeddingService._collect_batches` - Fixed-size batch splitting (DYK-1)
+  - `method:src/fs2/core/services/embedding/embedding_service.py:EmbeddingService.process_batch` - Main orchestration with ChunkItem reassembly (DYK-1, DYK-4)
+  - `class:src/fs2/core/services/embedding/embedding_service.py:ChunkItem` - Frozen dataclass for chunk tracking (DYK-1)
+  - Modified: `src/fs2/core/models/code_node.py` - Added content_type field
+  - Modified: `src/fs2/core/adapters/ast_parser_impl.py` - Set content_type at scan time
 
 **Subtask 001: Fixture Graph Fakes** (Completed 2025-12-21):
 

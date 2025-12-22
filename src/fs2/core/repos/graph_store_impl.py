@@ -46,6 +46,7 @@ ALLOWED_MODULES = frozenset({
     "networkx.classes.digraph",
     "networkx.classes.reportviews",
     "fs2.core.models.code_node",
+    "fs2.core.models.content_type",
 })
 
 
