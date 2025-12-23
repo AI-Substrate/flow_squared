@@ -172,7 +172,7 @@ CODE_LANGUAGES: set[str] = {
 # These get child node extraction (sections, blocks, callables, types).
 EXTRACTABLE_LANGUAGES: set[str] = CODE_LANGUAGES | {
     # Documentation (sections/headings)
-    "markdown", "rst",
+    "rst",
     # Infrastructure (blocks)
     "hcl", "dockerfile",
 }

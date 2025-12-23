@@ -130,6 +130,7 @@ class NetworkXGraphStore(GraphStore):
         self._scan_config = config.require(ScanConfig)
         self._graph: nx.DiGraph = nx.DiGraph()
         self._metadata: dict[str, Any] | None = None
+        self._extra_metadata: dict[str, Any] | None = None
 
     def add_node(self, node: CodeNode) -> None:
         """Add a CodeNode to the graph.
@@ -255,12 +256,14 @@ class NetworkXGraphStore(GraphStore):
             path.parent.mkdir(parents=True, exist_ok=True)
 
             # Build metadata
-            metadata = {
+            metadata: dict[str, Any] = {
                 "format_version": FORMAT_VERSION,
                 "created_at": datetime.now(UTC).isoformat(),
                 "node_count": self._graph.number_of_nodes(),
                 "edge_count": self._graph.number_of_edges(),
             }
+            if self._extra_metadata:
+                metadata.update(self._extra_metadata)
 
             # Save as (metadata, graph) tuple
             with open(path, "wb") as f:
@@ -278,6 +281,14 @@ class NetworkXGraphStore(GraphStore):
                 f"Failed to save graph to {path}: {e}. "
                 f"Check disk space and permissions."
             ) from e
+
+    def set_metadata(self, metadata: dict[str, Any]) -> None:
+        """Set metadata to be persisted with the graph.
+
+        Args:
+            metadata: Metadata dict to merge into saved graph metadata.
+        """
+        self._extra_metadata = metadata
 
     def load(self, path: Path) -> None:
         """Load a graph from a file.

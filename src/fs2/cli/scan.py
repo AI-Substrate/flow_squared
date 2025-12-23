@@ -50,6 +50,13 @@ def scan(
             help="Skip AI-powered smart content generation (faster scans)",
         ),
     ] = False,
+    no_embeddings: Annotated[
+        bool,
+        typer.Option(
+            "--no-embeddings",
+            help="Skip embedding generation (faster scans)",
+        ),
+    ] = False,
 ) -> None:
     """Scan the codebase and build the code graph.
 
@@ -89,6 +96,22 @@ def scan(
             else:
                 console.print_warning(f"Smart content: {smart_content_status}")
 
+        # Create EmbeddingService if configured and not disabled
+        embedding_service = None
+        embedding_status = "disabled"
+
+        if no_embeddings:
+            embedding_status = "skipped (--no-embeddings)"
+            console.print_info(f"Embeddings: {embedding_status}")
+        else:
+            embedding_service, embedding_status = _create_embedding_service(
+                config, console
+            )
+            if embedding_service:
+                console.print_success("Embeddings: enabled")
+            else:
+                console.print_warning(f"Embeddings: {embedding_status}")
+
         # ===== STAGE 2: FILE DISCOVERY =====
         console.stage_banner("DISCOVERY")
 
@@ -102,10 +125,19 @@ def scan(
             if error_message:
                 console.print_error(error_message)
             else:
+                total = progress.total or 0
+                pct = (progress.processed / total * 100.0) if total else 0.0
                 console.print_progress(
-                    f"Progress: {progress.processed}/{progress.total} processed, "
+                    f"Smart content: {progress.processed}/{progress.total} ({pct:.1f}%) processed, "
                     f"{progress.remaining} remaining"
                 )
+
+        def embedding_progress(processed, total, skipped):
+            """Display embedding progress using console adapter."""
+            pct = (processed / total * 100.0) if total else 0.0
+            console.print_progress(
+                f"Embeddings: {processed}/{total} ({pct:.1f}%) processed, {skipped} skipped"
+            )
 
         # Create pipeline
         pipeline = ScanPipeline(
@@ -115,6 +147,8 @@ def scan(
             graph_store=graph_store,
             smart_content_service=smart_content_service,
             smart_content_progress_callback=smart_content_progress if smart_content_service else None,
+            embedding_service=embedding_service,
+            embedding_progress_callback=embedding_progress if embedding_service else None,
         )
 
         # ===== STAGE 3: PARSING =====
@@ -144,13 +178,37 @@ def scan(
             console.stage_banner_skipped("SMART CONTENT")
             console.print_info(smart_content_status)
 
+        # ===== STAGE 4.5: EMBEDDINGS =====
+        if embedding_service:
+            console.stage_banner("EMBEDDINGS")
+
+            enriched = summary.metrics.get("embedding_enriched", 0)
+            preserved = summary.metrics.get("embedding_preserved", 0)
+            errors = summary.metrics.get("embedding_errors", 0)
+
+            if enriched > 0:
+                console.print_success(f"Enriched: {enriched} nodes")
+            if preserved > 0:
+                console.print_progress(f"Preserved: {preserved} nodes (unchanged)")
+            if errors > 0:
+                console.print_error(f"Errors: {errors} nodes")
+        elif not no_embeddings:
+            console.stage_banner_skipped("EMBEDDINGS")
+            console.print_info(embedding_status)
+
         # ===== STAGE 5: STORAGE =====
         console.stage_banner("STORAGE")
         console.print_success("Graph saved to .fs2/graph.pickle")
 
         # ===== SUMMARY =====
         console.print_line()
-        _display_final_summary(console, summary, smart_content_service is not None)
+        _display_final_summary(
+            console,
+            summary,
+            smart_content_enabled=smart_content_service is not None,
+            embedding_enabled=embedding_service is not None,
+            embedding_skipped=no_embeddings,
+        )
 
         # Check for total failure
         if summary.files_scanned > 0 and len(summary.errors) >= summary.files_scanned:
@@ -199,7 +257,11 @@ def _should_show_progress(no_progress: bool, force_progress: bool) -> bool:
 
 
 def _display_final_summary(
-    console: ConsoleAdapter, summary, smart_content_enabled: bool
+    console: ConsoleAdapter,
+    summary,
+    smart_content_enabled: bool,
+    embedding_enabled: bool,
+    embedding_skipped: bool,
 ) -> None:
     """Display final summary panel."""
     if summary.success:
@@ -222,6 +284,16 @@ def _display_final_summary(
         lines.append(
             f"Smart Content: {enriched} enriched, {preserved} preserved, {errors} errors"
         )
+
+    if embedding_enabled:
+        enriched = summary.metrics.get("embedding_enriched", 0)
+        preserved = summary.metrics.get("embedding_preserved", 0)
+        errors = summary.metrics.get("embedding_errors", 0)
+        lines.append(
+            f"Embeddings: {enriched} enriched, {preserved} preserved, {errors} errors"
+        )
+    elif embedding_skipped:
+        lines.append("Embeddings: skipped")
 
     if summary.errors:
         lines.append(f"Errors: {len(summary.errors)}")
@@ -300,4 +372,28 @@ def _create_smart_content_service(config, console: ConsoleAdapter):
         if len(error_msg) > 100:
             error_msg = error_msg[:100] + "..."
         console.print_warning(f"Smart content setup error: {error_msg}")
+        return None, f"error: {type(e).__name__}"
+
+
+def _create_embedding_service(config, console: ConsoleAdapter):
+    """Create EmbeddingService if embedding config is present."""
+    from fs2.config.objects import EmbeddingConfig
+    from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+    try:
+        embedding_config = config.require(EmbeddingConfig)
+    except MissingConfigurationError:
+        return None, "not configured (no embedding section in config.yaml)"
+
+    if embedding_config.mode == "azure" and embedding_config.azure is None:
+        return None, "not configured (missing embedding.azure settings)"
+
+    try:
+        service = EmbeddingService.create(config)
+        return service, "enabled"
+    except Exception as e:
+        error_msg = str(e)
+        if len(error_msg) > 100:
+            error_msg = error_msg[:100] + "..."
+        console.print_warning(f"Embeddings setup error: {error_msg}")
         return None, f"error: {type(e).__name__}"

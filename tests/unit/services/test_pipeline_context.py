@@ -360,3 +360,44 @@ class TestPipelineContextPriorNodes:
         assert ctx.prior_nodes.get("file:a.py") == node1
         assert ctx.prior_nodes.get("file:b.py") == node2
         assert ctx.prior_nodes.get("file:nonexistent.py") is None
+
+
+class TestPipelineContextEmbeddingFields:
+    """Tests for embedding service fields on PipelineContext."""
+
+    def test_given_pipeline_context_when_created_then_embedding_fields_default_none(self):
+        """
+        Purpose: Verifies embedding fields default to None.
+        Quality Contribution: Enables --no-embeddings to skip service.
+        Acceptance Criteria: embedding_service and progress callback are None.
+
+        Why: Pipeline should be able to run without embedding service.
+        Contract: embedding_service and embedding_progress_callback default to None.
+        """
+        from fs2.core.services.pipeline_context import PipelineContext
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+
+        assert ctx.embedding_service is None
+        assert ctx.embedding_progress_callback is None
+
+    def test_given_pipeline_context_when_setting_embedding_fields_then_stores_values(self):
+        """
+        Purpose: Verifies embedding fields accept assignments.
+        Quality Contribution: Enables ScanPipeline to inject EmbeddingService.
+        Acceptance Criteria: assigned service and callback are accessible.
+
+        Why: EmbeddingStage reads from context for service and callbacks.
+        Contract: embedding_service and embedding_progress_callback are settable.
+        """
+        from fs2.core.services.pipeline_context import PipelineContext
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+        callback = lambda processed, total, skipped: None
+        service = object()
+
+        ctx.embedding_service = service
+        ctx.embedding_progress_callback = callback
+
+        assert ctx.embedding_service is service
+        assert ctx.embedding_progress_callback is callback

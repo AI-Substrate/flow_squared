@@ -32,7 +32,8 @@
       "Bash(UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run:*)",
       "Bash(export UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache)",
       "Skill(didyouknow)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(UV_CACHE_DIR=.uv_cache uv run pytest:*)"
     ],
     "deny": [],
     "ask": []

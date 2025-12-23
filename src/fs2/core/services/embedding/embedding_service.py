@@ -27,6 +27,7 @@ from fs2.config.objects import EmbeddingConfig
 from fs2.core.models.content_type import ContentType
 
 if TYPE_CHECKING:
+    from fs2.config.service import ConfigurationService
     from fs2.core.adapters.embedding_adapter import EmbeddingAdapter
     from fs2.core.adapters.token_counter_adapter import TokenCounterAdapter
     from fs2.core.models.code_node import CodeNode
@@ -91,6 +92,64 @@ class EmbeddingService:
         self._config = config
         self._adapter = embedding_adapter
         self._token_counter = token_counter
+
+    def get_metadata(self) -> dict[str, Any]:
+        """Return embedding metadata for graph persistence."""
+        model_name = self._config.mode
+        if self._config.mode == "azure" and self._config.azure is not None:
+            model_name = self._config.azure.deployment_name
+
+        return {
+            "embedding_model": model_name,
+            "embedding_dimensions": self._config.dimensions,
+            "chunk_params": {
+                "code": {
+                    "max_tokens": self._config.code.max_tokens,
+                    "overlap_tokens": self._config.code.overlap_tokens,
+                },
+                "documentation": {
+                    "max_tokens": self._config.documentation.max_tokens,
+                    "overlap_tokens": self._config.documentation.overlap_tokens,
+                },
+                "smart_content": {
+                    "max_tokens": self._config.smart_content.max_tokens,
+                    "overlap_tokens": self._config.smart_content.overlap_tokens,
+                },
+            },
+        }
+
+    @classmethod
+    def create(cls, config: "ConfigurationService") -> "EmbeddingService":
+        """Factory to build EmbeddingService with configured adapters."""
+        from fs2.config.objects import EmbeddingConfig
+        from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
+        from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.adapters.token_counter_adapter_tiktoken import (
+            TiktokenTokenCounterAdapter,
+        )
+
+        embedding_config = config.require(EmbeddingConfig)
+
+        if embedding_config.mode == "azure":
+            if embedding_config.azure is None:
+                raise ValueError("EmbeddingConfig.azure must be set for azure mode")
+            embedding_adapter = AzureEmbeddingAdapter(config)
+        elif embedding_config.mode == "fake":
+            embedding_adapter = FakeEmbeddingAdapter(dimensions=embedding_config.dimensions)
+        elif embedding_config.mode == "openai_compatible":
+            raise ValueError(
+                "openai_compatible embeddings require explicit api_key/base_url/model"
+            )
+        else:
+            raise ValueError(f"Unsupported embedding mode: {embedding_config.mode}")
+
+        token_counter = TiktokenTokenCounterAdapter(config)
+
+        return cls(
+            config=embedding_config,
+            embedding_adapter=embedding_adapter,
+            token_counter=token_counter,
+        )
 
     def _chunk_content(
         self,

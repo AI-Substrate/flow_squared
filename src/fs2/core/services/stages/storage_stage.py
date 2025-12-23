@@ -73,6 +73,10 @@ class StorageStage:
         context.metrics["storage_nodes"] = len(context.nodes)
         context.metrics["storage_edges"] = edge_count
 
+        embedding_metadata = context.metrics.get("embedding_metadata")
+        if embedding_metadata:
+            context.graph_store.set_metadata(embedding_metadata)
+
         # Save graph
         try:
             context.graph_store.save(context.graph_path)

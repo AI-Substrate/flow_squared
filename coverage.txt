@@ -1,0 +1,11 @@
+Name                                                   Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------------------
+src/fs2/core/adapters/embedding_adapter.py                 9      0   100%
+src/fs2/core/adapters/embedding_adapter_azure.py          71      8    89%   82-88, 106, 110-111, 210-213
+src/fs2/core/adapters/embedding_adapter_fake.py           62      0   100%
+src/fs2/core/adapters/embedding_adapter_openai.py         74     14    81%   87-92, 107-115, 179, 221-224
+src/fs2/core/services/embedding/__init__.py                0      0   100%
+src/fs2/core/services/embedding/embedding_service.py     213     71    67%   100, 124-148, 248-296, 303-319, 325-337, 406, 520-521
+src/fs2/core/services/stages/embedding_stage.py           93     13    86%   38, 77-78, 104-114, 122, 170-171, 198
+------------------------------------------------------------------------------------
+TOTAL                                                    522    106    80%

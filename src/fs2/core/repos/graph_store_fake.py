@@ -240,20 +240,14 @@ class FakeGraphStore(GraphStore):
         self._edges.clear()
         self._reverse_edges.clear()
 
-    def set_metadata(self, metadata: dict[str, Any] | None = None) -> None:
+    def set_metadata(self, metadata: dict[str, Any]) -> None:
         """Configure metadata directly for testing.
 
         Args:
             metadata: Metadata dict to return from get_metadata().
-                      If None, creates default metadata with current values.
         """
         if metadata is None:
-            metadata = {
-                "format_version": "1.0",
-                "created_at": datetime.now(UTC).isoformat(),
-                "node_count": len(self._nodes),
-                "edge_count": sum(len(children) for children in self._edges.values()),
-            }
+            raise ValueError("metadata must not be None")
         self._metadata = metadata
 
     def get_metadata(self) -> dict[str, Any]:

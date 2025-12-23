@@ -134,6 +134,107 @@ smart = index.lookup_smart_content("def add(a, b): return a + b")
 code = FixtureIndex.extract_code_from_prompt(prompt)  # Returns str | None
 ```
 
+## Embedding Schema
+
+The fixture graph stores embeddings with the following schema:
+
+### CodeNode Embedding Fields
+
+```python
+@dataclass(frozen=True)
+class CodeNode:
+    # ... other fields ...
+
+    # Raw content embedding (code or documentation)
+    embedding: tuple[tuple[float, ...], ...] | None
+    embedding_hash: str | None  # Matches content_hash when fresh
+
+    # AI description embedding
+    smart_content_embedding: tuple[tuple[float, ...], ...] | None
+```
+
+### Embedding Format
+
+- **Type**: `tuple[tuple[float, ...], ...]` (tuple of tuples)
+- **Dimensions**: 1024 (Azure text-embedding-3-small) or 1536 (text-embedding-ada-002)
+- **Multi-chunk**: Long content produces multiple vectors (one per chunk)
+- **Single chunk example**: `((0.1, 0.2, ..., 0.1),)` - outer tuple with one inner tuple
+- **Multi-chunk example**: `((0.1, ...), (0.2, ...), (0.3, ...))` - 3 chunks
+
+### Graph Metadata
+
+The graph stores embedding configuration metadata:
+
+```python
+{
+    "embedding_model": "text-embedding-3-small",  # or deployment name
+    "embedding_dimensions": 1024,
+    "chunk_params": {
+        "code": {"max_tokens": 400, "overlap_tokens": 50},
+        "documentation": {"max_tokens": 800, "overlap_tokens": 120},
+        "smart_content": {"max_tokens": 8000, "overlap_tokens": 0},
+    },
+}
+```
+
+### FakeEmbeddingAdapter Behavior
+
+| Content Type | Behavior |
+|-------------|----------|
+| Known content (in fixture) | Returns real Azure embedding |
+| Unknown content | Returns deterministic fallback based on content hash |
+| Empty content | Skipped (no embedding) |
+
+Deterministic fallback ensures test reproducibility without API calls.
+
+## pytest Fixtures (conftest.py)
+
+The following pytest fixtures are available:
+
+```python
+# Session-scoped: Loads fixture_graph.pkl once
+@pytest.fixture(scope="session")
+def _fixture_graph_session():
+    ...
+
+# Function-scoped: Provides FixtureGraphContext with reset adapters
+@pytest.fixture
+def fixture_graph(_fixture_graph_session):
+    """Returns FixtureGraphContext with fixture_index, embedding_adapter, llm_adapter"""
+    ...
+
+# Individual adapters (reset before each test)
+@pytest.fixture
+def fixture_index(fixture_graph):
+    return fixture_graph.fixture_index
+
+@pytest.fixture
+def fake_embedding_adapter(fixture_graph):
+    return fixture_graph.embedding_adapter
+
+@pytest.fixture
+def fake_llm_adapter(fixture_graph):
+    return fixture_graph.llm_adapter
+```
+
+### Usage Example
+
+```python
+@pytest.mark.integration
+class TestEmbeddingPipeline:
+    def test_known_content_returns_real_embedding(self, fixture_graph):
+        """Test using fixture graph adapters."""
+        adapter = fixture_graph.embedding_adapter
+
+        # Known content from samples/python/auth_handler.py
+        content = 'def is_expired(self) -> bool: ...'
+
+        embedding = await adapter.embed_text(content)
+
+        # Real Azure embedding (1024 dimensions)
+        assert len(embedding) == 1024
+```
+
 ## Maintaining Fixtures
 
 When to regenerate:
@@ -142,3 +243,22 @@ When to regenerate:
 - After major code changes that affect hash computation
 
 Regeneration is idempotent and safe to run anytime.
+
+### Regeneration Command
+
+```bash
+# Full regeneration with Azure credentials
+just generate-fixtures
+
+# Or manually:
+UV_CACHE_DIR=.uv_cache uv run python scripts/generate_fixtures.py
+```
+
+### CI Considerations (DYK-2)
+
+**IMPORTANT**: CI tests MUST use fake adapters, not real API calls.
+
+- `FakeEmbeddingAdapter` - Returns fixture embeddings or deterministic fallback
+- `FakeLLMAdapter` - Returns fixture smart_content or placeholder
+- No Azure/OpenAI credentials required in CI
+- Tests are reproducible and fast

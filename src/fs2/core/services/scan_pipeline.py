@@ -31,6 +31,7 @@ from fs2.core.models.scan_summary import ScanSummary
 from fs2.core.services.pipeline_context import PipelineContext
 from fs2.core.services.pipeline_stage import PipelineStage
 from fs2.core.services.stages.discovery_stage import DiscoveryStage
+from fs2.core.services.stages.embedding_stage import EmbeddingStage
 from fs2.core.services.stages.parsing_stage import ParsingStage
 from fs2.core.services.stages.smart_content_stage import SmartContentStage
 from fs2.core.services.stages.storage_stage import StorageStage
@@ -41,6 +42,7 @@ if TYPE_CHECKING:
     from fs2.core.adapters.file_scanner import FileScanner
     from fs2.core.models.code_node import CodeNode
     from fs2.core.repos.graph_store import GraphStore
+    from fs2.core.services.embedding.embedding_service import EmbeddingService
     from fs2.core.services.smart_content.smart_content_service import (
         ProgressCallback,
         SmartContentService,
@@ -66,16 +68,17 @@ class ScanPipeline:
 
     The pipeline:
     1. Creates PipelineContext with injected adapters
-    2. Runs each stage in order (Discovery → Parsing → SmartContent → Storage)
+    2. Runs each stage in order (Discovery → Parsing → SmartContent → Embedding → Storage)
     3. Collects errors without stopping
     4. Returns ScanSummary with final metrics
 
     Custom stages can be provided via the `stages` parameter to override
-    the default Discovery → Parsing → SmartContent → Storage sequence.
+    the default Discovery → Parsing → SmartContent → Embedding → Storage sequence.
 
     Stage Order (per Session 2 Insight #5):
-        SmartContentStage MUST be between ParsingStage and StorageStage.
-        This ensures nodes are enriched before graph persistence.
+        SmartContentStage MUST be between ParsingStage and EmbeddingStage.
+        EmbeddingStage MUST be between SmartContentStage and StorageStage.
+        This ensures nodes are enriched before embedding and persistence.
     """
 
     def __init__(
@@ -87,6 +90,8 @@ class ScanPipeline:
         stages: list[PipelineStage] | None = None,
         smart_content_service: "SmartContentService | None" = None,
         smart_content_progress_callback: "ProgressCallback | None" = None,
+        embedding_service: "EmbeddingService | None" = None,
+        embedding_progress_callback: "EmbeddingService.ProgressCallback | None" = None,
     ):
         """Initialize pipeline with config and adapters.
 
@@ -103,6 +108,10 @@ class ScanPipeline:
             smart_content_progress_callback: Optional callback for smart content
                                              progress updates (called every 10 items
                                              and on errors).
+            embedding_service: Optional EmbeddingService for vector embeddings.
+                               If None, EmbeddingStage still runs but skips generation.
+            embedding_progress_callback: Optional callback for embedding
+                                         progress updates (processed, total, skipped).
 
         Raises:
             MissingConfigurationError: If ScanConfig not in registry.
@@ -110,7 +119,8 @@ class ScanPipeline:
         Note:
             When custom stages are provided, caller is responsible for stage
             ordering. SmartContentStage MUST be between ParsingStage and
-            StorageStage (per Session 2 Insight #5).
+            EmbeddingStage, and EmbeddingStage MUST be between SmartContentStage
+            and StorageStage.
         """
         # Extract config internally (per Critical Finding 01)
         self._scan_config = config.require(ScanConfig)
@@ -119,13 +129,16 @@ class ScanPipeline:
         self._graph_store = graph_store
         self._smart_content_service = smart_content_service
         self._smart_content_progress_callback = smart_content_progress_callback
+        self._embedding_service = embedding_service
+        self._embedding_progress_callback = embedding_progress_callback
 
         # Default stages if not provided
-        # Order: Discovery → Parsing → SmartContent → Storage
+        # Order: Discovery → Parsing → SmartContent → Embedding → Storage
         self._stages = stages if stages is not None else [
             DiscoveryStage(),
             ParsingStage(),
             SmartContentStage(),
+            EmbeddingStage(),
             StorageStage(),
         ]
 
@@ -150,6 +163,8 @@ class ScanPipeline:
             graph_store=self._graph_store,
             smart_content_service=self._smart_content_service,
             smart_content_progress_callback=self._smart_content_progress_callback,
+            embedding_service=self._embedding_service,
+            embedding_progress_callback=self._embedding_progress_callback,
         )
 
         # Load prior graph state for smart content preservation (Subtask 001)

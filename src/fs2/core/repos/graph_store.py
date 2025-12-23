@@ -128,6 +128,19 @@ class GraphStore(ABC):
         ...
 
     @abstractmethod
+    def set_metadata(self, metadata: dict[str, Any]) -> None:
+        """Set metadata to be persisted with the graph.
+
+        This metadata is merged into the base graph metadata on save.
+        Used to store embedding model info, chunk parameters, and other
+        configuration details needed for validation on load.
+
+        Args:
+            metadata: Metadata dict to merge into saved graph metadata.
+        """
+        ...
+
+    @abstractmethod
     def load(self, path: Path) -> None:
         """Load a graph from a file.
 

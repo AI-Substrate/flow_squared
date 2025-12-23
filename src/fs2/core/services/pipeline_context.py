@@ -15,7 +15,7 @@ Per Alignment Brief:
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
     from fs2.config.objects import ScanConfig
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
         ProgressCallback,
         SmartContentService,
     )
+    from fs2.core.services.embedding.embedding_service import EmbeddingService
 
 
 @dataclass
@@ -89,3 +90,12 @@ class PipelineContext:
     # Called every 10 items and on errors with SmartContentProgress info.
     # CLI uses this to display real-time progress (blue for progress, red for errors).
     smart_content_progress_callback: "ProgressCallback | None" = None
+
+    # EmbeddingService for vector embedding generation (Phase 4 T003)
+    # Injected by ScanPipeline when embeddings are enabled.
+    # None when --no-embeddings flag is used or embedding config missing.
+    embedding_service: "EmbeddingService | None" = None
+
+    # Progress callback for embedding batch processing.
+    # Called with (processed, total, skipped) counts from EmbeddingService.
+    embedding_progress_callback: "Callable[[int, int, int], None] | None" = None

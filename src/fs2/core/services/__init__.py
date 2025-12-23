@@ -24,7 +24,12 @@ from fs2.core.services.pipeline_context import PipelineContext
 from fs2.core.services.pipeline_stage import PipelineStage
 from fs2.core.services.sample_service import SampleService, SampleServiceConfig
 from fs2.core.services.scan_pipeline import ScanPipeline
-from fs2.core.services.stages import DiscoveryStage, ParsingStage, StorageStage
+from fs2.core.services.stages import (
+    DiscoveryStage,
+    EmbeddingStage,
+    ParsingStage,
+    StorageStage,
+)
 from fs2.core.services.tree_service import TreeService
 
 __all__ = [
@@ -34,6 +39,7 @@ __all__ = [
     "PipelineStage",
     "ScanPipeline",
     "DiscoveryStage",
+    "EmbeddingStage",
     "ParsingStage",
     "StorageStage",
     "GetNodeService",
