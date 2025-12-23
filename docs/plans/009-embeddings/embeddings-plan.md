@@ -1146,21 +1146,21 @@ This phase creates the testing foundation for the **Search feature** (out of sco
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 7.1 | [ ] | Create fixture samples directory structure | 1 | Directories for each language created | - | /workspaces/flow_squared/tests/fixtures/samples/{python,go,typescript,rust,markdown}/ |
-| 7.2 | [ ] | Write Python fixture samples | 2 | 2 Python files, ~100 lines each, realistic code | - | /workspaces/flow_squared/tests/fixtures/samples/python/auth_handler.py, data_parser.py |
-| 7.3 | [ ] | Write Go fixture sample | 2 | 1 Go file with struct, interface, goroutine | - | /workspaces/flow_squared/tests/fixtures/samples/go/server.go |
-| 7.4 | [ ] | Write TypeScript fixture sample | 2 | 1 TSX file with React component, hooks | - | /workspaces/flow_squared/tests/fixtures/samples/typescript/component.tsx |
-| 7.5 | [ ] | Write Rust fixture sample | 2 | 1 Rust file with trait, impl | - | /workspaces/flow_squared/tests/fixtures/samples/rust/lib.rs |
-| 7.6 | [ ] | Write Markdown fixture sample | 1 | 1 README with headers, code blocks | - | /workspaces/flow_squared/tests/fixtures/samples/markdown/README.md |
-| 7.7 | [ ] | Write tests for fixture graph generation | 2 | Tests cover: scan samples, verify all nodes have smart_content and embeddings | - | /workspaces/flow_squared/tests/unit/fixtures/test_fixture_graph_generation.py |
-| 7.8 | [ ] | Implement fixture graph generation script | 3 | Script scans samples with real APIs, saves graph. Run: `python scripts/generate_fixture_graph.py` | - | /workspaces/flow_squared/scripts/generate_fixture_graph.py (requires FS2_AZURE__* env vars) |
-| 7.9 | [ ] | Write tests for FakeSmartContentAdapter | 2 | Tests cover: hash lookup, missing content handling, deterministic output | - | /workspaces/flow_squared/tests/unit/adapters/test_smart_content_adapter_fake.py |
-| 7.10 | [ ] | Implement FakeSmartContentAdapter | 3 | Loads fixture graph, returns smart_content by content_hash lookup | - | /workspaces/flow_squared/src/fs2/core/adapters/smart_content_adapter_fake.py |
-| 7.11 | [ ] | Write tests for graph-backed FakeEmbeddingAdapter | 2 | Tests cover: raw content lookup, smart content lookup, fallback behavior | - | /workspaces/flow_squared/tests/unit/adapters/test_embedding_adapter_fake_graph.py |
-| 7.12 | [ ] | Enhance FakeEmbeddingAdapter with graph support | 2 | Loads fixture graph, returns embeddings by content lookup | - | /workspaces/flow_squared/src/fs2/core/adapters/embedding_adapter_fake.py (update) |
-| 7.13 | [ ] | Write pipeline integration tests using fixture adapters | 3 | Full scan with fake adapters produces same results as fixture graph | - | /workspaces/flow_squared/tests/integration/test_pipeline_with_fixtures.py |
-| 7.14 | [ ] | Generate fixture graph (one-time) | 2 | fixture_graph.pkl created with real embeddings | - | /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl |
-| 7.15 | [ ] | Document fixture system | 2 | README explains generation, usage, regeneration | - | /workspaces/flow_squared/tests/fixtures/README.md (update from Phase 5) |
+| 7.1 | [x] | Create fixture samples directory structure | 1 | Directories for each language created | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | 15+ language dirs [^21] |
+| 7.2 | [x] | Write Python fixture samples | 2 | 2 Python files, ~100 lines each, realistic code | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | auth_handler.py, data_parser.py [^21] |
+| 7.3 | [x] | Write Go fixture sample | 2 | 1 Go file with struct, interface, goroutine | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | server.go [^21] |
+| 7.4 | [x] | Write TypeScript fixture sample | 2 | 1 TSX file with React component, hooks | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | component.tsx [^21] |
+| 7.5 | [x] | Write Rust fixture sample | 2 | 1 Rust file with trait, impl | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | lib.rs [^21] |
+| 7.6 | [x] | Write Markdown fixture sample | 1 | 1 README with headers, code blocks | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | README.md [^21] |
+| 7.7 | [x] | Write tests for fixture graph generation | 2 | Tests cover: scan samples, verify all nodes have smart_content and embeddings | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | test_fixture_graph_integration.py [^21] |
+| 7.8 | [x] | Implement fixture graph generation script | 3 | Script scans samples with real APIs, saves graph. Run: `python scripts/generate_fixture_graph.py` | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | generate_fixture_graph.py + `just generate-fixtures` [^21] |
+| 7.9 | [x] | Write tests for FakeSmartContentAdapter | 2 | Tests cover: hash lookup, missing content handling, deterministic output | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | → FakeLLMAdapter (see deviation) · 14 tests [^21] |
+| 7.10 | [x] | Implement FakeSmartContentAdapter | 3 | Loads fixture graph, returns smart_content by content_hash lookup | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | → FakeLLMAdapter (architecturally correct) [^21] |
+| 7.11 | [x] | Write tests for graph-backed FakeEmbeddingAdapter | 2 | Tests cover: raw content lookup, smart content lookup, fallback behavior | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | 17 tests + FixtureIndex [^21] |
+| 7.12 | [x] | Enhance FakeEmbeddingAdapter with graph support | 2 | Loads fixture graph, returns embeddings by content lookup | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | embedding_adapter_fake.py with FixtureIndex [^21] |
+| 7.13 | [x] | Write pipeline integration tests using fixture adapters | 3 | Full scan with fake adapters produces same results as fixture graph | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | test_embedding_pipeline.py (10 tests) [^21] |
+| 7.14 | [x] | Generate fixture graph (one-time) | 2 | fixture_graph.pkl created with real embeddings | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | 397 nodes, 3.9MB, real Azure embeddings [^21] |
+| 7.15 | [x] | Document fixture system | 2 | README explains generation, usage, regeneration | [📋](tasks/phase-2-embedding-adapters/001-subtask-fixture-graph-fakes.execution.log.md) | tests/fixtures/README.md (265 lines) [^21] |
 
 ### Test Examples (Write First!)
 
@@ -1463,7 +1463,7 @@ async def test_semantic_search_finds_similar_code():
 - [x] Phase 4: Pipeline Integration - **COMPLETE** (2025-12-23) - [📋 Execution Log](./tasks/phase-4-pipeline-integration/execution.log.md)
 - [x] Phase 5: Testing & Validation - **COMPLETE** (2025-12-23) [📋](./tasks/phase-5-testing--validation/execution.log.md)
 - [x] Phase 6: Documentation - **COMPLETE** (2025-12-23) [📋](./tasks/phase-6-documentation/execution.log.md)
-- [ ] Phase 7: Fixture Graph for Integration Testing - PENDING
+- [x] Phase 7: Fixture Graph for Integration Testing - **COMPLETE** (2025-12-23) - Implemented as Subtask 001 during Phase 2
 
 ### STOP Rule
 
@@ -1604,9 +1604,29 @@ async def test_semantic_search_finds_similar_code():
   - T005: Create 3-providers.md - COMPLETE (3 provider guides)
   - T006: Review documentation - COMPLETE (fixed api_version: 2024-02-01, openai_compatible: programmatic)
 
+**Phase 7: Fixture Graph for Integration Testing** (Completed 2025-12-23):
+
+[^21]: Phase 7 - Fixture Graph (15 tasks: 7.1-7.15) · Implemented via Subtask 001 during Phase 2
+  - `file:tests/fixtures/samples/` - 15+ language sample directories (Python, Go, TS, Rust, Java, C++, etc.)
+  - `file:scripts/generate_fixture_graph.py` - Generation script with Azure API integration
+  - `file:tests/fixtures/fixture_graph.pkl` - Pre-computed graph (397 nodes, 3.9MB, real embeddings)
+  - `file:src/fs2/core/models/fixture_index.py` - FixtureIndex for O(1) content hash lookup
+  - `file:src/fs2/core/adapters/embedding_adapter_fake.py` - Graph-backed FakeEmbeddingAdapter
+  - `file:src/fs2/core/adapters/llm_adapter_fake.py` - Graph-backed FakeLLMAdapter (replaces planned FakeSmartContentAdapter)
+  - `file:tests/conftest.py` - pytest fixtures (lines 433-603): fixture_graph, fixture_index, fake adapters
+  - `file:tests/integration/test_fixture_graph_integration.py` - 8 integration tests
+  - `file:tests/integration/test_embedding_pipeline.py` - 10 pipeline tests with fixtures
+  - `file:tests/fixtures/README.md` - Comprehensive documentation (265 lines)
+  - `file:justfile` - Added `generate-fixtures` target
+  - **Deviation**: Tasks 7.9-7.10 planned FakeSmartContentAdapter, implemented as FakeLLMAdapter
+    - Rationale: SmartContentService → LLMService → LLMAdapter; fake belongs at adapter layer
+    - FakeLLMAdapter provides identical fixture-backed smart_content lookup functionality
+
 ## Deviation Ledger
 
-No constitution or architecture deviations required.
+| ID | Phase | Task | Deviation | Rationale | Impact |
+|----|-------|------|-----------|-----------|--------|
+| DEV-001 | Phase 7 | 7.9-7.10 | FakeSmartContentAdapter → FakeLLMAdapter | SmartContentService uses LLMService which uses LLMAdapter. Creating FakeSmartContentAdapter would bypass the service layer. The fake must be at the adapter layer per Clean Architecture. | None - identical functionality, architecturally correct |
 
 ---
 
