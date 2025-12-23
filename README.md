@@ -59,6 +59,33 @@ scan:
 
 See [Scanning Guide](docs/how/scanning.md) for details on node types, troubleshooting, and advanced configuration.
 
+## Embeddings
+
+Enable semantic search by generating embeddings for your code:
+
+```yaml
+# .fs2/config.yaml
+embedding:
+  mode: azure  # azure | openai_compatible | fake
+  dimensions: 1024
+  azure:
+    endpoint: "${FS2_AZURE__EMBEDDING__ENDPOINT}"
+    api_key: "${FS2_AZURE__EMBEDDING__API_KEY}"
+    deployment_name: "text-embedding-3-small"
+```
+
+```bash
+# Scan with embeddings (default when config exists)
+fs2 scan
+
+# Scan without embeddings (faster, no API calls)
+fs2 scan --no-embeddings
+```
+
+**Content-Type Aware Chunking**: Code uses 400-token chunks for precision, documentation uses 800-token chunks for context.
+
+See [Embeddings Guide](docs/how/embeddings/) for detailed configuration, provider setup, and architecture.
+
 ## Language Support
 
 fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages are categorized as:
@@ -97,6 +124,7 @@ Unknown languages default to file-only (safe).
 | [Architecture](docs/how/architecture.md) | Layer diagram, import rules |
 | [Configuration](docs/how/configuration.md) | Multi-source config, env vars |
 | [Scanning](docs/how/scanning.md) | File scanning and code graph generation |
+| [Embeddings](docs/how/embeddings/) | Semantic embeddings for code search |
 | [TDD](docs/how/tdd.md) | Test structure, fixtures, fakes |
 | [Dependency Injection](docs/how/di.md) | DI patterns |
 | [Adding Services & Adapters](docs/how/adding-services-adapters.md) | Step-by-step guide |

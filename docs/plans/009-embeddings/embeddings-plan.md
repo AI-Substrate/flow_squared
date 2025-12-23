@@ -1004,12 +1004,12 @@ class TestEmbeddingPipeline:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 6.1 | [ ] | Survey existing docs/how/ directories | 1 | List of existing feature dirs documented in log | - | Run: `ls -la /workspaces/flow_squared/docs/how/` |
-| 6.2 | [ ] | Update README.md with embeddings section | 2 | Config example, link to docs/how/embeddings/ | - | /workspaces/flow_squared/README.md |
-| 6.3 | [ ] | Create docs/how/embeddings/1-overview.md | 2 | Introduction, architecture diagram | - | /workspaces/flow_squared/docs/how/embeddings/1-overview.md |
-| 6.4 | [ ] | Create docs/how/embeddings/2-configuration.md | 2 | Config options, env vars, chunk params | - | /workspaces/flow_squared/docs/how/embeddings/2-configuration.md |
-| 6.5 | [ ] | Create docs/how/embeddings/3-providers.md | 2 | Azure, OpenAI, Fake adapter setup guides | - | /workspaces/flow_squared/docs/how/embeddings/3-providers.md |
-| 6.6 | [ ] | Review documentation for clarity | 1 | Peer review passed, no broken links | - | All docs reviewed |
+| 6.1 | [x] | Survey existing docs/how/ directories | 1 | List of existing feature dirs documented in log | [📋](tasks/phase-6-documentation/execution.log.md#task-t001-survey-existing-docshow-directory-structure) | 10 files surveyed |
+| 6.2 | [x] | Update README.md with embeddings section | 2 | Config example, link to docs/how/embeddings/ | [📋](tasks/phase-6-documentation/execution.log.md#task-t002-update-readmemd-with-embeddings-section) | Section + doc table link [^20] |
+| 6.3 | [x] | Create docs/how/embeddings/1-overview.md | 2 | Introduction, architecture diagram | [📋](tasks/phase-6-documentation/execution.log.md#task-t003-create-docshowembeddings1-overviewmd) | Architecture, chunking, dual embedding [^20] |
+| 6.4 | [x] | Create docs/how/embeddings/2-configuration.md | 2 | Config options, env vars, chunk params | [📋](tasks/phase-6-documentation/execution.log.md#task-t004-create-docshowembeddings2-configurationmd) | Full schema, validation [^20] |
+| 6.5 | [x] | Create docs/how/embeddings/3-providers.md | 2 | Azure, OpenAI, Fake adapter setup guides | [📋](tasks/phase-6-documentation/execution.log.md#task-t005-create-docshowembeddings3-providersmd) | 3 provider guides [^20] |
+| 6.6 | [x] | Review documentation for clarity | 1 | Peer review passed, no broken links | [📋](tasks/phase-6-documentation/execution.log.md#task-t006-review-documentation-for-clarity) | Fixed api_version, openai_compatible |
 
 ### Content Outlines
 
@@ -1057,10 +1057,10 @@ See [docs/how/embeddings/](docs/how/embeddings/) for detailed configuration.
 - FakeAdapter for testing
 
 ### Acceptance Criteria
-- [ ] README.md updated with embeddings section
-- [ ] docs/how/embeddings/ created with 3 files
-- [ ] Code examples tested and working
-- [ ] No broken links
+- [x] README.md updated with embeddings section
+- [x] docs/how/embeddings/ created with 3 files
+- [x] Code examples tested and working
+- [x] No broken links
 
 ---
 
@@ -1462,7 +1462,7 @@ async def test_semantic_search_finds_similar_code():
 - [x] Phase 3: Embedding Service - **COMPLETE** (2025-12-22) - [📋 Execution Log](./tasks/phase-3-embedding-service/execution.log.md)
 - [x] Phase 4: Pipeline Integration - **COMPLETE** (2025-12-23) - [📋 Execution Log](./tasks/phase-4-pipeline-integration/execution.log.md)
 - [x] Phase 5: Testing & Validation - **COMPLETE** (2025-12-23) [📋](./tasks/phase-5-testing--validation/execution.log.md)
-- [ ] Phase 6: Documentation - PENDING
+- [x] Phase 6: Documentation - **COMPLETE** (2025-12-23) [📋](./tasks/phase-6-documentation/execution.log.md)
 - [ ] Phase 7: Fixture Graph for Integration Testing - PENDING
 
 ### STOP Rule
@@ -1589,6 +1589,20 @@ async def test_semantic_search_finds_similar_code():
   - T005: Add targeted tests - COMPLETE (9 new tests: chunking, overlap, metadata, skip logic)
   - T006: Document fixture format - COMPLETE (README.md Embedding Schema section)
   - T007: E2E validation - COMPLETE (19 files, 451 nodes, 100% embedding rate)
+
+**Phase 6: Documentation** (Completed 2025-12-23):
+
+[^20]: Phase 6 - Documentation (6 tasks: T001-T006) · 4 files created/modified
+  - `file:README.md` - Added Embeddings section with config example + doc table link
+  - `file:docs/how/embeddings/1-overview.md` - Architecture, chunking strategy, dual embedding (4.9KB)
+  - `file:docs/how/embeddings/2-configuration.md` - Full config schema, env vars, validation rules (4.9KB)
+  - `file:docs/how/embeddings/3-providers.md` - Azure, OpenAI-compatible, Fake adapter guides (4.8KB)
+  - T001: Survey existing docs/how/ - COMPLETE (10 files, pattern analysis)
+  - T002: Update README.md - COMPLETE (embeddings section + doc table)
+  - T003: Create 1-overview.md - COMPLETE (architecture, chunking, dual embedding)
+  - T004: Create 2-configuration.md - COMPLETE (full schema, env vars)
+  - T005: Create 3-providers.md - COMPLETE (3 provider guides)
+  - T006: Review documentation - COMPLETE (fixed api_version: 2024-02-01, openai_compatible: programmatic)
 
 ## Deviation Ledger
 
