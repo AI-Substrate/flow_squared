@@ -434,8 +434,15 @@ class SmartContentService:
                 break
 
             node = item
+            logger.debug("Smart content: %s", node.node_id)
             try:
                 updated_node = await self.generate_smart_content(node)
+                # Log the generated result (truncated for readability)
+                if updated_node.smart_content:
+                    preview = updated_node.smart_content[:200].replace("\n", " ")
+                    if len(updated_node.smart_content) > 200:
+                        preview += "..."
+                    logger.debug("[%s] %s", node.node_id, preview)
 
                 async with stats_lock:
                     stats["processed"] += 1

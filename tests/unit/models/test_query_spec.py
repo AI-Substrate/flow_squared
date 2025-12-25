@@ -238,3 +238,83 @@ class TestQuerySpecModeEnum:
         # The exact error depends on implementation, but it should fail
         with pytest.raises((TypeError, ValueError)):
             QuerySpec(pattern="test", mode="text")  # type: ignore
+
+
+# ============================================================================
+# Phase 5 T000: Offset Field Tests (Pagination Support)
+# ============================================================================
+
+
+class TestQuerySpecOffset:
+    """Tests for QuerySpec offset field (pagination support).
+
+    Per Phase 5 tasks.md T000: TDD tests for offset field.
+    BC-04: --offset flag for pagination with default 0.
+    """
+
+    def test_offset_default_0(self):
+        """
+        Purpose: Proves offset defaults to 0 for no pagination
+        Quality Contribution: Documents expected default
+        Acceptance Criteria: QuerySpec.offset == 0 when not specified
+        """
+        from fs2.core.models.search import QuerySpec, SearchMode
+
+        spec = QuerySpec(pattern="test", mode=SearchMode.TEXT)
+        assert spec.offset == 0
+
+    def test_offset_custom_value(self):
+        """
+        Purpose: Proves custom offset values are accepted
+        Quality Contribution: Enables pagination (skip first N results)
+        Acceptance Criteria: offset matches input value
+        """
+        from fs2.core.models.search import QuerySpec, SearchMode
+
+        spec = QuerySpec(pattern="test", mode=SearchMode.TEXT, offset=10)
+        assert spec.offset == 10
+
+    def test_offset_large_value(self):
+        """
+        Purpose: Proves large offset values are accepted
+        Quality Contribution: Handles deep pagination
+        Acceptance Criteria: Large offset accepted without error
+        """
+        from fs2.core.models.search import QuerySpec, SearchMode
+
+        spec = QuerySpec(pattern="test", mode=SearchMode.TEXT, offset=1000)
+        assert spec.offset == 1000
+
+    def test_offset_negative_rejected(self):
+        """
+        Purpose: Proves negative offset values are rejected
+        Quality Contribution: Prevents invalid pagination
+        Acceptance Criteria: ValueError raised for negative offset
+        """
+        from fs2.core.models.search import QuerySpec, SearchMode
+
+        with pytest.raises(ValueError, match="[Oo]ffset"):
+            QuerySpec(pattern="test", mode=SearchMode.TEXT, offset=-1)
+
+    def test_offset_zero_accepted(self):
+        """
+        Purpose: Proves zero is a valid offset (no skip)
+        Quality Contribution: Boundary condition validation
+        Acceptance Criteria: offset=0 accepted without error
+        """
+        from fs2.core.models.search import QuerySpec, SearchMode
+
+        spec = QuerySpec(pattern="test", mode=SearchMode.TEXT, offset=0)
+        assert spec.offset == 0
+
+    def test_offset_immutable(self):
+        """
+        Purpose: Proves offset cannot be modified after creation
+        Quality Contribution: Ensures immutability contract
+        Acceptance Criteria: FrozenInstanceError on offset modification
+        """
+        from fs2.core.models.search import QuerySpec, SearchMode
+
+        spec = QuerySpec(pattern="test", mode=SearchMode.TEXT, offset=5)
+        with pytest.raises(FrozenInstanceError):
+            spec.offset = 10  # type: ignore

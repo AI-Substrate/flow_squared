@@ -170,11 +170,12 @@ CODE_LANGUAGES: set[str] = {
 
 # Languages with extractable structure (includes CODE + structured content).
 # These get child node extraction (sections, blocks, callables, types).
+# NOTE: Only include languages where tree-sitter produces UNIQUE node names.
+# HCL/Dockerfile excluded - their blocks lack unique identifiers, causing
+# duplicate node_ids. Treat them as content blobs instead.
 EXTRACTABLE_LANGUAGES: set[str] = CODE_LANGUAGES | {
     # Documentation (sections/headings)
     "rst",
-    # Infrastructure (blocks)
-    "hcl", "dockerfile",
 }
 
 
@@ -583,17 +584,6 @@ class TreeSitterParser(ASTParser):
                 if "content" in child.type.lower() or child.type == "inline":
                     text = child.text.decode("utf-8") if hasattr(child, "text") else ""
                     return text.strip()
-
-        # For HCL blocks (terraform), extract block type and labels
-        if language == "hcl" and node.type == "block":
-            parts = []
-            for child in node.children:
-                if child.type in ("identifier", "string_lit"):
-                    text = child.text.decode("utf-8").strip('"') if hasattr(child, "text") else ""
-                    if text:
-                        parts.append(text)
-            if parts:
-                return ".".join(parts[:3])  # e.g., resource.aws_instance.web
 
         return None
 

@@ -1790,6 +1790,7 @@ Mid-implementation detours requiring structured tracking.
 | ID | Created | Phase | Parent Task | Reason | Status | Dossier |
 |----|---------|-------|-------------|--------|--------|---------|
 | 001-subtask-graph-loading-for-smart-content-preservation | 2025-12-19 | Phase 6: Scan Pipeline Integration | T003, T004, T005 | Hash-based skip logic (AC5) requires prior smart_content preservation across scans; freshly parsed nodes have smart_content=None | [x] Complete | [Link](tasks/phase-6-scan-pipeline-integration/001-subtask-graph-loading-for-smart-content-preservation.md) |
+| 002-subtask-language-handler-strategy | 2025-12-25 | Phase 6: Scan Pipeline Integration | T003, T005 | Duplicate node_ids from language-specific tree-sitter behavior cause smart content re-processing (~13-15 nodes/scan); need Language Handler Strategy for unique IDs | [ ] Pending | [Link](tasks/phase-6-scan-pipeline-integration/002-subtask-language-handler-strategy.md) |
 
 ---
 

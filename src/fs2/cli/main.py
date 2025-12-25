@@ -19,6 +19,7 @@ import typer
 from fs2.cli.get_node import get_node
 from fs2.cli.init import init
 from fs2.cli.scan import scan
+from fs2.cli.search import search
 from fs2.cli.tree import tree
 
 
@@ -56,6 +57,7 @@ app.command(name="scan")(scan)
 app.command(name="init")(init)
 app.command(name="tree")(tree)
 app.command(name="get-node")(get_node)
+app.command(name="search")(search)
 
 
 if __name__ == "__main__":

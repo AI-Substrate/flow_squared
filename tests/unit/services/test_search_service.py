@@ -576,3 +576,155 @@ class TestSearchServiceSemanticFallback:
         assert len(results) == 1
         assert results[0].node_id == "callable:test.py:AuthService"
         assert results[0].score > 0.9
+
+
+# ============================================================================
+# Phase 5 T002: Offset Slicing Tests (Pagination Support)
+# ============================================================================
+
+
+class TestSearchServiceOffsetSlicing:
+    """Offset slicing tests for pagination support (T002).
+
+    Per Phase 5 tasks.md: Tests verify offset applied after sort.
+    BC-04: --offset flag for pagination with default 0.
+    """
+
+    @pytest.mark.asyncio
+    async def test_offset_skips_first_n_results(self) -> None:
+        """Proves offset skips the first N results after sorting.
+
+        Purpose: Pagination - skip to page 2, 3, etc.
+        Quality Contribution: Enables paginated search results.
+        Acceptance Criteria: offset=2 skips first 2 results.
+        """
+        from fs2.core.services.search.search_service import SearchService
+
+        # Create 5 nodes that all match "func"
+        graph_store = FakeGraphStore([
+            create_node("callable:test.py:func1"),
+            create_node("callable:test.py:func2"),
+            create_node("callable:test.py:func3"),
+            create_node("callable:test.py:func4"),
+            create_node("callable:test.py:func5"),
+        ])
+        service = SearchService(graph_store=graph_store)
+
+        # Get first page (no offset)
+        first_page = await service.search(
+            QuerySpec(pattern="func", mode=SearchMode.TEXT, limit=5, offset=0)
+        )
+
+        # Get second page (skip first 2)
+        second_page = await service.search(
+            QuerySpec(pattern="func", mode=SearchMode.TEXT, limit=5, offset=2)
+        )
+
+        assert len(first_page) == 5
+        assert len(second_page) == 3  # 5 - 2 = 3 remaining
+
+        # Second page should not include first page's first 2 results
+        first_page_ids = [r.node_id for r in first_page[:2]]
+        second_page_ids = [r.node_id for r in second_page]
+        for node_id in first_page_ids:
+            assert node_id not in second_page_ids
+
+    @pytest.mark.asyncio
+    async def test_offset_with_limit_pages_correctly(self) -> None:
+        """Proves offset + limit creates correct page slices.
+
+        Purpose: Standard pagination (page_size=limit, page_num via offset).
+        Quality Contribution: Predictable pagination behavior.
+        Acceptance Criteria: offset=2, limit=2 returns results[2:4].
+        """
+        from fs2.core.services.search.search_service import SearchService
+
+        graph_store = FakeGraphStore([
+            create_node("callable:test.py:func1"),
+            create_node("callable:test.py:func2"),
+            create_node("callable:test.py:func3"),
+            create_node("callable:test.py:func4"),
+            create_node("callable:test.py:func5"),
+        ])
+        service = SearchService(graph_store=graph_store)
+
+        # Page 1: offset=0, limit=2 -> results[0:2]
+        page1 = await service.search(
+            QuerySpec(pattern="func", mode=SearchMode.TEXT, limit=2, offset=0)
+        )
+
+        # Page 2: offset=2, limit=2 -> results[2:4]
+        page2 = await service.search(
+            QuerySpec(pattern="func", mode=SearchMode.TEXT, limit=2, offset=2)
+        )
+
+        # Page 3: offset=4, limit=2 -> results[4:6] (only 1 result)
+        page3 = await service.search(
+            QuerySpec(pattern="func", mode=SearchMode.TEXT, limit=2, offset=4)
+        )
+
+        assert len(page1) == 2
+        assert len(page2) == 2
+        assert len(page3) == 1  # Only 1 result left
+
+        # No overlap between pages
+        page1_ids = {r.node_id for r in page1}
+        page2_ids = {r.node_id for r in page2}
+        page3_ids = {r.node_id for r in page3}
+        assert page1_ids.isdisjoint(page2_ids)
+        assert page2_ids.isdisjoint(page3_ids)
+
+    @pytest.mark.asyncio
+    async def test_offset_beyond_results_returns_empty(self) -> None:
+        """Proves offset beyond result count returns empty list.
+
+        Purpose: Edge case - requesting page that doesn't exist.
+        Quality Contribution: Clean handling of out-of-range offset.
+        Acceptance Criteria: offset > result_count returns [].
+        """
+        from fs2.core.services.search.search_service import SearchService
+
+        graph_store = FakeGraphStore([
+            create_node("callable:test.py:func1"),
+            create_node("callable:test.py:func2"),
+        ])
+        service = SearchService(graph_store=graph_store)
+
+        # Only 2 results, but offset is 10
+        results = await service.search(
+            QuerySpec(pattern="func", mode=SearchMode.TEXT, limit=10, offset=10)
+        )
+
+        assert results == []
+
+    @pytest.mark.asyncio
+    async def test_offset_zero_returns_from_start(self) -> None:
+        """Proves offset=0 returns results from the beginning.
+
+        Purpose: Default behavior - no pagination offset.
+        Quality Contribution: Documents expected default.
+        Acceptance Criteria: offset=0 same as no offset.
+        """
+        from fs2.core.services.search.search_service import SearchService
+
+        graph_store = FakeGraphStore([
+            create_node("callable:test.py:func1"),
+            create_node("callable:test.py:func2"),
+            create_node("callable:test.py:func3"),
+        ])
+        service = SearchService(graph_store=graph_store)
+
+        # With explicit offset=0
+        with_offset = await service.search(
+            QuerySpec(pattern="func", mode=SearchMode.TEXT, limit=10, offset=0)
+        )
+
+        # Default (no explicit offset in test, but defaults to 0 in QuerySpec)
+        default = await service.search(
+            QuerySpec(pattern="func", mode=SearchMode.TEXT, limit=10)
+        )
+
+        assert len(with_offset) == 3
+        assert len(default) == 3
+        # Same results in same order
+        assert [r.node_id for r in with_offset] == [r.node_id for r in default]

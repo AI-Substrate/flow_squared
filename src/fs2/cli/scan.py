@@ -268,7 +268,11 @@ def scan(
 
 
 def _setup_verbose_logging() -> None:
-    """Configure logging for verbose mode with Rich output."""
+    """Configure logging for verbose mode with Rich output.
+
+    Sets fs2 loggers to DEBUG while suppressing noisy HTTP client logs
+    (httpx, httpcore, openai) that dump full request/response details.
+    """
     from rich.console import Console
 
     logging.basicConfig(
@@ -278,6 +282,10 @@ def _setup_verbose_logging() -> None:
             RichHandler(console=Console(), show_path=False, rich_tracebacks=True)
         ],
     )
+
+    # Suppress noisy HTTP client debug logs - only show warnings and above
+    for noisy_logger in ("httpx", "httpcore", "openai", "azure"):
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
 
 
 def _should_show_progress(no_progress: bool, force_progress: bool) -> bool:

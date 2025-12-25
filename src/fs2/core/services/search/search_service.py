@@ -184,8 +184,8 @@ class SearchService:
         # Sort by score (descending)
         results.sort(key=lambda r: r.score, reverse=True)
 
-        # Apply limit
-        return results[: spec.limit]
+        # Apply offset and limit (pagination)
+        return results[spec.offset : spec.offset + spec.limit]
 
     def _detect_mode(self, pattern: str) -> SearchMode:
         """Detect appropriate mode from pattern characteristics.

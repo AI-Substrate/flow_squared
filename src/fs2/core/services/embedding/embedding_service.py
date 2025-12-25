@@ -570,6 +570,7 @@ class EmbeddingService:
                 continue
 
             nodes_to_process[node.node_id] = node
+            logger.debug("Embedding: %s", node.node_id)
 
             # Chunk raw content
             raw_chunks = self._chunk_content(node, is_smart_content=False)

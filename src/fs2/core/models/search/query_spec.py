@@ -27,6 +27,7 @@ class QuerySpec:
         pattern: Search pattern (cannot be empty or whitespace-only).
         mode: Search mode from SearchMode enum.
         limit: Maximum number of results to return (must be >= 1, default 20).
+        offset: Number of results to skip for pagination (must be >= 0, default 0).
         min_similarity: Minimum similarity score for matches (0.0-1.0, default 0.25).
             Note: This parameter only applies to SEMANTIC mode searches.
             For TEXT and REGEX modes, this value is ignored.
@@ -48,6 +49,7 @@ class QuerySpec:
     pattern: str
     mode: SearchMode
     limit: int = 20
+    offset: int = 0
     min_similarity: float = 0.25
 
     def __post_init__(self) -> None:
@@ -70,6 +72,10 @@ class QuerySpec:
         # Validate limit is positive
         if self.limit < 1:
             raise ValueError(f"Limit must be >= 1, got {self.limit}")
+
+        # Validate offset is non-negative
+        if self.offset < 0:
+            raise ValueError(f"Offset must be >= 0, got {self.offset}")
 
         # Validate min_similarity is in 0.0-1.0 range
         if not 0.0 <= self.min_similarity <= 1.0:

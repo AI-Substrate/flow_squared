@@ -279,7 +279,7 @@ class LLMConfig(BaseModel):
         model: Model name for logging/display (optional).
         temperature: Generation temperature (default: 0.1).
         max_tokens: Maximum tokens to generate (default: 1024).
-        timeout: Request timeout in seconds (1-600, default: 120).
+        timeout: Request timeout in seconds (1-120, default: 30).
         max_retries: Retry count for transient errors (default: 3).
 
     YAML example:
@@ -294,7 +294,7 @@ class LLMConfig(BaseModel):
           model: gpt-4
           temperature: 0.1
           max_tokens: 1024
-          timeout: 120
+          timeout: 30
           max_retries: 3
         ```
 
@@ -314,7 +314,7 @@ class LLMConfig(BaseModel):
     model: str | None = None
     temperature: float = 0.1
     max_tokens: int = 1024
-    timeout: int = 120
+    timeout: int = 30
     max_retries: int = 3
 
     @field_validator("api_key")
@@ -350,9 +350,9 @@ class LLMConfig(BaseModel):
     @field_validator("timeout")
     @classmethod
     def validate_timeout(cls, v: int) -> int:
-        """Validate timeout is in reasonable range (1-600 seconds)."""
-        if v < 1 or v > 600:
-            raise ValueError("Timeout must be 1-600 seconds")
+        """Validate timeout is in reasonable range (1-120 seconds)."""
+        if v < 1 or v > 120:
+            raise ValueError("Timeout must be 1-120 seconds")
         return v
 
     @model_validator(mode="after")

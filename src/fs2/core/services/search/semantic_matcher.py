@@ -199,6 +199,16 @@ class SemanticMatcher:
         else:
             snippet = node.node_id
 
+        # Get chunk offset if available (only for "embedding" field, not smart_content)
+        # Per DYK-05: embedding_chunk_offsets only covers raw content chunks
+        chunk_offset: tuple[int, int] | None = None
+        if (
+            chunk_match.field_name == "embedding"
+            and node.embedding_chunk_offsets
+            and chunk_match.chunk_index < len(node.embedding_chunk_offsets)
+        ):
+            chunk_offset = node.embedding_chunk_offsets[chunk_match.chunk_index]
+
         return SearchResult(
             node_id=node.node_id,
             start_line=node.start_line,
@@ -211,4 +221,6 @@ class SemanticMatcher:
             match_field=chunk_match.field_name,
             content=node.content,
             matched_lines=list(range(match_start_line, match_end_line + 1)),
+            chunk_offset=chunk_offset,
+            embedding_chunk_index=chunk_match.chunk_index,
         )

@@ -901,16 +901,16 @@ class TestFakeEmbeddingAdapterQueries:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |-----|--------|------|----|------------------|-----|-------|
-| 5.1 | [ ] | Write tests for CLI argument parsing | 2 | Tests cover: all flags, defaults | - | TDD |
-| 5.2 | [ ] | Write tests for JSON stdout + stderr errors | 2 | Tests verify: valid JSON on stdout, errors on stderr | - | AC22, get_node.py idiom |
-| 5.3 | [ ] | Write tests for min detail (content excluded) | 2 | Tests verify to_dict(detail="min") used | - | AC19 |
-| 5.4 | [ ] | Write tests for max detail (content included) | 2 | Tests verify to_dict(detail="max") used | - | AC20 |
-| 5.5 | [ ] | Create search.py with Console(stderr=True) | 2 | Errors go to stderr, JSON to stdout | - | get_node.py idiom |
-| 5.6 | [ ] | Implement argument handling | 2 | Tests from 5.1 pass | - | Typer annotations |
-| 5.7 | [ ] | Implement JSON output with raw print() | 2 | json.dumps(..., default=str), print() not console | - | get_node.py idiom |
-| 5.8 | [ ] | Implement detail via to_dict(detail) | 2 | Tests from 5.3-5.4 pass | - | SearchResult.to_dict() |
-| 5.9 | [ ] | Register command in CLI main | 1 | `fs2 search --help` works | - | Add to app |
-| 5.10 | [ ] | Integration test: full CLI workflow | 2 | Search via subprocess works | - | End-to-end |
+| 5.1 | [x] | Write tests for CLI argument parsing | 2 | Tests cover: all flags, defaults | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t004-t012) | TDD · Complete [^11] |
+| 5.2 | [x] | Write tests for JSON stdout + stderr errors | 2 | Tests verify: valid JSON on stdout, errors on stderr | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t004-t012) | AC22, get_node.py idiom [^11] |
+| 5.3 | [x] | Write tests for min detail (content excluded) | 2 | Tests verify to_dict(detail="min") used | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t004-t012) | AC19 · Complete [^11] |
+| 5.4 | [x] | Write tests for max detail (content included) | 2 | Tests verify to_dict(detail="max") used | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t004-t012) | AC20 · Complete [^11] |
+| 5.5 | [x] | Create search.py with Console(stderr=True) | 2 | Errors go to stderr, JSON to stdout | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t004-t012) | get_node.py idiom · Complete [^11] |
+| 5.6 | [x] | Implement argument handling | 2 | Tests from 5.1 pass | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t004-t012) | Typer annotations · Complete [^11] |
+| 5.7 | [x] | Implement JSON output with raw print() | 2 | json.dumps(..., default=str), print() not console | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t004-t012) | get_node.py idiom · Complete [^11] |
+| 5.8 | [x] | Implement detail via to_dict(detail) | 2 | Tests from 5.3-5.4 pass | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t004-t012) | SearchResult.to_dict() · Complete [^11] |
+| 5.9 | [x] | Register command in CLI main | 1 | `fs2 search --help` works | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t012) | Add to app · Complete [^11] |
+| 5.10 | [x] | Integration test: full CLI workflow | 2 | Search via subprocess works | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t013) | End-to-end · Complete [^11] |
 
 ### Test Examples (Write First!)
 
@@ -1122,10 +1122,10 @@ print(json_str)
 - [x] Phase 2: Text/Regex Matchers - COMPLETE (63 tests, 15/15 tasks)
 - [x] Phase 3: Semantic Matcher - COMPLETE (89 tests, 13/13 tasks, T014-T017 deferred)
 - [-] Phase 4: Query Embedding Fixtures - MERGED INTO PHASE 3 (deferred)
-- [ ] Phase 5: CLI Integration - PENDING
+- [x] Phase 5: CLI Integration - COMPLETE (106 tests, 14/14 tasks) [^11]
 - [ ] Phase 6: Documentation and Integration Testing - PENDING
 
-**Overall Progress**: 4/6 phases complete (Phase 4 merged into Phase 3)
+**Overall Progress**: 5/6 phases complete (Phase 4 merged into Phase 3)
 
 ### STOP Rule
 **IMPORTANT**: This plan must be complete before creating tasks. After writing this plan:
@@ -1211,6 +1211,21 @@ print(json_str)
   - DYK-P3-04: min_similarity 0.25, clamp negative scores to 0
   - DYK-P3-05: Partial embedding coverage warning (proceed + log)
   - Note: T014-T017 (query fixtures) deferred to future iteration
+
+[^11]: Phase 5 T000-T013 - CLI Integration (106 tests total for search)
+  - `file:src/fs2/core/models/search/query_spec.py` - Added offset: int = 0 for pagination
+  - `method:src/fs2/core/services/search/search_service.py:SearchService.search` - Offset slicing: results[offset:offset+limit]
+  - `file:src/fs2/cli/search.py` - NEW: fs2 search CLI command with --mode, --limit, --offset, --detail flags
+  - `function:src/fs2/cli/search.py:search` - Typer command with asyncio.run() wrapper
+  - `function:src/fs2/cli/search.py:_create_embedding_adapter` - Optional embedding adapter for semantic mode
+  - `file:src/fs2/cli/main.py` - Registered search command
+  - `file:tests/unit/cli/test_search_cli.py` - 15 CLI unit tests (argument parsing, JSON output, detail levels)
+  - `file:tests/unit/models/test_query_spec.py` - 4 offset validation tests added
+  - `file:tests/unit/services/test_search_service.py` - 4 offset slicing tests added
+  - `file:tests/integration/test_search_cli_integration.py` - 8 integration tests with real graph
+  - DYK-P5-01: NetworkXGraphStore requires explicit load() call before get_all_nodes()
+  - DYK-P5-02: CliRunner cannot capture Rich Console(stderr=True) output - verify empty stdout for errors
+  - DYK-P5-03: Semantic mode requires embedding adapter wired via _create_embedding_adapter()
 
 ---
 
