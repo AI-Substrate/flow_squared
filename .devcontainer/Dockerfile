@@ -26,8 +26,8 @@ RUN mkdir -p /var/run/sshd && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
     echo "PermitRootLogin no" >> /etc/ssh/sshd_config
 
-# Create SSH auto-start script
-RUN echo '#!/bin/bash\nif [ ! -f /var/run/sshd.pid ]; then\n    sudo service ssh start\nfi' > /usr/local/share/ssh-init.sh && \
+# Create SSH auto-start script (checks if process is running, not just PID file)
+RUN echo '#!/bin/bash\nif ! pgrep -x sshd > /dev/null 2>&1; then\n    sudo service ssh start\nfi' > /usr/local/share/ssh-init.sh && \
     chmod +x /usr/local/share/ssh-init.sh
 
 # Allow vscode user to start SSH without password

@@ -33,7 +33,8 @@
       "Bash(export UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache)",
       "Skill(didyouknow)",
       "Bash(netstat:*)",
-      "Bash(UV_CACHE_DIR=.uv_cache uv run pytest:*)"
+      "Bash(UV_CACHE_DIR=.uv_cache uv run pytest:*)",
+      "Bash(ssh-keygen:*)"
     ],
     "deny": [],
     "ask": []

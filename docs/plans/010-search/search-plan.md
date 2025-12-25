@@ -597,21 +597,21 @@ class TestSearchResultToDict:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |-----|--------|------|----|------------------|-----|-------|
-| 2.1 | [ ] | Install regex module dependency | 1 | `uv add regex` succeeds, import works | - | Prerequisite |
-| 2.2 | [ ] | Write tests for RegexMatcher basic matching | 2 | Tests cover: simple patterns, field matching | - | TDD |
-| 2.3 | [ ] | Write tests for RegexMatcher timeout | 2 | Tests verify graceful timeout handling | - | TDD |
-| 2.4 | [ ] | Write tests for invalid regex handling | 1 | Tests verify clear error message | - | AC03 |
-| 2.5 | [ ] | Implement RegexMatcher to pass tests | 3 | All tests from 2.2-2.4 pass | - | Use regex module |
-| 2.6 | [ ] | Write tests for TextMatcher delegation | 2 | Tests verify text transforms to regex | - | TDD |
-| 2.7 | [ ] | Write tests for TextMatcher special characters | 2 | Tests: "file.py" finds literal dot | - | R1-09 mitigation |
-| 2.8 | [ ] | Implement TextMatcher to pass tests | 2 | All tests from 2.6-2.7 pass | - | Delegates to regex |
-| 2.9 | [ ] | Write tests for node ID scoring priority | 2 | Tests verify: exact=1.0, partial=0.8 | - | AC02 |
-| 2.10 | [ ] | Implement node ID scoring | 2 | Tests from 2.9 pass | - | In RegexMatcher |
-| 2.11 | [ ] | Write tests for auto-detection heuristics | 2 | Regex chars → regex; else → semantic | - | AC18 |
-| 2.12 | [ ] | Implement auto-detection | 2 | Tests from 2.11 pass | - | In SearchService |
-| 2.13 | [ ] | Write tests for SearchService orchestration | 2 | Tests verify mode routing | - | TDD |
-| 2.14 | [ ] | Implement SearchService | 3 | All text/regex tests pass | - | Integrates matchers |
-| 2.15 | [ ] | Integration test with fixture graph | 2 | Text search on real nodes works | - | End-to-end |
+| 2.1 | [x] | Install regex module dependency | 1 | `uv add regex` succeeds, import works | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t001-install-regex-module-dependency) | Complete [^7] |
+| 2.2 | [x] | Write tests for RegexMatcher basic matching | 2 | Tests cover: simple patterns, field matching | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t002-write-tests-for-regexmatcher-basic-matching) | Complete [^7] |
+| 2.3 | [x] | Write tests for RegexMatcher timeout | 2 | Tests verify graceful timeout handling | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t003-write-tests-for-regexmatcher-timeout-handling) | Complete [^7] |
+| 2.4 | [x] | Write tests for invalid regex handling | 1 | Tests verify clear error message | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t004-write-tests-for-invalid-regex-handling) | Complete [^7] |
+| 2.5 | [x] | Implement RegexMatcher to pass tests | 3 | All tests from 2.2-2.4 pass | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t005-implement-regexmatcher-to-pass-tests) | Complete [^7] |
+| 2.6 | [x] | Write tests for TextMatcher delegation | 2 | Tests verify text transforms to regex | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t006-write-tests-for-textmatcher-delegation) | Complete [^7] |
+| 2.7 | [x] | Write tests for TextMatcher special characters | 2 | Tests: "file.py" finds literal dot | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t007-write-tests-for-textmatcher-special-char-escaping) | Complete [^7] |
+| 2.8 | [x] | Implement TextMatcher to pass tests | 2 | All tests from 2.6-2.7 pass | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t008-implement-textmatcher-to-pass-tests) | Complete [^7] |
+| 2.9 | [x] | Write tests for node ID scoring priority | 2 | Tests verify: exact=1.0, partial=0.8 | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t009-write-tests-for-node-id-scoring-priority) | Complete [^7] |
+| 2.10 | [x] | Implement node ID scoring | 2 | Tests from 2.9 pass | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t010-implement-node-id-scoring-in-regexmatcher) | Complete [^7] |
+| 2.11 | [x] | Write tests for auto-detection heuristics | 2 | Regex chars → regex; else → semantic | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t011-t014-searchservice-combined-log) | Complete [^7] |
+| 2.12 | [x] | Implement auto-detection | 2 | Tests from 2.11 pass | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t011-t014-searchservice-combined-log) | Complete [^7] |
+| 2.13 | [x] | Write tests for SearchService orchestration | 2 | Tests verify mode routing | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t011-t014-searchservice-combined-log) | Complete [^7] |
+| 2.14 | [x] | Implement SearchService | 3 | All text/regex tests pass | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t011-t014-searchservice-combined-log) | Complete [^7] |
+| 2.15 | [x] | Integration test with fixture graph | 2 | Text search on real nodes works | [📋](tasks/phase-2-textregex-matchers/execution.log.md#task-t015-integration-test-with-fixture_graphpkl) | Complete [^7] |
 
 ### Test Examples (Write First!)
 
@@ -667,12 +667,12 @@ class TestTextMatcher:
 ```
 
 ### Acceptance Criteria
-- [ ] AC01 satisfied: Case-insensitive partial match
-- [ ] AC02 satisfied: Node ID scoring priority
-- [ ] AC03 satisfied: Regex pattern matching with error handling
-- [ ] AC04 satisfied: All text fields searched
-- [ ] AC08 satisfied: Mode exclusivity
-- [ ] AC18 satisfied: Auto-detection heuristics
+- [x] AC01 satisfied: Case-insensitive partial match
+- [x] AC02 satisfied: Node ID scoring priority
+- [x] AC03 satisfied: Regex pattern matching with error handling
+- [x] AC04 satisfied: All text fields searched
+- [x] AC08 satisfied: Mode exclusivity
+- [x] AC18 satisfied: Auto-detection heuristics
 
 ---
 
@@ -697,8 +697,11 @@ class TestTextMatcher:
 **Dependencies**:
 - Phase 0 complete (chunk offset tracking)
 - Phase 1 complete (models including ChunkMatch)
+- Phase 2 complete (SearchService with temporary AUTO→TEXT fallback)
 - Phase 4 complete (query embedding fixtures) OR use FakeEmbeddingAdapter
 - NumPy installed (verify)
+
+**⚠️ DYK-P2-01 ACTION REQUIRED**: Phase 2 temporarily routes AUTO mode to TEXT (not SEMANTIC) because SemanticMatcher doesn't exist yet. **You MUST update SearchService auto-detection to route to SEMANTIC once this phase is complete.** See `tasks/phase-2-textregex-matchers/tasks.md` for details.
 
 **Risks**:
 | Risk | Likelihood | Impact | Mitigation |
@@ -1161,6 +1164,24 @@ print(json_str)
   - DYK-03: EmbeddingField enum for type-safe field identification
   - DYK-04: Semantic match lines require chunk offsets (Phase 3 dependency)
   - DYK-05: min_similarity only applies to SEMANTIC mode
+
+[^7]: Phase 2 T001-T015 - Text/Regex Matchers (63 tests)
+  - `file:src/fs2/core/services/search/__init__.py` - Module exports (SearchError, RegexMatcher, TextMatcher, SearchService)
+  - `class:src/fs2/core/services/search/exceptions.py:SearchError` - Exception for invalid patterns
+  - `class:src/fs2/core/services/search/regex_matcher.py:RegexMatcher` - Pattern matching with `regex` module timeout protection
+  - `class:src/fs2/core/services/search/regex_matcher.py:FieldMatch` - Internal dataclass for field match results
+  - `class:src/fs2/core/services/search/text_matcher.py:TextMatcher` - Case-insensitive substring via delegation to RegexMatcher
+  - `class:src/fs2/core/services/search/search_service.py:SearchService` - Orchestration with auto-detection and mode routing
+  - `file:tests/unit/services/test_regex_matcher.py` - 24 tests for RegexMatcher (basic, timeout, error, scoring)
+  - `file:tests/unit/services/test_text_matcher.py` - 13 tests for TextMatcher (delegation, escaping)
+  - `file:tests/unit/services/test_search_service.py` - 17 tests for SearchService (auto-detection, orchestration)
+  - `file:tests/integration/test_search_integration.py` - 9 integration tests with fixture_graph.pkl
+  - DYK-P2-01: AUTO mode temporarily routes to TEXT (SEMANTIC not yet implemented)
+  - DYK-P2-02: Absolute file-level line extraction for `sed -n` accuracy
+  - DYK-P2-03: Score hierarchy (node_id exact=1.0, partial=0.8, content=0.5)
+  - DYK-P2-04: smart_content matches use node's full (start_line, end_line) range
+  - DYK-P2-05: Snippet contains full line at match start
+  - DYK-P2-06: Pattern compilation optimization (compile once, search many)
 
 ---
 
