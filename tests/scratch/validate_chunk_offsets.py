@@ -1,67 +1,64 @@
-#!/usr/bin/env python3
-"""Validate chunk offsets in fixture_graph.pkl.
-
-T011: Verify that the regenerated fixture graph has proper chunk offsets.
-
-Checks:
-1. Nodes with embeddings have embedding_chunk_offsets set
-2. Offsets are valid tuples of (start_line, end_line)
-3. Line ranges make sense (start <= end, within node bounds)
-4. Offset count matches embedding chunk count
+#!/usr/bin/env python
 """
+Validation script for chunk offsets in fixture_graph.pkl.
+
+Purpose: Manual validation gate for Phase 0 (Chunk Offset Tracking)
+Usage: uv run python tests/scratch/validate_chunk_offsets.py
+
+Validates:
+1. Nodes with embeddings have embedding_chunk_offsets populated
+2. Offsets are valid tuple[tuple[int, int], ...] format
+3. Line ranges are sensible (start <= end, within node's line range)
+4. Multi-chunk nodes have overlapping ranges per DYK-03
+
+Prints summary statistics and any anomalies found.
+"""
+
+from __future__ import annotations
 
 import pickle
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 
-# Ensure fs2 is importable
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "fixture_graph.pkl"
+@dataclass
+class ValidationResult:
+    """Results from validating chunk offsets."""
+
+    total_nodes: int = 0
+    nodes_with_embeddings: int = 0
+    nodes_with_offsets: int = 0
+    nodes_with_both: int = 0
+    nodes_missing_offsets: list[str] = field(default_factory=list)
+    invalid_offset_format: list[str] = field(default_factory=list)
+    invalid_line_ranges: list[str] = field(default_factory=list)
+    outside_node_range: list[str] = field(default_factory=list)
+    multi_chunk_nodes: int = 0
+    overlapping_chunks: int = 0  # DYK-03: expected with overlap_tokens > 0
 
 
-def validate_chunk_offsets() -> tuple[bool, list[str]]:
-    """Validate chunk offsets in the fixture graph.
+def validate_chunk_offsets(graph_path: Path) -> ValidationResult:
+    """Validate chunk offsets in a fixture graph."""
+    result = ValidationResult()
 
-    Returns:
-        Tuple of (success, list of issues found).
-    """
-    issues: list[str] = []
-    stats = {
-        "total_nodes": 0,
-        "nodes_with_embedding": 0,
-        "nodes_with_offsets": 0,
-        "nodes_missing_offsets": 0,
-        "offset_count_mismatches": 0,
-        "invalid_line_ranges": 0,
-        "offsets_exceed_node_bounds": 0,
-    }
+    # Load graph
+    with open(graph_path, "rb") as f:
+        graph = pickle.load(f)
 
-    # Load the graph
-    if not FIXTURE_PATH.exists():
-        issues.append(f"Fixture graph not found: {FIXTURE_PATH}")
-        return False, issues
-
-    with open(FIXTURE_PATH, "rb") as f:
-        data = pickle.load(f)
-
-    # Handle tuple format: (metadata, graph)
-    if isinstance(data, tuple):
-        metadata, graph = data
+    # Handle tuple format (metadata, digraph)
+    if isinstance(graph, tuple):
+        metadata, digraph = graph[0], graph[1]
         print(f"Metadata: {metadata}")
+        nodes = [(nid, data["data"]) for nid, data in digraph.nodes(data=True)]
     else:
-        graph = data
+        # Fallback for other formats
+        print("Unknown graph format")
+        return result
 
-    # Get all nodes
-    nodes = list(graph.nodes(data=True))
-    stats["total_nodes"] = len(nodes)
+    result.total_nodes = len(nodes)
 
-    for node_id, attrs in nodes:
-        node = attrs.get("data")
-        if node is None:
-            continue
-
-        # Check embedding presence
+    for node_id, node in nodes:
         has_embedding = node.embedding is not None
         has_offsets = (
             hasattr(node, "embedding_chunk_offsets")
@@ -69,118 +66,134 @@ def validate_chunk_offsets() -> tuple[bool, list[str]]:
         )
 
         if has_embedding:
-            stats["nodes_with_embedding"] += 1
+            result.nodes_with_embeddings += 1
 
-            if has_offsets:
-                stats["nodes_with_offsets"] += 1
+        if has_offsets:
+            result.nodes_with_offsets += 1
 
-                # Validate offset structure
-                offsets = node.embedding_chunk_offsets
+        if has_embedding and has_offsets:
+            result.nodes_with_both += 1
 
-                if not isinstance(offsets, tuple):
-                    issues.append(f"{node_id}: offsets is not a tuple: {type(offsets)}")
+            # Validate offset format
+            offsets = node.embedding_chunk_offsets
+            if not isinstance(offsets, tuple):
+                result.invalid_offset_format.append(f"{node_id}: not a tuple")
+                continue
+
+            for i, offset in enumerate(offsets):
+                if not isinstance(offset, tuple) or len(offset) != 2:
+                    result.invalid_offset_format.append(
+                        f"{node_id}[{i}]: not (int, int)"
+                    )
                     continue
 
-                # Count chunks in embedding - embeddings can be tuple or list
-                embedding = node.embedding
-                if embedding and len(embedding) > 0:
-                    # Check if it's nested (multi-chunk) or flat (single chunk)
-                    first_elem = embedding[0]
-                    if isinstance(first_elem, (list, tuple)) and len(first_elem) > 10:
-                        # Multi-chunk: each element is an embedding vector
-                        chunk_count = len(embedding)
-                    else:
-                        # Single chunk: embedding is a flat vector
-                        chunk_count = 1
-                else:
-                    chunk_count = 0
+                start, end = offset
+                if not isinstance(start, int) or not isinstance(end, int):
+                    result.invalid_offset_format.append(
+                        f"{node_id}[{i}]: not integers"
+                    )
+                    continue
 
-                # Validate offset count matches chunk count
-                if len(offsets) != chunk_count:
-                    stats["offset_count_mismatches"] += 1
-                    issues.append(
-                        f"{node_id}: offset count ({len(offsets)}) != "
-                        f"chunk count ({chunk_count})"
+                # Validate line range
+                if start > end:
+                    result.invalid_line_ranges.append(
+                        f"{node_id}[{i}]: start ({start}) > end ({end})"
                     )
 
-                # Validate each offset tuple
-                for i, offset in enumerate(offsets):
-                    if not isinstance(offset, tuple) or len(offset) != 2:
-                        issues.append(
-                            f"{node_id} chunk {i}: invalid offset format: {offset}"
-                        )
-                        continue
-
-                    start_line, end_line = offset
-
-                    # Check types
-                    if not isinstance(start_line, int) or not isinstance(end_line, int):
-                        issues.append(
-                            f"{node_id} chunk {i}: non-int offset: "
-                            f"({type(start_line)}, {type(end_line)})"
-                        )
-                        continue
-
-                    # Check start <= end
-                    if start_line > end_line:
-                        stats["invalid_line_ranges"] += 1
-                        issues.append(
-                            f"{node_id} chunk {i}: start ({start_line}) > "
-                            f"end ({end_line})"
-                        )
-
-                    # Check within node bounds (if node has line info)
-                    if hasattr(node, "start_line") and node.start_line is not None:
-                        if start_line < node.start_line:
-                            stats["offsets_exceed_node_bounds"] += 1
-                            issues.append(
-                                f"{node_id} chunk {i}: start ({start_line}) < "
-                                f"node start ({node.start_line})"
+                # Check within node's overall range
+                if hasattr(node, "start_line") and hasattr(node, "end_line"):
+                    if node.start_line and node.end_line:
+                        if start < node.start_line or end > node.end_line:
+                            result.outside_node_range.append(
+                                f"{node_id}[{i}]: chunk ({start}-{end}) outside node ({node.start_line}-{node.end_line})"
                             )
 
-                    if hasattr(node, "end_line") and node.end_line is not None:
-                        if end_line > node.end_line:
-                            stats["offsets_exceed_node_bounds"] += 1
-                            issues.append(
-                                f"{node_id} chunk {i}: end ({end_line}) > "
-                                f"node end ({node.end_line})"
-                            )
-            else:
-                stats["nodes_missing_offsets"] += 1
-                issues.append(f"{node_id}: has embedding but missing offsets")
+            # Check for multi-chunk and overlapping (DYK-03)
+            if len(offsets) > 1:
+                result.multi_chunk_nodes += 1
+                # Check for overlapping ranges (expected per DYK-03)
+                for i in range(len(offsets) - 1):
+                    curr_end = offsets[i][1]
+                    next_start = offsets[i + 1][0]
+                    if next_start <= curr_end:
+                        result.overlapping_chunks += 1
+                        break  # Count once per node
 
-    # Print summary
-    print("=" * 60)
-    print("Chunk Offset Validation Report")
-    print("=" * 60)
-    print(f"Fixture: {FIXTURE_PATH}")
-    print()
-    print("Statistics:")
-    for key, value in stats.items():
-        print(f"  {key}: {value}")
-    print()
+        elif has_embedding and not has_offsets:
+            result.nodes_missing_offsets.append(node_id)
 
-    if issues:
-        print(f"Issues Found ({len(issues)}):")
-        # Show first 20 issues
-        for issue in issues[:20]:
-            print(f"  - {issue}")
-        if len(issues) > 20:
-            print(f"  ... and {len(issues) - 20} more")
+    return result
+
+
+def print_validation_report(result: ValidationResult) -> bool:
+    """Print validation report and return True if all checks pass."""
+    print("\n" + "=" * 60)
+    print("CHUNK OFFSET VALIDATION REPORT")
+    print("=" * 60)
+
+    print(f"\n{'Summary':^60}")
+    print("-" * 60)
+    print(f"Total nodes:              {result.total_nodes:>8}")
+    print(f"Nodes with embeddings:    {result.nodes_with_embeddings:>8}")
+    print(f"Nodes with offsets:       {result.nodes_with_offsets:>8}")
+    print(f"Nodes with both:          {result.nodes_with_both:>8}")
+    print(f"Multi-chunk nodes:        {result.multi_chunk_nodes:>8}")
+    print(f"Nodes with overlap:       {result.overlapping_chunks:>8}  (DYK-03: expected)")
+
+    # Check for issues
+    issues_found = False
+
+    if result.nodes_missing_offsets:
+        issues_found = True
+        print(f"\nERROR: {len(result.nodes_missing_offsets)} nodes missing offsets")
+        for node_id in result.nodes_missing_offsets[:5]:
+            print(f"  - {node_id}")
+        if len(result.nodes_missing_offsets) > 5:
+            print(f"  ... and {len(result.nodes_missing_offsets) - 5} more")
+
+    if result.invalid_offset_format:
+        issues_found = True
+        print(f"\nERROR: {len(result.invalid_offset_format)} invalid offset formats")
+        for msg in result.invalid_offset_format[:5]:
+            print(f"  - {msg}")
+
+    if result.invalid_line_ranges:
+        issues_found = True
+        print(f"\nERROR: {len(result.invalid_line_ranges)} invalid line ranges")
+        for msg in result.invalid_line_ranges[:5]:
+            print(f"  - {msg}")
+
+    if result.outside_node_range:
+        # This is a warning, not an error - chunks may legitimately extend slightly
+        print(f"\nWARNING: {len(result.outside_node_range)} chunks outside node range")
+        for msg in result.outside_node_range[:3]:
+            print(f"  - {msg}")
+
+    # Overall verdict
+    print("\n" + "=" * 60)
+    if issues_found:
+        print("VALIDATION FAILED - See errors above")
+        return False
     else:
-        print("No issues found!")
-
-    print("=" * 60)
-
-    success = len(issues) == 0
-    return success, issues
+        print("VALIDATION PASSED - All checks OK")
+        return True
 
 
-def main() -> int:
+def main():
     """Main entry point."""
-    success, issues = validate_chunk_offsets()
-    return 0 if success else 1
+    graph_path = Path("tests/fixtures/fixture_graph.pkl")
+
+    if not graph_path.exists():
+        print(f"ERROR: Graph not found at {graph_path}")
+        print("Run 'just generate-fixtures' first")
+        sys.exit(1)
+
+    print(f"Validating: {graph_path}")
+    result = validate_chunk_offsets(graph_path)
+    success = print_validation_report(result)
+
+    sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

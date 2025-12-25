@@ -89,8 +89,8 @@ flowchart TD
         T007["T007: Write CodeNode offset tests ✓"]:::completed
         T008["T008: Add CodeNode offset field ✓"]:::completed
         T009["T009: Update EmbeddingService ✓"]:::completed
-        T010["T010: Regenerate fixture_graph.pkl"]:::pending
-        T011["T011: Validate chunk offsets in graph"]:::pending
+        T010["T010: Regenerate fixture_graph.pkl ✓"]:::completed
+        T011["T011: Validate chunk offsets in graph ✓"]:::completed
 
         T001 --> T002
         T002 --> T003
@@ -119,13 +119,13 @@ flowchart TD
     end
 
     subgraph Fixtures["Fixtures"]
-        F6["/tests/fixtures/fixture_graph.pkl"]:::pending
+        F6["/tests/fixtures/fixture_graph.pkl ✓"]:::completed
         F7["/tests/fixtures/fixture_graph.pkl.backup ✓"]:::completed
     end
 
     subgraph Scripts["Scripts"]
         F8["/scripts/generate_fixture_graph.py"]:::pending
-        F9["/tests/scratch/validate_chunk_offsets.py"]:::pending
+        F9["/tests/scratch/validate_chunk_offsets.py ✓"]:::completed
     end
 
     T001 -.-> F6
@@ -158,8 +158,8 @@ flowchart TD
 | T007 | CodeNode Tests | test_code_node_embedding.py | ✅ Complete | TDD RED: 9 tests failing |
 | T008 | CodeNode Model | code_node.py | ✅ Complete | TDD GREEN: 9 new + 41 existing pass |
 | T009 | EmbeddingService | embedding_service.py | ✅ Complete | Offsets wired + 3 integration tests |
-| T010 | Fixture Generation | fixture_graph.pkl, generate_fixture_graph.py | ⬜ Pending | Regenerate with new fields |
-| T011 | Validation Script | validate_chunk_offsets.py | ⬜ Pending | Manual verification of offsets |
+| T010 | Fixture Generation | fixture_graph.pkl, generate_fixture_graph.py | ✅ Complete | 486 nodes, 451 with offsets |
+| T011 | Validation Script | validate_chunk_offsets.py | ✅ Complete | 451 nodes validated, 28 multi-chunk |
 
 ---
 
@@ -176,8 +176,8 @@ flowchart TD
 | [x] | T007 | Write tests for CodeNode.embedding_chunk_offsets field | 2 | Test | T006 | /workspaces/flow_squared/tests/unit/models/test_code_node_embedding.py | Tests verify: new field, serialization, None default | – | TDD: tests fail initially |
 | [x] | T008 | Add embedding_chunk_offsets field to CodeNode | 2 | Core | T007 | /workspaces/flow_squared/src/fs2/core/models/code_node.py | Tests from T007 pass, pickle load still works | – | Per Discovery 01: None default |
 | [x] | T009 | Update EmbeddingService to populate chunk offsets on CodeNode | 3 | Integration | T008 | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py | Integration test shows offsets populated correctly | – | Wire _chunk_content → CodeNode |
-| [ ] | T010 | Fix generate_fixture_graph.py to use ScanPipeline with EmbeddingService, then regenerate fixtures | 3 | Integration | T009 | /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl, /workspaces/flow_squared/scripts/generate_fixture_graph.py | `just generate-fixtures` succeeds, uses real EmbeddingService code path | 001-subtask ✅ | DYK-01: Script bypasses EmbeddingService · Subtask 001 complete [^1] |
-| [ ] | T011 | Create validation script to verify chunk offsets in generated graph | 2 | Validation | T010 | /workspaces/flow_squared/tests/scratch/validate_chunk_offsets.py | Script confirms: nodes have offsets, offsets are valid tuples, line ranges make sense | – | Manual validation gate |
+| [x] | T010 | Fix generate_fixture_graph.py to use ScanPipeline with EmbeddingService, then regenerate fixtures | 3 | Integration | T009 | /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl, /workspaces/flow_squared/scripts/generate_fixture_graph.py | `just generate-fixtures` succeeds, uses real EmbeddingService code path | 001-subtask ✅ | DYK-01: Script bypasses EmbeddingService · Subtask 001 complete [^1] |
+| [x] | T011 | Create validation script to verify chunk offsets in generated graph | 2 | Validation | T010 | /workspaces/flow_squared/tests/scratch/validate_chunk_offsets.py | Script confirms: nodes have offsets, offsets are valid tuples, line ranges make sense | – | Manual validation gate |
 
 ---
 
@@ -381,17 +381,17 @@ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run python -m ruff check \
 
 ### Ready Check
 
-- [ ] Discovery 01 constraints understood (None defaults, backward compat)
-- [ ] Plan tasks 0.1-0.10 mapped to T001-T011 (with regeneration + validation)
-- [ ] All absolute paths verified
-- [ ] Test files identified for each validation
-- [ ] Backup strategy in place (T001)
-- [ ] Baseline test count will be recorded (T002)
-- [ ] Fixture regeneration via `just generate-fixtures` (T010)
-- [ ] Manual validation script for chunk offsets (T011)
-- [ ] ADR constraints mapped to tasks - N/A (no ADRs exist)
+- [x] Discovery 01 constraints understood (None defaults, backward compat)
+- [x] Plan tasks 0.1-0.10 mapped to T001-T011 (with regeneration + validation)
+- [x] All absolute paths verified
+- [x] Test files identified for each validation
+- [x] Backup strategy in place (T001) ✓
+- [x] Baseline test count recorded (T002): 131 → 190 tests
+- [x] Fixture regeneration via `just generate-fixtures-quick` (T010) ✓
+- [x] Manual validation script for chunk offsets (T011) ✓
+- [x] ADR constraints mapped to tasks - N/A (no ADRs exist)
 
-**Awaiting GO/NO-GO from human sponsor.**
+**Phase Complete** - All tasks executed and validated.
 
 ---
 
@@ -400,6 +400,7 @@ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run python -m ruff check \
 | Footnote | Description | Added By | Date |
 |----------|-------------|----------|------|
 | [^1] | Subtask 001 ST001-ST005 complete - Added CLI params for fixture generation (7 files modified) | plan-6a | 2025-12-25 |
+| [^2] | T010-T011 - Fixture regeneration and validation (451 nodes, 28 multi-chunk, all validated) | plan-6 | 2025-12-25 |
 
 _Footnotes synchronized with plan Change Footnotes Ledger._
 

@@ -1114,7 +1114,7 @@ print(json_str)
 ## Progress Tracking
 
 ### Phase Completion Checklist
-- [ ] Phase 0: Chunk Offset Tracking - PENDING
+- [x] Phase 0: Chunk Offset Tracking - COMPLETE
 - [ ] Phase 1: Core Models - PENDING
 - [ ] Phase 2: Text/Regex Matchers - PENDING
 - [ ] Phase 3: Semantic Matcher - PENDING
@@ -1140,7 +1140,9 @@ print(json_str)
   - `file:justfile` - Updated generate-fixtures with two-step recipe
   - `file:scripts/enrich_fixture_smart_content.py` - New script for smart_content enrichment
 
-[^2]: [To be added during implementation via plan-6a]
+[^2]: Phase 0 T010-T011 - Fixture regeneration and validation
+  - `file:tests/fixtures/fixture_graph.pkl` - Regenerated with 451 nodes, all with chunk offsets
+  - `file:tests/scratch/validate_chunk_offsets.py` - Validation script (28 multi-chunk nodes validated)
 [^3]: [To be added during implementation via plan-6a]
 [^4]: [To be added during implementation via plan-6a]
 [^5]: [To be added during implementation via plan-6a]

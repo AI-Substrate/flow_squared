@@ -434,3 +434,134 @@ $ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run python scripts/generate
 **Completed**: 2025-12-24T04:56:00Z
 
 ---
+
+## Task T010: Regenerate fixture_graph.pkl
+
+**Started**: 2025-12-25T00:25:00Z
+**Status**: ✅ Complete
+**Dossier Task ID**: T010
+**Plan Task ID**: 0.10
+
+### What I Did
+Regenerated fixture_graph.pkl using `just generate-fixtures-quick` (scan + embeddings, no smart_content).
+The previous fixture was from 2025-12-21 and had no chunk offsets.
+
+**Note**: Subtask 001 added CLI params (`--graph-file`, `--scan-path`) that enabled direct fixture generation via `fs2 scan` instead of the legacy `generate_fixture_graph.py` script. The `just generate-fixtures` now uses these CLI options.
+
+### Evidence
+```bash
+$ just generate-fixtures-quick
+uv run fs2 --graph-file tests/fixtures/fixture_graph.pkl scan \
+    --scan-path tests/fixtures/samples \
+    --no-smart-content
+
+╭─────────────────────────────── Scan Complete ────────────────────────────────╮
+│ Status: SUCCESS                                                              │
+│ Files: 19                                                                    │
+│ Nodes: 486                                                                   │
+│ Embeddings: 451 enriched, 0 preserved, 0 errors                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+# Verification of chunk offsets
+$ uv run python -c "..."
+=== Fixture Graph Statistics ===
+Metadata: {'format_version': '1.0', 'created_at': '2025-12-25T00:25:13.065078+00:00', ...}
+Total nodes in DiGraph: 451
+
+Nodes with embeddings: 451
+Nodes with chunk_offsets: 451
+Nodes with both: 451
+
+=== Sample Chunk Offsets (first 5) ===
+file:tests/fixtures/samples/terraform/main.tf:
+  offsets = ((1, 133), (115, 233), (216, 257))
+block:tests/fixtures/samples/terraform/main.tf:terraform:
+  offsets = ((11, 28),)
+...
+```
+
+### Files Changed
+- `tests/fixtures/fixture_graph.pkl` — Regenerated with 451 nodes, all with chunk offsets
+
+### Discoveries
+- Subtask 001 provided the CLI infrastructure (`--graph-file`, `--scan-path`) that makes fixture generation cleaner
+- Old `generate_fixture_graph.py` script is no longer needed for scan+embeddings (smart_content uses separate enrichment script)
+
+**Completed**: 2025-12-25T00:28:00Z
+
+---
+
+## Task T011: Create validation script for chunk offsets
+
+**Started**: 2025-12-25T00:30:00Z
+**Status**: ✅ Complete
+**Dossier Task ID**: T011
+**Plan Task ID**: 0.11 (validation gate, not in original plan task list)
+
+### What I Did
+Created `tests/scratch/validate_chunk_offsets.py` to validate the regenerated fixture graph:
+- Loads fixture_graph.pkl and extracts nodes
+- Validates all nodes with embeddings have chunk offsets
+- Validates offset format is `tuple[tuple[int, int], ...]`
+- Validates line ranges (start <= end)
+- Counts multi-chunk nodes and overlapping chunks (DYK-03)
+- Prints summary statistics
+
+### Evidence
+```bash
+$ uv run python tests/scratch/validate_chunk_offsets.py
+Validating: tests/fixtures/fixture_graph.pkl
+Metadata: {'format_version': '1.0', 'created_at': '2025-12-25T00:25:13.065078+00:00', ...}
+
+============================================================
+CHUNK OFFSET VALIDATION REPORT
+============================================================
+
+                          Summary
+------------------------------------------------------------
+Total nodes:                   451
+Nodes with embeddings:         451
+Nodes with offsets:            451
+Nodes with both:               451
+Multi-chunk nodes:              28
+Nodes with overlap:             28  (DYK-03: expected)
+
+============================================================
+VALIDATION PASSED - All checks OK
+```
+
+### Files Changed
+- `tests/scratch/validate_chunk_offsets.py` — Created validation script (manual validation gate)
+
+### Discoveries
+- 28 of 451 nodes have multiple chunks (>1 chunk each)
+- All 28 multi-chunk nodes have overlapping chunks (per DYK-03: overlap_tokens > 0)
+- No validation errors found
+
+**Completed**: 2025-12-25T00:32:00Z
+
+---
+
+## Phase 0 Complete
+
+**Phase Status**: ✅ Complete
+**All 11 tasks completed**
+
+### Summary
+- T001-T002: Setup (backup, baseline tests)
+- T003-T004: ChunkItem line offset fields (TDD)
+- T005-T006: Line tracking in chunking (TDD)
+- T007-T008: CodeNode embedding_chunk_offsets field (TDD)
+- T009: EmbeddingService integration (wiring)
+- T010: Fixture regeneration (via `just generate-fixtures-quick`)
+- T011: Validation script (manual gate)
+
+### Artifacts
+- `tests/fixtures/fixture_graph.pkl` — 451 nodes with chunk offsets
+- `tests/fixtures/fixture_graph.pkl.backup` — Backup of original
+- `tests/scratch/validate_chunk_offsets.py` — Validation script
+
+### Next Phase
+Phase 1: Core Models (SearchMode, QuerySpec, SearchResult, ChunkMatch)
+
+---
