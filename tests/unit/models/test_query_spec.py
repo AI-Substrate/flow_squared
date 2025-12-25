@@ -67,13 +67,13 @@ class TestQuerySpecDefaults:
         """
         Purpose: Proves default values applied correctly
         Quality Contribution: Documents expected defaults
-        Acceptance Criteria: limit=20, min_similarity=0.5
+        Acceptance Criteria: limit=20, min_similarity=0.25 (per DYK-P3-04)
         """
         from fs2.core.models.search import QuerySpec, SearchMode
 
         spec = QuerySpec(pattern="test", mode=SearchMode.TEXT)
         assert spec.limit == 20
-        assert spec.min_similarity == 0.5
+        assert spec.min_similarity == 0.25
 
     def test_pattern_preserved_exactly(self):
         """

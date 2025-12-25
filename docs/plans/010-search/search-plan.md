@@ -701,7 +701,7 @@ class TestTextMatcher:
 - Phase 4 complete (query embedding fixtures) OR use FakeEmbeddingAdapter
 - NumPy installed (verify)
 
-**⚠️ DYK-P2-01 ACTION REQUIRED**: Phase 2 temporarily routes AUTO mode to TEXT (not SEMANTIC) because SemanticMatcher doesn't exist yet. **You MUST update SearchService auto-detection to route to SEMANTIC once this phase is complete.** See `tasks/phase-2-textregex-matchers/tasks.md` for details.
+**✅ DYK-P2-01 RESOLVED**: Phase 3 updated AUTO mode to route to SEMANTIC with TEXT fallback. See [^10] for implementation details.
 
 **Risks**:
 | Risk | Likelihood | Impact | Mitigation |
@@ -714,19 +714,19 @@ class TestTextMatcher:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |-----|--------|------|----|------------------|-----|-------|
-| 3.1 | [ ] | Verify NumPy installed | 1 | `python -c "import numpy"` succeeds | - | Prerequisite |
-| 3.2 | [ ] | Write tests for cosine similarity function | 2 | Tests verify correct similarity scores | - | TDD |
-| 3.3 | [ ] | Implement cosine similarity with NumPy | 2 | Tests from 3.2 pass | - | Vectorized |
-| 3.4 | [ ] | Write tests for chunk iteration | 2 | Tests verify ALL chunks searched, best found | - | **Discovery 05** |
-| 3.5 | [ ] | Write tests for EmbeddingMatcher basic matching | 2 | Tests verify nodes ranked by similarity | - | TDD |
-| 3.6 | [ ] | Write tests for dual embedding search | 2 | Tests verify both fields searched, best used | - | AC06 |
-| 3.7 | [ ] | Write tests for min_similarity threshold | 2 | Tests verify filtering at 0.5 | - | AC05 |
-| 3.8 | [ ] | Implement EmbeddingMatcher with chunk iteration | 3 | All tests from 3.4-3.7 pass | - | Use ChunkMatch |
-| 3.9 | [ ] | Write tests for missing embeddings error | 2 | Tests verify exact error message | - | AC07 |
-| 3.10 | [ ] | Implement missing embeddings check | 2 | Tests from 3.9 pass | - | In SearchService |
-| 3.11 | [ ] | Write tests for query embedding injection | 2 | Tests verify adapter called | - | AC14 |
-| 3.12 | [ ] | Implement query embedding via adapter | 2 | Tests from 3.11 pass | - | DI pattern |
-| 3.13 | [ ] | Integration test with fixture graph | 2 | Semantic search on multi-chunk nodes | - | End-to-end |
+| 3.1 | [x] | Verify NumPy installed | 1 | `python -c "import numpy"` succeeds | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t001) | Prerequisite · NumPy 2.4.0 [^9] |
+| 3.2 | [x] | Write tests for cosine similarity function | 2 | Tests verify correct similarity scores | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | TDD [^10] |
+| 3.3 | [x] | Implement cosine similarity with NumPy | 2 | Tests from 3.2 pass | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | Vectorized + clamp negatives [^10] |
+| 3.4 | [x] | Write tests for chunk iteration | 2 | Tests verify ALL chunks searched, best found | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | **Discovery 05** [^10] |
+| 3.5 | [x] | Write tests for EmbeddingMatcher basic matching | 2 | Tests verify nodes ranked by similarity | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | TDD [^10] |
+| 3.6 | [x] | Write tests for dual embedding search | 2 | Tests verify both fields searched, best used | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | AC06 [^10] |
+| 3.7 | [x] | Write tests for min_similarity threshold | 2 | Tests verify filtering at 0.25 | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | AC05 · DYK-P3-04 [^10] |
+| 3.8 | [x] | Implement EmbeddingMatcher with chunk iteration | 3 | All tests from 3.4-3.7 pass | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | SemanticMatcher [^10] |
+| 3.9 | [x] | Write tests for missing embeddings error | 2 | Tests verify exact error message | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | AC07 + fallback [^10] |
+| 3.10 | [x] | Implement missing embeddings check | 2 | Tests from 3.9 pass | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | AUTO fallback + warning [^10] |
+| 3.11 | [x] | Write tests for query embedding injection | 2 | Tests verify adapter called | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | AC14 [^10] |
+| 3.12 | [x] | Implement query embedding via adapter | 2 | Tests from 3.11 pass | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | Native async [^10] |
+| 3.13 | [x] | Integration test with fixture graph | 2 | Semantic search on multi-chunk nodes | [📋](tasks/phase-3-semantic-matcher/execution.log.md#task-t002-t013) | 89 tests passing [^10] |
 
 ### Test Examples (Write First!)
 
@@ -1119,11 +1119,13 @@ print(json_str)
 ### Phase Completion Checklist
 - [x] Phase 0: Chunk Offset Tracking - COMPLETE
 - [x] Phase 1: Core Models - COMPLETE (69 tests, 10/10 tasks)
-- [ ] Phase 2: Text/Regex Matchers - PENDING
-- [ ] Phase 3: Semantic Matcher - PENDING
-- [ ] Phase 4: Query Embedding Fixtures - PENDING
+- [x] Phase 2: Text/Regex Matchers - COMPLETE (63 tests, 15/15 tasks)
+- [x] Phase 3: Semantic Matcher - COMPLETE (89 tests, 13/13 tasks, T014-T017 deferred)
+- [-] Phase 4: Query Embedding Fixtures - MERGED INTO PHASE 3 (deferred)
 - [ ] Phase 5: CLI Integration - PENDING
 - [ ] Phase 6: Documentation and Integration Testing - PENDING
+
+**Overall Progress**: 4/6 phases complete (Phase 4 merged into Phase 3)
 
 ### STOP Rule
 **IMPORTANT**: This plan must be complete before creating tasks. After writing this plan:
@@ -1182,6 +1184,33 @@ print(json_str)
   - DYK-P2-04: smart_content matches use node's full (start_line, end_line) range
   - DYK-P2-05: Snippet contains full line at match start
   - DYK-P2-06: Pattern compilation optimization (compile once, search many)
+
+[^8]: Phase 3 T000 - Async conversion + min_similarity 0.25
+  - `method:src/fs2/core/services/search/search_service.py:SearchService.search` - Converted to async
+  - `method:src/fs2/core/services/search/regex_matcher.py:RegexMatcher.match` - Converted to async
+  - `method:src/fs2/core/services/search/regex_matcher.py:RegexMatcher.match_raw` - Converted to async
+  - `method:src/fs2/core/services/search/text_matcher.py:TextMatcher.match` - Converted to async
+  - `file:src/fs2/config/objects.py` - SearchConfig.min_similarity: 0.5 → 0.25
+  - `file:src/fs2/core/models/search/query_spec.py` - QuerySpec.min_similarity: 0.5 → 0.25
+  - All test files updated to use async/await with @pytest.mark.asyncio
+  - DYK-P3-01: Async throughout for EmbeddingAdapter.embed_text() compatibility
+
+[^9]: Phase 3 T001 - NumPy installation
+  - `file:pyproject.toml` - Added numpy>=1.24 to dependencies
+  - NumPy 2.4.0 installed via uv sync
+
+[^10]: Phase 3 T002-T013 - Core SemanticMatcher implementation (89 tests)
+  - `function:src/fs2/core/services/search/semantic_matcher.py:cosine_similarity` - NumPy vectorized with negative clamping
+  - `class:src/fs2/core/services/search/semantic_matcher.py:SemanticMatcher` - Embedding-based search with chunk iteration
+  - `method:src/fs2/core/services/search/semantic_matcher.py:SemanticMatcher.match` - Dual embedding search
+  - `file:src/fs2/core/services/search/__init__.py` - Updated exports (SemanticMatcher, cosine_similarity)
+  - `file:tests/unit/services/test_semantic_matcher.py` - 21 new tests for SemanticMatcher
+  - `file:tests/unit/services/test_search_service.py` - 22 tests (updated for semantic fallback)
+  - DYK-P3-02: AUTO → SEMANTIC with TEXT fallback if no embeddings
+  - DYK-P3-03: Query embedding fixtures deferred (set_response() sufficient)
+  - DYK-P3-04: min_similarity 0.25, clamp negative scores to 0
+  - DYK-P3-05: Partial embedding coverage warning (proceed + log)
+  - Note: T014-T017 (query fixtures) deferred to future iteration
 
 ---
 

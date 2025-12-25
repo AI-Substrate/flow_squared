@@ -27,14 +27,14 @@ class TestSearchConfigDefaults:
 
     def test_default_min_similarity(self):
         """
-        Purpose: Proves default min_similarity is 0.5
+        Purpose: Proves default min_similarity is 0.25 (per DYK-P3-04)
         Quality Contribution: Documents expected default
-        Acceptance Criteria: min_similarity == 0.5
+        Acceptance Criteria: min_similarity == 0.25
         """
         from fs2.config.objects import SearchConfig
 
         config = SearchConfig()
-        assert config.min_similarity == 0.5
+        assert config.min_similarity == 0.25
 
     def test_default_regex_timeout(self):
         """

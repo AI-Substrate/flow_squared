@@ -11,6 +11,7 @@ Per tasks.md:
 Per DYK-P2-02: Line numbers must be absolute file-level lines.
 Per DYK-P2-05: Snippet contains full matched line.
 Per DYK-P2-06: Pattern compilation optimization (compile once, search many).
+Per DYK-P3-01: Tests are async for compatibility with SemanticMatcher.
 """
 
 import pytest
@@ -77,7 +78,8 @@ def create_multiline_node(
 class TestRegexMatcherBasicMatching:
     """Basic regex pattern matching tests (T002)."""
 
-    def test_simple_pattern_matches_node_id(self) -> None:
+    @pytest.mark.asyncio
+    async def test_simple_pattern_matches_node_id(self) -> None:
         """Proves basic regex matching against node_id works (AC03).
 
         Purpose: Core functionality - regex pattern finds matching nodes.
@@ -89,7 +91,7 @@ class TestRegexMatcherBasicMatching:
         matcher = RegexMatcher(timeout=2.0)
         nodes = [create_node("callable:test.py:SearchService")]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="Service", mode=SearchMode.REGEX),
             nodes,
         )
@@ -97,7 +99,8 @@ class TestRegexMatcherBasicMatching:
         assert len(results) == 1
         assert results[0].node_id == "callable:test.py:SearchService"
 
-    def test_pattern_matches_content(self) -> None:
+    @pytest.mark.asyncio
+    async def test_pattern_matches_content(self) -> None:
         """Proves regex matching against content field works (AC04).
 
         Purpose: Search all text fields - content field matching.
@@ -114,7 +117,7 @@ class TestRegexMatcherBasicMatching:
             )
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="authenticate", mode=SearchMode.REGEX),
             nodes,
         )
@@ -122,7 +125,8 @@ class TestRegexMatcherBasicMatching:
         assert len(results) == 1
         assert results[0].match_field == "content"
 
-    def test_pattern_matches_smart_content(self) -> None:
+    @pytest.mark.asyncio
+    async def test_pattern_matches_smart_content(self) -> None:
         """Proves regex matching against smart_content field works (AC04).
 
         Purpose: Search all text fields - smart_content field matching.
@@ -140,7 +144,7 @@ class TestRegexMatcherBasicMatching:
             )
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="authorization", mode=SearchMode.REGEX),
             nodes,
         )
@@ -148,7 +152,8 @@ class TestRegexMatcherBasicMatching:
         assert len(results) == 1
         assert results[0].match_field == "smart_content"
 
-    def test_case_sensitive_matching_by_default(self) -> None:
+    @pytest.mark.asyncio
+    async def test_case_sensitive_matching_by_default(self) -> None:
         """Proves regex mode is case-sensitive by default.
 
         Purpose: Regex mode respects case.
@@ -160,14 +165,15 @@ class TestRegexMatcherBasicMatching:
         matcher = RegexMatcher(timeout=2.0)
         nodes = [create_node("callable:test.py:SearchService")]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="searchservice", mode=SearchMode.REGEX),
             nodes,
         )
 
         assert len(results) == 0  # Case-sensitive, no match
 
-    def test_case_insensitive_flag_in_pattern(self) -> None:
+    @pytest.mark.asyncio
+    async def test_case_insensitive_flag_in_pattern(self) -> None:
         """Proves (?i) flag enables case-insensitive matching.
 
         Purpose: Regex supports inline case-insensitive flag.
@@ -179,14 +185,15 @@ class TestRegexMatcherBasicMatching:
         matcher = RegexMatcher(timeout=2.0)
         nodes = [create_node("callable:test.py:SearchService")]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="(?i)searchservice", mode=SearchMode.REGEX),
             nodes,
         )
 
         assert len(results) == 1
 
-    def test_empty_results_when_no_matches(self) -> None:
+    @pytest.mark.asyncio
+    async def test_empty_results_when_no_matches(self) -> None:
         """Proves non-matching pattern returns empty list.
 
         Purpose: No matches is a valid result, not an error.
@@ -198,14 +205,15 @@ class TestRegexMatcherBasicMatching:
         matcher = RegexMatcher(timeout=2.0)
         nodes = [create_node("callable:test.py:func")]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="nonexistent_pattern_xyz", mode=SearchMode.REGEX),
             nodes,
         )
 
         assert results == []
 
-    def test_multiple_nodes_matched(self) -> None:
+    @pytest.mark.asyncio
+    async def test_multiple_nodes_matched(self) -> None:
         """Proves multiple nodes can match the same pattern.
 
         Purpose: Pattern can match across multiple nodes.
@@ -221,7 +229,7 @@ class TestRegexMatcherBasicMatching:
             create_node("callable:test.py:Helper"),
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="Service", mode=SearchMode.REGEX),
             nodes,
         )
@@ -243,7 +251,8 @@ class TestRegexMatcherTimeout:
     Per Discovery 04: Use regex module with timeout parameter.
     """
 
-    def test_timeout_returns_empty_not_exception(self) -> None:
+    @pytest.mark.asyncio
+    async def test_timeout_returns_empty_not_exception(self) -> None:
         """Proves catastrophic backtracking is handled gracefully (Discovery 04).
 
         Purpose: ReDoS patterns don't hang the system.
@@ -261,7 +270,7 @@ class TestRegexMatcherTimeout:
         nodes = [create_node("test:node", content="a" * 30 + "X")]
 
         # Should not hang, should return within timeout
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern=evil_pattern, mode=SearchMode.REGEX),
             nodes,
         )
@@ -269,7 +278,8 @@ class TestRegexMatcherTimeout:
         # Graceful degradation - empty results, no exception
         assert isinstance(results, list)
 
-    def test_normal_patterns_not_affected_by_timeout(self) -> None:
+    @pytest.mark.asyncio
+    async def test_normal_patterns_not_affected_by_timeout(self) -> None:
         """Proves normal patterns work fine with timeout protection.
 
         Purpose: Timeout protection doesn't break normal use.
@@ -286,7 +296,7 @@ class TestRegexMatcherTimeout:
             )
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern=r"def\s+\w+", mode=SearchMode.REGEX),
             nodes,
         )
@@ -305,7 +315,8 @@ class TestRegexMatcherErrorHandling:
     Per AC03: Clear error messages for invalid patterns.
     """
 
-    def test_invalid_regex_raises_clear_error(self) -> None:
+    @pytest.mark.asyncio
+    async def test_invalid_regex_raises_clear_error(self) -> None:
         """Proves invalid regex raises SearchError with clear message (AC03).
 
         Purpose: User gets actionable error for bad patterns.
@@ -319,14 +330,15 @@ class TestRegexMatcherErrorHandling:
         nodes = [create_node("test:node")]
 
         with pytest.raises(SearchError) as exc_info:
-            matcher.match(
+            await matcher.match(
                 QuerySpec(pattern="[invalid", mode=SearchMode.REGEX),
                 nodes,
             )
 
         assert "Invalid regex pattern" in str(exc_info.value)
 
-    def test_unclosed_group_error(self) -> None:
+    @pytest.mark.asyncio
+    async def test_unclosed_group_error(self) -> None:
         """Proves unclosed group regex raises clear error.
 
         Purpose: Common regex mistake gets clear error.
@@ -340,7 +352,7 @@ class TestRegexMatcherErrorHandling:
         nodes = [create_node("test:node")]
 
         with pytest.raises(SearchError) as exc_info:
-            matcher.match(
+            await matcher.match(
                 QuerySpec(pattern="(unclosed", mode=SearchMode.REGEX),
                 nodes,
             )
@@ -360,7 +372,8 @@ class TestRegexMatcherLineExtraction:
     This enables sed -n 'Np' accuracy.
     """
 
-    def test_match_start_line_is_absolute_file_line(self) -> None:
+    @pytest.mark.asyncio
+    async def test_match_start_line_is_absolute_file_line(self) -> None:
         """Proves match_start_line is absolute file line, not relative.
 
         Purpose: Line numbers work with sed/editor navigation.
@@ -375,7 +388,7 @@ class TestRegexMatcherLineExtraction:
         content = "line 1\nline 2\nTARGET match here\nline 4"
         nodes = [create_multiline_node("callable:test.py:func", content, start_line=140)]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="TARGET", mode=SearchMode.REGEX),
             nodes,
         )
@@ -385,7 +398,8 @@ class TestRegexMatcherLineExtraction:
         # Absolute: 140 + 2 = 142
         assert results[0].match_start_line == 142
 
-    def test_match_end_line_for_multiline_match(self) -> None:
+    @pytest.mark.asyncio
+    async def test_match_end_line_for_multiline_match(self) -> None:
         """Proves match_end_line is correctly calculated for multiline matches.
 
         Purpose: Multiline regex matches report correct end line.
@@ -400,7 +414,7 @@ class TestRegexMatcherLineExtraction:
         content = "line 1\nSTART of\nmultiline\nmatch END\nline 5"
         nodes = [create_multiline_node("callable:test.py:func", content, start_line=10)]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern=r"(?s)START.*END", mode=SearchMode.REGEX),
             nodes,
         )
@@ -411,7 +425,8 @@ class TestRegexMatcherLineExtraction:
         # END is at line 13 (10 + 3 newlines before it)
         assert results[0].match_end_line == 13
 
-    def test_single_line_match_has_same_start_and_end(self) -> None:
+    @pytest.mark.asyncio
+    async def test_single_line_match_has_same_start_and_end(self) -> None:
         """Proves single-line match has equal start and end lines.
 
         Purpose: Single-line matches are clean.
@@ -424,7 +439,7 @@ class TestRegexMatcherLineExtraction:
         content = "line 1\nMATCH here\nline 3"
         nodes = [create_multiline_node("callable:test.py:func", content, start_line=100)]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="MATCH", mode=SearchMode.REGEX),
             nodes,
         )
@@ -445,7 +460,8 @@ class TestRegexMatcherSmartContentHandling:
     Per DYK-P2-04: smart_content matches use node's full line range.
     """
 
-    def test_smart_content_match_uses_node_full_range(self) -> None:
+    @pytest.mark.asyncio
+    async def test_smart_content_match_uses_node_full_range(self) -> None:
         """Proves smart_content matches use node.start_line to node.end_line.
 
         Purpose: AI summaries don't map to file lines precisely.
@@ -465,7 +481,7 @@ class TestRegexMatcherSmartContentHandling:
             )
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="session", mode=SearchMode.REGEX),
             nodes,
         )
@@ -476,7 +492,8 @@ class TestRegexMatcherSmartContentHandling:
         assert results[0].match_start_line == 50
         assert results[0].match_end_line == 60
 
-    def test_none_content_handled_gracefully(self) -> None:
+    @pytest.mark.asyncio
+    async def test_none_content_handled_gracefully(self) -> None:
         """Proves content=None doesn't crash, searches smart_content.
 
         Purpose: Graceful handling when content is None.
@@ -509,7 +526,7 @@ class TestRegexMatcherSmartContentHandling:
             smart_content="Searchable summary text",
         )
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="Searchable", mode=SearchMode.REGEX),
             [node],
         )
@@ -529,7 +546,8 @@ class TestRegexMatcherSnippetExtraction:
     Per DYK-P2-05: snippet contains full line where match starts.
     """
 
-    def test_snippet_contains_full_matched_line(self) -> None:
+    @pytest.mark.asyncio
+    async def test_snippet_contains_full_matched_line(self) -> None:
         """Proves snippet contains the complete line with the match.
 
         Purpose: CLI-friendly context around match.
@@ -542,7 +560,7 @@ class TestRegexMatcherSnippetExtraction:
         content = "line 1\nhere is the MATCH on this line\nline 3"
         nodes = [create_multiline_node("test:node", content)]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="MATCH", mode=SearchMode.REGEX),
             nodes,
         )
@@ -550,7 +568,8 @@ class TestRegexMatcherSnippetExtraction:
         assert len(results) == 1
         assert results[0].snippet == "here is the MATCH on this line"
 
-    def test_snippet_for_node_id_match(self) -> None:
+    @pytest.mark.asyncio
+    async def test_snippet_for_node_id_match(self) -> None:
         """Proves node_id matches use node_id as snippet.
 
         Purpose: For node_id matches, show the node_id itself.
@@ -562,7 +581,7 @@ class TestRegexMatcherSnippetExtraction:
         matcher = RegexMatcher(timeout=2.0)
         nodes = [create_node("callable:test.py:SearchService")]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="SearchService", mode=SearchMode.REGEX),
             nodes,
         )
@@ -571,7 +590,8 @@ class TestRegexMatcherSnippetExtraction:
         # For node_id matches, snippet should be the node_id
         assert results[0].snippet == "callable:test.py:SearchService"
 
-    def test_snippet_multiline_match_shows_first_line(self) -> None:
+    @pytest.mark.asyncio
+    async def test_snippet_multiline_match_shows_first_line(self) -> None:
         """Proves multiline matches show only first matched line in snippet.
 
         Purpose: Keep snippet simple and predictable.
@@ -585,7 +605,7 @@ class TestRegexMatcherSnippetExtraction:
         nodes = [create_multiline_node("test:node", content)]
 
         # Use (?s) DOTALL flag so .* matches newlines
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern=r"(?s)START.*ENDS", mode=SearchMode.REGEX),
             nodes,
         )
@@ -607,7 +627,8 @@ class TestRegexMatcherScoring:
     Per DYK-P2-03: Score hierarchy - node_id exact=1.0, partial=0.8, content=0.5.
     """
 
-    def test_node_id_partial_match_scores_0_8(self) -> None:
+    @pytest.mark.asyncio
+    async def test_node_id_partial_match_scores_0_8(self) -> None:
         """Proves partial node_id match scores 0.8 (AC02, DYK-P2-03).
 
         Purpose: Node ID matches get higher priority.
@@ -619,7 +640,7 @@ class TestRegexMatcherScoring:
         matcher = RegexMatcher(timeout=2.0)
         nodes = [create_node("callable:test.py:SearchService")]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="Service", mode=SearchMode.REGEX),
             nodes,
         )
@@ -628,7 +649,8 @@ class TestRegexMatcherScoring:
         assert results[0].match_field == "node_id"
         assert results[0].score == 0.8  # Partial match in node_id
 
-    def test_content_match_scores_0_5(self) -> None:
+    @pytest.mark.asyncio
+    async def test_content_match_scores_0_5(self) -> None:
         """Proves content match scores 0.5 (DYK-P2-03).
 
         Purpose: Content matches rank lower than node_id matches.
@@ -645,7 +667,7 @@ class TestRegexMatcherScoring:
             )
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="authenticate", mode=SearchMode.REGEX),
             nodes,
         )
@@ -654,7 +676,8 @@ class TestRegexMatcherScoring:
         assert results[0].match_field == "content"
         assert results[0].score == 0.5
 
-    def test_smart_content_match_scores_0_5(self) -> None:
+    @pytest.mark.asyncio
+    async def test_smart_content_match_scores_0_5(self) -> None:
         """Proves smart_content match scores 0.5 (DYK-P2-03).
 
         Purpose: AI summaries rank same as content.
@@ -672,7 +695,7 @@ class TestRegexMatcherScoring:
             )
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="authentication", mode=SearchMode.REGEX),
             nodes,
         )
@@ -681,7 +704,8 @@ class TestRegexMatcherScoring:
         assert results[0].match_field == "smart_content"
         assert results[0].score == 0.5
 
-    def test_node_id_match_wins_over_content(self) -> None:
+    @pytest.mark.asyncio
+    async def test_node_id_match_wins_over_content(self) -> None:
         """Proves node_id match has priority over content match (DYK-P2-03).
 
         Purpose: When pattern matches both fields, node_id wins.
@@ -699,7 +723,7 @@ class TestRegexMatcherScoring:
             )
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="Service", mode=SearchMode.REGEX),
             nodes,
         )
@@ -709,7 +733,8 @@ class TestRegexMatcherScoring:
         assert results[0].match_field == "node_id"
         assert results[0].score == 0.8
 
-    def test_highest_score_wins_among_multiple_nodes(self) -> None:
+    @pytest.mark.asyncio
+    async def test_highest_score_wins_among_multiple_nodes(self) -> None:
         """Proves nodes are returned but caller must sort by score.
 
         Purpose: Multiple matches returned, caller sorts.
@@ -729,7 +754,7 @@ class TestRegexMatcherScoring:
             ),
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="AuthService", mode=SearchMode.REGEX),
             nodes,
         )

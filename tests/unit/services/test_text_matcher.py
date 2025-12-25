@@ -8,6 +8,7 @@ Per tasks.md:
 
 Per Discovery 03: TextMatcher delegates to RegexMatcher after escaping.
 Per R1-09: Avoid double escaping when delegating.
+Per DYK-P3-01: Tests are async for compatibility with SemanticMatcher.
 """
 
 import pytest
@@ -62,7 +63,8 @@ class TestTextMatcherDelegation:
     Per Discovery 03: TextMatcher escapes pattern, then delegates.
     """
 
-    def test_case_insensitive_substring_match(self) -> None:
+    @pytest.mark.asyncio
+    async def test_case_insensitive_substring_match(self) -> None:
         """Proves text mode is case-insensitive (AC01).
 
         Purpose: Case-insensitive substring search is core text mode behavior.
@@ -74,7 +76,7 @@ class TestTextMatcherDelegation:
         matcher = TextMatcher(timeout=2.0)
         nodes = [create_node("callable:test.py:SearchService")]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="searchservice", mode=SearchMode.TEXT),
             nodes,
         )
@@ -82,7 +84,8 @@ class TestTextMatcherDelegation:
         assert len(results) == 1
         assert results[0].node_id == "callable:test.py:SearchService"
 
-    def test_case_insensitive_content_search(self) -> None:
+    @pytest.mark.asyncio
+    async def test_case_insensitive_content_search(self) -> None:
         """Proves text mode is case-insensitive in content field.
 
         Purpose: Case-insensitivity applies to all fields.
@@ -99,14 +102,15 @@ class TestTextMatcherDelegation:
             )
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="processdata", mode=SearchMode.TEXT),
             nodes,
         )
 
         assert len(results) == 1
 
-    def test_partial_match_in_node_id(self) -> None:
+    @pytest.mark.asyncio
+    async def test_partial_match_in_node_id(self) -> None:
         """Proves text mode finds partial matches in node_id.
 
         Purpose: Substring matching, not exact matching.
@@ -118,14 +122,15 @@ class TestTextMatcherDelegation:
         matcher = TextMatcher(timeout=2.0)
         nodes = [create_node("callable:src/services/authentication_service.py:login")]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="auth", mode=SearchMode.TEXT),
             nodes,
         )
 
         assert len(results) == 1
 
-    def test_returns_search_results(self) -> None:
+    @pytest.mark.asyncio
+    async def test_returns_search_results(self) -> None:
         """Proves TextMatcher returns proper SearchResult objects.
 
         Purpose: Validates return type and structure.
@@ -137,7 +142,7 @@ class TestTextMatcherDelegation:
         matcher = TextMatcher(timeout=2.0)
         nodes = [create_node("callable:test.py:func")]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="func", mode=SearchMode.TEXT),
             nodes,
         )
@@ -161,7 +166,8 @@ class TestTextMatcherEscaping:
     Per R1-09: Avoid double escaping - escape once only.
     """
 
-    def test_dot_in_pattern_is_literal(self) -> None:
+    @pytest.mark.asyncio
+    async def test_dot_in_pattern_is_literal(self) -> None:
         """Proves dot in text pattern matches literal dot (Discovery 03).
 
         Purpose: Special regex chars are escaped for text mode.
@@ -176,7 +182,7 @@ class TestTextMatcherEscaping:
             create_node("file:src/configXpy"),  # Should NOT match
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="config.py", mode=SearchMode.TEXT),
             nodes,
         )
@@ -184,7 +190,8 @@ class TestTextMatcherEscaping:
         assert len(results) == 1
         assert "config.py" in results[0].node_id
 
-    def test_asterisk_in_pattern_is_literal(self) -> None:
+    @pytest.mark.asyncio
+    async def test_asterisk_in_pattern_is_literal(self) -> None:
         """Proves asterisk in text pattern matches literal asterisk.
 
         Purpose: Regex quantifier * is escaped.
@@ -205,7 +212,7 @@ class TestTextMatcherEscaping:
             ),
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="a*b", mode=SearchMode.TEXT),
             nodes,
         )
@@ -214,7 +221,8 @@ class TestTextMatcherEscaping:
         assert len(results) == 1
         assert "func" in results[0].node_id
 
-    def test_question_mark_in_pattern_is_literal(self) -> None:
+    @pytest.mark.asyncio
+    async def test_question_mark_in_pattern_is_literal(self) -> None:
         """Proves question mark in text pattern matches literal question mark.
 
         Purpose: Regex quantifier ? is escaped.
@@ -231,14 +239,15 @@ class TestTextMatcherEscaping:
             ),
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="do?", mode=SearchMode.TEXT),
             nodes,
         )
 
         assert len(results) == 1
 
-    def test_brackets_in_pattern_are_literal(self) -> None:
+    @pytest.mark.asyncio
+    async def test_brackets_in_pattern_are_literal(self) -> None:
         """Proves square brackets in text pattern match literally.
 
         Purpose: Regex character class [...] is escaped.
@@ -255,14 +264,15 @@ class TestTextMatcherEscaping:
             ),
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="[0]", mode=SearchMode.TEXT),
             nodes,
         )
 
         assert len(results) == 1
 
-    def test_caret_and_dollar_are_literal(self) -> None:
+    @pytest.mark.asyncio
+    async def test_caret_and_dollar_are_literal(self) -> None:
         """Proves ^ and $ in text pattern match literally.
 
         Purpose: Regex anchors are escaped.
@@ -283,7 +293,7 @@ class TestTextMatcherEscaping:
             ),
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="$100", mode=SearchMode.TEXT),
             nodes,
         )
@@ -291,7 +301,8 @@ class TestTextMatcherEscaping:
         assert len(results) == 1
         assert "func" in results[0].node_id
 
-    def test_backslash_in_pattern_is_literal(self) -> None:
+    @pytest.mark.asyncio
+    async def test_backslash_in_pattern_is_literal(self) -> None:
         """Proves backslash in text pattern matches literally.
 
         Purpose: Regex escape character \\ is escaped.
@@ -308,14 +319,15 @@ class TestTextMatcherEscaping:
             ),
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="\\Users\\", mode=SearchMode.TEXT),
             nodes,
         )
 
         assert len(results) == 1
 
-    def test_no_double_escaping(self) -> None:
+    @pytest.mark.asyncio
+    async def test_no_double_escaping(self) -> None:
         """Proves pattern is escaped only once (Discovery 03, R1-09).
 
         Purpose: Avoids double-escape bugs from delegation.
@@ -333,14 +345,15 @@ class TestTextMatcherEscaping:
         ]
 
         # User searches for literal backslash-dot
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="\\.", mode=SearchMode.TEXT),
             nodes,
         )
 
         assert len(results) == 1
 
-    def test_parens_in_pattern_are_literal(self) -> None:
+    @pytest.mark.asyncio
+    async def test_parens_in_pattern_are_literal(self) -> None:
         """Proves parentheses in text pattern match literally.
 
         Purpose: Regex groups () are escaped.
@@ -357,14 +370,15 @@ class TestTextMatcherEscaping:
             ),
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="main()", mode=SearchMode.TEXT),
             nodes,
         )
 
         assert len(results) == 1
 
-    def test_pipe_in_pattern_is_literal(self) -> None:
+    @pytest.mark.asyncio
+    async def test_pipe_in_pattern_is_literal(self) -> None:
         """Proves pipe character in text pattern matches literally.
 
         Purpose: Regex alternation | is escaped.
@@ -381,7 +395,7 @@ class TestTextMatcherEscaping:
             ),
         ]
 
-        results = matcher.match(
+        results = await matcher.match(
             QuerySpec(pattern="a | b", mode=SearchMode.TEXT),
             nodes,
         )

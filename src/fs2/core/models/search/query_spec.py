@@ -4,10 +4,11 @@ A frozen dataclass representing a validated search query with:
 - Pattern: Non-empty search pattern (AC10)
 - Mode: Search mode (TEXT, REGEX, SEMANTIC, AUTO)
 - Limit: Maximum results (default 20)
-- Min similarity: Semantic search threshold (default 0.5)
+- Min similarity: Semantic search threshold (default 0.25, per DYK-P3-04)
 
 Per Phase 1 tasks.md: Frozen dataclass with __post_init__ validation.
 Per DYK-05: min_similarity only applies to SEMANTIC mode (documented in docstring).
+Per DYK-P3-04: min_similarity lowered from 0.5 to 0.25 to capture weakly-related code.
 """
 
 from dataclasses import dataclass
@@ -26,9 +27,10 @@ class QuerySpec:
         pattern: Search pattern (cannot be empty or whitespace-only).
         mode: Search mode from SearchMode enum.
         limit: Maximum number of results to return (must be >= 1, default 20).
-        min_similarity: Minimum similarity score for matches (0.0-1.0, default 0.5).
+        min_similarity: Minimum similarity score for matches (0.0-1.0, default 0.25).
             Note: This parameter only applies to SEMANTIC mode searches.
             For TEXT and REGEX modes, this value is ignored.
+            Per DYK-P3-04: Lowered from 0.5 to 0.25 to capture weakly-related code.
 
     Raises:
         ValueError: If pattern is empty/whitespace, limit < 1, or
@@ -40,13 +42,13 @@ class QuerySpec:
         >>> spec.limit
         20
         >>> spec.min_similarity
-        0.5
+        0.25
     """
 
     pattern: str
     mode: SearchMode
     limit: int = 20
-    min_similarity: float = 0.5
+    min_similarity: float = 0.25
 
     def __post_init__(self) -> None:
         """Validate fields after construction.

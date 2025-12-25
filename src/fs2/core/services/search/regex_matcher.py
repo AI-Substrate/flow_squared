@@ -62,7 +62,7 @@ class RegexMatcher:
         """
         self._timeout = timeout
 
-    def match(
+    async def match(
         self,
         spec: QuerySpec,
         nodes: list[CodeNode],
@@ -73,6 +73,7 @@ class RegexMatcher:
         Returns SearchResult for each node with at least one match.
 
         Per DYK-P2-06: Pattern is compiled once before iterating.
+        Per DYK-P3-01: Async for compatibility with SemanticMatcher.
 
         Args:
             spec: Query specification with pattern and options.
@@ -101,7 +102,7 @@ class RegexMatcher:
 
         return results
 
-    def match_raw(
+    async def match_raw(
         self,
         pattern: str,
         nodes: list[CodeNode],
@@ -110,6 +111,7 @@ class RegexMatcher:
 
         Used by TextMatcher after escaping special characters.
         This method takes a raw regex pattern string directly.
+        Per DYK-P3-01: Async for compatibility with SemanticMatcher.
 
         Args:
             pattern: Pre-formed regex pattern string.

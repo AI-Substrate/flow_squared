@@ -682,10 +682,11 @@ class SearchConfig(BaseModel):
 
     Controls search behavior for the fs2 search command.
     Per Phase 1 Core Models specification.
+    Per DYK-P3-04: min_similarity lowered from 0.5 to 0.25 to capture weakly-related code.
 
     Attributes:
         default_limit: Maximum number of search results (default: 20, must be >= 1).
-        min_similarity: Minimum similarity score for semantic matches (default: 0.5, range 0.0-1.0).
+        min_similarity: Minimum similarity score for semantic matches (default: 0.25, range 0.0-1.0).
         regex_timeout: Maximum time in seconds for regex operations (default: 2.0, must be > 0).
 
     YAML example:
@@ -693,7 +694,7 @@ class SearchConfig(BaseModel):
         # .fs2/config.yaml
         search:
           default_limit: 20
-          min_similarity: 0.5
+          min_similarity: 0.25
           regex_timeout: 2.0
         ```
     """
@@ -701,7 +702,7 @@ class SearchConfig(BaseModel):
     __config_path__: ClassVar[str] = "search"
 
     default_limit: int = 20
-    min_similarity: float = 0.5
+    min_similarity: float = 0.25
     regex_timeout: float = 2.0
 
     @field_validator("default_limit")

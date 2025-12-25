@@ -7,6 +7,8 @@ Uses the fixture graph containing real code nodes to verify:
 - Regex search patterns work correctly
 - AUTO mode routing functions end-to-end
 - Results are properly scored and sorted
+
+Per DYK-P3-01: Tests are async for compatibility with SemanticMatcher.
 """
 
 from pathlib import Path
@@ -51,14 +53,15 @@ def search_service(graph_store: NetworkXGraphStore) -> SearchService:
 class TestSearchIntegrationWithFixture:
     """Integration tests using fixture_graph.pkl."""
 
-    def test_text_search_finds_nodes(self, search_service: SearchService) -> None:
+    @pytest.mark.asyncio
+    async def test_text_search_finds_nodes(self, search_service: SearchService) -> None:
         """Proves text search works with real fixture nodes.
 
         Purpose: End-to-end TEXT mode validation.
         Quality Contribution: Real-world usage validation.
         Acceptance Criteria: Finds nodes matching text pattern.
         """
-        results = search_service.search(
+        results = await search_service.search(
             QuerySpec(pattern="def", mode=SearchMode.TEXT, limit=10)
         )
 
@@ -70,14 +73,15 @@ class TestSearchIntegrationWithFixture:
             assert r.node_id
             assert 0.0 <= r.score <= 1.0
 
-    def test_regex_search_finds_nodes(self, search_service: SearchService) -> None:
+    @pytest.mark.asyncio
+    async def test_regex_search_finds_nodes(self, search_service: SearchService) -> None:
         """Proves regex search works with real fixture nodes.
 
         Purpose: End-to-end REGEX mode validation.
         Quality Contribution: Real-world regex matching.
         Acceptance Criteria: Regex pattern matches expected nodes.
         """
-        results = search_service.search(
+        results = await search_service.search(
             QuerySpec(pattern=".*test.*", mode=SearchMode.REGEX, limit=10)
         )
 
@@ -87,7 +91,8 @@ class TestSearchIntegrationWithFixture:
             assert r.node_id
             assert 0.0 <= r.score <= 1.0
 
-    def test_auto_mode_works_with_fixture(self, search_service: SearchService) -> None:
+    @pytest.mark.asyncio
+    async def test_auto_mode_works_with_fixture(self, search_service: SearchService) -> None:
         """Proves AUTO mode routing works with real fixture.
 
         Purpose: End-to-end AUTO mode validation.
@@ -95,12 +100,12 @@ class TestSearchIntegrationWithFixture:
         Acceptance Criteria: AUTO correctly routes and returns results.
         """
         # Plain text - should route to TEXT
-        text_results = search_service.search(
+        text_results = await search_service.search(
             QuerySpec(pattern="function", mode=SearchMode.AUTO, limit=5)
         )
 
         # Regex pattern - should route to REGEX
-        regex_results = search_service.search(
+        regex_results = await search_service.search(
             QuerySpec(pattern="func.*ion", mode=SearchMode.AUTO, limit=5)
         )
 
@@ -108,7 +113,8 @@ class TestSearchIntegrationWithFixture:
         assert isinstance(text_results, list)
         assert isinstance(regex_results, list)
 
-    def test_search_respects_limit_with_fixture(
+    @pytest.mark.asyncio
+    async def test_search_respects_limit_with_fixture(
         self, search_service: SearchService
     ) -> None:
         """Proves limit is respected with real fixture.
@@ -118,14 +124,15 @@ class TestSearchIntegrationWithFixture:
         Acceptance Criteria: Never returns more than limit.
         """
         # Use a common pattern that will match many nodes
-        results = search_service.search(
+        results = await search_service.search(
             QuerySpec(pattern=".", mode=SearchMode.TEXT, limit=3)
         )
 
         # Limit should be respected
         assert len(results) <= 3
 
-    def test_results_sorted_by_score_with_fixture(
+    @pytest.mark.asyncio
+    async def test_results_sorted_by_score_with_fixture(
         self, search_service: SearchService
     ) -> None:
         """Proves results are sorted by score descending.
@@ -134,7 +141,7 @@ class TestSearchIntegrationWithFixture:
         Quality Contribution: Best matches first.
         Acceptance Criteria: Each result's score >= next result's score.
         """
-        results = search_service.search(
+        results = await search_service.search(
             QuerySpec(pattern="class", mode=SearchMode.TEXT, limit=20)
         )
 
@@ -142,7 +149,8 @@ class TestSearchIntegrationWithFixture:
             for i in range(len(results) - 1):
                 assert results[i].score >= results[i + 1].score
 
-    def test_case_insensitive_text_search(
+    @pytest.mark.asyncio
+    async def test_case_insensitive_text_search(
         self, search_service: SearchService
     ) -> None:
         """Proves TEXT mode is case-insensitive with fixture.
@@ -151,11 +159,11 @@ class TestSearchIntegrationWithFixture:
         Quality Contribution: User-friendly text search.
         Acceptance Criteria: Lowercase pattern matches uppercase content.
         """
-        lower_results = search_service.search(
+        lower_results = await search_service.search(
             QuerySpec(pattern="config", mode=SearchMode.TEXT, limit=10)
         )
 
-        upper_results = search_service.search(
+        upper_results = await search_service.search(
             QuerySpec(pattern="CONFIG", mode=SearchMode.TEXT, limit=10)
         )
 
@@ -168,7 +176,8 @@ class TestSearchIntegrationWithFixture:
 class TestSearchIntegrationEdgeCases:
     """Edge case integration tests."""
 
-    def test_search_with_special_characters(
+    @pytest.mark.asyncio
+    async def test_search_with_special_characters(
         self, search_service: SearchService
     ) -> None:
         """Proves special characters are handled in TEXT mode.
@@ -178,27 +187,29 @@ class TestSearchIntegrationEdgeCases:
         Acceptance Criteria: File patterns searchable.
         """
         # Search for a file pattern
-        results = search_service.search(
+        results = await search_service.search(
             QuerySpec(pattern=".py", mode=SearchMode.TEXT, limit=10)
         )
 
         # Should not crash, may find files
         assert isinstance(results, list)
 
-    def test_regex_with_grouping(self, search_service: SearchService) -> None:
+    @pytest.mark.asyncio
+    async def test_regex_with_grouping(self, search_service: SearchService) -> None:
         """Proves regex grouping works.
 
         Purpose: Complex regex validation.
         Quality Contribution: Advanced patterns work.
         Acceptance Criteria: Grouping patterns match.
         """
-        results = search_service.search(
+        results = await search_service.search(
             QuerySpec(pattern="(test|spec)", mode=SearchMode.REGEX, limit=10)
         )
 
         assert isinstance(results, list)
 
-    def test_very_long_pattern_handled(self, search_service: SearchService) -> None:
+    @pytest.mark.asyncio
+    async def test_very_long_pattern_handled(self, search_service: SearchService) -> None:
         """Proves long patterns don't crash.
 
         Purpose: Edge case handling.
@@ -206,7 +217,7 @@ class TestSearchIntegrationEdgeCases:
         Acceptance Criteria: Long pattern doesn't crash.
         """
         long_pattern = "x" * 100  # Long but valid pattern
-        results = search_service.search(
+        results = await search_service.search(
             QuerySpec(pattern=long_pattern, mode=SearchMode.TEXT, limit=10)
         )
 

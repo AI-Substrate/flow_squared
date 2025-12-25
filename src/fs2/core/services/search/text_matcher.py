@@ -36,7 +36,7 @@ class TextMatcher:
         """
         self._regex_matcher = RegexMatcher(timeout=timeout)
 
-    def match(
+    async def match(
         self,
         spec: QuerySpec,
         nodes: list[CodeNode],
@@ -50,6 +50,7 @@ class TextMatcher:
 
         Per Discovery 03: Escape once, delegate to regex.
         Per R1-09: No double escaping.
+        Per DYK-P3-01: Async for compatibility with SemanticMatcher.
 
         Args:
             spec: Query specification (pattern used, mode ignored).
@@ -65,4 +66,4 @@ class TextMatcher:
         regex_pattern = f"(?i){escaped}"
 
         # Step 3: Delegate to RegexMatcher
-        return self._regex_matcher.match_raw(regex_pattern, nodes)
+        return await self._regex_matcher.match_raw(regex_pattern, nodes)
