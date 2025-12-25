@@ -46,17 +46,25 @@ class ChunkItem:
     Per DYK-2: is_smart_content flag distinguishes raw content chunks from
     AI-generated description chunks for dual embedding storage.
 
+    Per Phase 0 (Chunk Offset Tracking): Optional start_line/end_line track
+    which source lines each chunk spans, enabling semantic search to report
+    accurate line ranges (not just full node range).
+
     Attributes:
         node_id: Original CodeNode.node_id for reassembly.
         chunk_index: Position in chunk sequence (0, 1, 2, ...).
         text: Chunk content to embed.
         is_smart_content: True for smart_content chunks (default: False).
+        start_line: First line of content in this chunk (1-indexed, optional).
+        end_line: Last line of content in this chunk (1-indexed, optional).
     """
 
     node_id: str
     chunk_index: int
     text: str
     is_smart_content: bool = False
+    start_line: int | None = None
+    end_line: int | None = None
 
 
 class EmbeddingService:
@@ -194,6 +202,7 @@ class EmbeddingService:
         overlap_tokens = chunk_config.overlap_tokens
 
         # Use token counter if available, otherwise estimate
+        # Both methods return list[tuple[str, int, int]] per Phase 0
         if self._token_counter is not None:
             chunks = self._chunk_by_tokens(
                 content=content,
@@ -208,15 +217,21 @@ class EmbeddingService:
                 overlap_chars=overlap_tokens * 4,
             )
 
-        # Convert to ChunkItems with metadata
+        # Convert to ChunkItems with metadata (including line offsets per Phase 0)
+        # Per Phase 0: Convert content-relative (1-indexed) to file-absolute line numbers
+        # This allows search to report accurate source file line ranges.
+        # For smart_content, offsets remain None per DYK-05 (asymmetry by design).
+        line_offset = (node.start_line - 1) if node.start_line else 0
         return [
             ChunkItem(
                 node_id=node.node_id,
                 chunk_index=i,
                 text=chunk_text,
                 is_smart_content=is_smart_content,
+                start_line=start_line + line_offset if not is_smart_content else None,
+                end_line=end_line + line_offset if not is_smart_content else None,
             )
-            for i, chunk_text in enumerate(chunks)
+            for i, (chunk_text, start_line, end_line) in enumerate(chunks)
         ]
 
     def _chunk_by_tokens(
@@ -224,11 +239,15 @@ class EmbeddingService:
         content: str,
         max_tokens: int,
         overlap_tokens: int,
-    ) -> list[str]:
-        """Chunk content by token count with overlap.
+    ) -> list[tuple[str, int, int]]:
+        """Chunk content by token count with overlap, tracking line offsets.
 
         Uses TokenCounterAdapter for accurate token counting.
         Chunks at sentence/line boundaries when possible for readability.
+
+        Per Phase 0: Returns tuples with line offset metadata for semantic search.
+        Per DYK-03: Overlap lines appear in multiple chunks with their actual ranges.
+        Per DYK-04: Long line character splits all report same line number.
 
         Args:
             content: Text content to chunk.
@@ -236,21 +255,26 @@ class EmbeddingService:
             overlap_tokens: Tokens to overlap between consecutive chunks.
 
         Returns:
-            List of text chunks.
+            List of (text, start_line, end_line) tuples. Lines are 1-indexed.
         """
         assert self._token_counter is not None
 
         # Check if content fits in single chunk
         total_tokens = self._token_counter.count_tokens(content)
+        line_count = content.count("\n") + 1
         if total_tokens <= max_tokens:
-            return [content]
+            return [(content, 1, line_count)]
 
-        chunks: list[str] = []
+        chunks: list[tuple[str, int, int]] = []
         lines = content.split("\n")
-        current_chunk_lines: list[str] = []
+
+        # Track both line content and line numbers
+        # Each entry is (line_text_with_newline, line_number)
+        current_chunk_lines: list[tuple[str, int]] = []
         current_tokens = 0
 
-        for line in lines:
+        for line_idx, line in enumerate(lines):
+            line_num = line_idx + 1  # 1-indexed
             line_with_newline = line + "\n"
             line_tokens = self._token_counter.count_tokens(line_with_newline)
 
@@ -258,40 +282,52 @@ class EmbeddingService:
             if line_tokens > max_tokens:
                 # Flush current chunk
                 if current_chunk_lines:
-                    chunks.append("".join(current_chunk_lines).rstrip("\n"))
+                    chunk_text = "".join(t for t, _ in current_chunk_lines).rstrip("\n")
+                    start_line = current_chunk_lines[0][1]
+                    end_line = current_chunk_lines[-1][1]
+                    chunks.append((chunk_text, start_line, end_line))
                     current_chunk_lines = []
                     current_tokens = 0
 
                 # Split long line by characters (approximate)
+                # Per DYK-04: All character-split chunks have same line number
                 char_chunks = self._split_long_line(line, max_tokens)
-                chunks.extend(char_chunks)
+                for char_chunk in char_chunks:
+                    chunks.append((char_chunk, line_num, line_num))
                 continue
 
             # Check if adding this line would exceed limit
             if current_tokens + line_tokens > max_tokens:
                 # Save current chunk
                 if current_chunk_lines:
-                    chunks.append("".join(current_chunk_lines).rstrip("\n"))
+                    chunk_text = "".join(t for t, _ in current_chunk_lines).rstrip("\n")
+                    start_line = current_chunk_lines[0][1]
+                    end_line = current_chunk_lines[-1][1]
+                    chunks.append((chunk_text, start_line, end_line))
 
                 # Start new chunk with overlap
+                # Per DYK-03: Overlap lines keep their original line numbers
                 if overlap_tokens > 0 and current_chunk_lines:
-                    overlap_lines = self._get_overlap_lines(
+                    overlap_lines = self._get_overlap_lines_with_numbers(
                         current_chunk_lines, overlap_tokens
                     )
                     current_chunk_lines = overlap_lines
                     current_tokens = self._token_counter.count_tokens(
-                        "".join(current_chunk_lines)
+                        "".join(t for t, _ in current_chunk_lines)
                     )
                 else:
                     current_chunk_lines = []
                     current_tokens = 0
 
-            current_chunk_lines.append(line_with_newline)
+            current_chunk_lines.append((line_with_newline, line_num))
             current_tokens += line_tokens
 
         # Add final chunk
         if current_chunk_lines:
-            chunks.append("".join(current_chunk_lines).rstrip("\n"))
+            chunk_text = "".join(t for t, _ in current_chunk_lines).rstrip("\n")
+            start_line = current_chunk_lines[0][1]
+            end_line = current_chunk_lines[-1][1]
+            chunks.append((chunk_text, start_line, end_line))
 
         return chunks
 
@@ -336,13 +372,46 @@ class EmbeddingService:
 
         return overlap_lines
 
+    def _get_overlap_lines_with_numbers(
+        self, lines: list[tuple[str, int]], overlap_tokens: int
+    ) -> list[tuple[str, int]]:
+        """Get trailing lines with line numbers that sum to approximately overlap_tokens.
+
+        Per DYK-03: Overlap lines keep their original line numbers so the same
+        line can appear in multiple chunks with accurate line reporting.
+
+        Args:
+            lines: List of (line_text, line_number) tuples.
+            overlap_tokens: Target token count for overlap.
+
+        Returns:
+            List of (line_text, line_number) tuples for overlap.
+        """
+        assert self._token_counter is not None
+
+        overlap_lines: list[tuple[str, int]] = []
+        tokens = 0
+
+        for line_text, line_num in reversed(lines):
+            line_tokens = self._token_counter.count_tokens(line_text)
+            if tokens + line_tokens > overlap_tokens:
+                break
+            overlap_lines.insert(0, (line_text, line_num))
+            tokens += line_tokens
+
+        return overlap_lines
+
     def _chunk_by_chars(
         self,
         content: str,
         max_chars: int,
         overlap_chars: int,
-    ) -> list[str]:
+    ) -> list[tuple[str, int, int]]:
         """Fallback chunking by character count when token counter unavailable.
+
+        Per Phase 0: Returns tuples with approximate line offsets.
+        Note: Character-based chunking provides less accurate line boundaries
+        than token-based chunking since it doesn't split on line boundaries.
 
         Args:
             content: Text content to chunk.
@@ -350,18 +419,28 @@ class EmbeddingService:
             overlap_chars: Characters to overlap between consecutive chunks.
 
         Returns:
-            List of text chunks.
+            List of (text, start_line, end_line) tuples. Lines are 1-indexed.
         """
+        line_count = content.count("\n") + 1
         if len(content) <= max_chars:
-            return [content]
+            return [(content, 1, line_count)]
 
-        chunks: list[str] = []
+        chunks: list[tuple[str, int, int]] = []
         start = 0
         step = max_chars - overlap_chars
+        content_len = len(content)
 
-        while start < len(content):
-            end = min(start + max_chars, len(content))
-            chunks.append(content[start:end])
+        while start < content_len:
+            end = min(start + max_chars, content_len)
+            chunk_text = content[start:end]
+
+            # Approximate line numbers based on newlines in chunk
+            # Count newlines before start to get start_line
+            start_line = content[:start].count("\n") + 1
+            # Count newlines in chunk to get end_line
+            end_line = start_line + chunk_text.count("\n")
+
+            chunks.append((chunk_text, start_line, end_line))
             start += step
 
         return chunks
@@ -480,8 +559,10 @@ class EmbeddingService:
 
         # Collect all chunks from non-skipped nodes
         # Per DYK-2: Collect both raw content and smart_content chunks
+        # Per Phase 0: Track chunk offsets for raw content (not smart_content per DYK-05)
         all_chunks: list[ChunkItem] = []
         nodes_to_process: dict[str, CodeNode] = {}
+        chunk_offsets: dict[str, tuple[tuple[int, int], ...]] = {}
 
         for node in nodes:
             if self._should_skip(node):
@@ -493,6 +574,15 @@ class EmbeddingService:
             # Chunk raw content
             raw_chunks = self._chunk_content(node, is_smart_content=False)
             all_chunks.extend(raw_chunks)
+
+            # Per Phase 0: Extract chunk offsets from raw content chunks
+            # Per DYK-05: Only raw content has offsets (smart_content uses node's full range)
+            if raw_chunks:
+                offsets = tuple(
+                    (chunk.start_line or 1, chunk.end_line or node.end_line)
+                    for chunk in raw_chunks
+                )
+                chunk_offsets[node.node_id] = offsets
 
             # Chunk smart_content if present
             if node.smart_content:
@@ -590,11 +680,13 @@ class EmbeddingService:
 
             # Per CD03: Create new node via replace()
             # Per Review S1: Set embedding_hash to content_hash for staleness detection
+            # Per Phase 0: Include chunk offsets for raw content
             updated_node = replace(
                 node,
                 embedding=embedding_tuple,
                 smart_content_embedding=smart_embedding_tuple,
                 embedding_hash=node.content_hash,  # Track which content this embedding is for
+                embedding_chunk_offsets=chunk_offsets.get(node_id),
             )
 
             stats["results"][node_id] = updated_node

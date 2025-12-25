@@ -188,6 +188,11 @@ class CodeNode:
     smart_content_embedding: tuple[tuple[float, ...], ...] | None = None
     embedding_hash: str | None = None  # content_hash when embedding was generated (for staleness detection)
 
+    # === Chunk Offset Tracking (Phase 0) ===
+    # Type: tuple[tuple[int, int], ...] | None - (start_line, end_line) per chunk
+    # Per DYK-05: Only raw content has offsets; smart_content uses node's full range
+    embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None
+
     # === Factory Methods ===
 
     @classmethod
@@ -214,6 +219,7 @@ class CodeNode:
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
         embedding_hash: str | None = None,
+        embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None,
     ) -> "CodeNode":
         """Create a file-level CodeNode.
 
@@ -261,6 +267,7 @@ class CodeNode:
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
             embedding_hash=embedding_hash,
+            embedding_chunk_offsets=embedding_chunk_offsets,
         )
 
     @classmethod
@@ -292,6 +299,7 @@ class CodeNode:
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
         embedding_hash: str | None = None,
+        embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None,
     ) -> "CodeNode":
         """Create a type-level CodeNode (class, struct, interface, enum).
 
@@ -343,6 +351,7 @@ class CodeNode:
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
             embedding_hash=embedding_hash,
+            embedding_chunk_offsets=embedding_chunk_offsets,
         )
 
     @classmethod
@@ -374,6 +383,7 @@ class CodeNode:
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
         embedding_hash: str | None = None,
+        embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None,
     ) -> "CodeNode":
         """Create a callable CodeNode (function, method, lambda).
 
@@ -425,6 +435,7 @@ class CodeNode:
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
             embedding_hash=embedding_hash,
+            embedding_chunk_offsets=embedding_chunk_offsets,
         )
 
     @classmethod
@@ -456,6 +467,7 @@ class CodeNode:
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
         embedding_hash: str | None = None,
+        embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None,
     ) -> "CodeNode":
         """Create a section CodeNode (markdown heading, document section).
 
@@ -507,6 +519,7 @@ class CodeNode:
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
             embedding_hash=embedding_hash,
+            embedding_chunk_offsets=embedding_chunk_offsets,
         )
 
     @classmethod
@@ -538,6 +551,7 @@ class CodeNode:
         embedding: tuple[tuple[float, ...], ...] | None = None,
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
         embedding_hash: str | None = None,
+        embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None,
     ) -> "CodeNode":
         """Create a block CodeNode (terraform block, dockerfile instruction).
 
@@ -589,4 +603,5 @@ class CodeNode:
             embedding=embedding,
             smart_content_embedding=smart_content_embedding,
             embedding_hash=embedding_hash,
+            embedding_chunk_offsets=embedding_chunk_offsets,
         )

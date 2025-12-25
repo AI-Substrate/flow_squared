@@ -532,3 +532,209 @@ class TestCustomChunkConfig:
             # The end of chunk 0 should not appear at start of chunk 1
             # (This is a conceptual test - actual verification depends on impl)
             assert chunks[0].text != chunks[1].text
+
+
+class TestChunkLineOffsetTracking:
+    """Tests for line offset tracking during chunking (Phase 0).
+
+    Purpose: Verify _chunk_by_tokens() tracks which lines each chunk spans.
+    Quality Contribution: Enables semantic search to report accurate line ranges.
+
+    Per DYK-02: _chunk_by_tokens() return type changes to include line offsets.
+    Per DYK-03: Overlap lines appear in multiple chunks (report actual ranges).
+    Per DYK-04: Long line character splits have same start_line == end_line.
+    """
+
+    @pytest.fixture
+    def embedding_config(self) -> EmbeddingConfig:
+        """Config for line tracking tests."""
+        return EmbeddingConfig(
+            mode="fake",
+            code=ChunkConfig(max_tokens=50, overlap_tokens=10),
+        )
+
+    @pytest.fixture
+    def fake_token_counter(self):
+        """Fake token counter that counts words as tokens."""
+        from unittest.mock import Mock
+
+        counter = Mock()
+        # Approximate: ~1 word = 1 token
+        counter.count_tokens = lambda text: len(text.split())
+        return counter
+
+    def test_chunk_by_tokens_returns_line_offsets(
+        self, embedding_config, fake_token_counter
+    ):
+        """
+        Purpose: Proves _chunk_by_tokens() returns (text, start_line, end_line) tuples
+        Quality Contribution: Foundation for chunk-level line range reporting
+        Acceptance Criteria: Return type is list[tuple[str, int, int]]
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        service = EmbeddingService(
+            config=embedding_config,
+            embedding_adapter=None,
+            token_counter=fake_token_counter,
+        )
+
+        # Multi-line content that will produce multiple chunks
+        content = "\n".join([f"line {i} with some words" for i in range(1, 21)])
+
+        result = service._chunk_by_tokens(
+            content=content,
+            max_tokens=50,
+            overlap_tokens=10,
+        )
+
+        # Should return list of tuples, not list of strings
+        assert len(result) > 0
+        first_chunk = result[0]
+        assert isinstance(first_chunk, tuple), "Must return tuples, not strings"
+        assert len(first_chunk) == 3, "Tuple must be (text, start_line, end_line)"
+
+        text, start_line, end_line = first_chunk
+        assert isinstance(text, str)
+        assert isinstance(start_line, int)
+        assert isinstance(end_line, int)
+
+    def test_first_chunk_starts_at_line_1(self, embedding_config, fake_token_counter):
+        """
+        Purpose: Proves first chunk starts at line 1 (1-indexed)
+        Quality Contribution: Consistent line numbering with CodeNode
+        Acceptance Criteria: First chunk has start_line=1
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        service = EmbeddingService(
+            config=embedding_config,
+            embedding_adapter=None,
+            token_counter=fake_token_counter,
+        )
+
+        content = "line one\nline two\nline three"
+        result = service._chunk_by_tokens(content, max_tokens=50, overlap_tokens=0)
+
+        text, start_line, end_line = result[0]
+        assert start_line == 1, "First chunk must start at line 1 (1-indexed)"
+
+    def test_single_chunk_covers_all_lines(self, embedding_config, fake_token_counter):
+        """
+        Purpose: Proves short content produces single chunk covering all lines
+        Quality Contribution: Correct behavior for nodes that fit in one chunk
+        Acceptance Criteria: Single chunk has start_line=1, end_line=line_count
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        service = EmbeddingService(
+            config=embedding_config,
+            embedding_adapter=None,
+            token_counter=fake_token_counter,
+        )
+
+        content = "line 1\nline 2\nline 3"  # Short, fits in one chunk
+        result = service._chunk_by_tokens(content, max_tokens=100, overlap_tokens=0)
+
+        assert len(result) == 1
+        text, start_line, end_line = result[0]
+        assert start_line == 1
+        assert end_line == 3
+
+    def test_multi_chunk_line_ranges_are_contiguous(
+        self, embedding_config, fake_token_counter
+    ):
+        """
+        Purpose: Proves consecutive chunks have contiguous or overlapping line ranges
+        Quality Contribution: Complete coverage of source lines
+        Acceptance Criteria: No gaps in line coverage (overlap may exist per DYK-03)
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        service = EmbeddingService(
+            config=embedding_config,
+            embedding_adapter=None,
+            token_counter=fake_token_counter,
+        )
+
+        # Content that will produce multiple chunks
+        content = "\n".join([f"line {i} with some extra words" for i in range(1, 31)])
+
+        result = service._chunk_by_tokens(content, max_tokens=30, overlap_tokens=0)
+
+        assert len(result) > 1, "Test requires multiple chunks"
+
+        for i in range(len(result) - 1):
+            _, _, end_line_i = result[i]
+            _, start_line_j, _ = result[i + 1]
+            # Next chunk starts at or before previous chunk ends (overlap) or immediately after
+            assert start_line_j <= end_line_i + 1, (
+                f"Gap between chunk {i} end_line={end_line_i} "
+                f"and chunk {i+1} start_line={start_line_j}"
+            )
+
+    def test_overlap_lines_appear_in_multiple_chunks(
+        self, embedding_config, fake_token_counter
+    ):
+        """
+        Purpose: Proves DYK-03 - overlap lines appear in multiple chunks
+        Quality Contribution: Documents expected overlap behavior
+        Acceptance Criteria: With overlap_tokens > 0, same lines in consecutive chunks
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        service = EmbeddingService(
+            config=embedding_config,
+            embedding_adapter=None,
+            token_counter=fake_token_counter,
+        )
+
+        # Content that will produce chunks with overlap
+        content = "\n".join([f"line {i} words here" for i in range(1, 21)])
+
+        result = service._chunk_by_tokens(content, max_tokens=20, overlap_tokens=5)
+
+        if len(result) > 1:
+            _, _, end_line_0 = result[0]
+            _, start_line_1, _ = result[1]
+            # With overlap, chunk 1 starts before chunk 0 ends
+            assert start_line_1 <= end_line_0, (
+                f"With overlap, chunk 1 should start at or before chunk 0 ends. "
+                f"Chunk 0 ends at {end_line_0}, chunk 1 starts at {start_line_1}"
+            )
+
+    def test_long_line_character_split_has_same_line_range(
+        self, embedding_config, fake_token_counter
+    ):
+        """
+        Purpose: Proves DYK-04 - character-split chunks have same line range
+        Quality Contribution: Documents edge case for minified/long lines
+        Acceptance Criteria: All character-split chunks report same start_line == end_line
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        # Create counter that makes the long line exceed max_tokens
+        from unittest.mock import Mock
+
+        counter = Mock()
+        # This counter makes each character worth 2 tokens (forcing splits)
+        counter.count_tokens = lambda text: len(text) * 2
+
+        service = EmbeddingService(
+            config=embedding_config,
+            embedding_adapter=None,
+            token_counter=counter,
+        )
+
+        # Very long single line that will be character-split
+        long_line = "x" * 1000  # Single line, 1000 chars
+
+        result = service._chunk_by_tokens(long_line, max_tokens=50, overlap_tokens=0)
+
+        # Should produce multiple chunks all with same line range
+        assert len(result) > 1, "Long line should produce multiple character-split chunks"
+        for text, start_line, end_line in result:
+            assert start_line == end_line == 1, (
+                f"Character-split chunks should all have same line (1). "
+                f"Got start_line={start_line}, end_line={end_line}"
+            )

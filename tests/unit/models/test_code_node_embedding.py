@@ -454,3 +454,187 @@ class TestCodeNodeFactoryMethods:
         # Assert
         assert node.embedding == single_chunk_embedding
         assert node.smart_content_embedding == single_chunk_embedding
+
+
+@pytest.mark.unit
+class TestCodeNodeChunkOffsets:
+    """Phase 0: Tests for CodeNode.embedding_chunk_offsets field.
+
+    Per Discovery 01: Field must be optional with None default for backward compatibility.
+    Per DYK-05: Only raw content has chunk offsets (smart_content uses node's full range).
+    """
+
+    def test_given_node_when_created_then_chunk_offsets_default_none(
+        self, sample_node
+    ):
+        """
+        Purpose: Proves backward compatibility - default is None
+        Quality Contribution: Prevents breaking changes
+        Acceptance Criteria: CodeNode without chunk offsets has None default
+        """
+        assert sample_node.embedding_chunk_offsets is None
+
+    def test_given_chunk_offsets_when_set_then_stored_correctly(
+        self, sample_node
+    ):
+        """
+        Purpose: Proves CodeNode can store chunk offset metadata
+        Quality Contribution: Enables semantic search detail mode
+        Acceptance Criteria: CodeNode with chunk offsets serializes correctly
+        """
+        offsets = ((1, 25), (20, 50), (45, 75), (70, 100))
+        updated = replace(sample_node, embedding_chunk_offsets=offsets)
+
+        assert updated.embedding_chunk_offsets == offsets
+        assert len(updated.embedding_chunk_offsets) == 4
+
+    def test_given_chunk_offsets_when_set_then_are_tuples(
+        self, sample_node
+    ):
+        """
+        Purpose: Proves chunk offsets use tuple type (immutable)
+        Quality Contribution: Matches embedding field patterns
+        Acceptance Criteria: Offsets are tuple of tuples
+        """
+        offsets = ((1, 10), (11, 20), (21, 30))
+        updated = replace(sample_node, embedding_chunk_offsets=offsets)
+
+        assert isinstance(updated.embedding_chunk_offsets, tuple)
+        assert all(
+            isinstance(offset, tuple)
+            for offset in updated.embedding_chunk_offsets
+        )
+
+    def test_given_node_with_offsets_when_pickle_roundtrip_then_preserved(
+        self, sample_node
+    ):
+        """
+        Purpose: Proves CodeNode with offsets can be pickled/unpickled
+        Quality Contribution: Required for fixture_graph.pkl serialization
+        Acceptance Criteria: Pickle round-trip preserves offsets
+        """
+        offsets = ((1, 25), (26, 50))
+        updated = replace(sample_node, embedding_chunk_offsets=offsets)
+
+        pickled = pickle.dumps(updated)
+        restored = pickle.loads(pickled)
+
+        assert restored.embedding_chunk_offsets == offsets
+
+    def test_given_both_embedding_and_offsets_when_set_then_counts_match(
+        self, sample_node, multi_chunk_embedding
+    ):
+        """
+        Purpose: Proves offsets count matches embedding chunk count
+        Quality Contribution: Data consistency for search results
+        Acceptance Criteria: len(offsets) == len(embedding) when both present
+        """
+        # 3 embedding chunks
+        # 3 offset tuples (must match)
+        offsets = ((1, 30), (25, 60), (55, 100))
+
+        updated = replace(
+            sample_node,
+            embedding=multi_chunk_embedding,
+            embedding_chunk_offsets=offsets,
+        )
+
+        assert len(updated.embedding) == len(updated.embedding_chunk_offsets)
+
+    def test_given_empty_offsets_when_set_then_is_empty_tuple(
+        self, sample_node
+    ):
+        """
+        Purpose: Proves empty content produces empty offsets
+        Quality Contribution: Consistent handling of edge cases
+        Acceptance Criteria: Empty tuple for nodes with no chunks
+        """
+        updated = replace(sample_node, embedding_chunk_offsets=())
+
+        assert updated.embedding_chunk_offsets == ()
+        assert len(updated.embedding_chunk_offsets) == 0
+
+
+@pytest.mark.unit
+class TestCodeNodeFactoryMethodsWithOffsets:
+    """Phase 0: Tests for factory methods with embedding_chunk_offsets."""
+
+    def test_given_create_callable_when_called_with_offsets_then_sets_field(self):
+        """
+        Purpose: Proves create_callable factory supports new field
+        Quality Contribution: Factory method parity
+        Acceptance Criteria: Factory method accepts and stores offsets
+        """
+        from fs2.core.models.code_node import CodeNode
+
+        offsets = ((1, 10), (11, 20))
+
+        node = CodeNode.create_callable(
+            file_path="test.py",
+            language="python",
+            ts_kind="function_definition",
+            name="my_func",
+            qualified_name="my_func",
+            start_line=1,
+            end_line=20,
+            start_column=0,
+            end_column=0,
+            start_byte=0,
+            end_byte=500,
+            content="def my_func():\n    pass",
+            signature="def my_func():",
+            embedding_chunk_offsets=offsets,
+        )
+
+        assert node.embedding_chunk_offsets == offsets
+
+    def test_given_create_file_when_called_with_offsets_then_sets_field(self):
+        """
+        Purpose: Proves create_file factory supports new field
+        Quality Contribution: Factory method parity
+        Acceptance Criteria: Factory method accepts and stores offsets
+        """
+        from fs2.core.models.code_node import CodeNode
+
+        offsets = ((1, 100),)
+
+        node = CodeNode.create_file(
+            file_path="test.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=1000,
+            start_line=1,
+            end_line=100,
+            content="# Test file\nprint('hello')",
+            embedding_chunk_offsets=offsets,
+        )
+
+        assert node.embedding_chunk_offsets == offsets
+
+    def test_given_factory_when_omit_offsets_then_default_is_none(self):
+        """
+        Purpose: Proves factory methods default to None for offsets
+        Quality Contribution: Backward compatibility
+        Acceptance Criteria: Omitting offsets results in None
+        """
+        from fs2.core.models.code_node import CodeNode
+
+        node = CodeNode.create_callable(
+            file_path="test.py",
+            language="python",
+            ts_kind="function_definition",
+            name="my_func",
+            qualified_name="my_func",
+            start_line=1,
+            end_line=20,
+            start_column=0,
+            end_column=0,
+            start_byte=0,
+            end_byte=500,
+            content="def my_func():\n    pass",
+            signature="def my_func():",
+            # No embedding_chunk_offsets specified
+        )
+
+        assert node.embedding_chunk_offsets is None

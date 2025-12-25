@@ -6,7 +6,13 @@ Commands:
 - init: Initialize .fs2/config.yaml with defaults
 - tree: Display code structure as hierarchical tree
 - get-node: Retrieve a single node by ID as JSON
+
+Global Options:
+- --graph-file: Override graph file path (applies to all graph commands)
 """
+
+from dataclasses import dataclass
+from typing import Annotated
 
 import typer
 
@@ -14,6 +20,14 @@ from fs2.cli.get_node import get_node
 from fs2.cli.init import init
 from fs2.cli.scan import scan
 from fs2.cli.tree import tree
+
+
+@dataclass
+class CLIContext:
+    """Context object for passing global options to subcommands."""
+
+    graph_file: str | None = None
+
 
 app = typer.Typer(
     name="fs2",
@@ -23,9 +37,18 @@ app = typer.Typer(
 
 
 @app.callback()
-def main() -> None:
+def main(
+    ctx: typer.Context,
+    graph_file: Annotated[
+        str | None,
+        typer.Option(
+            "--graph-file",
+            help="Graph file path (overrides config). Default: .fs2/graph.pickle",
+        ),
+    ] = None,
+) -> None:
     """Flowspace2 - Code intelligence for your codebase."""
-    pass
+    ctx.obj = CLIContext(graph_file=graph_file)
 
 
 # Register commands

@@ -80,15 +80,15 @@ flowchart TD
     style Fixtures fill:#F3E5F5,stroke:#7B1FA2
 
     subgraph Phase["Phase 0: Chunk Offset Tracking"]
-        T001["T001: Backup fixture_graph.pkl"]:::pending
-        T002["T002: Run existing embedding tests"]:::pending
-        T003["T003: Write ChunkItem line offset tests"]:::pending
-        T004["T004: Extend ChunkItem model"]:::pending
-        T005["T005: Write line tracking tests"]:::pending
-        T006["T006: Update _chunk_by_tokens()"]:::pending
-        T007["T007: Write CodeNode offset tests"]:::pending
-        T008["T008: Add CodeNode offset field"]:::pending
-        T009["T009: Update EmbeddingService"]:::pending
+        T001["T001: Backup fixture_graph.pkl ✓"]:::completed
+        T002["T002: Run existing embedding tests ✓"]:::completed
+        T003["T003: Write ChunkItem line offset tests ✓"]:::completed
+        T004["T004: Extend ChunkItem model ✓"]:::completed
+        T005["T005: Write line tracking tests ✓"]:::completed
+        T006["T006: Update _chunk_by_tokens() ✓"]:::completed
+        T007["T007: Write CodeNode offset tests ✓"]:::completed
+        T008["T008: Add CodeNode offset field ✓"]:::completed
+        T009["T009: Update EmbeddingService ✓"]:::completed
         T010["T010: Regenerate fixture_graph.pkl"]:::pending
         T011["T011: Validate chunk offsets in graph"]:::pending
 
@@ -105,22 +105,22 @@ flowchart TD
     end
 
     subgraph Models["Models"]
-        F1["/src/fs2/core/models/code_node.py"]:::pending
+        F1["/src/fs2/core/models/code_node.py ✓"]:::completed
     end
 
     subgraph Services["Services"]
-        F2["/src/fs2/core/services/embedding/embedding_service.py"]:::pending
+        F2["/src/fs2/core/services/embedding/embedding_service.py ✓"]:::completed
     end
 
     subgraph Tests["Tests"]
-        F3["/tests/unit/services/test_embedding_chunking.py"]:::pending
-        F4["/tests/unit/models/test_code_node_embedding.py"]:::pending
-        F5["/tests/unit/services/test_chunk_item_offsets.py"]:::pending
+        F3["/tests/unit/services/test_embedding_chunking.py ✓"]:::completed
+        F4["/tests/unit/models/test_code_node_embedding.py ✓"]:::completed
+        F5["/tests/unit/services/test_chunk_item_offsets.py ✓"]:::completed
     end
 
     subgraph Fixtures["Fixtures"]
         F6["/tests/fixtures/fixture_graph.pkl"]:::pending
-        F7["/tests/fixtures/fixture_graph.pkl.backup"]:::pending
+        F7["/tests/fixtures/fixture_graph.pkl.backup ✓"]:::completed
     end
 
     subgraph Scripts["Scripts"]
@@ -149,15 +149,15 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Fixtures | fixture_graph.pkl, backup | ⬜ Pending | Safety backup before modifications |
-| T002 | Test Suite | All embedding tests | ⬜ Pending | Baseline verification |
-| T003 | ChunkItem Tests | test_chunk_item_offsets.py | ⬜ Pending | TDD: write tests first |
-| T004 | ChunkItem Model | embedding_service.py | ⬜ Pending | Add optional line fields |
-| T005 | Chunking Tests | test_embedding_chunking.py | ⬜ Pending | TDD: line boundary tests |
-| T006 | Chunking Logic | embedding_service.py | ⬜ Pending | Track lines during chunking |
-| T007 | CodeNode Tests | test_code_node_embedding.py | ⬜ Pending | TDD: offset field tests |
-| T008 | CodeNode Model | code_node.py | ⬜ Pending | Add embedding_chunk_offsets |
-| T009 | EmbeddingService | embedding_service.py | ⬜ Pending | Wire offset population |
+| T001 | Fixtures | fixture_graph.pkl, backup | ✅ Complete | Safety backup before modifications |
+| T002 | Test Suite | All embedding tests | ✅ Complete | Baseline: 131 tests passing |
+| T003 | ChunkItem Tests | test_chunk_item_offsets.py | ✅ Complete | TDD RED: 9 tests failing |
+| T004 | ChunkItem Model | embedding_service.py | ✅ Complete | TDD GREEN: 9 new + 131 existing pass |
+| T005 | Chunking Tests | test_embedding_chunking.py | ✅ Complete | TDD RED: 6 tests failing |
+| T006 | Chunking Logic | embedding_service.py | ✅ Complete | Return type changed + line tracking |
+| T007 | CodeNode Tests | test_code_node_embedding.py | ✅ Complete | TDD RED: 9 tests failing |
+| T008 | CodeNode Model | code_node.py | ✅ Complete | TDD GREEN: 9 new + 41 existing pass |
+| T009 | EmbeddingService | embedding_service.py | ✅ Complete | Offsets wired + 3 integration tests |
 | T010 | Fixture Generation | fixture_graph.pkl, generate_fixture_graph.py | ⬜ Pending | Regenerate with new fields |
 | T011 | Validation Script | validate_chunk_offsets.py | ⬜ Pending | Manual verification of offsets |
 
@@ -167,16 +167,16 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|------|-----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Backup fixture_graph.pkl before any schema changes | 1 | Setup | – | /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl, /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl.backup | Backup file exists with same size/checksum | – | Safety first |
-| [ ] | T002 | Run all existing embedding tests to establish baseline | 1 | Setup | T001 | /workspaces/flow_squared/tests/unit/services/test_embedding_*.py, /workspaces/flow_squared/tests/unit/adapters/test_embedding_*.py, /workspaces/flow_squared/tests/integration/test_*embedding*.py | All tests pass (record count) | – | Baseline verification |
-| [ ] | T003 | Write tests for ChunkItem with start_line/end_line fields | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/services/test_chunk_item_offsets.py | Tests verify: optional fields, None defaults, value storage | – | TDD: tests fail initially |
-| [ ] | T004 | Extend ChunkItem with optional start_line/end_line fields | 2 | Core | T003 | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py | Tests from T003 pass, all existing tests still pass | – | Per Discovery 01: None defaults |
-| [ ] | T005 | Write tests for line boundary tracking in _chunk_by_tokens() | 2 | Test | T004 | /workspaces/flow_squared/tests/unit/services/test_embedding_chunking.py | Tests verify: line accumulator, multi-chunk offsets, edge cases | – | TDD: tests fail initially |
-| [ ] | T006 | Update _chunk_by_tokens() to return `list[tuple[str, int, int]]` (text, start_line, end_line), update _chunk_content() caller | 3 | Core | T005 | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py | Tests from T005 pass, ChunkItems include line offsets | – | DYK-02: Return type change required |
-| [ ] | T007 | Write tests for CodeNode.embedding_chunk_offsets field | 2 | Test | T006 | /workspaces/flow_squared/tests/unit/models/test_code_node_embedding.py | Tests verify: new field, serialization, None default | – | TDD: tests fail initially |
-| [ ] | T008 | Add embedding_chunk_offsets field to CodeNode | 2 | Core | T007 | /workspaces/flow_squared/src/fs2/core/models/code_node.py | Tests from T007 pass, pickle load still works | – | Per Discovery 01: None default |
-| [ ] | T009 | Update EmbeddingService to populate chunk offsets on CodeNode | 3 | Integration | T008 | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py | Integration test shows offsets populated correctly | – | Wire _chunk_content → CodeNode |
-| [ ] | T010 | Fix generate_fixture_graph.py to use ScanPipeline with EmbeddingService, then regenerate fixtures | 3 | Integration | T009 | /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl, /workspaces/flow_squared/scripts/generate_fixture_graph.py | `just generate-fixtures` succeeds, uses real EmbeddingService code path | – | DYK-01: Script currently bypasses EmbeddingService |
+| [x] | T001 | Backup fixture_graph.pkl before any schema changes | 1 | Setup | – | /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl, /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl.backup | Backup file exists with same size/checksum | – | Safety first |
+| [x] | T002 | Run all existing embedding tests to establish baseline | 1 | Setup | T001 | /workspaces/flow_squared/tests/unit/services/test_embedding_*.py, /workspaces/flow_squared/tests/unit/adapters/test_embedding_*.py, /workspaces/flow_squared/tests/integration/test_*embedding*.py | All tests pass (record count) | – | Baseline verification |
+| [x] | T003 | Write tests for ChunkItem with start_line/end_line fields | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/services/test_chunk_item_offsets.py | Tests verify: optional fields, None defaults, value storage | – | TDD: tests fail initially |
+| [x] | T004 | Extend ChunkItem with optional start_line/end_line fields | 2 | Core | T003 | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py | Tests from T003 pass, all existing tests still pass | – | Per Discovery 01: None defaults |
+| [x] | T005 | Write tests for line boundary tracking in _chunk_by_tokens() | 2 | Test | T004 | /workspaces/flow_squared/tests/unit/services/test_embedding_chunking.py | Tests verify: line accumulator, multi-chunk offsets, edge cases | – | TDD: tests fail initially |
+| [x] | T006 | Update _chunk_by_tokens() to return `list[tuple[str, int, int]]` (text, start_line, end_line), update _chunk_content() caller | 3 | Core | T005 | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py | Tests from T005 pass, ChunkItems include line offsets | – | DYK-02: Return type change required |
+| [x] | T007 | Write tests for CodeNode.embedding_chunk_offsets field | 2 | Test | T006 | /workspaces/flow_squared/tests/unit/models/test_code_node_embedding.py | Tests verify: new field, serialization, None default | – | TDD: tests fail initially |
+| [x] | T008 | Add embedding_chunk_offsets field to CodeNode | 2 | Core | T007 | /workspaces/flow_squared/src/fs2/core/models/code_node.py | Tests from T007 pass, pickle load still works | – | Per Discovery 01: None default |
+| [x] | T009 | Update EmbeddingService to populate chunk offsets on CodeNode | 3 | Integration | T008 | /workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py | Integration test shows offsets populated correctly | – | Wire _chunk_content → CodeNode |
+| [ ] | T010 | Fix generate_fixture_graph.py to use ScanPipeline with EmbeddingService, then regenerate fixtures | 3 | Integration | T009 | /workspaces/flow_squared/tests/fixtures/fixture_graph.pkl, /workspaces/flow_squared/scripts/generate_fixture_graph.py | `just generate-fixtures` succeeds, uses real EmbeddingService code path | 001-subtask ✅ | DYK-01: Script bypasses EmbeddingService · Subtask 001 complete [^1] |
 | [ ] | T011 | Create validation script to verify chunk offsets in generated graph | 2 | Validation | T010 | /workspaces/flow_squared/tests/scratch/validate_chunk_offsets.py | Script confirms: nodes have offsets, offsets are valid tuples, line ranges make sense | – | Manual validation gate |
 
 ---
@@ -399,9 +399,9 @@ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run python -m ruff check \
 
 | Footnote | Description | Added By | Date |
 |----------|-------------|----------|------|
-| | | | |
+| [^1] | Subtask 001 ST001-ST005 complete - Added CLI params for fixture generation (7 files modified) | plan-6a | 2025-12-25 |
 
-_Footnotes will be added by plan-6 during implementation when deviations or discoveries occur._
+_Footnotes synchronized with plan Change Footnotes Ledger._
 
 ---
 

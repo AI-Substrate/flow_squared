@@ -1143,3 +1143,204 @@ class TestSkipLogic:
 
         # Should be processed to generate smart_content_embedding
         assert result["processed"] == 1
+
+
+class TestChunkOffsetPopulation:
+    """Phase 0: Tests for embedding_chunk_offsets population.
+
+    Per Phase 0: EmbeddingService populates embedding_chunk_offsets on CodeNode
+    Per DYK-05: Only raw content has offsets (smart_content uses node's full range)
+    """
+
+    @pytest.fixture
+    def config(self) -> EmbeddingConfig:
+        """Config with small chunk size to trigger multi-chunk."""
+        return EmbeddingConfig(
+            mode="fake",
+            batch_size=100,
+            code=ChunkConfig(max_tokens=20, overlap_tokens=5),  # Very small for testing
+            documentation=ChunkConfig(max_tokens=100, overlap_tokens=20),
+            smart_content=ChunkConfig(max_tokens=8000, overlap_tokens=0),
+        )
+
+    @pytest.fixture
+    def fake_adapter(self) -> FakeEmbeddingAdapter:
+        adapter = FakeEmbeddingAdapter(dimensions=4)
+        adapter.set_response([0.1, 0.2, 0.3, 0.4])
+        return adapter
+
+    @pytest.mark.asyncio
+    async def test_given_single_chunk_node_when_processing_then_offsets_populated(
+        self, config, fake_adapter
+    ):
+        """
+        Purpose: Verify single-chunk node gets chunk offsets
+        Quality Contribution: Validates Phase 0 implementation
+        Acceptance Criteria: embedding_chunk_offsets is populated with one tuple
+        """
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
+        from fs2.config.service import FakeConfigurationService
+        from fs2.config.objects import ScanConfig
+
+        fake_config_service = FakeConfigurationService(ScanConfig())
+        token_counter = FakeTokenCounterAdapter(fake_config_service)
+
+        # Short content that fits in single chunk
+        short_content = "x = 1"
+
+        node = CodeNode(
+            node_id="file:single_chunk.py",
+            category="file",
+            ts_kind="module",
+            name="single_chunk.py",
+            qualified_name="single_chunk.py",
+            start_line=1,
+            end_line=1,
+            start_column=0,
+            end_column=0,
+            start_byte=0,
+            end_byte=len(short_content),
+            content=short_content,
+            content_hash="single_chunk_hash",
+            signature=None,
+            language="python",
+            content_type=ContentType.CODE,
+            is_named=True,
+            field_name=None,
+        )
+
+        service = EmbeddingService(
+            config=config,
+            embedding_adapter=fake_adapter,
+            token_counter=token_counter,
+        )
+
+        result = await service.process_batch([node])
+        updated_node = result["results"]["file:single_chunk.py"]
+
+        # Should have chunk offsets populated
+        assert updated_node.embedding_chunk_offsets is not None
+        assert len(updated_node.embedding_chunk_offsets) == 1
+        assert updated_node.embedding_chunk_offsets[0] == (1, 1)  # Single line
+
+    @pytest.mark.asyncio
+    async def test_given_multi_chunk_node_when_processing_then_offsets_match_chunk_count(
+        self, config, fake_adapter
+    ):
+        """
+        Purpose: Verify multi-chunk node gets correct number of offset tuples
+        Quality Contribution: Validates chunk-to-offset alignment
+        Acceptance Criteria: len(embedding_chunk_offsets) == len(embedding)
+        """
+        from unittest.mock import Mock
+
+        # Create a token counter that returns ~10 tokens per line (to trigger chunking)
+        token_counter = Mock()
+        token_counter.count_tokens = lambda text: len(text.split()) * 3  # ~3 tokens per word
+
+        # Multi-line content that will produce multiple chunks with small max_tokens=20
+        # Each line is ~6 words * 3 = ~18 tokens, so we need multiple lines per chunk
+        # But with 20 max tokens and overlap, we should get multiple chunks
+        multi_line_content = "\n".join([f"line number {i} has some words here" for i in range(30)])
+
+        node = CodeNode(
+            node_id="file:multi_chunk.py",
+            category="file",
+            ts_kind="module",
+            name="multi_chunk.py",
+            qualified_name="multi_chunk.py",
+            start_line=1,
+            end_line=30,
+            start_column=0,
+            end_column=0,
+            start_byte=0,
+            end_byte=len(multi_line_content),
+            content=multi_line_content,
+            content_hash="multi_chunk_hash",
+            signature=None,
+            language="python",
+            content_type=ContentType.CODE,
+            is_named=True,
+            field_name=None,
+        )
+
+        service = EmbeddingService(
+            config=config,
+            embedding_adapter=fake_adapter,
+            token_counter=token_counter,
+        )
+
+        result = await service.process_batch([node])
+        updated_node = result["results"]["file:multi_chunk.py"]
+
+        # Should have multiple chunks (content is ~30 lines * ~18 tokens = 540 tokens, max 20 tokens)
+        assert updated_node.embedding is not None
+        assert len(updated_node.embedding) > 1, f"Expected multiple chunks, got {len(updated_node.embedding)}"
+
+        # Chunk offsets should match embedding count
+        assert updated_node.embedding_chunk_offsets is not None
+        assert len(updated_node.embedding_chunk_offsets) == len(updated_node.embedding)
+
+        # All offsets should be valid (start_line, end_line) tuples
+        for start_line, end_line in updated_node.embedding_chunk_offsets:
+            assert isinstance(start_line, int)
+            assert isinstance(end_line, int)
+            assert start_line >= 1
+            assert end_line >= start_line
+            assert end_line <= 30
+
+    @pytest.mark.asyncio
+    async def test_given_node_with_smart_content_when_processing_then_no_smart_content_offsets(
+        self, config, fake_adapter
+    ):
+        """
+        Purpose: Verify DYK-05 - smart_content has no chunk offsets
+        Quality Contribution: Documents asymmetry by design
+        Acceptance Criteria: Only raw content embedding has chunk offsets
+        """
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
+        from fs2.config.service import FakeConfigurationService
+        from fs2.config.objects import ScanConfig
+
+        fake_config_service = FakeConfigurationService(ScanConfig())
+        token_counter = FakeTokenCounterAdapter(fake_config_service)
+
+        node = CodeNode(
+            node_id="file:smart.py",
+            category="file",
+            ts_kind="module",
+            name="smart.py",
+            qualified_name="smart.py",
+            start_line=1,
+            end_line=5,
+            start_column=0,
+            end_column=0,
+            start_byte=0,
+            end_byte=50,
+            content="def func():\n    pass\n\ndef other():\n    pass",
+            content_hash="smart_hash",
+            signature=None,
+            language="python",
+            content_type=ContentType.CODE,
+            is_named=True,
+            field_name=None,
+            smart_content="Two simple function definitions.",
+        )
+
+        service = EmbeddingService(
+            config=config,
+            embedding_adapter=fake_adapter,
+            token_counter=token_counter,
+        )
+
+        result = await service.process_batch([node])
+        updated_node = result["results"]["file:smart.py"]
+
+        # Both embeddings should be populated
+        assert updated_node.embedding is not None
+        assert updated_node.smart_content_embedding is not None
+
+        # Only raw content has chunk offsets
+        # embedding_chunk_offsets corresponds to raw content chunks only
+        assert updated_node.embedding_chunk_offsets is not None
+        assert len(updated_node.embedding_chunk_offsets) == len(updated_node.embedding)

@@ -1131,7 +1131,15 @@ print(json_str)
 
 ## Change Footnotes Ledger
 
-[^1]: [To be added during implementation via plan-6a]
+[^1]: Subtask 001 ST001-ST005 - Added CLI params for fixture generation
+  - `file:src/fs2/cli/main.py` - Added CLIContext and --graph-file global option
+  - `file:src/fs2/cli/scan.py` - Added --scan-path repeatable param, context handling
+  - `file:src/fs2/cli/tree.py` - Added context handling for --graph-file
+  - `file:src/fs2/cli/get_node.py` - Added context handling for --graph-file
+  - `file:src/fs2/core/services/scan_pipeline.py` - Added graph_path parameter
+  - `file:justfile` - Updated generate-fixtures with two-step recipe
+  - `file:scripts/enrich_fixture_smart_content.py` - New script for smart_content enrichment
+
 [^2]: [To be added during implementation via plan-6a]
 [^3]: [To be added during implementation via plan-6a]
 [^4]: [To be added during implementation via plan-6a]
@@ -1141,3 +1149,13 @@ print(json_str)
 
 **Plan Created**: 2025-12-24
 **Next Step**: Run `/plan-4-complete-the-plan` to validate readiness
+
+---
+
+## Subtasks Registry
+
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-add-cli-graph-file-and-scan-path-params | 2025-12-24 | Phase 0: Chunk Offset Tracking | T010 | Fixture generation requires CLI params for custom input/output paths instead of custom script | [x] Complete | [Link](tasks/phase-0-chunk-offset-tracking/001-subtask-add-cli-graph-file-and-scan-path-params.md) |

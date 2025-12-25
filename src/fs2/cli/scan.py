@@ -11,16 +11,22 @@ Per Phase 6 (Scan Pipeline Integration):
 Per Clean Architecture:
 - Uses ConsoleAdapter ABC for all console output (no direct Rich usage)
 - CLI layer creates RichConsoleAdapter and passes to helpers
+
+Per Phase 0 (Subtask 001):
+- Accepts global --graph-file option via context for custom output paths
+- Accepts --scan-path option to override scan directories
 """
 
 import logging
 import sys
+from pathlib import Path
 from typing import Annotated
 
 import typer
 from rich.logging import RichHandler
 
 from fs2.config.exceptions import MissingConfigurationError
+from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FS2ConfigurationService
 from fs2.core.adapters import FileSystemScanner, RichConsoleAdapter, TreeSitterParser
 from fs2.core.adapters.console_adapter import ConsoleAdapter
@@ -31,6 +37,14 @@ logger = logging.getLogger("fs2.cli.scan")
 
 
 def scan(
+    ctx: typer.Context,
+    scan_path: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--scan-path",
+            help="Directory to scan (repeatable, overrides config). Supports relative and absolute paths.",
+        ),
+    ] = None,
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Show detailed per-file output"),
@@ -79,6 +93,35 @@ def scan(
 
         config = FS2ConfigurationService()
         console.print_success("Loaded .fs2/config.yaml")
+
+        # Per Subtask 001: Get graph_file from global option via context
+        graph_path: Path | None = None
+        if ctx.obj and ctx.obj.graph_file:
+            graph_path = Path(ctx.obj.graph_file)
+            # Create parent directories if they don't exist (per DYK-04)
+            graph_path.parent.mkdir(parents=True, exist_ok=True)
+            # Override GraphConfig in config service
+            config.set(GraphConfig(graph_path=str(graph_path)))
+            console.print_info(f"Graph file: {graph_path}")
+
+        # Per Subtask 001 (ST002): Override scan_paths if --scan-path provided
+        # Path validation happens in FileSystemScanner (per DYK-05 Clean Architecture)
+        if scan_path:
+            # Get existing ScanConfig to preserve other settings
+            existing_scan_config = config.get(ScanConfig) or ScanConfig()
+            # Override scan_paths with CLI values
+            updated_scan_config = ScanConfig(
+                scan_paths=scan_path,
+                max_file_size_kb=existing_scan_config.max_file_size_kb,
+                respect_gitignore=existing_scan_config.respect_gitignore,
+                follow_symlinks=existing_scan_config.follow_symlinks,
+                sample_lines_for_large_files=existing_scan_config.sample_lines_for_large_files,
+            )
+            config.set(updated_scan_config)
+            if len(scan_path) == 1:
+                console.print_info(f"Scan path: {scan_path[0]}")
+            else:
+                console.print_info(f"Scan paths: {', '.join(scan_path)}")
 
         # Create SmartContentService if LLM is configured and not disabled
         smart_content_service = None
@@ -149,6 +192,7 @@ def scan(
             smart_content_progress_callback=smart_content_progress if smart_content_service else None,
             embedding_service=embedding_service,
             embedding_progress_callback=embedding_progress if embedding_service else None,
+            graph_path=graph_path,  # Per Subtask 001: Custom output path
         )
 
         # ===== STAGE 3: PARSING =====
@@ -198,7 +242,9 @@ def scan(
 
         # ===== STAGE 5: STORAGE =====
         console.stage_banner("STORAGE")
-        console.print_success("Graph saved to .fs2/graph.pickle")
+        # Per Subtask 001 (DYK-02): Show actual path, not hardcoded default
+        actual_path = graph_path if graph_path else Path(".fs2/graph.pickle")
+        console.print_success(f"Graph saved to {actual_path}")
 
         # ===== SUMMARY =====
         console.print_line()

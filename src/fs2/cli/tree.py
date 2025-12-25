@@ -16,6 +16,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 from fs2.config.exceptions import MissingConfigurationError
+from fs2.config.objects import GraphConfig
 from fs2.config.service import FS2ConfigurationService
 from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
 from fs2.core.models.tree_node import TreeNode
@@ -40,6 +41,7 @@ CATEGORY_ICONS = {
 
 
 def tree(
+    ctx: typer.Context,
     pattern: Annotated[
         str,
         typer.Argument(
@@ -88,6 +90,14 @@ def tree(
     try:
         # === Composition Root ===
         config = FS2ConfigurationService()
+
+        # Per Subtask 001: Get graph_file from global option via context
+        if ctx.obj and ctx.obj.graph_file:
+            # Override GraphConfig in config service
+            config.set(GraphConfig(graph_path=ctx.obj.graph_file))
+            if verbose:
+                console.print(f"[dim]DEBUG: Using graph file: {ctx.obj.graph_file}[/dim]")
+
         graph_store = NetworkXGraphStore(config)
 
         # Create service with DI

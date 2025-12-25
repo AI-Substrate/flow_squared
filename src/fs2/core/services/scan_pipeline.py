@@ -23,6 +23,7 @@ Per Phase 6 T005 (ScanPipeline Constructor):
 """
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fs2.config.objects import ScanConfig
@@ -92,6 +93,7 @@ class ScanPipeline:
         smart_content_progress_callback: "ProgressCallback | None" = None,
         embedding_service: "EmbeddingService | None" = None,
         embedding_progress_callback: "EmbeddingService.ProgressCallback | None" = None,
+        graph_path: Path | None = None,
     ):
         """Initialize pipeline with config and adapters.
 
@@ -112,6 +114,8 @@ class ScanPipeline:
                                If None, EmbeddingStage still runs but skips generation.
             embedding_progress_callback: Optional callback for embedding
                                          progress updates (processed, total, skipped).
+            graph_path: Optional path to save graph. If None, uses default
+                        .fs2/graph.pickle. Per Subtask 001 (Phase 0).
 
         Raises:
             MissingConfigurationError: If ScanConfig not in registry.
@@ -131,6 +135,7 @@ class ScanPipeline:
         self._smart_content_progress_callback = smart_content_progress_callback
         self._embedding_service = embedding_service
         self._embedding_progress_callback = embedding_progress_callback
+        self._graph_path = graph_path  # Per Subtask 001: CLI override for graph path
 
         # Default stages if not provided
         # Order: Discovery → Parsing → SmartContent → Embedding → Storage
@@ -156,16 +161,20 @@ class ScanPipeline:
             errors, and metrics.
         """
         # Build context with adapters
-        context = PipelineContext(
-            scan_config=self._scan_config,
-            file_scanner=self._file_scanner,
-            ast_parser=self._ast_parser,
-            graph_store=self._graph_store,
-            smart_content_service=self._smart_content_service,
-            smart_content_progress_callback=self._smart_content_progress_callback,
-            embedding_service=self._embedding_service,
-            embedding_progress_callback=self._embedding_progress_callback,
-        )
+        # Per Subtask 001: Use custom graph_path if provided, otherwise use default
+        context_kwargs = {
+            "scan_config": self._scan_config,
+            "file_scanner": self._file_scanner,
+            "ast_parser": self._ast_parser,
+            "graph_store": self._graph_store,
+            "smart_content_service": self._smart_content_service,
+            "smart_content_progress_callback": self._smart_content_progress_callback,
+            "embedding_service": self._embedding_service,
+            "embedding_progress_callback": self._embedding_progress_callback,
+        }
+        if self._graph_path is not None:
+            context_kwargs["graph_path"] = self._graph_path
+        context = PipelineContext(**context_kwargs)
 
         # Load prior graph state for smart content preservation (Subtask 001)
         # This enables hash-based skip logic (AC5/AC6) by providing prior

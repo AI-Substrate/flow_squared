@@ -17,6 +17,10 @@ Requirements:
 
 The generated fixture graph is committed to the repository and used by
 FakeEmbeddingAdapter and FakeLLMAdapter for tests via FixtureIndex.
+
+Per Phase 0 (Chunk Offset Tracking): Uses ScanPipeline with EmbeddingService
+to ensure proper chunking and offset tracking. Previously bypassed EmbeddingService
+by calling embed_text() directly (DYK-01).
 """
 
 import asyncio
@@ -31,7 +35,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService, FS2ConfigurationService
 from fs2.core.adapters import FileSystemScanner, TreeSitterParser
-from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
 from fs2.core.adapters.llm_adapter_azure import AzureOpenAIAdapter
 from fs2.core.models.code_node import CodeNode
 from fs2.core.repos import NetworkXGraphStore
@@ -49,32 +52,6 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).parent.parent
 SAMPLES_DIR = PROJECT_ROOT / "tests" / "fixtures" / "samples"
 OUTPUT_PATH = PROJECT_ROOT / "tests" / "fixtures" / "fixture_graph.pkl"
-
-
-async def generate_embedding(
-    adapter: AzureEmbeddingAdapter, node: CodeNode
-) -> CodeNode | None:
-    """Generate embedding for a node's content.
-
-    Args:
-        adapter: Azure embedding adapter.
-        node: CodeNode to embed.
-
-    Returns:
-        Updated CodeNode with embedding, or None on failure.
-    """
-    try:
-        # Embed the node's content
-        embedding = await adapter.embed_text(node.content)
-
-        # Convert list[float] to tuple[tuple[float, ...], ...]
-        embedding_tuple = (tuple(embedding),)
-
-        return replace(node, embedding=embedding_tuple)
-
-    except Exception as e:
-        logger.warning(f"Failed to embed {node.node_id}: {e}")
-        return None
 
 
 async def generate_smart_content(
@@ -124,41 +101,37 @@ Be technical but brief (2-3 sentences)."""
         return None
 
 
-async def process_nodes(
+def process_nodes_smart_content(
     nodes: list[CodeNode],
-    embedding_adapter: AzureEmbeddingAdapter,
     llm_adapter: AzureOpenAIAdapter,
 ) -> list[CodeNode]:
-    """Process nodes to add embeddings and smart_content.
+    """Process nodes to add smart_content only.
+
+    Per DYK-01: Embeddings are now handled by EmbeddingService via ScanPipeline,
+    which properly chunks content and tracks line offsets (Phase 0).
 
     Args:
         nodes: List of CodeNodes from scan.
-        embedding_adapter: Azure embedding adapter.
         llm_adapter: Azure LLM adapter.
 
     Returns:
-        List of enriched CodeNodes.
+        List of CodeNodes with smart_content added.
     """
-    enriched = []
+    async def _process_async():
+        enriched = []
+        for i, node in enumerate(nodes):
+            logger.info(f"Generating smart_content {i + 1}/{len(nodes)}: {node.node_id}")
+            # Generate smart_content only (embeddings handled by EmbeddingService)
+            result = await generate_smart_content(llm_adapter, node) or node
+            enriched.append(result)
+            # Small delay to avoid rate limiting
+            await asyncio.sleep(0.1)
+        return enriched
 
-    for i, node in enumerate(nodes):
-        logger.info(f"Processing node {i + 1}/{len(nodes)}: {node.node_id}")
-
-        # Generate embedding
-        node = await generate_embedding(embedding_adapter, node) or node
-
-        # Generate smart_content
-        node = await generate_smart_content(llm_adapter, node) or node
-
-        enriched.append(node)
-
-        # Small delay to avoid rate limiting
-        await asyncio.sleep(0.1)
-
-    return enriched
+    return asyncio.run(_process_async())
 
 
-async def main() -> int:
+def main() -> int:
     """Main entry point.
 
     Returns:
@@ -176,6 +149,12 @@ async def main() -> int:
     logger.info(f"Samples directory: {SAMPLES_DIR}")
     logger.info(f"Output path: {OUTPUT_PATH}")
 
+    # Delete existing fixture to force fresh embedding generation
+    # This prevents merging of prior embeddings that may lack chunk offsets
+    if OUTPUT_PATH.exists():
+        logger.info(f"Removing existing fixture to force fresh embeddings...")
+        OUTPUT_PATH.unlink()
+
     # Create configuration
     scan_config = ScanConfig(
         scan_paths=[str(SAMPLES_DIR)],
@@ -190,13 +169,38 @@ async def main() -> int:
     ast_parser = TreeSitterParser(config)
     graph_store = NetworkXGraphStore(config)
 
-    # Run scan pipeline (Discovery → Parsing → Storage)
+    # Try to create Azure adapters and EmbeddingService for enrichment
+    # Use FS2ConfigurationService to load from .fs2/config.yaml
+    embedding_service = None
+    llm_adapter = None
+    try:
+        # Load real config from YAML and environment
+        real_config = FS2ConfigurationService()
+
+        # Per DYK-01: Use EmbeddingService for proper chunking and offset tracking
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        embedding_service = EmbeddingService.create(real_config)
+        llm_adapter = AzureOpenAIAdapter(real_config)
+
+        logger.info("Azure adapters and EmbeddingService configured")
+
+    except Exception as e:
+        logger.warning(f"Could not create Azure adapters: {e}")
+        logger.warning("Saving graph without embeddings/smart_content")
+        logger.warning(
+            "Set FS2_AZURE__OPENAI__ENDPOINT and FS2_AZURE__OPENAI__KEY to enable enrichment"
+        )
+
+    # Run scan pipeline with EmbeddingService (Discovery → Parsing → Embedding → Storage)
+    # Per Phase 0: ScanPipeline with EmbeddingService ensures proper chunking and offset tracking
     logger.info("Scanning fixture samples...")
     pipeline = ScanPipeline(
         config=config,
         file_scanner=file_scanner,
         ast_parser=ast_parser,
         graph_store=graph_store,
+        embedding_service=embedding_service,  # Per DYK-01: Use EmbeddingService
     )
     summary = pipeline.run()
 
@@ -210,18 +214,16 @@ async def main() -> int:
     nodes = graph_store.get_all_nodes()
     logger.info(f"Retrieved {len(nodes)} nodes from graph")
 
-    # Try to create Azure adapters for enrichment
-    # Use FS2ConfigurationService to load from .fs2/config.yaml
-    try:
-        # Load real config from YAML and environment
-        real_config = FS2ConfigurationService()
+    # Count nodes with embeddings (generated by EmbeddingService via ScanPipeline)
+    with_embedding = sum(1 for n in nodes if n.embedding is not None)
+    with_offsets = sum(1 for n in nodes if n.embedding_chunk_offsets is not None)
+    logger.info(f"Nodes with embeddings: {with_embedding}")
+    logger.info(f"Nodes with chunk offsets: {with_offsets}")
 
-        embedding_adapter = AzureEmbeddingAdapter(real_config)
-        llm_adapter = AzureOpenAIAdapter(real_config)
-
-        # Enrich nodes with embeddings and smart_content
-        logger.info("Enriching nodes with embeddings and smart_content...")
-        enriched_nodes = await process_nodes(nodes, embedding_adapter, llm_adapter)
+    # Generate smart_content if LLM adapter is available
+    if llm_adapter:
+        logger.info("Generating smart_content...")
+        enriched_nodes = process_nodes_smart_content(nodes, llm_adapter)
 
         # Clear and rebuild graph with enriched nodes
         graph_store.clear()
@@ -235,18 +237,8 @@ async def main() -> int:
                 except Exception:
                     pass  # Parent may not exist
 
-        # Count enriched nodes
-        with_embedding = sum(1 for n in enriched_nodes if n.embedding is not None)
         with_smart = sum(1 for n in enriched_nodes if n.smart_content is not None)
-        logger.info(f"Nodes with embeddings: {with_embedding}")
         logger.info(f"Nodes with smart_content: {with_smart}")
-
-    except Exception as e:
-        logger.warning(f"Could not create Azure adapters: {e}")
-        logger.warning("Saving graph without embeddings/smart_content")
-        logger.warning(
-            "Set FS2_AZURE__OPENAI__ENDPOINT and FS2_AZURE__OPENAI__KEY to enable enrichment"
-        )
 
     # Save graph
     logger.info(f"Saving graph to {OUTPUT_PATH}...")
@@ -265,5 +257,5 @@ async def main() -> int:
 
 
 if __name__ == "__main__":
-    exit_code = asyncio.run(main())
+    exit_code = main()  # Synchronous - ScanPipeline manages its own async context
     sys.exit(exit_code)
