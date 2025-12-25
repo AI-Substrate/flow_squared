@@ -674,6 +674,61 @@ class EmbeddingConfig(BaseModel):
         return self
 
 
+class SearchConfig(BaseModel):
+    """Configuration for search operations.
+
+    Loaded from YAML or environment variables.
+    Path: search (e.g., FS2_SEARCH__DEFAULT_LIMIT)
+
+    Controls search behavior for the fs2 search command.
+    Per Phase 1 Core Models specification.
+
+    Attributes:
+        default_limit: Maximum number of search results (default: 20, must be >= 1).
+        min_similarity: Minimum similarity score for semantic matches (default: 0.5, range 0.0-1.0).
+        regex_timeout: Maximum time in seconds for regex operations (default: 2.0, must be > 0).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        search:
+          default_limit: 20
+          min_similarity: 0.5
+          regex_timeout: 2.0
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "search"
+
+    default_limit: int = 20
+    min_similarity: float = 0.5
+    regex_timeout: float = 2.0
+
+    @field_validator("default_limit")
+    @classmethod
+    def validate_default_limit(cls, v: int) -> int:
+        """Validate default_limit is positive."""
+        if v < 1:
+            raise ValueError("default_limit must be >= 1")
+        return v
+
+    @field_validator("min_similarity")
+    @classmethod
+    def validate_min_similarity(cls, v: float) -> float:
+        """Validate min_similarity is in 0.0-1.0 range."""
+        if v < 0.0 or v > 1.0:
+            raise ValueError("min_similarity must be between 0.0 and 1.0")
+        return v
+
+    @field_validator("regex_timeout")
+    @classmethod
+    def validate_regex_timeout(cls, v: float) -> float:
+        """Validate regex_timeout is positive."""
+        if v <= 0:
+            raise ValueError("regex_timeout must be > 0")
+        return v
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -686,4 +741,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     LLMConfig,
     SmartContentConfig,
     EmbeddingConfig,
+    SearchConfig,
 ]
