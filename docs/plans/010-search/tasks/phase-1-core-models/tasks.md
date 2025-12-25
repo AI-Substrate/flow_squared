@@ -372,9 +372,22 @@ python -c "from fs2.core.models.search import SearchMode, QuerySpec, SearchResul
 
 | ID | Phase | Tasks | Summary | Files Changed |
 |----|-------|-------|---------|---------------|
-| | | | | |
+| [^6] | Phase 1 | T001-T010 | Core search models (69 tests) | 5 new files in src/fs2/core/models/search/, 4 test files, 1 modified |
 
 _Populated by plan-6a during/after implementation._
+
+[^6]: Phase 1 T001-T010 - Core search models (69 tests)
+  - `file:src/fs2/core/models/search/__init__.py` - Module exports (SearchMode, QuerySpec, SearchResult, ChunkMatch, EmbeddingField)
+  - `class:src/fs2/core/models/search/search_mode.py:SearchMode` - Enum: TEXT, REGEX, SEMANTIC, AUTO
+  - `class:src/fs2/core/models/search/query_spec.py:QuerySpec` - Frozen dataclass with pattern, mode, limit, min_similarity
+  - `class:src/fs2/core/models/search/search_result.py:SearchResult` - Frozen dataclass with to_dict(detail) for min/max
+  - `class:src/fs2/core/models/search/chunk_match.py:ChunkMatch` - Tracks field, chunk_index, score for semantic
+  - `class:src/fs2/core/models/search/chunk_match.py:EmbeddingField` - Enum: EMBEDDING, SMART_CONTENT
+  - `class:src/fs2/config/objects.py:SearchConfig` - Pydantic config with default_limit, min_similarity, regex_timeout
+  - `file:tests/unit/models/test_query_spec.py` - 18 tests for QuerySpec validation
+  - `file:tests/unit/models/test_search_result.py` - 19 tests for SearchResult.to_dict()
+  - `file:tests/unit/models/test_chunk_match.py` - 16 tests for ChunkMatch validation
+  - `file:tests/unit/models/test_search_config.py` - 16 tests for SearchConfig defaults
 
 ---
 

@@ -470,16 +470,16 @@ class TestChunkItemLineOffsets:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |-----|--------|------|----|------------------|-----|-------|
-| 1.1 | [ ] | Write comprehensive tests for QuerySpec | 2 | Tests cover: validation, mode enum, limits | - | TDD first |
-| 1.2 | [ ] | Write tests for SearchResult.to_dict(detail) | 2 | Tests cover: min returns 9 fields, max returns 13 fields | - | TDD, per get_node.py idiom |
-| 1.3 | [ ] | Create SearchMode enum | 1 | TEXT, REGEX, SEMANTIC, AUTO values | - | Type safety |
-| 1.4 | [ ] | Implement QuerySpec to pass tests | 2 | All tests from 1.1 pass | - | Frozen dataclass |
-| 1.5 | [ ] | Implement SearchResult to pass tests | 2 | All tests from 1.2 pass | - | Detail level support |
-| 1.6 | [ ] | Write tests for ChunkMatch | 1 | Tests cover: field, chunk_index, score | - | Discovery 05 |
-| 1.7 | [ ] | Implement ChunkMatch | 1 | Frozen dataclass with field/chunk_index/score | - | For Phase 3 |
-| 1.8 | [ ] | Write tests for SearchConfig | 1 | Tests cover: default_limit, min_similarity | - | TDD |
-| 1.9 | [ ] | Implement SearchConfig | 1 | Tests from 1.8 pass | - | Pydantic model |
-| 1.10 | [ ] | Create module exports and validate | 1 | Can import from fs2.core.models.search | - | Clean exports |
+| 1.1 | [x] | Write comprehensive tests for QuerySpec | 2 | Tests cover: validation, mode enum, limits | [📋](tasks/phase-1-core-models/execution.log.md#task-t001-write-comprehensive-tests-for-queryspec) | TDD first [^6] |
+| 1.2 | [x] | Write tests for SearchResult.to_dict(detail) | 2 | Tests cover: min returns 9 fields, max returns 13 fields | [📋](tasks/phase-1-core-models/execution.log.md#task-t002-write-tests-for-searchresultto_dictdetail) | TDD, per get_node.py idiom [^6] |
+| 1.3 | [x] | Create SearchMode enum | 1 | TEXT, REGEX, SEMANTIC, AUTO values | [📋](tasks/phase-1-core-models/execution.log.md#task-t003-create-searchmode-enum) | Type safety [^6] |
+| 1.4 | [x] | Implement QuerySpec to pass tests | 2 | All tests from 1.1 pass | [📋](tasks/phase-1-core-models/execution.log.md#task-t004-implement-queryspec-to-pass-tests) | Frozen dataclass [^6] |
+| 1.5 | [x] | Implement SearchResult to pass tests | 2 | All tests from 1.2 pass | [📋](tasks/phase-1-core-models/execution.log.md#task-t005-implement-searchresult-to-pass-tests) | Detail level support [^6] |
+| 1.6 | [x] | Write tests for ChunkMatch | 1 | Tests cover: field, chunk_index, score | [📋](tasks/phase-1-core-models/execution.log.md#task-t006-write-tests-for-chunkmatch) | Discovery 05 [^6] |
+| 1.7 | [x] | Implement ChunkMatch | 1 | Frozen dataclass with field/chunk_index/score | [📋](tasks/phase-1-core-models/execution.log.md#task-t007-implement-chunkmatch) | For Phase 3 [^6] |
+| 1.8 | [x] | Write tests for SearchConfig | 1 | Tests cover: default_limit, min_similarity | [📋](tasks/phase-1-core-models/execution.log.md#task-t008-write-tests-for-searchconfig) | TDD [^6] |
+| 1.9 | [x] | Implement SearchConfig | 1 | Tests from 1.8 pass | [📋](tasks/phase-1-core-models/execution.log.md#task-t009-implement-searchconfig) | Pydantic model [^6] |
+| 1.10 | [x] | Create module exports and validate | 1 | Can import from fs2.core.models.search | [📋](tasks/phase-1-core-models/execution.log.md#task-t010-create-module-exports-and-validate) | Clean exports [^6] |
 
 ### Test Examples (Write First!)
 
@@ -1115,7 +1115,7 @@ print(json_str)
 
 ### Phase Completion Checklist
 - [x] Phase 0: Chunk Offset Tracking - COMPLETE
-- [ ] Phase 1: Core Models - PENDING
+- [x] Phase 1: Core Models - COMPLETE (69 tests, 10/10 tasks)
 - [ ] Phase 2: Text/Regex Matchers - PENDING
 - [ ] Phase 3: Semantic Matcher - PENDING
 - [ ] Phase 4: Query Embedding Fixtures - PENDING
@@ -1143,9 +1143,24 @@ print(json_str)
 [^2]: Phase 0 T010-T011 - Fixture regeneration and validation
   - `file:tests/fixtures/fixture_graph.pkl` - Regenerated with 451 nodes, all with chunk offsets
   - `file:tests/scratch/validate_chunk_offsets.py` - Validation script (28 multi-chunk nodes validated)
-[^3]: [To be added during implementation via plan-6a]
-[^4]: [To be added during implementation via plan-6a]
-[^5]: [To be added during implementation via plan-6a]
+
+[^6]: Phase 1 T001-T010 - Core search models (69 tests)
+  - `file:src/fs2/core/models/search/__init__.py` - Module exports (SearchMode, QuerySpec, SearchResult, ChunkMatch, EmbeddingField)
+  - `class:src/fs2/core/models/search/search_mode.py:SearchMode` - Enum: TEXT, REGEX, SEMANTIC, AUTO
+  - `class:src/fs2/core/models/search/query_spec.py:QuerySpec` - Frozen dataclass with pattern, mode, limit, min_similarity
+  - `class:src/fs2/core/models/search/search_result.py:SearchResult` - Frozen dataclass with to_dict(detail) for min/max
+  - `class:src/fs2/core/models/search/chunk_match.py:ChunkMatch` - Tracks field, chunk_index, score for semantic
+  - `class:src/fs2/core/models/search/chunk_match.py:EmbeddingField` - Enum: EMBEDDING, SMART_CONTENT
+  - `class:src/fs2/config/objects.py:SearchConfig` - Pydantic config with default_limit, min_similarity, regex_timeout
+  - `file:tests/unit/models/test_query_spec.py` - 18 tests for QuerySpec validation
+  - `file:tests/unit/models/test_search_result.py` - 19 tests for SearchResult.to_dict()
+  - `file:tests/unit/models/test_chunk_match.py` - 16 tests for ChunkMatch validation
+  - `file:tests/unit/models/test_search_config.py` - 16 tests for SearchConfig defaults
+  - DYK-01: Always include all 13 fields in max mode; null for mode-irrelevant
+  - DYK-02: Normative 13-field reference table
+  - DYK-03: EmbeddingField enum for type-safe field identification
+  - DYK-04: Semantic match lines require chunk offsets (Phase 3 dependency)
+  - DYK-05: min_similarity only applies to SEMANTIC mode
 
 ---
 
