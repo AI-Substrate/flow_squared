@@ -13,7 +13,6 @@ Per Subtask 003: Output envelope with metadata + results; --include/--exclude fi
 
 import asyncio
 import json
-import re
 from typing import Annotated
 
 import typer
@@ -150,27 +149,9 @@ def search(
         )
         raise typer.Exit(code=1)
 
-    # Validate include/exclude patterns (compile to check regex validity)
-    include_patterns = include or []
-    exclude_patterns = exclude or []
-
-    for p in include_patterns:
-        try:
-            re.compile(p)
-        except re.error as e:
-            console.print(
-                f"[red]Error:[/red] Invalid regex in --include '{p}': {e}"
-            )
-            raise typer.Exit(code=1) from None
-
-    for p in exclude_patterns:
-        try:
-            re.compile(p)
-        except re.error as e:
-            console.print(
-                f"[red]Error:[/red] Invalid regex in --exclude '{p}': {e}"
-            )
-            raise typer.Exit(code=1) from None
+    # Convert to tuples for QuerySpec (validation happens in QuerySpec)
+    include_patterns = tuple(include) if include else None
+    exclude_patterns = tuple(exclude) if exclude else None
 
     try:
         # === Composition Root ===
@@ -199,18 +180,23 @@ def search(
             embedding_adapter=embedding_adapter,
         )
 
-        # Build QuerySpec
+        # Build QuerySpec - get all filtered results (no pagination yet)
+        # Per fix 2025-12-26: Filters applied in service layer before pagination
+        # We need total count for envelope, so fetch all filtered first, then paginate
         search_mode = MODE_MAP[mode_lower]
         spec = QuerySpec(
             pattern=pattern,
             mode=search_mode,
-            limit=limit,
-            offset=offset,
+            limit=10000,  # High limit to get all filtered results
+            offset=0,
+            include=include_patterns,
+            exclude=exclude_patterns,
         )
 
         # === Service Call ===
         try:
             # SearchService.search is async, so we need asyncio.run()
+            # Returns all filtered results (up to high limit)
             results = asyncio.run(service.search(spec))
         except GraphNotFoundError:
             console.print(
@@ -224,26 +210,15 @@ def search(
         except SearchError as e:
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(code=1) from None
+        except ValueError as e:
+            # Handle invalid regex from QuerySpec validation
+            console.print(f"[red]Error:[/red] {e}")
+            raise typer.Exit(code=1) from None
 
-        # === Apply filters ===
-        # Apply include filter (keep only matching - OR logic across patterns)
-        if include_patterns:
-            results = [
-                r for r in results
-                if any(re.search(p, r.node_id) for p in include_patterns)
-            ]
-
-        # Apply exclude filter (remove matching - OR logic across patterns)
-        if exclude_patterns:
-            results = [
-                r for r in results
-                if not any(re.search(p, r.node_id) for p in exclude_patterns)
-            ]
-
-        # Track filtered count
+        # Track filtered count (filters already applied by service)
         filtered_count = len(results) if (include_patterns or exclude_patterns) else None
 
-        # Apply pagination AFTER filtering
+        # Apply pagination locally (service returned all filtered results)
         total_after_filter = len(results)
         paginated_results = results[offset : offset + limit]
 
@@ -257,14 +232,14 @@ def search(
         showing_to = offset + len(paginated_results)
         showing_count = len(paginated_results)
 
-        # Create metadata
+        # Create metadata (convert tuples to lists for JSON output)
         meta = SearchResultMeta(
             total=total_after_filter,
             showing={"from": showing_from, "to": showing_to, "count": showing_count},
             pagination={"limit": limit, "offset": offset},
             folders=folders,
-            include=include_patterns if include_patterns else None,
-            exclude=exclude_patterns if exclude_patterns else None,
+            include=list(include_patterns) if include_patterns else None,
+            exclude=list(exclude_patterns) if exclude_patterns else None,
             filtered=filtered_count,
         )
 

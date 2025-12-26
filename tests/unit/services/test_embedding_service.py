@@ -1144,6 +1144,60 @@ class TestSkipLogic:
         # Should be processed to generate smart_content_embedding
         assert result["processed"] == 1
 
+    @pytest.mark.asyncio
+    async def test_given_placeholder_smart_content_when_embed_then_skips_smart_content_embedding(
+        self, config, fake_adapter
+    ):
+        """
+        Purpose: Verify placeholder smart_content is not embedded.
+        Quality Contribution: Prevents empty-content nodes from polluting semantic search.
+        Per fix 2025-12-26: Placeholders like "[Empty content - no summary...]" should not
+        be embedded as they rank incorrectly high in semantic search.
+        """
+        # Node with placeholder smart_content (generated for small/empty content)
+        placeholder_node = CodeNode(
+            node_id="type:fixture.ts:LogLevel.WARN",
+            category="type",
+            ts_kind="enum_member",
+            name="WARN",
+            qualified_name="LogLevel.WARN",
+            start_line=10,
+            end_line=10,
+            start_column=0,
+            end_column=20,
+            start_byte=100,
+            end_byte=120,
+            content="WARN = 2",  # Small content
+            content_hash="placeholder_hash",
+            signature=None,
+            language="typescript",
+            content_type=ContentType.CODE,
+            is_named=True,
+            field_name=None,
+            # Placeholder smart_content - should NOT be embedded
+            smart_content="[Empty content - no summary generated for type 'WARN']",
+            smart_content_hash="placeholder_sc_hash",
+        )
+
+        service = EmbeddingService(
+            config=config,
+            embedding_adapter=fake_adapter,
+            token_counter=None,
+        )
+
+        result = await service.process_batch([placeholder_node])
+
+        # Node should be processed (raw content gets embedded)
+        assert result["processed"] == 1
+        assert "type:fixture.ts:LogLevel.WARN" in result["results"]
+
+        # Key assertion: smart_content_embedding should be None (placeholder skipped)
+        updated_node = result["results"]["type:fixture.ts:LogLevel.WARN"]
+        assert updated_node.embedding is not None, "Raw content should be embedded"
+        assert updated_node.smart_content_embedding is None, (
+            "Placeholder smart_content should NOT be embedded"
+        )
+
 
 class TestChunkOffsetPopulation:
     """Phase 0: Tests for embedding_chunk_offsets population.

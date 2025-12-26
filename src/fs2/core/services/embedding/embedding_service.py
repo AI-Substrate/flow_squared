@@ -592,8 +592,10 @@ class EmbeddingService:
                 )
                 chunk_offsets[node.node_id] = offsets
 
-            # Chunk smart_content if present
-            if node.smart_content:
+            # Chunk smart_content if present (skip placeholder content)
+            # Per fix 2025-12-26: Don't embed placeholder smart_content like
+            # "[Empty content - no summary generated...]" - they pollute search results
+            if node.smart_content and not node.smart_content.startswith("[Empty content"):
                 smart_chunks = self._chunk_content(node, is_smart_content=True)
                 all_chunks.extend(smart_chunks)
 

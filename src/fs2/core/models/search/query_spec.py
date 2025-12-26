@@ -5,12 +5,15 @@ A frozen dataclass representing a validated search query with:
 - Mode: Search mode (TEXT, REGEX, SEMANTIC, AUTO)
 - Limit: Maximum results (default 20)
 - Min similarity: Semantic search threshold (default 0.25, per DYK-P3-04)
+- Include/Exclude: Node ID filters applied BEFORE limit/offset
 
 Per Phase 1 tasks.md: Frozen dataclass with __post_init__ validation.
 Per DYK-05: min_similarity only applies to SEMANTIC mode (documented in docstring).
 Per DYK-P3-04: min_similarity lowered from 0.5 to 0.25 to capture weakly-related code.
+Per fix 2025-12-26: include/exclude filters applied in service layer before pagination.
 """
 
+import re
 from dataclasses import dataclass
 
 from fs2.core.models.search.search_mode import SearchMode
@@ -32,10 +35,15 @@ class QuerySpec:
             Note: This parameter only applies to SEMANTIC mode searches.
             For TEXT and REGEX modes, this value is ignored.
             Per DYK-P3-04: Lowered from 0.5 to 0.25 to capture weakly-related code.
+        include: Tuple of regex patterns - keep only node_ids matching ANY pattern.
+            Applied BEFORE limit/offset. None means no filtering.
+        exclude: Tuple of regex patterns - remove node_ids matching ANY pattern.
+            Applied AFTER include, BEFORE limit/offset. None means no filtering.
 
     Raises:
-        ValueError: If pattern is empty/whitespace, limit < 1, or
-                    min_similarity is outside 0.0-1.0 range.
+        ValueError: If pattern is empty/whitespace, limit < 1,
+                    min_similarity is outside 0.0-1.0 range,
+                    or include/exclude contain invalid regex patterns.
         TypeError: If mode is not a SearchMode enum value.
 
     Example:
@@ -44,6 +52,12 @@ class QuerySpec:
         20
         >>> spec.min_similarity
         0.25
+        >>> spec = QuerySpec(
+        ...     pattern="handler",
+        ...     mode=SearchMode.AUTO,
+        ...     include=("src/",),
+        ...     exclude=("test",),
+        ... )
     """
 
     pattern: str
@@ -51,6 +65,8 @@ class QuerySpec:
     limit: int = 20
     offset: int = 0
     min_similarity: float = 0.25
+    include: tuple[str, ...] | None = None
+    exclude: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
         """Validate fields after construction.
@@ -82,3 +98,19 @@ class QuerySpec:
             raise ValueError(
                 f"min_similarity must be between 0.0 and 1.0, got {self.min_similarity}"
             )
+
+        # Validate include patterns are valid regex
+        if self.include:
+            for p in self.include:
+                try:
+                    re.compile(p)
+                except re.error as e:
+                    raise ValueError(f"Invalid regex in include pattern '{p}': {e}") from None
+
+        # Validate exclude patterns are valid regex
+        if self.exclude:
+            for p in self.exclude:
+                try:
+                    re.compile(p)
+                except re.error as e:
+                    raise ValueError(f"Invalid regex in exclude pattern '{p}': {e}") from None

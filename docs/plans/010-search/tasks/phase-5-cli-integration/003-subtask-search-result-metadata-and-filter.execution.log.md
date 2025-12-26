@@ -211,3 +211,139 @@ All 9 subtask items completed:
 
 Total: 60 tests pass covering all functionality.
 
+---
+
+## Bug Fix: Filter Applied After Limit Returns Wrong Results
+**Started**: 2025-12-26
+**Status**: ✅ Complete
+**Type**: Bug Fix
+**Related**: --include/--exclude filter timing
+
+### Problem Description
+`fs2 search "handler registry" --limit 2 --exclude "tests"` returned 0 results, even though relevant results existed in `src/`. The filter was applied AFTER the limit, meaning:
+1. Search returned top 2 results (both from tests/)
+2. Exclude filter removed both
+3. Result: 0 results
+
+User expectation: Get top 2 results that AREN'T in tests.
+
+### Root Cause
+The CLI was applying filters post-search, after the service had already limited results:
+
+```python
+# Old flow (broken):
+results = service.search(spec)  # Returns top N
+results = [r for r in results if not matches_exclude(r)]  # Filter limited set
+# If all top N match exclude pattern → 0 results
+```
+
+### Fix Implemented
+Moved filter logic into the service layer. Filters now apply BEFORE sorting and pagination.
+
+**Files Modified:**
+
+1. `src/fs2/core/models/search/query_spec.py`:
+   - Added `include: tuple[str, ...] | None` field
+   - Added `exclude: tuple[str, ...] | None` field
+   - Added regex validation in `__post_init__`
+
+2. `src/fs2/core/services/search/search_service.py`:
+   - Apply include filter after matching, before sorting
+   - Apply exclude filter after include, before sorting
+   - Then sort and paginate
+
+3. `src/fs2/cli/search.py`:
+   - Pass include/exclude to QuerySpec
+   - Remove post-filtering code
+   - CLI now gets all filtered results, applies pagination locally
+
+### Evidence
+```bash
+# Before fix:
+$ fs2 search "handler registry" --limit 2 --exclude "tests"
+{"meta": {"total": 0, ...}, "results": []}
+
+# After fix:
+$ fs2 search "handler registry" --limit 2 --exclude "tests"
+{"meta": {"total": 95, ...}, "results": [
+  {"node_id": "file:src/fs2/core/adapters/ast_languages/__init__.py", ...},
+  {"node_id": "file:src/fs2/core/adapters/exceptions.py", ...}
+]}
+```
+
+All 60 existing tests continue to pass.
+
+**Completed**: 2025-12-26
+
+---
+
+## Bug Fix: Empty smart_content Nodes Ranking High in Semantic Search
+**Started**: 2025-12-26
+**Status**: ✅ Complete
+**Type**: Bug Fix
+**Related**: Semantic search quality improvement
+
+### Problem Description
+Placeholder smart_content (e.g., "[Empty content - no summary generated...]") was being embedded and polluting semantic search results. Empty-content nodes were ranking higher than relevant content due to accidental semantic similarity between placeholder text and unrelated queries.
+
+### Root Cause Analysis
+1. **Small nodes (<50 bytes) get placeholder smart_content automatically** - The content enrichment pipeline assigns placeholder text to nodes that are too small to summarize meaningfully
+2. **EmbeddingService was embedding these placeholders without distinction** - All smart_content was treated equally regardless of whether it was genuine AI-generated content or a placeholder
+3. **SemanticMatcher searched both embedding fields equally** - Queries matched against both code and smart_content embeddings
+4. **Placeholder embeddings accidentally scored high** - The generic placeholder text had semantic overlap with various query terms
+
+### Fix Implemented
+Modified `src/fs2/core/services/embedding/embedding_service.py` at line 596-600:
+
+```python
+# Before: smart_content was always chunked if present
+smart_chunks = self._chunk_text(smart_content, ...)
+
+# After: Skip smart_content if it's a placeholder
+if smart_content and not smart_content.startswith("[Empty content"):
+    smart_chunks = self._chunk_text(smart_content, ...)
+else:
+    smart_chunks = []
+```
+
+This check prevents placeholder text from being embedded while still embedding legitimate AI-generated summaries.
+
+### Test Added
+Added test `test_given_placeholder_smart_content_when_embed_then_skips_smart_content_embedding` to `tests/unit/services/test_embedding_service.py`:
+
+```python
+def test_given_placeholder_smart_content_when_embed_then_skips_smart_content_embedding(
+    self, embedding_service: EmbeddingService
+) -> None:
+    """Placeholder smart_content should not be embedded to avoid polluting search."""
+    node = CodeNode(
+        node_id="method:test.py:MyClass.method",
+        node_type=NodeType.METHOD,
+        content="def method(): pass",
+        smart_content="[Empty content - no summary generated...]",
+    )
+
+    result = embedding_service.embed_node(node)
+
+    assert result.smart_content_embedding is None
+    assert result.embedding is not None  # Code content still embedded
+```
+
+### Results
+
+| Metric | Before Fix | After Fix | Improvement |
+|--------|------------|-----------|-------------|
+| Query hit rate | 50% (4/8) | 62.5% (5/8) | +12.5% |
+
+**Key Query Improvements:**
+- "protect against malicious pickle deserialization" → `RestrictedUnpickler`: Rank 2 → **Rank 1**
+- "deterministic test doubles for embedding" → `FixtureIndex`: NOT FOUND → **Rank 3**
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `src/fs2/core/services/embedding/embedding_service.py` | Skip placeholder smart_content embedding (line 596-600) |
+| `tests/unit/services/test_embedding_service.py` | Added test for placeholder skip behavior |
+
+**Completed**: 2025-12-26
+

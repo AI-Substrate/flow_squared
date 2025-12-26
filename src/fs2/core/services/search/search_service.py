@@ -7,9 +7,11 @@ via injection.
 Per Discovery 02: Compose GraphStore + RegexMatcher via ABC injection.
 Per DYK-P2-01: AUTO detection uses regex chars heuristic for REGEX detection.
 Per DYK-P3-02: AUTO routes to SEMANTIC by default, TEXT fallback if no embeddings.
+Per fix 2025-12-26: include/exclude filters applied BEFORE sorting and pagination.
 """
 
 import logging
+import re
 from typing import TYPE_CHECKING, Protocol
 
 from fs2.core.models.search import QuerySpec, SearchMode, SearchResult
@@ -180,6 +182,21 @@ class SearchService:
         else:  # SEMANTIC
             assert self._semantic_matcher is not None
             results = await self._semantic_matcher.match(spec, nodes)
+
+        # Apply include filter (keep only matching - OR logic across patterns)
+        # Per fix 2025-12-26: Filters applied BEFORE sorting and pagination
+        if spec.include:
+            results = [
+                r for r in results
+                if any(re.search(p, r.node_id) for p in spec.include)
+            ]
+
+        # Apply exclude filter (remove matching - OR logic across patterns)
+        if spec.exclude:
+            results = [
+                r for r in results
+                if not any(re.search(p, r.node_id) for p in spec.exclude)
+            ]
 
         # Sort by score (descending)
         results.sort(key=lambda r: r.score, reverse=True)
