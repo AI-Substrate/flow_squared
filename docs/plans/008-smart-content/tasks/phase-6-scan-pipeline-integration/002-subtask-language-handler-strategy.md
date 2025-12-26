@@ -21,11 +21,11 @@ This subtask eliminates duplicate node_ids by implementing a clean, extensible *
 ### What We're Building
 A pluggable language handler architecture:
 
-1. **LanguageHandler ABC** - Base class defining override points for language-specific behavior
-2. **Handler Registry** - Auto-discovery mechanism for language handlers
-3. **PythonHandler** - Handles Python's `"block"` as container type
-4. **Handler Integration** - TreeSitterParser delegates to handlers for language-specific logic
-5. **Diagnostic Scripts** - Tools to identify remaining duplicate node_ids
+1. **LanguageHandler ABC** - Base class with `language` + `container_types` (lean, per Insight #3)
+2. **Handler Registry** - Simple explicit dict, uvx-safe (per Insight #5)
+3. **PythonHandler** - Extends default containers with `"block"`
+4. **Handler Integration** - TreeSitterParser uses `handler.container_types`
+5. **Diagnostic Scripts** - Tools to verify no container-type duplicates remain
 
 ### Unblocks
 - **Smart Content Hash Skip Logic**: Stable node_ids mean `content_hash` comparisons work correctly
@@ -46,16 +46,30 @@ if language == "hcl" and node.type == "block":
 ```python
 # ast_parser_impl.py - CLEAN: delegates to handlers
 handler = self._get_handler(language)
-if handler.is_container(ts_kind):
+if ts_kind in handler.container_types:
     # Recurse without creating node
     ...
 ```
 
 ```python
-# ast_languages/python.py - ISOLATED: language-specific logic
+# ast_languages/handler.py - BASE: common container types
+class LanguageHandler(ABC):
+    @property
+    @abstractmethod
+    def language(self) -> str: ...
+
+    @property
+    def container_types(self) -> set[str]:
+        return {"module_body", "compound_statement", "declaration_list",
+                "statement_block", "body"}
+```
+
+```python
+# ast_languages/python.py - ISOLATED: extends defaults
 class PythonHandler(LanguageHandler):
-    def is_container(self, ts_kind: str) -> bool:
-        return ts_kind == "block"  # Python's block is a body wrapper
+    @property
+    def container_types(self) -> set[str]:
+        return super().container_types | {"block"}  # Python block is body wrapper
 ```
 
 ---
@@ -67,10 +81,10 @@ Implement Language Handler Strategy pattern to isolate language-specific AST par
 
 ### Goals
 
-- ✅ Create `LanguageHandler` ABC with extension points (`is_container`, `extract_name`, `classify_node`)
+- ✅ Create `LanguageHandler` ABC with extension points (`language`, `container_types`) - per Insight #3: start lean, add methods when needed
 - ✅ Create `ast_languages/` directory for language-specific handlers
 - ✅ Implement `PythonHandler` to handle `"block"` as container type
-- ✅ Implement handler registry with auto-discovery
+- ✅ Implement handler registry with explicit dict (uvx-safe, no import magic)
 - ✅ Refactor `TreeSitterParser._extract_nodes()` to delegate to handlers
 - ✅ Remove inline language checks from `ast_parser_impl.py`
 - ✅ Create diagnostic script to verify no duplicate node_ids remain
@@ -84,6 +98,7 @@ Implement Language Handler Strategy pattern to isolate language-specific AST par
 - ❌ Re-add HCL/Dockerfile to EXTRACTABLE_LANGUAGES (remain as content blobs)
 - ❌ Change node_id format (keep `{category}:{path}:{qualified_name}`)
 - ❌ Performance optimization of handler lookup (dict lookup is O(1))
+- ❌ Fix C++ method overloading duplicates (legitimate language feature; overloaded methods like `ListenerId` will have same node_id - this is expected per Insight #2)
 
 ---
 
@@ -110,15 +125,15 @@ flowchart TD
     end
 
     subgraph Subtask["Subtask 002: Language Handler Strategy"]
-        ST001["ST001: LanguageHandler ABC tests"]:::pending
-        ST002["ST002: Implement LanguageHandler ABC"]:::pending
-        ST003["ST003: Handler registry tests"]:::pending
-        ST004["ST004: Implement handler registry"]:::pending
-        ST005["ST005: PythonHandler tests"]:::pending
-        ST006["ST006: Implement PythonHandler"]:::pending
-        ST007["ST007: Parser integration tests"]:::pending
-        ST008["ST008: Refactor parser to use handlers"]:::pending
-        ST009["ST009: Verify no duplicate node_ids"]:::pending
+        ST001["ST001: LanguageHandler ABC tests ✓"]:::completed
+        ST002["ST002: Implement LanguageHandler ABC ✓"]:::completed
+        ST003["ST003: Handler registry tests ✓"]:::completed
+        ST004["ST004: Implement handler registry ✓"]:::completed
+        ST005["ST005: PythonHandler tests ✓"]:::completed
+        ST006["ST006: Implement PythonHandler ✓"]:::completed
+        ST007["ST007: Parser integration tests ✓"]:::completed
+        ST008["ST008: Refactor parser to use handlers ✓"]:::completed
+        ST009["ST009: Verify no duplicate node_ids ✓"]:::completed
 
         ST001 --> ST002
         ST003 --> ST004
@@ -131,13 +146,13 @@ flowchart TD
     end
 
     subgraph Files["Files"]
-        F1["ast_languages/__init__.py"]:::pending
-        F2["ast_languages/handler.py"]:::pending
-        F3["ast_languages/python.py"]:::pending
-        F4["ast_parser_impl.py"]:::pending
-        F5["test_language_handler.py"]:::pending
-        F6["test_python_handler.py"]:::pending
-        F7["diagnose_duplicate_nodeids.py"]:::pending
+        F1["ast_languages/__init__.py ✓"]:::completed
+        F2["ast_languages/handler.py ✓"]:::completed
+        F3["ast_languages/python.py ✓"]:::completed
+        F4["ast_parser_impl.py ✓"]:::completed
+        F5["test_language_handler.py ✓"]:::completed
+        F6["test_python_handler.py ✓"]:::completed
+        F7["find_all_duplicates.py ✓"]:::completed
     end
 
     ST001 -.-> F5
@@ -159,15 +174,15 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| ST001 | LanguageHandler ABC Tests | `test_language_handler.py` | ⬜ Pending | TDD: Test ABC interface and default behavior |
-| ST002 | LanguageHandler ABC | `ast_languages/handler.py` | ⬜ Pending | Base class with `is_container`, `extract_name`, `classify_node` |
-| ST003 | Handler Registry Tests | `test_language_handler.py` | ⬜ Pending | TDD: Test registration and lookup |
-| ST004 | Handler Registry | `ast_languages/__init__.py` | ⬜ Pending | Dict-based registry with default handler |
-| ST005 | PythonHandler Tests | `test_python_handler.py` | ⬜ Pending | TDD: Test Python-specific behavior |
-| ST006 | PythonHandler | `ast_languages/python.py` | ⬜ Pending | `is_container("block") -> True` |
-| ST007 | Parser Integration Tests | `test_language_handler.py` | ⬜ Pending | TDD: Test parser uses handlers correctly |
-| ST008 | Parser Refactor | `ast_parser_impl.py` | ⬜ Pending | Remove inline checks, delegate to handlers |
-| ST009 | Verification | `diagnose_duplicate_nodeids.py` | ⬜ Pending | Confirm zero duplicates in fixture files |
+| ST001 | LanguageHandler ABC Tests | `test_language_handler.py` | ✅ Complete | TDD: Test ABC interface and default behavior |
+| ST002 | LanguageHandler ABC | `ast_languages/handler.py` | ✅ Complete | Base class with `language` + `container_types` |
+| ST003 | Handler Registry Tests | `test_language_handler.py` | ✅ Complete | TDD: Test registration and lookup |
+| ST004 | Handler Registry | `ast_languages/__init__.py` | ✅ Complete | Dict-based registry with default handler |
+| ST005 | PythonHandler Tests | `test_python_handler.py` | ✅ Complete | TDD: Test Python-specific behavior |
+| ST006 | PythonHandler | `ast_languages/python.py` | ✅ Complete | `container_types = super() \| {"block"}` |
+| ST007 | Parser Integration Tests | `test_language_handler.py` | ✅ Complete | TDD: Test parser uses handlers correctly |
+| ST008 | Parser Refactor | `ast_parser_impl.py` | ✅ Complete | Removed inline checks, uses `handler.container_types` |
+| ST009 | Verification | `find_all_duplicates.py` | ✅ Complete | Confirmed: 0 container-type duplicates |
 
 ---
 
@@ -175,15 +190,15 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|------|-----|------|--------------|------------------|------------|----------|-------|
-| [ ] | ST001 | Write tests for LanguageHandler ABC interface | 2 | Test | – | `/workspaces/flow_squared/tests/unit/adapters/test_language_handler.py` | Tests cover: ABC cannot be instantiated, default methods return None/False, language property | – | TDD RED |
-| [ ] | ST002 | Implement LanguageHandler ABC with extension points | 2 | Core | ST001 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_languages/handler.py` | All ST001 tests pass; ABC has `language`, `is_container`, `extract_name`, `classify_node` | – | Base class |
-| [ ] | ST003 | Write tests for handler registry | 2 | Test | ST002 | `/workspaces/flow_squared/tests/unit/adapters/test_language_handler.py` | Tests cover: get handler by language, default handler for unknown, register custom | – | TDD RED |
-| [ ] | ST004 | Implement handler registry with auto-discovery | 2 | Core | ST003 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_languages/__init__.py` | All ST003 tests pass; `get_handler(lang)` returns handler or default | – | Dict-based |
-| [ ] | ST005 | Write tests for PythonHandler | 1 | Test | ST004 | `/workspaces/flow_squared/tests/unit/adapters/test_python_handler.py` | Tests cover: `is_container("block") -> True`, other types -> False | – | TDD RED |
-| [ ] | ST006 | Implement PythonHandler | 1 | Core | ST005 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_languages/python.py` | All ST005 tests pass; handles Python block container | – | First handler |
-| [ ] | ST007 | Write tests for parser handler integration | 2 | Test | ST006 | `/workspaces/flow_squared/tests/unit/adapters/test_language_handler.py` | Tests cover: parser uses handler for container detection, parser fallback for unknown | – | TDD RED |
-| [ ] | ST008 | Refactor TreeSitterParser to use handlers | 3 | Core | ST007 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py` | All ST007 tests pass; no inline `language ==` checks; handler delegation works | – | Remove violations |
-| [ ] | ST009 | Verify no duplicate node_ids in codebase | 1 | Validation | ST008 | `/workspaces/flow_squared/scripts/scratch/diagnose_duplicate_nodeids.py` | Script reports 0 duplicates for src/ and tests/ | – | Final check |
+| [x] | ST001 | Write tests for LanguageHandler ABC interface | 2 | Test | – | `/workspaces/flow_squared/tests/unit/adapters/test_language_handler.py` | Tests cover: ABC cannot be instantiated, `language` abstract property, `container_types` property | – | TDD RED; lean ABC per Insight #3 |
+| [x] | ST002 | Implement LanguageHandler ABC with `language` + `container_types` only | 2 | Core | ST001 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_languages/handler.py` | All ST001 tests pass; ABC has `language` (abstract), `container_types` (with defaults); DefaultHandler provides common containers | – | Base class; lean per Insight #3 |
+| [x] | ST003 | Write tests for handler registry | 2 | Test | ST002 | `/workspaces/flow_squared/tests/unit/adapters/test_language_handler.py` | Tests cover: get handler by language, default handler for unknown, register custom | – | TDD RED |
+| [x] | ST004 | Implement handler registry with explicit dict | 1 | Core | ST003 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_languages/__init__.py` | All ST003 tests pass; `get_handler(lang)` returns handler or default; simple dict, no import magic | – | Explicit registration; uvx-safe per Insight #5 |
+| [x] | ST005 | Write tests for PythonHandler | 1 | Test | ST004 | `/workspaces/flow_squared/tests/unit/adapters/test_python_handler.py` | Tests cover: `"block" in container_types`, extends default containers | – | TDD RED |
+| [x] | ST006 | Implement PythonHandler | 1 | Core | ST005 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_languages/python.py` | All ST005 tests pass; `container_types = super() \| {"block"}` | – | Extends default; per Insight #1 |
+| [x] | ST007 | Write tests for parser handler integration | 2 | Test | ST006 | `/workspaces/flow_squared/tests/unit/adapters/test_language_handler.py` | Tests cover: parser uses handler.container_types, no hardcoded container_types in parser | – | TDD RED |
+| [x] | ST008 | Refactor TreeSitterParser to use handlers | 3 | Core | ST007 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py` | All ST007 tests pass; no inline `language ==` checks; no hardcoded container_types; uses `ts_kind in handler.container_types` | – | Remove violations + container_types per Insight #1 |
+| [x] | ST009 | Verify no duplicate node_ids from container types | 1 | Validation | ST008 | `/workspaces/flow_squared/scripts/scratch/diagnose_duplicate_nodeids.py` | Script reports 0 container-type duplicates (Python block, etc.); overloaded methods (C++ ListenerId) are expected and documented | – | Final check; per Insight #2 |
 
 ---
 
@@ -262,26 +277,24 @@ flowchart TD
 classDiagram
     class LanguageHandler {
         <<abstract>>
-        +language: str
-        +is_container(ts_kind: str) bool
-        +extract_name(node, content) str | None
-        +classify_node(ts_kind: str) str | None
+        +language: str*
+        +container_types: set~str~
     }
 
     class DefaultHandler {
         +language = "default"
-        +is_container() False
-        +extract_name() None
-        +classify_node() None
+        +container_types = {module_body, ...}
     }
 
     class PythonHandler {
         +language = "python"
-        +is_container("block") True
+        +container_types = super() | {block}
     }
 
     LanguageHandler <|-- DefaultHandler
     LanguageHandler <|-- PythonHandler
+
+    note for LanguageHandler "* = abstract property\nAdd extract_name, classify_node when needed"
 ```
 
 ### Test Plan (TDD)
@@ -291,9 +304,10 @@ classDiagram
 | Test Name | Purpose | Expected Outcome |
 |-----------|---------|------------------|
 | `test_language_handler_abc_cannot_be_instantiated` | ABC enforcement | `TypeError` on instantiation |
-| `test_language_handler_has_language_property` | Interface contract | `language` property defined |
-| `test_language_handler_has_is_container_method` | Interface contract | `is_container(ts_kind)` method defined |
-| `test_language_handler_has_extract_name_method` | Interface contract | `extract_name(node, content)` method defined |
+| `test_language_handler_has_language_property` | Interface contract | `language` abstract property defined |
+| `test_language_handler_has_container_types_property` | Interface contract | `container_types` property returns set |
+| `test_default_handler_language_is_default` | Default identity | `language == "default"` |
+| `test_default_handler_container_types_includes_common` | Default behavior | Contains `module_body`, `body`, etc. |
 
 #### ST003: Handler Registry Tests
 
@@ -307,16 +321,17 @@ classDiagram
 
 | Test Name | Purpose | Expected Outcome |
 |-----------|---------|------------------|
-| `test_python_handler_is_container_block_true` | Python behavior | `is_container("block") -> True` |
-| `test_python_handler_is_container_other_false` | Non-container | `is_container("function_definition") -> False` |
+| `test_python_handler_container_types_includes_block` | Python behavior | `"block" in container_types` |
+| `test_python_handler_container_types_extends_default` | Inheritance | Contains all default containers plus `"block"` |
+| `test_python_handler_language_is_python` | Identity | `language == "python"` |
 
 #### ST007: Parser Integration Tests
 
 | Test Name | Purpose | Expected Outcome |
 |-----------|---------|------------------|
-| `test_parser_uses_handler_for_container_detection` | Integration | Handler's `is_container` called |
+| `test_parser_uses_handler_container_types` | Integration | Parser checks `ts_kind in handler.container_types` |
 | `test_parser_python_block_not_extracted` | Behavior correct | Python `block` nodes skipped |
-| `test_parser_other_language_block_extracted` | No regression | Non-Python `block` nodes extracted (if applicable) |
+| `test_parser_no_hardcoded_container_types` | Clean code | No `container_types` set in parser |
 
 ### Step-by-Step Implementation Outline
 
@@ -410,6 +425,11 @@ _Populated during implementation by plan-6. Log anything of interest to your fut
 | 2025-12-25 | Pre-work | insight | HCL blocks lack unique identifiers; removed from EXTRACTABLE_LANGUAGES | Treat HCL/Dockerfile as content blobs | ast_parser_impl.py:173-178 |
 | 2025-12-25 | Pre-work | insight | Python `"block"` is body wrapper; other languages use it differently | Need handler strategy for language-specific behavior | ast_parser_impl.py:467 |
 | 2025-12-25 | Pre-work | gotcha | C++ has 3x `EventEmitter.ListenerId` methods with same name | Legitimate overloading; accept some duplicates | find_all_duplicates.py output |
+| 2025-12-25 | ST002 | decision | Container detection had two code paths (hardcoded set + handler method) | Use `container_types` property in handlers; DefaultHandler provides common set, PythonHandler extends | /didyouknow Insight #1 |
+| 2025-12-25 | ST009 | decision | C++ overloaded methods produce duplicate node_ids (e.g., 3x ListenerId) | Accept as legitimate; overloading is language feature, not container bug; update ST009 validation | /didyouknow Insight #2 |
+| 2025-12-25 | ST002 | decision | ABC had 3 methods but only container_types has use case | Start lean: only `language` + `container_types`; add `extract_name`, `classify_node` when first needed (YAGNI) | /didyouknow Insight #3 |
+| 2025-12-25 | ST009 | decision | Graph structure changes after upgrade (Python block nodes removed) | Manual graph clear before first scan: `rm .fs2/graph.pickle` | /didyouknow Insight #4 |
+| 2025-12-25 | ST004 | decision | "Auto-discovery" was ambiguous; could mean complex plugin architecture | Use simple explicit dict; no import magic; uvx-safe | /didyouknow Insight #5 |
 
 **Types**: `gotcha` | `research-needed` | `unexpected-behavior` | `workaround` | `decision` | `debt` | `insight`
 
@@ -422,6 +442,12 @@ _See also: `execution.log.md` for detailed narrative._
 **This subtask resolves a blocker for:**
 - Parent Tasks: [T003: SmartContentStage](./tasks.md#t003), [T005: ScanPipeline](./tasks.md#t005)
 - Plan Tasks: [6.3, 6.5 in Plan](../../smart-content-plan.md#phase-6-scan-pipeline-integration)
+
+**Post-Implementation Action (per Insight #4):**
+```bash
+# Clear old graph before first scan (Python block nodes will be removed)
+rm .fs2/graph.pickle
+```
 
 **When all ST### tasks complete:**
 
@@ -477,6 +503,189 @@ src/fs2/core/adapters/
     ├── handler.py                    # LanguageHandler ABC
     └── python.py                     # PythonHandler
 ```
+
+---
+
+## Critical Insights Discussion
+
+**Session**: 2025-12-26
+**Context**: Subtask 002: Language Handler Strategy for Unique Node IDs
+**Analyst**: AI Clarity Agent
+**Reviewer**: Development Team
+**Format**: Water Cooler Conversation (5 Critical Insights)
+
+---
+
+### Insight 1: Container Detection Has Two Code Paths
+
+**Did you know**: After implementing PythonHandler, we'd have two different mechanisms for detecting container nodes—hardcoded `container_types` set AND `handler.is_container()` method.
+
+**Implications**:
+- Two code paths making the same decision
+- Languages can't override the hardcoded set
+- Inconsistent extensibility
+
+**Options Considered**:
+- Option A: Unify all container detection through handlers
+- Option B: Keep both, document the hierarchy
+- Option C: Make container_types configurable per handler
+
+**AI Recommendation**: Option C - Container Types as Handler Property
+
+**Discussion Summary**: User chose Option C. Container types become a property on handlers, with DefaultHandler providing common set and PythonHandler extending with `{"block"}`.
+
+**Decision**: Use `container_types` property in handlers; single code path
+
+**Action Items**:
+- [x] Updated ST002, ST006, ST008 to use property pattern
+- [x] Updated example code and diagrams
+
+**Affects**: ST002, ST006, ST008, handler.py design
+
+---
+
+### Insight 2: C++ Overloading Won't Be Fixed By This
+
+**Did you know**: The C++ duplicate node_ids (3x `EventEmitter.ListenerId`) are from method overloading, not container detection—Language Handler won't fix them.
+
+**Implications**:
+- Some duplicates will remain after implementation
+- ST009's "0 duplicates" expectation is wrong
+- Overloading is intentional language feature
+
+**Options Considered**:
+- Option A: Accept C++ duplicates as legitimate
+- Option B: Add signature disambiguation
+- Option C: Add position-based disambiguation
+- Option D: Defer to future C++ handler
+
+**AI Recommendation**: Option A - Accept as Legitimate
+
+**Discussion Summary**: User agreed. Overloading is language feature, not a bug.
+
+**Decision**: Accept C++ overload duplicates; update ST009 validation to expect "0 container-type duplicates"
+
+**Action Items**:
+- [x] Updated ST009 validation criteria
+- [x] Added to Non-Goals
+
+**Affects**: ST009, Non-Goals section
+
+---
+
+### Insight 3: Two of Three Handler Methods May Be Over-Designed
+
+**Did you know**: The ABC defined `container_types`, `extract_name`, and `classify_node`, but only `container_types` has a concrete use case.
+
+**Implications**:
+- YAGNI violation
+- Dead code until needed
+- More complexity to maintain
+
+**Options Considered**:
+- Option A: Keep all three (future-proofing)
+- Option B: Start with container_types only
+- Option C: Make methods optional (NotImplemented pattern)
+
+**AI Recommendation**: Option B - Start Lean
+
+**Discussion Summary**: User chose Option B. YAGNI compliance.
+
+**Decision**: ABC has only `language` + `container_types`; add other methods when first needed
+
+**Action Items**:
+- [x] Simplified ABC design
+- [x] Updated tests to only cover what we use
+- [x] Updated diagrams
+
+**Affects**: ST001, ST002, handler.py design
+
+---
+
+### Insight 4: Graph Structure Changes on Upgrade
+
+**Did you know**: After implementation, existing graphs won't match fresh parses—Python `block` nodes that used to be extracted will no longer exist.
+
+**Implications**:
+- Old graph has orphaned `block:` nodes
+- First post-upgrade scan may re-process Python files
+- Node count drops
+
+**Options Considered**:
+- Option A: Accept silent drop (self-healing)
+- Option B: Clear graph on upgrade
+- Option C: Document "re-scan recommended"
+- Option D: Prune orphans after merge
+
+**AI Recommendation**: Option A - Accept Silent Drop
+
+**Discussion Summary**: User will manually clear graph before first scan (`rm .fs2/graph.pickle`).
+
+**Decision**: Manual graph clear before first post-upgrade scan
+
+**Action Items**:
+- [x] Added post-implementation action to documentation
+
+**Affects**: Post-implementation instructions
+
+---
+
+### Insight 5: "Auto-Discovery" in ST004 Is Ambiguous
+
+**Did you know**: ST004 said "auto-discovery" but didn't define what that means—could be interpreted as complex plugin architecture.
+
+**Implications**:
+- Module scanning could break with uvx
+- Import magic is hard to debug
+- We only have ONE handler (Python)
+
+**Options Considered**:
+- Option A: Simple explicit dict
+- Option B: Import-time registration
+- Option C: Dynamic module discovery
+- Option D: Decorator pattern
+
+**AI Recommendation**: Option A - Simple Explicit Dict
+
+**Discussion Summary**: User chose Option A. Must work with uvx.
+
+**Decision**: Simple explicit dict, no import magic, uvx-safe
+
+**Action Items**:
+- [x] Renamed ST004 to "explicit dict"
+- [x] Reduced CS from 2 to 1
+
+**Affects**: ST004
+
+---
+
+## Session Summary
+
+**Insights Surfaced**: 5 critical insights identified and discussed
+**Decisions Made**: 5 decisions reached through collaborative discussion
+**Action Items Created**: All applied immediately during session
+**Areas Updated**:
+- Goals section simplified
+- What We're Building updated
+- ST001, ST002, ST004, ST005, ST006, ST007, ST008, ST009 updated
+- Non-Goals expanded
+- Test plan updated
+- Diagrams updated
+- Discoveries table updated with all 5 decisions
+
+**Shared Understanding Achieved**: ✓
+
+**Confidence Level**: High - Scope is focused, design is lean, implementation path is clear.
+
+**Next Steps**:
+1. Clear graph: `rm .fs2/graph.pickle`
+2. Run `/plan-6-implement-phase --subtask 002-subtask-language-handler-strategy`
+
+**Notes**:
+- Total CS reduced from ~16 to ~13 (simpler tasks)
+- ABC is lean (2 members instead of 4)
+- Registry is explicit (no import magic)
+- Post-upgrade action documented
 
 ---
 

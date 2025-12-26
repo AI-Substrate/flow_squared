@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING
 from tree_sitter_language_pack import get_parser
 
 from fs2.config.objects import ScanConfig
+from fs2.core.adapters.ast_languages import get_handler
 from fs2.core.adapters.ast_parser import ASTParser
 from fs2.core.adapters.exceptions import ASTParserError
 from fs2.core.models.code_node import CodeNode, classify_node
@@ -456,17 +457,10 @@ class TreeSitterParser(ASTParser):
 
             # Skip container nodes that are just structural wrappers
             # These should be traversed but not create CodeNodes
-            # Note: Python uses "block" for body wrappers, but HCL uses "block" for actual blocks
-            container_types = {
-                "module_body",  # Various languages
-                "compound_statement",
-                "declaration_list",
-                "statement_block",
-                "body",  # HCL/Python body wrapper
-            }
-            # Python "block" is a body wrapper, but HCL "block" is an actual block
-            is_python_block = ts_kind == "block" and language == "python"
-            if ts_kind in container_types or is_python_block:
+            # Container types are defined per-language via language handlers
+            # (per Subtask 002: Language Handler Strategy)
+            handler = get_handler(language)
+            if ts_kind in handler.container_types:
                 # Recurse into container without creating node
                 self._extract_nodes(
                     node=child,
