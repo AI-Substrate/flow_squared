@@ -347,3 +347,166 @@ tests/integration/test_scan_pipeline_integration.py::TestSmartContentIntegration
 
 ---
 
+# Post-Subtask 002 Bug Fixes
+
+## Bug Fix Session: Scan Pipeline Stability Fixes
+**Date**: 2025-12-26
+**Context**: Bug fixes discovered during Subtask 002 (Language Handler Strategy) execution
+**Parent Task Reference**: T003, T005 (SmartContentStage, ScanPipeline)
+
+---
+
+### Overview
+
+During Subtask 002 implementation and testing, three bugs were identified and fixed that affect scan pipeline stability and embedding service behavior:
+
+1. **Rust/C++ duplicate node_ids** - `classify_node` missing type patterns
+2. **Empty file embedding skip** - `__init__.py` files re-embedded every scan
+3. **Embedding progress reporting** - Progress frozen until all batches complete
+
+---
+
+### Fix 1: Rust/C++ Duplicate Node IDs (classify_node patterns)
+
+**Problem**: Rust `trait_item` and `impl_item` nodes were classified as "definition" (skipped as parent context), causing methods inside them to have non-qualified names. This resulted in duplicate node_ids like `find` appearing multiple times instead of `Repository.find` vs `InMemoryRepo.find`.
+
+**Root Cause**: The `classify_node` function in `code_node.py` was missing "trait" and "impl" in the type patterns that indicate a node should be extracted as a parent.
+
+**File Modified**: `/workspaces/flow_squared/src/fs2/core/models/code_node.py`
+
+**Lines Changed**: 73-76
+
+**Before**:
+```python
+if any(x in ts_kind for x in ('class', 'struct', 'interface', 'enum', 'type')):
+    return 'type'
+```
+
+**After**:
+```python
+if any(x in ts_kind for x in ('class', 'struct', 'interface', 'enum', 'type', 'trait', 'impl')):
+    return 'type'
+```
+
+**FlowSpace Node ID**: `function:src/fs2/core/models/code_node.py:classify_node`
+
+**Impact**: Rust trait methods and impl block methods now get proper qualified names, eliminating duplicate node_ids.
+
+---
+
+### Fix 2: Empty File Embedding Skip
+
+**Problem**: Empty `__init__.py` files (and other files with no extractable content) were being re-embedded on every scan. The `_should_skip()` method required raw embedding to exist, but empty files have no raw content to embed.
+
+**Root Cause**: The skip logic checked `prior_embedding.raw_embedding` without first checking if the node had content that could be embedded.
+
+**File Modified**: `/workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py`
+
+**Lines Changed**: 472-478
+
+**Before**:
+```python
+# Check for prior embedding
+if prior_embedding and prior_embedding.raw_embedding:
+    # Hash comparison...
+```
+
+**After**:
+```python
+# Check if node has content to embed
+has_content = node.content and node.content.strip()
+
+# If no content, skip - empty files don't need embedding
+if not has_content:
+    return True
+
+# Check for prior embedding
+if prior_embedding and prior_embedding.raw_embedding:
+    # Hash comparison...
+```
+
+**FlowSpace Node ID**: `method:src/fs2/core/services/embedding/embedding_service.py:EmbeddingService._should_skip`
+
+**Impact**: Empty `__init__.py` files and other contentless nodes are now skipped immediately, preventing redundant processing on every scan.
+
+---
+
+### Fix 3: Embedding Progress Reporting
+
+**Problem**: Embedding progress showed 0% then jumped to 100% all at once. During batch processing of large codebases, users had no visibility into progress.
+
+**Root Cause**: The embedding service used `asyncio.gather()` which blocks until ALL batches complete before returning. Progress callbacks were only invoked after the gather completed.
+
+**File Modified**: `/workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py`
+
+**Lines Changed**: 607-663
+
+**Before**:
+```python
+# Execute all batches
+batch_results = await asyncio.gather(*batch_futures, return_exceptions=True)
+# Then iterate results and invoke progress callbacks
+```
+
+**After**:
+```python
+# Run batches with as_completed for incremental progress
+batch_futures = [self._process_batch(...) for ...]
+
+# Process results as they complete (not waiting for all)
+for coro in asyncio.as_completed(batch_futures):
+    try:
+        batch_result = await coro
+        # Invoke progress callback immediately
+        if progress_callback:
+            processed_count += len(batch_result)
+            progress_callback(processed_count, total_count)
+    except Exception as e:
+        # Error handling...
+```
+
+**FlowSpace Node ID**: `method:src/fs2/core/services/embedding/embedding_service.py:EmbeddingService.embed_batch`
+
+**Impact**: Embedding progress now updates incrementally (1.7% -> 3.4% -> ... -> 100%) like smart content progress, giving users real-time visibility into batch processing.
+
+---
+
+### Test Results
+
+**Embedding Service Tests**:
+```
+tests/unit/services/embedding/test_embedding_service.py - 49 passed
+```
+
+**Code Node Tests**:
+```
+tests/unit/models/test_code_node.py - 23 passed
+```
+
+**Scan Behavior Verification**:
+- `src/` directory: Zero re-processing on subsequent scans
+- Only fixture files with intentional structural duplicates (trait+blanket impl, class+interface same name) still show re-processing
+- Embedding progress updates incrementally during batch processing
+
+---
+
+### Files Modified Summary
+
+| File | Change | FlowSpace Node ID |
+|------|--------|-------------------|
+| `/workspaces/flow_squared/src/fs2/core/models/code_node.py` | Added "trait", "impl" to type patterns (L73-76) | `function:src/fs2/core/models/code_node.py:classify_node` |
+| `/workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py` | Empty content skip (L472-478) | `method:src/fs2/core/services/embedding/embedding_service.py:EmbeddingService._should_skip` |
+| `/workspaces/flow_squared/src/fs2/core/services/embedding/embedding_service.py` | Incremental progress (L607-663) | `method:src/fs2/core/services/embedding/embedding_service.py:EmbeddingService.embed_batch` |
+
+---
+
+### Discovery Log Entry
+
+| Date | Task | Type | Discovery | Resolution | References |
+|------|------|------|-----------|------------|------------|
+| 2025-12-26 | Subtask 002 | gotcha | Rust trait/impl items not recognized as type parents | Added "trait", "impl" to classify_node type patterns | code_node.py:73-76 |
+| 2025-12-26 | Subtask 002 | gotcha | Empty __init__.py files re-embedded every scan | Check for content before requiring raw_embedding | embedding_service.py:472-478 |
+| 2025-12-26 | Subtask 002 | insight | asyncio.gather blocks progress visibility | Use asyncio.as_completed for incremental updates | embedding_service.py:607-663 |
+
+---
+

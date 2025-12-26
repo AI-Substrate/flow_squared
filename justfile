@@ -65,6 +65,12 @@ example-tree:
 example-tree-depth:
     uv run fs2 tree --depth 2
 
+# === Reports ===
+
+# Show graph database statistics (nodes by language, type, category)
+graph-report:
+    uv run python scripts/graph_report.py
+
 # === Fixture Generation ===
 
 # Generate fixture graph for testing (requires Azure credentials for embeddings/smart_content)

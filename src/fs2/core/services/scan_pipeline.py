@@ -114,11 +114,13 @@ class ScanPipeline:
                                If None, EmbeddingStage still runs but skips generation.
             embedding_progress_callback: Optional callback for embedding
                                          progress updates (processed, total, skipped).
-            graph_path: Optional path to save graph. If None, uses default
-                        .fs2/graph.pickle. Per Subtask 001 (Phase 0).
+            graph_path: Path to save graph. REQUIRED to prevent accidental
+                        corruption of project graph during tests. Use
+                        tmp_path / "graph.pickle" in tests.
 
         Raises:
             MissingConfigurationError: If ScanConfig not in registry.
+            ValueError: If graph_path is None.
 
         Note:
             When custom stages are provided, caller is responsible for stage
@@ -126,6 +128,14 @@ class ScanPipeline:
             EmbeddingStage, and EmbeddingStage MUST be between SmartContentStage
             and StorageStage.
         """
+        # Validate graph_path is provided (prevent accidental project graph corruption)
+        if graph_path is None:
+            raise ValueError(
+                "graph_path is required. Pass an explicit path to prevent "
+                "accidental corruption of .fs2/graph.pickle. "
+                "In tests, use: graph_path=tmp_path / 'graph.pickle'"
+            )
+
         # Extract config internally (per Critical Finding 01)
         self._scan_config = config.require(ScanConfig)
         self._file_scanner = file_scanner
@@ -135,7 +145,7 @@ class ScanPipeline:
         self._smart_content_progress_callback = smart_content_progress_callback
         self._embedding_service = embedding_service
         self._embedding_progress_callback = embedding_progress_callback
-        self._graph_path = graph_path  # Per Subtask 001: CLI override for graph path
+        self._graph_path = graph_path
 
         # Default stages if not provided
         # Order: Discovery → Parsing → SmartContent → Embedding → Storage

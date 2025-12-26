@@ -31,10 +31,16 @@ from fs2.core.models.scan_result import ScanResult
 from fs2.core.services.pipeline_context import PipelineContext
 
 
+@pytest.fixture
+def test_graph_path(tmp_path: Path) -> Path:
+    """Temp graph path to avoid corrupting project graph."""
+    return tmp_path / "test_graph.pickle"
+
+
 class TestScanPipelineConstruction:
     """Tests for ScanPipeline construction and DI."""
 
-    def test_given_config_service_when_constructing_then_extracts_scan_config(self):
+    def test_given_config_service_when_constructing_then_extracts_scan_config(self, test_graph_path: Path):
         """
         Purpose: Verifies pipeline calls config.require(ScanConfig).
         Quality Contribution: Follows ConfigurationService registry pattern (CF01).
@@ -55,11 +61,12 @@ class TestScanPipelineConstruction:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         assert pipeline is not None
 
-    def test_given_missing_scan_config_when_constructing_then_raises_error(self):
+    def test_given_missing_scan_config_when_constructing_then_raises_error(self, test_graph_path: Path):
         """
         Purpose: Verifies pipeline requires ScanConfig in registry.
         Quality Contribution: Clear error on misconfiguration.
@@ -77,13 +84,14 @@ class TestScanPipelineConstruction:
                 file_scanner=None,  # type: ignore
                 ast_parser=None,  # type: ignore
                 graph_store=None,  # type: ignore
+                graph_path=test_graph_path,
             )
 
 
 class TestScanPipelineStageOrdering:
     """Tests for ScanPipeline stage execution order."""
 
-    def test_given_default_stages_when_running_then_executes_in_order(self):
+    def test_given_default_stages_when_running_then_executes_in_order(self, test_graph_path: Path):
         """
         Purpose: Verifies stages run in correct order.
         Quality Contribution: Ensures data flows correctly.
@@ -119,6 +127,7 @@ class TestScanPipelineStageOrdering:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -141,7 +150,7 @@ class TestScanPipelineStageOrdering:
 class TestScanPipelineAdapterInjection:
     """Tests for adapter injection into context."""
 
-    def test_given_adapters_when_running_then_injected_into_context(self):
+    def test_given_adapters_when_running_then_injected_into_context(self, test_graph_path: Path):
         """
         Purpose: Verifies adapters are injected into PipelineContext.
         Quality Contribution: Stages have access to adapters.
@@ -159,6 +168,7 @@ class TestScanPipelineAdapterInjection:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -171,7 +181,7 @@ class TestScanPipelineAdapterInjection:
 class TestScanPipelineSummaryGeneration:
     """Tests for ScanSummary generation."""
 
-    def test_given_successful_run_when_completed_then_returns_summary(self):
+    def test_given_successful_run_when_completed_then_returns_summary(self, test_graph_path: Path):
         """
         Purpose: Verifies pipeline returns ScanSummary.
         Quality Contribution: Provides execution results.
@@ -190,13 +200,14 @@ class TestScanPipelineSummaryGeneration:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
 
         assert isinstance(summary, ScanSummary)
 
-    def test_given_no_errors_when_completed_then_success_is_true(self):
+    def test_given_no_errors_when_completed_then_success_is_true(self, test_graph_path: Path):
         """
         Purpose: Verifies success=True when no errors.
         Quality Contribution: Correct success reporting.
@@ -214,6 +225,7 @@ class TestScanPipelineSummaryGeneration:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+        graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -221,7 +233,7 @@ class TestScanPipelineSummaryGeneration:
         assert summary.success is True
         assert summary.errors == []
 
-    def test_given_files_scanned_when_completed_then_count_in_summary(self):
+    def test_given_files_scanned_when_completed_then_count_in_summary(self, test_graph_path: Path):
         """
         Purpose: Verifies files_scanned count is accurate.
         Quality Contribution: Accurate metrics.
@@ -245,13 +257,14 @@ class TestScanPipelineSummaryGeneration:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+        graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
 
         assert summary.files_scanned == 3
 
-    def test_given_nodes_created_when_completed_then_count_in_summary(self):
+    def test_given_nodes_created_when_completed_then_count_in_summary(self, test_graph_path: Path):
         """
         Purpose: Verifies nodes_created count is accurate.
         Quality Contribution: Accurate metrics.
@@ -318,6 +331,7 @@ class TestScanPipelineSummaryGeneration:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+        graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -328,7 +342,7 @@ class TestScanPipelineSummaryGeneration:
 class TestScanPipelineErrorAggregation:
     """Tests for error collection from stages."""
 
-    def test_given_stage_error_when_completed_then_success_is_false(self):
+    def test_given_stage_error_when_completed_then_success_is_false(self, test_graph_path: Path):
         """
         Purpose: Verifies success=False when any error.
         Quality Contribution: Accurate failure reporting.
@@ -352,6 +366,7 @@ class TestScanPipelineErrorAggregation:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+        graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -359,7 +374,7 @@ class TestScanPipelineErrorAggregation:
         assert summary.success is False
         assert len(summary.errors) > 0
 
-    def test_given_multiple_errors_when_completed_then_all_collected(self):
+    def test_given_multiple_errors_when_completed_then_all_collected(self, test_graph_path: Path):
         """
         Purpose: Verifies all errors are collected.
         Quality Contribution: Complete error reporting.
@@ -385,6 +400,7 @@ class TestScanPipelineErrorAggregation:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+        graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -395,7 +411,7 @@ class TestScanPipelineErrorAggregation:
 class TestScanPipelineMetrics:
     """Tests for metrics collection."""
 
-    def test_given_run_when_completed_then_metrics_in_summary(self):
+    def test_given_run_when_completed_then_metrics_in_summary(self, test_graph_path: Path):
         """
         Purpose: Verifies metrics are collected from stages.
         Quality Contribution: Enables observability.
@@ -428,6 +444,7 @@ class TestScanPipelineMetrics:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+        graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -440,7 +457,7 @@ class TestScanPipelineMetrics:
 class TestScanPipelineCustomStages:
     """Tests for custom stage injection."""
 
-    def test_given_custom_stages_when_constructing_then_uses_custom_stages(self):
+    def test_given_custom_stages_when_constructing_then_uses_custom_stages(self, test_graph_path: Path):
         """
         Purpose: Verifies custom stages override defaults.
         Quality Contribution: Enables pipeline extensibility.
@@ -470,13 +487,14 @@ class TestScanPipelineCustomStages:
             ast_parser=parser,
             graph_store=store,
             stages=[CustomStage()],
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
 
         assert summary.metrics.get("custom_ran") is True
 
-    def test_given_no_custom_stages_when_running_then_uses_default_stages(self):
+    def test_given_no_custom_stages_when_running_then_uses_default_stages(self, test_graph_path: Path):
         """
         Purpose: Verifies default stages are used when not specified.
         Quality Contribution: Sensible defaults.
@@ -498,6 +516,7 @@ class TestScanPipelineCustomStages:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
             # No stages= argument
         )
 
@@ -514,7 +533,7 @@ class TestScanPipelinePriorNodesLoading:
     Enables hash-based skip logic (AC5/AC6) by loading prior graph.
     """
 
-    def test_given_existing_graph_when_running_then_prior_nodes_populated(self):
+    def test_given_existing_graph_when_running_then_prior_nodes_populated(self, test_graph_path: Path):
         """
         Purpose: Verifies pipeline loads existing graph into context.prior_nodes.
         Quality Contribution: Enables smart content preservation across scans.
@@ -562,6 +581,7 @@ class TestScanPipelinePriorNodesLoading:
             ast_parser=parser,
             graph_store=store,
             stages=[ContextCapturingStage()],
+            graph_path=test_graph_path,
         )
 
         pipeline.run()
@@ -574,7 +594,7 @@ class TestScanPipelinePriorNodesLoading:
         assert prior_node.node_id in ctx.prior_nodes
         assert ctx.prior_nodes[prior_node.node_id] == prior_node
 
-    def test_given_no_graph_exists_when_running_then_prior_nodes_is_none(self):
+    def test_given_no_graph_exists_when_running_then_prior_nodes_is_none(self, test_graph_path: Path):
         """
         Purpose: Verifies first-scan case handles gracefully.
         Quality Contribution: First scans work without error.
@@ -611,6 +631,7 @@ class TestScanPipelinePriorNodesLoading:
             ast_parser=parser,
             graph_store=store,
             stages=[ContextCapturingStage()],
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -622,7 +643,7 @@ class TestScanPipelinePriorNodesLoading:
         # Scan should still succeed
         assert summary.success is True
 
-    def test_given_corrupted_graph_when_running_then_prior_nodes_is_none_and_logs_warning(self):
+    def test_given_corrupted_graph_when_running_then_prior_nodes_is_none_and_logs_warning(self, test_graph_path: Path):
         """
         Purpose: Verifies corrupted graph is handled gracefully.
         Quality Contribution: Scan continues even with bad prior state.
@@ -659,6 +680,7 @@ class TestScanPipelinePriorNodesLoading:
             ast_parser=parser,
             graph_store=store,
             stages=[ContextCapturingStage()],
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -669,7 +691,7 @@ class TestScanPipelinePriorNodesLoading:
         assert ctx.prior_nodes is None
         assert summary.success is True  # Scan continues
 
-    def test_given_existing_graph_when_running_then_prior_nodes_is_dict_by_node_id(self):
+    def test_given_existing_graph_when_running_then_prior_nodes_is_dict_by_node_id(self, test_graph_path: Path):
         """
         Purpose: Verifies prior_nodes dict is keyed by node_id.
         Quality Contribution: Enables O(1) lookup for merge logic.
@@ -732,6 +754,7 @@ class TestScanPipelinePriorNodesLoading:
             ast_parser=parser,
             graph_store=store,
             stages=[ContextCapturingStage()],
+            graph_path=test_graph_path,
         )
 
         pipeline.run()

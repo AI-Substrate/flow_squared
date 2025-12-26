@@ -316,3 +316,109 @@ These remaining duplicates are **expected per Insight #2** (C++ method overloadi
 
 ---
 
+## Additional Fixes: Post-Subtask Investigation
+
+After completing ST009, user testing revealed additional issues with re-processing. These fixes extend the Language Handler Strategy work.
+
+### Fix A: Rust/C++ Duplicate Node IDs
+**Problem**: Rust `trait_item` and `impl_item` were categorized as "definition" not "type", so they weren't extracted as parent nodes. This caused trait methods and impl methods to get the same node_id (e.g., both `callable:...:find` instead of `Repository.find` vs `InMemoryRepo.find`).
+
+**Solution**: Added "trait" and "impl" to the type patterns in `classify_node()`.
+
+**File**: `src/fs2/core/models/code_node.py:73-76`
+
+**Before**:
+```python
+if any(
+    x in ts_kind for x in ("class", "struct", "interface", "enum", "type_alias")
+):
+    return "type"
+```
+
+**After**:
+```python
+if any(
+    x in ts_kind
+    for x in ("class", "struct", "interface", "enum", "type_alias", "trait", "impl")
+):
+    return "type"
+```
+
+**Evidence**:
+- `traits_generics.rs` now parses with unique node_ids: `Repository.find` vs `InMemoryRepo.find`
+- 49 code_node tests pass
+
+---
+
+### Fix B: Empty File Embedding Skip
+**Problem**: Empty files (e.g., `__init__.py`) were being re-embedded every scan because `_should_skip()` required `node.embedding` to exist, but empty content can't generate embeddings.
+
+**Solution**: Check `has_content` before requiring raw embedding.
+
+**File**: `src/fs2/core/services/embedding/embedding_service.py:472-478`
+
+**Before**:
+```python
+if node.embedding is None or len(node.embedding) == 0:
+    return False
+```
+
+**After**:
+```python
+has_content = node.content and node.content.strip()
+if has_content:
+    if node.embedding is None or len(node.embedding) == 0:
+        return False
+```
+
+**Evidence**:
+- Empty `__init__.py` files no longer appear in re-processing logs
+- 23 embedding service tests pass
+
+---
+
+### Fix C: Embedding Progress Reporting
+**Problem**: Embedding progress froze during processing, then dumped all updates at once. This was because `asyncio.gather()` blocks until ALL batches complete before any progress is reported.
+
+**Solution**: Changed to `asyncio.as_completed()` which yields results as each batch finishes.
+
+**File**: `src/fs2/core/services/embedding/embedding_service.py:607-663`
+
+**Before**:
+```python
+batch_results = await asyncio.gather(
+    *[process_single_batch(batch) for batch in batches]
+)
+# Progress only reported after ALL batches complete
+```
+
+**After**:
+```python
+for coro in asyncio.as_completed(batch_futures):
+    result_list = await coro
+    # Merge results and report progress after EACH batch
+    chunks_processed += len(result_list)
+    progress_callback(approx_nodes, total, skipped)
+```
+
+**Evidence**:
+- Progress now shows incremental updates: `1.7%` -> `100%` as batches complete
+- All 23 embedding service tests pass
+
+---
+
+### Summary of Additional Fixes
+
+| Fix | File | Issue | Resolution |
+|-----|------|-------|------------|
+| A | `code_node.py:73-76` | Rust trait/impl not parent nodes | Added to type patterns |
+| B | `embedding_service.py:472-478` | Empty files always re-embedded | Skip embedding check for empty content |
+| C | `embedding_service.py:607-663` | Progress freezes then dumps | Use `as_completed()` for incremental progress |
+
+**Final Verification**:
+- `src/` directory: 0 nodes re-processed on subsequent scans
+- Fixture files: Only intentional structural duplicates still re-process (expected)
+- Progress display: Updates incrementally during batch processing
+
+---
+

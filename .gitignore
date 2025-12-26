@@ -224,3 +224,4 @@ scratch/*
 !.vsc-bridge/config.yaml
 !.vsc-bridge/registry.yaml
 .fs2/graph.pickle
+.fs2/graph.pickle.backup

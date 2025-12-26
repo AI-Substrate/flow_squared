@@ -192,11 +192,13 @@ def _scanned_fixtures_graph_session(tmp_path_factory):
     ast_parser = TreeSitterParser(config)
     graph_store = NetworkXGraphStore(config)
 
+    graph_path = config_dir / "graph.pickle"
     pipeline = ScanPipeline(
         config=config,
         file_scanner=file_scanner,
         ast_parser=ast_parser,
         graph_store=graph_store,
+        graph_path=graph_path,
     )
 
     # Run scan
@@ -206,8 +208,7 @@ def _scanned_fixtures_graph_session(tmp_path_factory):
     assert summary.files_scanned > 0, "Fixture scan should find files"
     assert summary.nodes_created > 0, "Fixture scan should create nodes"
 
-    # Save graph
-    graph_path = config_dir / "graph.pickle"
+    # Save graph (graph_path defined above when creating pipeline)
     graph_store.save(graph_path)
 
     # Create fresh store and load (to test load path)

@@ -197,14 +197,14 @@ class TestEmbeddingConfigDefaults:
         config = EmbeddingConfig()
 
         # Assert
-        assert config.code.max_tokens == 400
+        assert config.code.max_tokens == 4000
         assert config.code.overlap_tokens == 50
 
     def test_given_no_args_when_constructed_then_has_documentation_chunk_defaults(self):
         """
-        Purpose: Per Finding 04: Proves documentation chunk defaults (800/120).
+        Purpose: Per Finding 04: Proves documentation chunk defaults (4000/120).
         Quality Contribution: Ensures optimal chunking for docs.
-        Acceptance Criteria: documentation.max_tokens=800, documentation.overlap_tokens=120.
+        Acceptance Criteria: documentation.max_tokens=4000, documentation.overlap_tokens=120.
 
         Task: T003
         """
@@ -214,7 +214,7 @@ class TestEmbeddingConfigDefaults:
         config = EmbeddingConfig()
 
         # Assert
-        assert config.documentation.max_tokens == 800
+        assert config.documentation.max_tokens == 4000
         assert config.documentation.overlap_tokens == 120
 
     def test_given_no_args_when_constructed_then_has_smart_content_chunk_defaults(self):
@@ -405,7 +405,7 @@ class TestEmbeddingConfigCustomOverrides:
         assert config.code.max_tokens == 200
         assert config.code.overlap_tokens == 20
         # Other defaults unchanged
-        assert config.documentation.max_tokens == 800
+        assert config.documentation.max_tokens == 4000
 
     def test_given_mode_fake_when_constructed_then_mode_is_fake(self):
         """

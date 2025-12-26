@@ -33,6 +33,12 @@ def samples_path() -> Path:
 
 
 @pytest.fixture
+def test_graph_path(tmp_path: Path) -> Path:
+    """Temp graph path to avoid corrupting project graph."""
+    return tmp_path / "test_graph.pickle"
+
+
+@pytest.fixture
 def embedding_config() -> EmbeddingConfig:
     """Standard embedding config."""
     return EmbeddingConfig(
@@ -57,7 +63,7 @@ class TestEndToEndEmbeddingValidation:
     """
 
     def test_given_samples_directory_when_scanning_with_embeddings_then_all_files_embedded(
-        self, samples_path: Path, embedding_config: EmbeddingConfig, fixture_graph
+        self, samples_path: Path, embedding_config: EmbeddingConfig, fixture_graph, test_graph_path: Path
     ):
         """
         Purpose: E2E validation of embedding pipeline on real fixture files.
@@ -107,6 +113,7 @@ class TestEndToEndEmbeddingValidation:
             graph_store=store,
             smart_content_service=smart_service,
             embedding_service=embedding_service,
+            graph_path=test_graph_path,
         )
 
         # Act
@@ -158,7 +165,7 @@ class TestEndToEndEmbeddingValidation:
         print(f"========================================\n")
 
     def test_given_samples_when_scanning_then_embedding_format_correct(
-        self, samples_path: Path, embedding_config: EmbeddingConfig, fixture_graph
+        self, samples_path: Path, embedding_config: EmbeddingConfig, fixture_graph, test_graph_path: Path
     ):
         """
         Purpose: Verify embeddings have correct tuple format.
@@ -189,6 +196,7 @@ class TestEndToEndEmbeddingValidation:
             ast_parser=parser,
             graph_store=store,
             embedding_service=embedding_service,
+            graph_path=test_graph_path,
         )
 
         # Act

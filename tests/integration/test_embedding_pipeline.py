@@ -34,6 +34,12 @@ from fs2.core.services.smart_content.template_service import TemplateService
 
 
 @pytest.fixture
+def test_graph_path(tmp_path: Path) -> Path:
+    """Temp graph path to avoid corrupting project graph."""
+    return tmp_path / "test_graph.pickle"
+
+
+@pytest.fixture
 def simple_python_project(tmp_path: Path) -> Path:
     """Create a simple Python project structure for embedding tests."""
     src = tmp_path / "src"
@@ -96,7 +102,7 @@ class TestEmbeddingPipelineEnabled:
     """
 
     def test_given_embedding_service_when_scanning_then_nodes_have_embeddings(
-        self, simple_python_project: Path, embedding_config: EmbeddingConfig
+        self, simple_python_project: Path, embedding_config: EmbeddingConfig, test_graph_path: Path
     ):
         """
         Purpose: Verifies pipeline generates embeddings for all nodes.
@@ -135,6 +141,7 @@ class TestEmbeddingPipelineEnabled:
             ast_parser=parser,
             graph_store=store,
             embedding_service=embedding_service,
+            graph_path=test_graph_path,
         )
 
         # Act
@@ -162,7 +169,7 @@ class TestEmbeddingPipelineEnabled:
         assert len(nodes_with_embeddings) > 0, "Expected some nodes to have embeddings"
 
     def test_given_embedding_service_when_scanning_then_embeddings_are_tuple_of_tuples(
-        self, simple_python_project: Path, embedding_config: EmbeddingConfig
+        self, simple_python_project: Path, embedding_config: EmbeddingConfig, test_graph_path: Path
     ):
         """
         Purpose: Verifies embeddings stored in correct format.
@@ -199,6 +206,7 @@ class TestEmbeddingPipelineEnabled:
             ast_parser=parser,
             graph_store=store,
             embedding_service=embedding_service,
+            graph_path=test_graph_path,
         )
 
         # Act
@@ -271,14 +279,19 @@ class TestEmbeddingMetadataPersistence:
             ast_parser=parser,
             graph_store=store,
             embedding_service=embedding_service,
+            graph_path=graph_path,
         )
 
         # Act
         summary = pipeline.run()
         store.save(graph_path)
 
+        # Load into new store to verify persistence
+        loaded_store = NetworkXGraphStore(config)
+        loaded_store.load(graph_path)
+
         # Assert - check metadata was captured
-        metadata = store.get_metadata()
+        metadata = loaded_store.get_metadata()
         assert "embedding_model" in metadata, "Missing embedding_model in metadata"
         assert "embedding_dimensions" in metadata, "Missing embedding_dimensions"
         assert "chunk_params" in metadata, "Missing chunk_params"
@@ -325,6 +338,7 @@ class TestEmbeddingMetadataPersistence:
             ast_parser=parser,
             graph_store=store,
             embedding_service=embedding_service,
+            graph_path=graph_path,
         )
 
         # Act - first scan and save
@@ -383,6 +397,7 @@ class TestEmbeddingHashPreservation:
             ast_parser=TreeSitterParser(config),
             graph_store=store1,
             embedding_service=embedding_service,
+            graph_path=graph_path,
         )
 
         summary1 = pipeline1.run()
@@ -403,6 +418,7 @@ class TestEmbeddingHashPreservation:
             ast_parser=TreeSitterParser(config),
             graph_store=store2,
             embedding_service=embedding_service,
+            graph_path=graph_path,
         )
 
         summary2 = pipeline2.run()
@@ -427,7 +443,7 @@ class TestEmbeddingWithSmartContent:
     """
 
     def test_given_smart_content_when_embedding_then_both_fields_populated(
-        self, simple_python_project: Path, embedding_config: EmbeddingConfig
+        self, simple_python_project: Path, embedding_config: EmbeddingConfig, test_graph_path: Path
     ):
         """
         Purpose: Verifies nodes with smart_content get both embeddings.
@@ -480,6 +496,7 @@ class TestEmbeddingWithSmartContent:
             graph_store=store,
             smart_content_service=smart_service,
             embedding_service=embedding_service,
+            graph_path=test_graph_path,
         )
 
         # Act

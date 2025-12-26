@@ -16,7 +16,7 @@ Per Phase 5 Tasks:
 import pytest
 from pathlib import Path
 
-from fs2.config.objects import ScanConfig
+from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 from fs2.core.adapters.ast_parser_impl import TreeSitterParser
@@ -66,11 +66,26 @@ def format_number(n: int) -> str:
 
 
 @pytest.fixture
-def config_service_for(tmp_path: Path):
-    """Factory for creating config service with specific scan paths."""
+def test_graph_path(tmp_path: Path) -> Path:
+    """Provide isolated graph path for tests.
+
+    Uses temp directory to avoid corrupting .fs2/graph.pickle.
+    Pass this to ScanPipeline(graph_path=...) for proper isolation.
+    """
+    return tmp_path / "test_graph.pickle"
+
+
+@pytest.fixture
+def config_service_for(test_graph_path: Path):
+    """Factory for creating config service with specific scan paths.
+
+    Includes GraphConfig pointing to temp directory to avoid corrupting
+    the project's real .fs2/graph.pickle during test runs.
+    """
     def _create(scan_paths: list[str]) -> FakeConfigurationService:
         return FakeConfigurationService(
-            ScanConfig(scan_paths=scan_paths, respect_gitignore=True)
+            ScanConfig(scan_paths=scan_paths, respect_gitignore=True),
+            GraphConfig(graph_path=str(test_graph_path)),
         )
     return _create
 
@@ -79,7 +94,7 @@ class TestFullPipelineWithRealAdapters:
     """T021: Integration tests with real adapters."""
 
     def test_given_real_adapters_when_scanning_then_produces_summary(
-        self, simple_python_project: Path, config_service_for
+        self, simple_python_project: Path, config_service_for, test_graph_path: Path
     ):
         """
         Purpose: Verifies full pipeline works with real adapters.
@@ -97,6 +112,7 @@ class TestFullPipelineWithRealAdapters:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -111,7 +127,7 @@ class TestConfigLoadingAC1:
     """T022: AC1 - Config loading from context."""
 
     def test_given_scan_config_when_running_then_uses_scan_paths(
-        self, simple_python_project: Path, config_service_for
+        self, simple_python_project: Path, config_service_for, test_graph_path: Path
     ):
         """
         Purpose: Verifies AC1 - config is used correctly.
@@ -130,6 +146,7 @@ class TestConfigLoadingAC1:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -142,7 +159,7 @@ class TestHierarchyAC5:
     """T023: AC5 - File → Class → Method hierarchy."""
 
     def test_given_python_class_when_scanned_then_hierarchy_extracted(
-        self, simple_python_project: Path, config_service_for, tmp_path: Path
+        self, simple_python_project: Path, config_service_for, test_graph_path: Path
     ):
         """
         Purpose: Verifies AC5 - hierarchy is correctly extracted.
@@ -160,6 +177,7 @@ class TestHierarchyAC5:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -183,7 +201,7 @@ class TestNodeIDFormatAC7:
     """T024: AC7 - Node ID format verification."""
 
     def test_given_nodes_when_scanned_then_ids_follow_format(
-        self, simple_python_project: Path, config_service_for
+        self, simple_python_project: Path, config_service_for, test_graph_path: Path
     ):
         """
         Purpose: Verifies AC7 - node IDs follow {category}:{path}:{symbol} format.
@@ -201,6 +219,7 @@ class TestNodeIDFormatAC7:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         pipeline.run()
@@ -239,7 +258,8 @@ class TestPersistenceAC8:
         """
         graph_path = tmp_path / "test_graph.pickle"
         config = FakeConfigurationService(
-            ScanConfig(scan_paths=[str(simple_python_project / "src")])
+            ScanConfig(scan_paths=[str(simple_python_project / "src")]),
+            GraphConfig(graph_path=str(graph_path)),
         )
 
         scanner = FileSystemScanner(config)
@@ -252,13 +272,13 @@ class TestPersistenceAC8:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=graph_path,
         )
 
         summary = pipeline.run()
         original_node_count = summary.nodes_created
 
-        # Force save to specific path (StorageStage already saved to default)
-        store.save(graph_path)
+        # Graph already saved by StorageStage to graph_path
 
         # Create new store and load
         new_store = NetworkXGraphStore(config)
@@ -273,7 +293,7 @@ class TestErrorHandlingAC10:
     """T026: AC10 - Graceful error handling."""
 
     def test_given_binary_file_when_scanning_then_continues_without_crash(
-        self, simple_python_project: Path, config_service_for
+        self, simple_python_project: Path, config_service_for, test_graph_path: Path
     ):
         """
         Purpose: Verifies AC10 - binary files don't crash the pipeline.
@@ -295,6 +315,7 @@ class TestErrorHandlingAC10:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -305,7 +326,7 @@ class TestErrorHandlingAC10:
         # This is success - pipeline didn't crash
 
     def test_given_parse_error_when_scanning_then_other_files_processed(
-        self, simple_python_project: Path, config_service_for
+        self, simple_python_project: Path, config_service_for, test_graph_path: Path
     ):
         """
         Purpose: Verifies parse errors don't stop other files.
@@ -327,6 +348,7 @@ class TestErrorHandlingAC10:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -344,7 +366,7 @@ class TestGitignoreIntegration:
     """Additional tests for gitignore handling in integration."""
 
     def test_given_gitignore_when_scanning_then_respects_patterns(
-        self, simple_python_project: Path, config_service_for
+        self, simple_python_project: Path, config_service_for, test_graph_path: Path
     ):
         """
         Purpose: Verifies gitignore patterns are respected.
@@ -375,6 +397,7 @@ class TestGitignoreIntegration:
             file_scanner=scanner,
             ast_parser=parser,
             graph_store=store,
+            graph_path=test_graph_path,
         )
 
         summary = pipeline.run()
@@ -434,10 +457,12 @@ class TestSmartContentIntegration:
         (src / "calc.py").write_text("def add(a, b):\n    '''Add two numbers together and return the result.'''\n    return a + b")
         (src / "utils.py").write_text("def helper():\n    '''A helper function that performs utility operations.'''\n    pass")
 
-        # Create config
+        # Create config with temp graph path
+        graph_path = tmp_path / "test_graph.pickle"
         config = FakeConfigurationService(
             ScanConfig(scan_paths=[str(src)], respect_gitignore=True),
             SmartContentConfig(max_workers=2),
+            GraphConfig(graph_path=str(graph_path)),
         )
 
         # Create fake LLM adapter
@@ -466,6 +491,7 @@ class TestSmartContentIntegration:
             ast_parser=parser,
             graph_store=store,
             smart_content_service=smart_service,
+            graph_path=graph_path,
         )
 
         summary = pipeline.run()
@@ -507,11 +533,12 @@ class TestSmartContentIntegration:
         src.mkdir()
         (src / "stable.py").write_text("def stable():\n    '''A stable function that does not change between scans.'''\n    return True")
 
-        graph_path = tmp_path / "graph.pickle"
+        graph_path = tmp_path / "test_graph.pickle"
 
         config = FakeConfigurationService(
             ScanConfig(scan_paths=[str(src)]),
             SmartContentConfig(max_workers=2),
+            GraphConfig(graph_path=str(graph_path)),
         )
 
         llm_adapter = FakeLLMAdapter()
@@ -535,13 +562,13 @@ class TestSmartContentIntegration:
             ast_parser=TreeSitterParser(config),
             graph_store=store1,
             smart_content_service=smart_service,
+            graph_path=graph_path,
         )
 
         summary1 = pipeline1.run()
         first_call_count = len(llm_adapter.call_history)
 
-        # Save graph
-        store1.save(graph_path)
+        # Graph already saved by StorageStage
 
         # Reset LLM adapter
         llm_adapter.reset()
@@ -557,6 +584,7 @@ class TestSmartContentIntegration:
             ast_parser=TreeSitterParser(config),
             graph_store=store2,
             smart_content_service=smart_service,
+            graph_path=graph_path,
         )
 
         summary2 = pipeline2.run()
@@ -587,8 +615,10 @@ class TestSmartContentIntegration:
         src.mkdir()
         (src / "simple.py").write_text('def hello(): return "world"')
 
+        graph_path = tmp_path / "test_graph.pickle"
         config = FakeConfigurationService(
-            ScanConfig(scan_paths=[str(src)], respect_gitignore=True)
+            ScanConfig(scan_paths=[str(src)], respect_gitignore=True),
+            GraphConfig(graph_path=str(graph_path)),
         )
 
         pipeline = ScanPipeline(
@@ -597,6 +627,7 @@ class TestSmartContentIntegration:
             ast_parser=TreeSitterParser(config),
             graph_store=NetworkXGraphStore(config),
             smart_content_service=None,
+            graph_path=graph_path,
         )
 
         summary = pipeline.run()

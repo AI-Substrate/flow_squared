@@ -95,7 +95,7 @@ def scan(
         console.print_success("Loaded .fs2/config.yaml")
 
         # Per Subtask 001: Get graph_file from global option via context
-        graph_path: Path | None = None
+        # Always resolve to a Path - use CLI flag or GraphConfig default
         if ctx.obj and ctx.obj.graph_file:
             graph_path = Path(ctx.obj.graph_file)
             # Create parent directories if they don't exist (per DYK-04)
@@ -103,6 +103,11 @@ def scan(
             # Override GraphConfig in config service
             config.set(GraphConfig(graph_path=str(graph_path)))
             console.print_info(f"Graph file: {graph_path}")
+        else:
+            # Use default from GraphConfig
+            graph_config = config.get(GraphConfig) or GraphConfig()
+            graph_path = Path(graph_config.graph_path)
+            graph_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Per Subtask 001 (ST002): Override scan_paths if --scan-path provided
         # Path validation happens in FileSystemScanner (per DYK-05 Clean Architecture)

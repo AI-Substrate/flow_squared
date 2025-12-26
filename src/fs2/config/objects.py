@@ -500,11 +500,11 @@ class ChunkConfig(BaseModel):
 
     Example:
         ```python
-        # Code: smaller chunks for better search precision
-        code_config = ChunkConfig(max_tokens=400, overlap_tokens=50)
+        # Code: large chunks to keep functions together
+        code_config = ChunkConfig(max_tokens=4000, overlap_tokens=50)
 
-        # Documentation: larger chunks for context
-        docs_config = ChunkConfig(max_tokens=800, overlap_tokens=120)
+        # Documentation: large chunks for context
+        docs_config = ChunkConfig(max_tokens=4000, overlap_tokens=120)
 
         # Smart content: single large chunk (no overlap needed)
         smart_config = ChunkConfig(max_tokens=8000, overlap_tokens=0)
@@ -585,10 +585,10 @@ class EmbeddingConfig(BaseModel):
           max_delay: 60.0
           # Chunking configuration
           code:
-            max_tokens: 400
+            max_tokens: 4000
             overlap_tokens: 50
           documentation:
-            max_tokens: 800
+            max_tokens: 4000
             overlap_tokens: 120
           smart_content:
             max_tokens: 8000
@@ -608,10 +608,10 @@ class EmbeddingConfig(BaseModel):
 
     # Per-content-type chunking configuration (Finding 04)
     code: ChunkConfig = Field(
-        default_factory=lambda: ChunkConfig(max_tokens=400, overlap_tokens=50)
+        default_factory=lambda: ChunkConfig(max_tokens=4000, overlap_tokens=50)
     )
     documentation: ChunkConfig = Field(
-        default_factory=lambda: ChunkConfig(max_tokens=800, overlap_tokens=120)
+        default_factory=lambda: ChunkConfig(max_tokens=4000, overlap_tokens=120)
     )
     smart_content: ChunkConfig = Field(
         default_factory=lambda: ChunkConfig(max_tokens=8000, overlap_tokens=0)
