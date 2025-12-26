@@ -609,6 +609,8 @@ class EmbeddingService:
         chunk_embeddings: dict[tuple[str, int, bool], list[float]] = {}
         errors_list: list[tuple[str, str]] = []
         semaphore = asyncio.Semaphore(self._config.max_concurrent_batches)
+        chunks_processed = 0
+        total_chunks = len(all_chunks)
 
         async def process_single_batch(
             batch: list[ChunkItem],
@@ -637,15 +639,28 @@ class EmbeddingService:
                     logger.error("Error processing batch: %s", e)
                     return []
 
-        # Run all batches concurrently (limited by semaphore)
-        batch_results = await asyncio.gather(
-            *[process_single_batch(batch) for batch in batches]
-        )
+        # Run batches with as_completed for incremental progress
+        # This reports progress as each batch finishes, not after all complete
+        batch_futures = [process_single_batch(batch) for batch in batches]
 
-        # Merge results into chunk_embeddings dict
-        for result_list in batch_results:
+        for coro in asyncio.as_completed(batch_futures):
+            result_list = await coro
+            # Merge results into chunk_embeddings dict
             for key, embedding in result_list:
                 chunk_embeddings[key] = embedding
+
+            # Update progress after each batch
+            chunks_processed += len(result_list)
+            if progress_callback and total_chunks > 0:
+                # Approximate node progress from chunk progress
+                approx_nodes = int(
+                    len(nodes_to_process) * chunks_processed / total_chunks
+                )
+                progress_callback(
+                    approx_nodes,
+                    len(nodes_to_process) + stats["skipped"],
+                    stats["skipped"],
+                )
 
         # Record any errors that occurred
         stats["errors"].extend(errors_list)
@@ -700,12 +715,12 @@ class EmbeddingService:
             stats["results"][node_id] = updated_node
             stats["processed"] += 1
 
-            # Progress callback
-            if progress_callback:
-                progress_callback(
-                    stats["processed"],
-                    stats["total"],
-                    stats["skipped"],
-                )
+        # Final progress callback with accurate counts
+        if progress_callback and stats["processed"] > 0:
+            progress_callback(
+                stats["processed"],
+                stats["total"],
+                stats["skipped"],
+            )
 
         return stats
