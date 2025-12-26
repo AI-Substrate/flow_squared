@@ -1241,3 +1241,4 @@ Mid-implementation detours requiring structured tracking.
 | ID | Created | Phase | Parent Task | Reason | Status | Dossier |
 |----|---------|-------|-------------|--------|--------|---------|
 | 001-subtask-add-cli-graph-file-and-scan-path-params | 2025-12-24 | Phase 0: Chunk Offset Tracking | T010 | Fixture generation requires CLI params for custom input/output paths instead of custom script | [x] Complete | [Link](tasks/phase-0-chunk-offset-tracking/001-subtask-add-cli-graph-file-and-scan-path-params.md) |
+| 003-subtask-search-result-metadata-and-filter | 2025-12-26 | Phase 5: CLI Integration | T010, T011 | Add metadata envelope (total, pagination, folder distribution) and --include/--exclude options to search output | [ ] Pending | [Link](tasks/phase-5-cli-integration/003-subtask-search-result-metadata-and-filter.md) |

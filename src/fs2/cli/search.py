@@ -7,10 +7,13 @@ Business logic (graph loading, search execution) is delegated to SearchService.
 
 Per research finding (get_node.py): Use raw print() for JSON output, Console(stderr=True) for errors.
 This ensures clean stdout for piping to tools like jq - only JSON on stdout, all else to stderr.
+
+Per Subtask 003: Output envelope with metadata + results; --include/--exclude filters.
 """
 
 import asyncio
 import json
+import re
 from typing import Annotated
 
 import typer
@@ -21,6 +24,10 @@ from fs2.config.objects import GraphConfig
 from fs2.config.service import FS2ConfigurationService
 from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
 from fs2.core.models.search import QuerySpec, SearchMode
+from fs2.core.models.search.search_result_meta import (
+    SearchResultMeta,
+    compute_folder_distribution,
+)
 from fs2.core.repos import NetworkXGraphStore
 from fs2.core.services.search import SearchService
 from fs2.core.services.search.exceptions import SearchError
@@ -73,20 +80,37 @@ def search(
             help="Detail level: min (9 fields) or max (13 fields) (default: min)",
         ),
     ] = "min",
+    include: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--include",
+            help="Keep only results matching pattern (text/regex). Repeatable for OR logic.",
+        ),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--exclude",
+            help="Remove results matching pattern (text/regex). Repeatable for OR logic.",
+        ),
+    ] = None,
 ) -> None:
-    """Search the code graph and output results as JSON.
+    """Search the code graph and output results as JSON envelope.
 
     Searches the indexed code graph using text, regex, or semantic matching.
-    Results are output as a JSON array to stdout for piping to tools like jq.
+    Results are output as a JSON envelope with metadata for scripting.
 
     \\b
     Examples:
-        $ fs2 search "authentication"             # Auto-detect mode
-        $ fs2 search "def.*test" --mode regex     # Regex search
-        $ fs2 search "config" --limit 10          # Limit results
-        $ fs2 search "auth" --offset 10           # Pagination (page 2)
-        $ fs2 search "error" --detail max         # Include full content
-        $ fs2 search "auth" | jq '.[] | .node_id' # Pipe to jq
+        $ fs2 search "authentication"              # Auto-detect mode
+        $ fs2 search "def.*test" --mode regex      # Regex search
+        $ fs2 search "config" --limit 10           # Limit results
+        $ fs2 search "auth" --offset 10            # Pagination (page 2)
+        $ fs2 search "error" --detail max          # Include full content
+        $ fs2 search "auth" | jq '.results[]'      # Pipe to jq
+        $ fs2 search "auth" --include "src/"       # Filter to src/ folder
+        $ fs2 search "auth" --exclude "test"       # Exclude tests
+        $ fs2 search "auth" --include "src/" --include "lib/"  # OR logic
 
     \\b
     Exit codes:
@@ -125,6 +149,28 @@ def search(
             f"[red]Error:[/red] Offset must be >= 0, got {offset}"
         )
         raise typer.Exit(code=1)
+
+    # Validate include/exclude patterns (compile to check regex validity)
+    include_patterns = include or []
+    exclude_patterns = exclude or []
+
+    for p in include_patterns:
+        try:
+            re.compile(p)
+        except re.error as e:
+            console.print(
+                f"[red]Error:[/red] Invalid regex in --include '{p}': {e}"
+            )
+            raise typer.Exit(code=1) from None
+
+    for p in exclude_patterns:
+        try:
+            re.compile(p)
+        except re.error as e:
+            console.print(
+                f"[red]Error:[/red] Invalid regex in --exclude '{p}': {e}"
+            )
+            raise typer.Exit(code=1) from None
 
     try:
         # === Composition Root ===
@@ -179,12 +225,61 @@ def search(
             console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(code=1) from None
 
+        # === Apply filters ===
+        # Apply include filter (keep only matching - OR logic across patterns)
+        if include_patterns:
+            results = [
+                r for r in results
+                if any(re.search(p, r.node_id) for p in include_patterns)
+            ]
+
+        # Apply exclude filter (remove matching - OR logic across patterns)
+        if exclude_patterns:
+            results = [
+                r for r in results
+                if not any(re.search(p, r.node_id) for p in exclude_patterns)
+            ]
+
+        # Track filtered count
+        filtered_count = len(results) if (include_patterns or exclude_patterns) else None
+
+        # Apply pagination AFTER filtering
+        total_after_filter = len(results)
+        paginated_results = results[offset : offset + limit]
+
+        # === Build metadata envelope ===
+        # Compute folder distribution from filtered (but not paginated) results
+        node_ids = [r.node_id for r in results]
+        folders = compute_folder_distribution(node_ids)
+
+        # Build showing info
+        showing_from = offset
+        showing_to = offset + len(paginated_results)
+        showing_count = len(paginated_results)
+
+        # Create metadata
+        meta = SearchResultMeta(
+            total=total_after_filter,
+            showing={"from": showing_from, "to": showing_to, "count": showing_count},
+            pagination={"limit": limit, "offset": offset},
+            folders=folders,
+            include=include_patterns if include_patterns else None,
+            exclude=exclude_patterns if exclude_patterns else None,
+            filtered=filtered_count,
+        )
+
         # === Presentation ===
         # Convert results to dicts with appropriate detail level
-        output = [r.to_dict(detail=detail_lower) for r in results]
+        result_dicts = [r.to_dict(detail=detail_lower) for r in paginated_results]
+
+        # Build envelope: { "meta": {...}, "results": [...] }
+        envelope = {
+            "meta": meta.to_dict(),
+            "results": result_dicts,
+        }
 
         # Output as JSON using raw print() for clean stdout
-        json_str = json.dumps(output, indent=2, default=str)
+        json_str = json.dumps(envelope, indent=2, default=str)
         print(json_str)
 
     except MissingConfigurationError:

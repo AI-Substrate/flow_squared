@@ -227,8 +227,8 @@ These tasks add `offset` to the model and service layers before CLI implementati
 | [x] | T007 | Write tests for max detail level (content included) | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/cli/test_search_cli.py | Tests verify: 13 fields present per DYK-02 | – | Plan task 5.4, AC20 |
 | [x] | T008 | Create search.py skeleton with Console(stderr=True) idiom | 2 | Core | T004, T005, T006, T007 | /workspaces/flow_squared/src/fs2/cli/search.py | File exists, imports work | – | Plan task 5.5, per get_node.py |
 | [x] | T009 | Implement argument handling with Typer annotations (incl --offset) | 2 | Core | T008 | /workspaces/flow_squared/src/fs2/cli/search.py | Tests from T004 pass | – | Plan task 5.6 |
-| [x] | T010 | Implement JSON output with raw print() | 2 | Core | T009 | /workspaces/flow_squared/src/fs2/cli/search.py | Tests from T005 pass, json.dumps(default=str) | – | Plan task 5.7, Discovery 10 |
-| [x] | T011 | Implement detail level via SearchResult.to_dict(detail) | 2 | Core | T010 | /workspaces/flow_squared/src/fs2/cli/search.py | Tests from T006, T007 pass | – | Plan task 5.8, Phase 1 API |
+| [x] | T010 | Implement JSON output with raw print() | 2 | Core | T009 | /workspaces/flow_squared/src/fs2/cli/search.py | Tests from T005 pass, json.dumps(default=str) | 003-subtask-search-result-metadata-and-filter | Plan task 5.7, Discovery 10 |
+| [x] | T011 | Implement detail level via SearchResult.to_dict(detail) | 2 | Core | T010 | /workspaces/flow_squared/src/fs2/cli/search.py | Tests from T006, T007 pass | 003-subtask-search-result-metadata-and-filter | Plan task 5.8, Phase 1 API |
 | [x] | T012 | Register search command in CLI main.py | 1 | Integration | T011 | /workspaces/flow_squared/src/fs2/cli/main.py | `fs2 search --help` works | – | Plan task 5.9 |
 | [x] | T013 | Integration test: full CLI workflow via subprocess (incl pagination) | 2 | Integration | T012 | /workspaces/flow_squared/tests/integration/test_search_cli_integration.py | Search via subprocess returns valid JSON, pagination works | – | Plan task 5.10 |
 

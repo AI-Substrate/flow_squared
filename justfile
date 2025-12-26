@@ -71,6 +71,10 @@ example-tree-depth:
 graph-report:
     uv run python scripts/graph_report.py
 
+# Test semantic search with predefined queries
+test-semantic-search:
+    uv run python scripts/test_semantic_search.py
+
 # === Fixture Generation ===
 
 # Generate fixture graph for testing (requires Azure credentials for embeddings/smart_content)

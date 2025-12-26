@@ -225,3 +225,6 @@ scratch/*
 !.vsc-bridge/registry.yaml
 .fs2/graph.pickle
 .fs2/graph.pickle.backup
+
+# Generated test output
+scripts/semantic_search_results.json
