@@ -453,11 +453,14 @@ class EmbeddingService:
         Per Review S1: Must compare content_hash with embedding_hash to detect stale embeddings.
 
         Skip logic:
-        1. If embedding is None or empty → must process raw content
+        1. If content is non-empty and embedding is None → must process raw content
         2. If embedding_hash is None (legacy) → must process (no way to verify freshness)
         3. If content_hash != embedding_hash → must process (content changed, stale embedding)
         4. If smart_content exists but smart_content_embedding is None → must process
         5. If all conditions satisfied → skip (node fully embedded and fresh)
+
+        Note: Empty content nodes (e.g., empty __init__.py files) skip raw embedding
+        check since there's nothing to embed. They only need smart_content_embedding.
 
         Args:
             node: CodeNode to check.
@@ -466,9 +469,13 @@ class EmbeddingService:
             True if node should be skipped (already fully embedded and fresh).
             False if node needs embedding generation.
         """
-        # Check raw content embedding
-        if node.embedding is None or len(node.embedding) == 0:
-            return False
+        # Check if content is empty (nothing to embed for raw content)
+        has_content = node.content and node.content.strip()
+
+        # Check raw content embedding (only if content exists)
+        if has_content:
+            if node.embedding is None or len(node.embedding) == 0:
+                return False
 
         # Check embedding_hash exists (legacy nodes without hash should be re-embedded)
         if node.embedding_hash is None:

@@ -71,7 +71,8 @@ def classify_node(ts_kind: str) -> str:
         return "callable"
 
     if any(
-        x in ts_kind for x in ("class", "struct", "interface", "enum", "type_alias")
+        x in ts_kind
+        for x in ("class", "struct", "interface", "enum", "type_alias", "trait", "impl")
     ):
         return "type"
 
