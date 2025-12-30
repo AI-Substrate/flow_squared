@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Flowspace2 - Clean Architecture Python scaffold"
 requires-python = ">=3.12"
 dependencies = [
+    "fastmcp>=2.0.0",
     "jinja2>=3.1",
     "networkx>=3.0",
     "numpy>=1.24",
