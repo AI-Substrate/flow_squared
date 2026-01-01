@@ -101,3 +101,47 @@ class EmbeddingAdapter(ABC):
             EmbeddingRateLimitError: After max retries exceeded (HTTP 429).
         """
         ...
+
+
+def create_embedding_adapter_from_config(config) -> EmbeddingAdapter | None:
+    """Factory function to create an embedding adapter from configuration.
+
+    Creates the appropriate EmbeddingAdapter implementation based on the
+    EmbeddingConfig settings. Used by both CLI and MCP server.
+
+    Args:
+        config: ConfigurationService instance with EmbeddingConfig.
+
+    Returns:
+        EmbeddingAdapter instance if configured, None otherwise.
+        Returns None silently if embeddings not configured - AUTO mode
+        will fall back to TEXT search gracefully.
+
+    Example:
+        >>> from fs2.config.service import FS2ConfigurationService
+        >>> config = FS2ConfigurationService()
+        >>> adapter = create_embedding_adapter_from_config(config)
+        >>> if adapter:
+        ...     embedding = await adapter.embed_text("hello")
+    """
+    from fs2.config.exceptions import MissingConfigurationError
+    from fs2.config.objects import EmbeddingConfig
+
+    try:
+        embedding_config = config.require(EmbeddingConfig)
+    except MissingConfigurationError:
+        return None
+
+    # Create adapter based on mode
+    if embedding_config.mode == "azure":
+        if embedding_config.azure is None:
+            return None
+        from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
+
+        return AzureEmbeddingAdapter(config)
+    elif embedding_config.mode == "fake":
+        from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+
+        return FakeEmbeddingAdapter(dimensions=embedding_config.dimensions)
+    else:
+        return None

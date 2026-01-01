@@ -50,6 +50,7 @@ logger = logging.getLogger(__name__)
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 
+from fs2.config.exceptions import MissingConfigurationError
 from fs2.core.adapters.exceptions import (
     GraphNotFoundError,
     GraphStoreError,
@@ -572,6 +573,10 @@ async def search(
     from fs2.core.services.search.exceptions import SearchError
 
     try:
+        from pathlib import Path
+
+        from fs2.config.objects import GraphConfig
+
         # Validate pattern
         if not pattern or not pattern.strip():
             raise ToolError("Pattern cannot be empty or whitespace-only")
@@ -603,8 +608,22 @@ async def search(
             raise ToolError(str(e)) from None
 
         # Get dependencies
+        config = get_config()
         store = get_graph_store()
+
+        # Ensure graph is loaded (SearchService doesn't have _ensure_loaded like TreeService)
+        graph_config = config.require(GraphConfig)
+        graph_path = Path(graph_config.graph_path)
+        if not graph_path.exists():
+            raise GraphNotFoundError(graph_path)
+        store.load(graph_path)
+
+        # Create embedding adapter from config (or use injected one for testing)
+        from fs2.core.adapters.embedding_adapter import create_embedding_adapter_from_config
+
         adapter = get_embedding_adapter()
+        if adapter is None:
+            adapter = create_embedding_adapter_from_config(config)
 
         # Create service with optional embedding adapter
         service = SearchService(graph_store=store, embedding_adapter=adapter)
@@ -653,6 +672,11 @@ async def search(
     except EmbeddingAdapterError as e:
         # DYK#9: Generic embedding API failure
         raise ToolError(f"Embedding service error: {e}. Try TEXT/REGEX mode.") from None
+
+    except MissingConfigurationError:
+        raise ToolError(
+            "No configuration found. Run 'fs2 init' to create .fs2/config.yaml"
+        ) from None
 
     except GraphNotFoundError:
         raise ToolError("Graph not found. Run 'fs2 scan' to create the graph.") from None

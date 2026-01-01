@@ -172,7 +172,9 @@ def search(
         graph_store.load(graph_path)
 
         # Try to create embedding adapter if configured (for semantic search)
-        embedding_adapter = _create_embedding_adapter(config)
+        from fs2.core.adapters.embedding_adapter import create_embedding_adapter_from_config
+
+        embedding_adapter = create_embedding_adapter_from_config(config)
 
         # Create SearchService with dependency injection
         service = SearchService(
@@ -265,27 +267,3 @@ def search(
         raise typer.Exit(code=1) from None
 
 
-def _create_embedding_adapter(config):
-    """Create embedding adapter if configured, None otherwise.
-
-    Returns None silently if embeddings not configured - AUTO mode
-    will fall back to TEXT search gracefully.
-    """
-    from fs2.config.objects import EmbeddingConfig
-
-    try:
-        embedding_config = config.require(EmbeddingConfig)
-    except MissingConfigurationError:
-        return None
-
-    # Create adapter based on mode
-    if embedding_config.mode == "azure":
-        if embedding_config.azure is None:
-            return None
-        from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
-        return AzureEmbeddingAdapter(config)
-    elif embedding_config.mode == "fake":
-        from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
-        return FakeEmbeddingAdapter(dimensions=embedding_config.dimensions)
-    else:
-        return None
