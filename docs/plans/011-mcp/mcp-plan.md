@@ -435,7 +435,7 @@ PREREQUISITES:
 - You need a valid node_id (get these from tree() or search() results)
 
 WORKFLOW:
-1. Get node_ids from tree(detail="max") or search() results
+1. Get node_ids from tree() or search() results (node_id always present in both detail levels)
 2. Call get_node(node_id="...") to retrieve full source
 3. Optionally save to file with save_to_file parameter
 
@@ -853,14 +853,14 @@ def test_no_stdout_on_import(monkeypatch):
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 2.1 | [ ] | Write tests for tree tool basic functionality | 2 | Tests cover: pattern ".", returns hierarchical list | - | |
-| 2.2 | [ ] | Write tests for tree tool filtering | 2 | Tests cover: pattern matching, glob patterns | - | |
-| 2.3 | [ ] | Write tests for tree tool depth limiting | 2 | Tests cover: max_depth=1 returns only root nodes | - | |
-| 2.4 | [ ] | Write tests for tree tool detail levels | 2 | Tests cover: min vs max detail output | - | |
-| 2.5 | [ ] | Implement tree tool in server.py | 3 | All tests from 2.1-2.4 pass | - | Sync function |
-| 2.6 | [ ] | Add agent-optimized description | 1 | Description matches research dossier template | - | Copy verbatim |
-| 2.7 | [ ] | Add MCP annotations | 1 | readOnlyHint=True, destructiveHint=False | - | |
-| 2.8 | [ ] | Write protocol compliance test | 2 | Tool output is valid JSON, no stdout pollution | - | |
+| 2.1 | [x] | Write tests for tree tool basic functionality | 2 | Tests cover: pattern ".", returns hierarchical list | [📋](tasks/phase-2-tree-tool-implementation/execution.log.md#task-t001-t004-tests) | T001: 6 tests [^13] |
+| 2.2 | [x] | Write tests for tree tool filtering | 2 | Tests cover: pattern matching, glob patterns | [📋](tasks/phase-2-tree-tool-implementation/execution.log.md#task-t001-t004-tests) | T002: 5 tests [^13] |
+| 2.3 | [x] | Write tests for tree tool depth limiting | 2 | Tests cover: max_depth=1 returns only root nodes | [📋](tasks/phase-2-tree-tool-implementation/execution.log.md#task-t001-t004-tests) | T003: 4 tests [^13] |
+| 2.4 | [x] | Write tests for tree tool detail levels | 2 | Tests cover: min vs max detail output | [📋](tasks/phase-2-tree-tool-implementation/execution.log.md#task-t001-t004-tests) | T004: 5 tests [^13] |
+| 2.5 | [x] | Implement tree tool in server.py | 3 | All tests from 2.1-2.4 pass | [📋](tasks/phase-2-tree-tool-implementation/execution.log.md#task-t005a-t005-impl) | T005+T005a: tree(), _tree_node_to_dict() [^14] |
+| 2.6 | [x] | Add agent-optimized description | 1 | Description matches research dossier template | [📋](tasks/phase-2-tree-tool-implementation/execution.log.md#task-t006-agent-description) | T006: WHEN TO USE, WORKFLOW hints [^14] |
+| 2.7 | [x] | Add MCP annotations | 1 | readOnlyHint=True, destructiveHint=False | [📋](tasks/phase-2-tree-tool-implementation/execution.log.md#task-t007-mcp-annotations) | T007: ToolAnnotations added [^14] |
+| 2.8 | [x] | Write protocol compliance test | 2 | Tool output is valid JSON, no stdout pollution | [📋](tasks/phase-2-tree-tool-implementation/execution.log.md#task-t008-mcp-integration-tests) | T008: 8 async MCP tests [^15] |
 
 ### Test Examples (Write First!)
 
@@ -921,10 +921,12 @@ class TestTreeTool:
 
 ### Acceptance Criteria
 
-- [ ] All 8 tests passing (AC1, AC2, AC3 from spec)
-- [ ] Tool description includes prerequisites and workflow hints
-- [ ] No stdout pollution
-- [ ] Detail levels work correctly
+- [x] All 28 tests passing (AC1, AC2, AC3 from spec) ✓
+- [x] Tool description includes prerequisites and workflow hints ✓
+- [x] No stdout pollution ✓
+- [x] Detail levels work correctly ✓
+
+**Phase 2 Status**: ✅ COMPLETE (2026-01-01) - 28 tests, 54 total MCP tests
 
 ---
 
@@ -1408,3 +1410,21 @@ Overall Progress: 1/6 phases (17%)
   - `class:src/fs2/core/adapters/logging_config.py:DefaultLoggingConfig`
   - `method:src/fs2/core/adapters/logging_config.py:MCPLoggingConfig.configure`
   - Routes all fs2 loggers to stderr for STDIO protocol compliance
+
+[^13]: Phase 2 Tasks 2.1-2.4 (T001-T004) - Tree tool TDD test suite
+  - `file:tests/mcp_tests/test_tree_tool.py`
+  - `file:tests/mcp_tests/conftest.py` (mcp_client, tree_test_graph_store fixtures)
+  - 20 tests across 4 test classes: TestTreeToolBasicFunctionality (6), TestTreeToolPatternFiltering (5), TestTreeToolDepthLimiting (4), TestTreeToolDetailLevels (5)
+  - Full TDD approach: tests written before implementation (RED phase)
+
+[^14]: Phase 2 Tasks 2.5-2.7 (T005, T005a, T006, T007) - Tree tool implementation
+  - `function:src/fs2/mcp/server.py:tree` - Main tree tool function
+  - `function:src/fs2/mcp/server.py:_tree_node_to_dict` - TreeNode to dict converter
+  - Agent-optimized docstring with WHEN TO USE, PREREQUISITES, WORKFLOW sections
+  - MCP annotations: readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
+
+[^15]: Phase 2 Task 2.8 (T000, T008) - MCP protocol integration tests
+  - `file:tests/mcp_tests/conftest.py` - mcp_client async fixture
+  - 8 async tests in TestMCPProtocolIntegration class
+  - Tests via actual MCP protocol (client.call_tool), not direct Python calls
+  - Validates: tool registration, JSON serialization, parameter handling, annotations

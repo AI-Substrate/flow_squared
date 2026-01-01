@@ -75,6 +75,10 @@ graph-report:
 test-semantic-search:
     uv run python scripts/test_semantic_search.py
 
+# Dump MCP tools (shows what agents see when connecting)
+mcp-dump TOOL="":
+    @uv run python scripts/mcp_tools_dump.py {{TOOL}} 2>/dev/null
+
 # === Fixture Generation ===
 
 # Generate fixture graph for testing (requires Azure credentials for embeddings/smart_content)

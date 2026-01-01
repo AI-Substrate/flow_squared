@@ -174,8 +174,8 @@ def tree(
         pattern: Filter pattern - "." for all, path prefix, glob (*.py),
                  or exact node_id. Supports substring matching.
         max_depth: Maximum tree depth (0 = unlimited). Use 1-2 for overview.
-        detail: "min" for compact output, "max" includes node_ids for
-                subsequent get_node calls.
+        detail: "min" for compact output (node_id always included), "max" adds
+                signatures and smart_content for richer context.
 
     Returns:
         List of tree nodes with children, each containing:
