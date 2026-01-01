@@ -951,13 +951,13 @@ class TestTreeTool:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 3.1 | [ ] | Write tests for get_node retrieval | 2 | Tests cover: valid node_id returns full CodeNode | - | |
-| 3.2 | [ ] | Write tests for get_node not found | 2 | Tests cover: invalid node_id returns None | - | |
-| 3.3 | [ ] | Write tests for get_node save to file | 2 | Tests cover: save_to_file writes JSON | - | Use tmp_path fixture |
-| 3.4 | [ ] | Implement get_node tool in server.py | 3 | All tests from 3.1-3.3 pass | - | Sync function |
-| 3.5 | [ ] | Add agent-optimized description | 1 | Description matches research dossier template | - | |
-| 3.6 | [ ] | Add MCP annotations | 1 | readOnlyHint=True (mostly), openWorldHint=True for file save | - | |
-| 3.7 | [ ] | Write protocol compliance test | 2 | Tool output is valid JSON | - | |
+| 3.1 | [x] | Write tests for get_node retrieval | 2 | Tests cover: valid node_id returns full CodeNode | [📋](tasks/phase-3-get-node-tool-implementation/execution.log.md#task-t001-t003-tdd-test-suite) | 19 TDD tests [^16] |
+| 3.2 | [x] | Write tests for get_node not found | 2 | Tests cover: invalid node_id returns None | [📋](tasks/phase-3-get-node-tool-implementation/execution.log.md#task-t001-t003-tdd-test-suite) | [^16] |
+| 3.3 | [x] | Write tests for get_node save to file | 2 | Tests cover: save_to_file writes JSON | [📋](tasks/phase-3-get-node-tool-implementation/execution.log.md#task-t001-t003-tdd-test-suite) | Use tmp_path fixture [^16] |
+| 3.4 | [x] | Implement get_node tool in server.py | 3 | All tests from 3.1-3.3 pass | [📋](tasks/phase-3-get-node-tool-implementation/execution.log.md#task-t004-implement-get_node-tool) | Sync function [^17] |
+| 3.5 | [x] | Add agent-optimized description | 1 | Description matches research dossier template | [📋](tasks/phase-3-get-node-tool-implementation/execution.log.md#task-t005-agent-description) | [^17] |
+| 3.6 | [x] | Add MCP annotations | 1 | readOnlyHint=True (mostly), openWorldHint=True for file save | [📋](tasks/phase-3-get-node-tool-implementation/execution.log.md#task-t006-mcp-annotations) | [^17] |
+| 3.7 | [x] | Write protocol compliance test | 2 | Tool output is valid JSON | [📋](tasks/phase-3-get-node-tool-implementation/execution.log.md#task-t007-protocol-tests) | 7 MCP tests [^18] |
 
 ### Test Examples (Write First!)
 
@@ -1016,10 +1016,12 @@ class TestGetNodeTool:
 
 ### Acceptance Criteria
 
-- [ ] All 7 tests passing (AC4, AC5, AC6 from spec)
-- [ ] None returned for missing nodes (not error)
-- [ ] File save creates valid JSON
-- [ ] No stdout pollution
+- [x] All 26 tests passing (AC4, AC5, AC6 from spec)
+- [x] None returned for missing nodes (not error)
+- [x] File save creates valid JSON
+- [x] No stdout pollution
+
+**Phase 3 Status**: ✅ COMPLETE (2026-01-01) - 26 tests, 80 total MCP tests
 
 ---
 
@@ -1307,13 +1309,13 @@ See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation.
 ### Phase Completion Checklist
 
 - [x] Phase 1: Core Infrastructure - COMPLETE (10/10 tasks, 21 tests passing)
-- [ ] Phase 2: Tree Tool Implementation - PENDING
-- [ ] Phase 3: Get-Node Tool Implementation - PENDING
+- [x] Phase 2: Tree Tool Implementation - COMPLETE (8/8 tasks, 28 tests passing)
+- [x] Phase 3: Get-Node Tool Implementation - COMPLETE (7/7 tasks, 26 tests passing)
 - [ ] Phase 4: Search Tool Implementation - PENDING
 - [ ] Phase 5: CLI Integration - PENDING
 - [ ] Phase 6: Documentation - PENDING
 
-Overall Progress: 1/6 phases (17%)
+Overall Progress: 3/6 phases (50%)
 
 ### STOP Rule
 
@@ -1428,3 +1430,18 @@ Overall Progress: 1/6 phases (17%)
   - 8 async tests in TestMCPProtocolIntegration class
   - Tests via actual MCP protocol (client.call_tool), not direct Python calls
   - Validates: tool registration, JSON serialization, parameter handling, annotations
+
+### Phase 3: Get-Node Tool Implementation (Complete)
+
+[^16]: Phase 3 Tasks 3.1-3.3 - TDD tests written (19 tests)
+  - `method:tests/mcp_tests/test_get_node_tool.py:TestGetNodeRetrieval.*`
+  - `method:tests/mcp_tests/test_get_node_tool.py:TestGetNodeNotFound.*`
+  - `method:tests/mcp_tests/test_get_node_tool.py:TestGetNodeSaveToFile.*`
+
+[^17]: Phase 3 Tasks 3.4-3.6 - get_node() implemented with helper funcs
+  - `method:src/fs2/mcp/server.py:get_node`
+  - `method:src/fs2/mcp/server.py:_code_node_to_dict`
+  - `method:src/fs2/mcp/server.py:_validate_save_path`
+
+[^18]: Phase 3 Task 3.7 - MCP protocol tests (7 tests)
+  - `method:tests/mcp_tests/test_get_node_tool.py:TestGetNodeMCPProtocol.*`

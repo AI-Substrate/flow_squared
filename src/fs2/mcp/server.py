@@ -54,7 +54,9 @@ from fs2.core.adapters.exceptions import (
     GraphNotFoundError,
     GraphStoreError,
 )
+from fs2.core.models.code_node import CodeNode
 from fs2.core.models.tree_node import TreeNode
+from fs2.core.services.get_node_service import GetNodeService
 from fs2.core.services.tree_service import TreeService
 from fs2.mcp.dependencies import get_config, get_graph_store
 
@@ -261,3 +263,170 @@ _tree_tool = mcp.tool(
         "openWorldHint": False,  # No external network/API calls
     }
 )(tree)
+
+
+# =============================================================================
+# MCP Tools (Phase 3: get_node)
+# =============================================================================
+
+
+def _code_node_to_dict(
+    node: CodeNode,
+    detail: Literal["min", "max"] = "min",
+) -> dict[str, Any]:
+    """Convert CodeNode to JSON-serializable dict with explicit field selection.
+
+    Per DYK Session: Explicit field filtering to prevent embedding leakage.
+    NEVER include embedding vectors or internal hash fields.
+
+    Fields in min detail (7 core fields):
+    - node_id, name, category, content, signature, start_line, end_line
+
+    Fields in max detail (adds 5 more):
+    - smart_content, language, parent_node_id, qualified_name, ts_kind
+
+    NEVER included (embedding data and internal metadata):
+    - embedding, smart_content_embedding, embedding_hash, embedding_chunk_offsets
+    - content_hash, smart_content_hash
+    - start_byte, end_byte, start_column, end_column
+    - is_named, field_name, is_error, truncated, truncated_at_line, content_type
+
+    Args:
+        node: CodeNode from GetNodeService.get_node().
+        detail: "min" for compact output, "max" for full metadata.
+
+    Returns:
+        Dict suitable for JSON serialization.
+    """
+    # Core fields (always present)
+    result: dict[str, Any] = {
+        "node_id": node.node_id,
+        "name": node.name,
+        "category": node.category,
+        "content": node.content,
+        "signature": node.signature,
+        "start_line": node.start_line,
+        "end_line": node.end_line,
+    }
+
+    # Extended fields (max detail only)
+    if detail == "max":
+        result["smart_content"] = node.smart_content
+        result["language"] = node.language
+        result["parent_node_id"] = node.parent_node_id
+        result["qualified_name"] = node.qualified_name
+        result["ts_kind"] = node.ts_kind
+
+    return result
+
+
+def _validate_save_path(save_to_file: str) -> str:
+    """Validate save_to_file path is under current working directory.
+
+    Per DYK Session: Security constraint - path must be at or under PWD.
+    Prevents directory traversal attacks.
+
+    Args:
+        save_to_file: Relative or absolute path to validate.
+
+    Returns:
+        Absolute path string if valid.
+
+    Raises:
+        ToolError: If path escapes PWD or is absolute outside PWD.
+    """
+    from pathlib import Path
+
+    cwd = Path.cwd().resolve()
+    target = (cwd / save_to_file).resolve()
+
+    # Check if target is under or equal to cwd
+    try:
+        target.relative_to(cwd)
+    except ValueError:
+        raise ToolError(
+            f"Path '{save_to_file}' escapes working directory. "
+            "Only paths under the current directory are allowed."
+        ) from None
+
+    return str(target)
+
+
+def get_node(
+    node_id: str,
+    save_to_file: str | None = None,
+    detail: Literal["min", "max"] = "min",
+) -> dict[str, Any] | None:
+    """Retrieve complete code node by ID.
+
+    Returns full source content and metadata for a specific code element.
+    Use after tree() or search() to get the complete source code for a node.
+
+    Args:
+        node_id: Unique identifier from tree() or search() results.
+            Format: 'category:path:name' (e.g., 'class:src/calc.py:Calculator')
+        save_to_file: Optional file path to save node as JSON.
+            Path must be under current working directory.
+        detail: Output verbosity level.
+            - "min" = 7 core fields (default)
+            - "max" = adds smart_content, language, parent_node_id, etc.
+
+    Returns:
+        CodeNode dict if found, None if node_id doesn't exist.
+        When save_to_file is used, includes 'saved_to' field with absolute path.
+
+    Raises:
+        ToolError: If graph not found or path escapes working directory.
+    """
+    try:
+        config = get_config()
+        store = get_graph_store()
+        service = GetNodeService(config=config, graph_store=store)
+        code_node = service.get_node(node_id)
+
+        # Return None for not-found (per AC5 - not an error)
+        if code_node is None:
+            return None
+
+        # Convert to dict with explicit field selection
+        result = _code_node_to_dict(code_node, detail)
+
+        # Handle save_to_file if specified
+        if save_to_file is not None:
+            import json
+
+            # Validate path security
+            absolute_path = _validate_save_path(save_to_file)
+
+            # Write JSON to file
+            with open(absolute_path, "w") as f:
+                json.dump(result, f, indent=2)
+
+            # Add saved_to field per DYK Session decision
+            result["saved_to"] = absolute_path
+
+        return result
+
+    except GraphNotFoundError:
+        raise ToolError("Graph not found. Run 'fs2 scan' to create the graph.") from None
+    except GraphStoreError as e:
+        raise ToolError(f"Graph error: {e}. The graph file may be corrupted.") from None
+    except ToolError:
+        # Re-raise ToolErrors (from path validation) as-is
+        raise
+    except Exception as e:
+        logger.exception("Unexpected error in get_node tool")
+        raise ToolError(f"Unexpected error: {e}") from None
+
+
+# Register get_node function as MCP tool with annotations (per T006)
+# Per DYK Session: readOnlyHint=False because save_to_file writes to filesystem
+_get_node_tool = mcp.tool(
+    annotations={
+        "title": "Get Code Node",
+        "readOnlyHint": False,  # Can write files via save_to_file
+        "destructiveHint": False,  # Doesn't destroy existing data
+        "idempotentHint": True,  # Same inputs return same outputs
+        "openWorldHint": False,  # No external network/API calls
+    }
+)(get_node)

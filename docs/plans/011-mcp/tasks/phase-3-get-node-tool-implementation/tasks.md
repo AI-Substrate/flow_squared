@@ -65,7 +65,7 @@ Implement the `get_node` MCP tool as specified in the plan, satisfying acceptanc
 
 ### Goals
 
-- ✅ Create `get_node()` tool function with `node_id` and `save_to_file` parameters
+- ✅ Create `get_node()` tool function with `node_id`, `save_to_file`, and `detail` parameters
 - ✅ Return full CodeNode data including `content` (full source code)
 - ✅ Handle missing nodes gracefully by returning `None`
 - ✅ Implement file save functionality with JSON output
@@ -79,8 +79,38 @@ Implement the `get_node` MCP tool as specified in the plan, satisfying acceptanc
 - ❌ Returning multiple nodes (that's what `tree` is for)
 - ❌ Modifying node content or graph data
 - ❌ Creating nodes that don't exist
-- ❌ Validating save_to_file path (filesystem handles errors)
 - ❌ Async implementation (GetNodeService is sync)
+
+### Security Constraint
+
+- ✅ `save_to_file` path MUST resolve to a location at or under the MCP server's working directory
+- ✅ Path escape attempts (e.g., `../../../etc/passwd`) must raise `ToolError`
+- ✅ Absolute paths outside PWD must be rejected
+
+### Field Filtering (Per DYK Session)
+
+CodeNode has 25+ fields including large embedding vectors. MCP response must use explicit field selection:
+
+**`detail="min"` (default)**:
+- `node_id`, `name`, `category`, `content`, `signature`, `start_line`, `end_line`
+
+**`detail="max"`**:
+- All min fields PLUS: `smart_content`, `language`, `parent_node_id`, `qualified_name`, `ts_kind`
+
+**NEVER include (embedding data)**:
+- `embedding`, `smart_content_embedding`, `embedding_hash`, `embedding_chunk_offsets`
+- `content_hash`, `smart_content_hash` (internal hashes)
+- `start_byte`, `end_byte`, `start_column`, `end_column` (byte-level offsets)
+- `is_named`, `field_name`, `is_error`, `truncated`, `truncated_at_line` (internal metadata)
+
+### Return Value Behavior (Per DYK Session)
+
+| Scenario | Return Value |
+|----------|--------------|
+| Node found, no save | `{"node_id": "...", "content": "...", ...}` |
+| Node found, with save | `{"node_id": "...", "content": "...", ..., "saved_to": "/abs/path/file.json"}` |
+| Node not found | `None` |
+| Path escape attempt | Raise `ToolError` |
 
 ---
 
@@ -99,13 +129,13 @@ flowchart TD
     classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
 
     subgraph Phase3["Phase 3: Get-Node Tool Implementation"]
-        T001["T001: Write retrieval tests"]:::pending
-        T002["T002: Write not-found tests"]:::pending
-        T003["T003: Write save-to-file tests"]:::pending
-        T004["T004: Implement get_node tool"]:::pending
-        T005["T005: Add agent description"]:::pending
-        T006["T006: Add MCP annotations"]:::pending
-        T007["T007: Write protocol tests"]:::pending
+        T001["T001: Write retrieval tests ✓"]:::completed
+        T002["T002: Write not-found tests ✓"]:::completed
+        T003["T003: Write save-to-file tests ✓"]:::completed
+        T004["T004: Implement get_node tool ✓"]:::completed
+        T005["T005: Add agent description ✓"]:::completed
+        T006["T006: Add MCP annotations ✓"]:::completed
+        T007["T007: Write protocol tests ✓"]:::completed
 
         T001 --> T004
         T002 --> T004
@@ -121,8 +151,8 @@ flowchart TD
     end
 
     subgraph NewFiles["New/Modified Files"]
-        F1["/tests/mcp_tests/test_get_node_tool.py"]:::pending
-        F2["/src/fs2/mcp/server.py (add get_node)"]:::pending
+        F1["/tests/mcp_tests/test_get_node_tool.py ✓"]:::completed
+        F2["/src/fs2/mcp/server.py (add get_node) ✓"]:::completed
     end
 
     T001 -.-> F1
@@ -142,13 +172,13 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Test Suite | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | ⬜ Pending | TDD: Write retrieval tests first |
-| T002 | Test Suite | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | ⬜ Pending | TDD: Test None return for missing node |
-| T003 | Test Suite | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | ⬜ Pending | TDD: Test file save with tmp_path |
-| T004 | MCP Server | `/workspaces/flow_squared/src/fs2/mcp/server.py` | ⬜ Pending | Implement get_node function |
-| T005 | MCP Server | `/workspaces/flow_squared/src/fs2/mcp/server.py` | ⬜ Pending | Agent-optimized docstring |
-| T006 | MCP Server | `/workspaces/flow_squared/src/fs2/mcp/server.py` | ⬜ Pending | MCP annotations per plan 3.6 |
-| T007 | Test Suite | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | ⬜ Pending | Protocol-level tests via mcp_client |
+| T001 | Test Suite | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | ✅ Complete | TDD: 8 retrieval tests |
+| T002 | Test Suite | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | ✅ Complete | TDD: 4 not-found tests |
+| T003 | Test Suite | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | ✅ Complete | TDD: 7 save_to_file tests |
+| T004 | MCP Server | `/workspaces/flow_squared/src/fs2/mcp/server.py` | ✅ Complete | get_node() + _code_node_to_dict() |
+| T005 | MCP Server | `/workspaces/flow_squared/src/fs2/mcp/server.py` | ✅ Complete | Agent-optimized docstring |
+| T006 | MCP Server | `/workspaces/flow_squared/src/fs2/mcp/server.py` | ✅ Complete | readOnlyHint=False, annotations |
+| T007 | Test Suite | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | ✅ Complete | 7 MCP protocol tests |
 
 ---
 
@@ -156,13 +186,13 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|---------------------------------------|-----|------|--------------|-----------------------------------------------------|----------------------------------------|----------|-------|
-| [ ] | T001 | Write tests for get_node retrieval | 2 | Test | – | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | Tests fail with missing get_node (RED phase) | – | Plan 3.1: valid node_id → full CodeNode |
-| [ ] | T002 | Write tests for get_node not found | 2 | Test | – | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | Tests fail with missing get_node (RED phase) | – | Plan 3.2: AC5 - returns None, not error |
-| [ ] | T003 | Write tests for get_node save to file | 2 | Test | – | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | Tests fail with missing get_node (RED phase) | – | Plan 3.3: AC6 - use tmp_path fixture |
-| [ ] | T004 | Implement get_node tool in server.py | 3 | Core | T001, T002, T003 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | All tests from T001-T003 pass (GREEN phase) | – | Plan 3.4: Sync function, compose GetNodeService |
-| [ ] | T005 | Add agent-optimized description | 1 | Doc | T004 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Description matches plan § Tool Specifications | – | Plan 3.5: Per Critical Discovery 02 |
-| [ ] | T006 | Add MCP annotations | 1 | Core | T005 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Annotations present in tool registration | – | Plan 3.6: readOnlyHint varies by save_to_file |
-| [ ] | T007 | Write protocol compliance tests | 2 | Test | T004 | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | MCP client tests pass, no stdout pollution | – | Plan 3.7: via mcp_client fixture |
+| [x] | T001 | Write tests for get_node retrieval | 2 | Test | – | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | Tests fail with missing get_node (RED phase) | – | Plan 3.1: 8 tests [^16] |
+| [x] | T002 | Write tests for get_node not found | 2 | Test | – | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | Tests fail with missing get_node (RED phase) | – | Plan 3.2: 4 tests [^16] |
+| [x] | T003 | Write tests for get_node save to file | 2 | Test | – | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | Tests fail with missing get_node (RED phase) | – | Plan 3.3: 7 tests [^16] |
+| [x] | T004 | Implement get_node tool in server.py | 3 | Core | T001, T002, T003 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | All tests from T001-T003 pass (GREEN phase) | – | Plan 3.4: _code_node_to_dict helper, path validation [^17] |
+| [x] | T005 | Add agent-optimized description | 1 | Doc | T004 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Description matches plan § Tool Specifications | – | Plan 3.5: Per Critical Discovery 02 [^17] |
+| [x] | T006 | Add MCP annotations | 1 | Core | T005 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Annotations present in tool registration | – | Plan 3.6: readOnlyHint=False [^17] |
+| [x] | T007 | Write protocol compliance tests | 2 | Test | T004 | `/workspaces/flow_squared/tests/mcp_tests/test_get_node_tool.py` | MCP client tests pass, no stdout pollution | – | Plan 3.7: 7 MCP tests [^18] |
 
 ---
 
@@ -359,10 +389,12 @@ Following the established Phase 2 TDD pattern: write tests first (RED), then imp
 |-----------|---------|---------|----------|
 | `test_get_node_returns_dict_for_valid_id` | Valid node_id returns dict | `tree_test_graph_store` | isinstance(result, dict) |
 | `test_get_node_returns_content_field` | Response includes full source | `tree_test_graph_store` | "content" in result |
-| `test_get_node_returns_all_code_node_fields` | Response has required fields | `tree_test_graph_store` | node_id, name, category, content, etc. |
+| `test_get_node_min_detail_has_core_fields` | Min detail has 7 core fields | `tree_test_graph_store` | node_id, name, category, content, signature, start_line, end_line |
+| `test_get_node_max_detail_has_extended_fields` | Max detail adds smart_content, language, etc. | `tree_test_graph_store` | All min fields + smart_content, language, parent_node_id |
+| `test_get_node_never_includes_embeddings` | Embeddings filtered out | `tree_test_graph_store` | "embedding" not in result, "smart_content_embedding" not in result |
+| `test_get_node_default_detail_is_min` | Default is min detail | `tree_test_graph_store` | Same as explicit detail="min" |
 | `test_get_node_content_matches_source` | content field is actual source | `tree_test_graph_store` | result["content"] == expected_content |
-| `test_get_node_returns_signature` | signature field present | `tree_test_graph_store` | "signature" in result |
-| `test_get_node_returns_smart_content` | smart_content field present | `tree_test_graph_store` | "smart_content" in result if exists |
+| `test_get_node_no_saved_to_without_save` | saved_to absent when not saving | `tree_test_graph_store` | "saved_to" not in result |
 
 **Class: TestGetNodeNotFound (T002)**
 
@@ -380,8 +412,10 @@ Following the established Phase 2 TDD pattern: write tests first (RED), then imp
 | `test_get_node_save_creates_file` | File created at path | `tmp_path` | output_path.exists() |
 | `test_get_node_save_writes_valid_json` | File contains valid JSON | `tmp_path` | json.loads succeeds |
 | `test_get_node_save_json_has_content` | JSON has content field | `tmp_path` | "content" in loaded_data |
-| `test_get_node_save_returns_confirmation` | Returns confirmation message | `tmp_path` | "saved" in result or result has node data |
+| `test_get_node_save_returns_saved_to_field` | Response includes saved_to path | `tmp_path` | "saved_to" in result, result["saved_to"] == str(output_path) |
 | `test_get_node_save_with_none_returns_none` | No file for missing node | `tmp_path` | result is None, file not created |
+| `test_get_node_save_rejects_path_escape` | Path must be under PWD | `tmp_path` | ToolError raised for `../escape.json` |
+| `test_get_node_save_rejects_absolute_path` | No absolute paths outside PWD | `tmp_path` | ToolError raised for `/tmp/outside.json` |
 
 **Class: TestGetNodeMCPProtocol (T007)**
 
@@ -392,6 +426,7 @@ Following the established Phase 2 TDD pattern: write tests first (RED), then imp
 | `test_get_node_listed_in_available_tools` | Tool discoverable | `mcp_client` | "get_node" in tools |
 | `test_get_node_has_annotations` | Annotations present | `mcp_client` | annotations not empty |
 | `test_get_node_no_stdout_pollution` | Protocol compliance | capture stdout | stdout is empty |
+| `test_get_node_graph_not_found_raises_tool_error` | Error handling via MCP | `mcp_client` + reset | isError=True in response |
 
 ### Step-by-Step Implementation Outline
 
@@ -402,8 +437,12 @@ Following the established Phase 2 TDD pattern: write tests first (RED), then imp
 
 2. **T004**: Implement get_node tool (GREEN phase)
    - Study `src/fs2/cli/get_node.py` for GetNodeService composition
-   - Add `get_node()` function to `server.py`
-   - Add `_code_node_to_dict()` helper for CodeNode → dict conversion
+   - Add `_code_node_to_dict(node, detail)` helper with explicit field selection:
+     * min: node_id, name, category, content, signature, start_line, end_line
+     * max: adds smart_content, language, parent_node_id, qualified_name, ts_kind
+     * NEVER include: embedding, smart_content_embedding, embedding_hash, etc.
+   - Add `get_node(node_id, save_to_file, detail)` function to `server.py`
+   - Add path validation for save_to_file (must be under PWD)
    - Handle save_to_file with `json.dump()`
    - Register with `mcp.tool()` decorator
    - Run tests until all pass
@@ -452,14 +491,14 @@ UV_CACHE_DIR=/workspaces/flow_squared/.uv_cache uv run ruff check src/fs2/mcp/
 
 ### Ready Check
 
-- [ ] Prior phase deliverables identified and accessible
-- [ ] Critical findings affecting this phase documented
-- [ ] Test fixtures identified and available
-- [ ] GetNodeService composition pattern studied
-- [ ] Implementation pattern from tree() understood
-- [ ] ADR constraints mapped to tasks (IDs noted in Notes column) - N/A (no ADRs exist)
+- [x] Prior phase deliverables identified and accessible
+- [x] Critical findings affecting this phase documented
+- [x] Test fixtures identified and available
+- [x] GetNodeService composition pattern studied
+- [x] Implementation pattern from tree() understood
+- [x] ADR constraints mapped to tasks (IDs noted in Notes column) - N/A (no ADRs exist)
 
-**Await explicit GO/NO-GO before implementation.**
+**Phase 3 COMPLETE - 26 tests passing, 80 total MCP tests.**
 
 ---
 
@@ -469,7 +508,9 @@ _Populated during implementation by plan-6a-update-progress._
 
 | Footnote | Plan Task | Dossier Task(s) | Summary | Node IDs |
 |----------|-----------|-----------------|---------|----------|
-| | | | | |
+| [^16] | 3.1-3.3 | T001, T002, T003 | TDD tests written (19 tests) | method:tests/mcp_tests/test_get_node_tool.py:TestGetNodeRetrieval.*, method:tests/mcp_tests/test_get_node_tool.py:TestGetNodeNotFound.*, method:tests/mcp_tests/test_get_node_tool.py:TestGetNodeSaveToFile.* |
+| [^17] | 3.4-3.6 | T004, T005, T006 | get_node() implemented with helper funcs | method:src/fs2/mcp/server.py:get_node, method:src/fs2/mcp/server.py:_code_node_to_dict, method:src/fs2/mcp/server.py:_validate_save_path |
+| [^18] | 3.7 | T007 | MCP protocol tests (7 tests) | method:tests/mcp_tests/test_get_node_tool.py:TestGetNodeMCPProtocol.* |
 
 ---
 
@@ -479,6 +520,160 @@ Implementation will write the following to this phase directory:
 
 - `execution.log.md` — Detailed narrative of implementation with task anchors
 - Any additional evidence files as needed
+
+---
+
+## Critical Insights Discussion
+
+**Session**: 2026-01-01
+**Context**: Phase 3: Get-Node Tool Implementation - Pre-implementation clarity session
+**Analyst**: AI Clarity Agent
+**Format**: Water Cooler Conversation (5 Critical Insights)
+
+### Insight 1: save_to_file Security and MCP Protocol Contradiction
+
+**Did you know**: The `save_to_file` parameter allows agents to write to arbitrary paths, and marking the tool as `readOnlyHint: True` is misleading to MCP clients.
+
+**Implications**:
+- Security gap: No path validation, agents could write outside project
+- Protocol violation: readOnlyHint=True implies no side effects
+- Agents could overwrite important files
+
+**Options Considered**:
+- Option A: Remove save_to_file entirely
+- Option B: Split into two tools (get_node + save_node)
+- Option C: Keep single tool, add path validation, fix annotations
+- Option D: Keep as-is, document risk
+
+**AI Recommendation**: Option A (Remove save_to_file)
+
+**Decision**: **Option C variant** - Keep save_to_file with path validation (must be at or under PWD), set readOnlyHint=False
+
+**Action Items**:
+- [x] Add path validation (resolve path, check is_relative_to(cwd))
+- [x] Add tests for path escape attempts
+- [x] Set readOnlyHint=False in annotations
+
+**Affects**: T003, T004, T006, Security Constraint section
+
+---
+
+### Insight 2: CodeNode Has 25+ Fields Including Large Embeddings
+
+**Did you know**: CodeNode has 25+ fields including embedding vectors (megabytes of data), and using `asdict()` would return ALL of them.
+
+**Implications**:
+- Embeddings are huge (1024 floats per chunk)
+- Response size could cause MCP protocol issues
+- Agents don't need embedding data
+
+**Options Considered**:
+- Option A: Explicit field selection with _code_node_to_dict() helper
+- Option B: Use asdict() with field exclusion (blacklist)
+- Option C: Add detail levels like tree tool
+
+**AI Recommendation**: Option A (Explicit field selection)
+
+**Decision**: **Hybrid A+C** - Explicit field selection with min/max detail levels (like tree tool)
+
+**Action Items**:
+- [x] Add Field Filtering section documenting min/max fields
+- [x] Update T001 for detail level tests
+- [x] Update T004 for _code_node_to_dict helper
+
+**Affects**: T001, T004, Field Filtering section
+
+---
+
+### Insight 3: Return Value for save_to_file Is Ambiguous
+
+**Did you know**: The dossier says save_to_file "returns confirmation message" but the function signature is `dict | None`. What exactly should be returned?
+
+**Implications**:
+- Agents need to know if save succeeded
+- Return type should be consistent
+
+**Options Considered**:
+- Option A: Return node dict + saved_to field
+- Option B: Return just node dict (same as no-save)
+- Option C: Return wrapper object with node and saved_to
+
+**AI Recommendation**: Option B (Simple node dict)
+
+**Decision**: **Option A** - Return node dict with added `saved_to` field containing absolute path
+
+**Action Items**:
+- [x] Add Return Value Behavior table
+- [x] Update test for saved_to field
+- [x] Add test for saved_to absent when not saving
+
+**Affects**: T003 tests, T004 implementation
+
+---
+
+### Insight 4: Malformed node_ids Handling
+
+**Did you know**: There's a difference between "valid format, doesn't exist" and "malformed format". Should malformed IDs return None or raise ToolError?
+
+**Implications**:
+- Agents might pass garbage input
+- Need consistent behavior
+
+**Options Considered**:
+- Option A: None for everything not found (match service behavior)
+- Option B: Validate format, ToolError for malformed
+- Option C: Validate but just warn in description
+
+**AI Recommendation**: Option A (None for everything)
+
+**Decision**: **Option A** - Return None for any node_id not found, no format validation
+
+**Action Items**:
+- Already covered in T002 tests (empty string, malformed ID tests)
+
+**Affects**: No changes needed - tests already cover this
+
+---
+
+### Insight 5: No MCP Protocol Error Path Tests
+
+**Did you know**: The mcp_client fixture always injects a valid graph, so we never test ToolError behavior via MCP protocol.
+
+**Implications**:
+- Error handling not tested at protocol level
+- Gap identified in Phase 2 review
+
+**Options Considered**:
+- Option A: Add comprehensive error path tests
+- Option B: Defer to Phase 5 (CLI integration)
+- Option C: Add one representative error test
+
+**AI Recommendation**: Option C (One representative test)
+
+**Decision**: **Option C** - Add `test_get_node_graph_not_found_raises_tool_error` to T007
+
+**Action Items**:
+- [x] Add error test to T007 test plan
+
+**Affects**: T007 (protocol tests)
+
+---
+
+## Session Summary
+
+**Insights Surfaced**: 5 critical insights identified and discussed
+**Decisions Made**: 5 decisions reached through collaborative discussion
+**Action Items Created**: All applied immediately to dossier
+**Areas Updated**:
+- Security Constraint section added
+- Field Filtering section added
+- Return Value Behavior table added
+- Test Plan expanded (8 new test cases)
+- Task notes updated (T001, T003, T004, T006)
+
+**Shared Understanding Achieved**: ✓
+
+**Confidence Level**: High - Key design decisions clarified before implementation
 
 ---
 
