@@ -58,7 +58,7 @@ from fs2.core.models.code_node import CodeNode
 from fs2.core.models.tree_node import TreeNode
 from fs2.core.services.get_node_service import GetNodeService
 from fs2.core.services.tree_service import TreeService
-from fs2.mcp.dependencies import get_config, get_graph_store
+from fs2.mcp.dependencies import get_config, get_embedding_adapter, get_graph_store
 
 # Create FastMCP server instance
 # Note: Tools will be added in Phase 2-4
@@ -430,3 +430,253 @@ _get_node_tool = mcp.tool(
         "openWorldHint": False,  # No external network/API calls
     }
 )(get_node)
+
+
+# =============================================================================
+# MCP Tools (Phase 4: search)
+# =============================================================================
+
+
+def _build_search_envelope(
+    results: list,
+    total: int,
+    limit: int,
+    offset: int,
+    include: list[str] | None,
+    exclude: list[str] | None,
+    filtered_count: int | None,
+    detail: Literal["min", "max"],
+) -> dict[str, Any]:
+    """Build search response envelope with meta and results.
+
+    Per DYK#5: Uses SearchResultMeta for envelope format (CLI implementation).
+
+    Args:
+        results: List of SearchResult objects.
+        total: Total matches before pagination.
+        limit: Requested limit.
+        offset: Requested offset.
+        include: Include filter patterns (or None).
+        exclude: Exclude filter patterns (or None).
+        filtered_count: Count after filtering (or None if no filters).
+        detail: Detail level for result serialization.
+
+    Returns:
+        Envelope dict with meta and results keys.
+    """
+    from fs2.core.models.search.search_result_meta import (
+        SearchResultMeta,
+        compute_folder_distribution,
+    )
+
+    # Compute folder distribution from result node_ids
+    node_ids = [r.node_id for r in results]
+    folders = compute_folder_distribution(node_ids)
+
+    # Build showing info
+    showing = {
+        "from": offset,
+        "to": offset + len(results),
+        "count": len(results),
+    }
+
+    # Build pagination info
+    pagination = {
+        "limit": limit,
+        "offset": offset,
+    }
+
+    # Build meta
+    meta = SearchResultMeta(
+        total=total,
+        showing=showing,
+        pagination=pagination,
+        folders=folders,
+        include=list(include) if include else None,
+        exclude=list(exclude) if exclude else None,
+        filtered=filtered_count,
+    )
+
+    # Per DYK#4: Use SearchResult.to_dict(detail) directly
+    return {
+        "meta": meta.to_dict(),
+        "results": [r.to_dict(detail) for r in results],
+    }
+
+
+async def search(
+    pattern: str,
+    mode: str = "auto",
+    limit: int = 20,
+    offset: int = 0,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
+    detail: Literal["min", "max"] = "min",
+) -> dict[str, Any]:
+    """Search codebase for matching code elements.
+
+    WHEN TO USE: Find code by content, pattern, or meaning.
+    - TEXT mode: Substring search in content, node_id, smart_content
+    - REGEX mode: Regular expression pattern matching
+    - SEMANTIC mode: Conceptual search using embeddings (requires indexed codebase)
+    - AUTO mode: Automatically selects best mode based on pattern
+
+    PREREQUISITES:
+    - Requires 'fs2 scan' to have been run first
+    - SEMANTIC mode requires 'fs2 scan --embed' for embeddings
+
+    WORKFLOW:
+    1. Use search(pattern="concept", mode="semantic") for conceptual queries
+    2. Use search(pattern="ClassName", mode="text") for exact matches
+    3. Use search(pattern="def.*test", mode="regex") for pattern matching
+    4. Use returned node_id values with get_node() for full source code
+
+    Parameters:
+        pattern: Search pattern (cannot be empty).
+            - For TEXT: Substring to find (case-insensitive)
+            - For REGEX: Regular expression pattern
+            - For SEMANTIC: Natural language query
+            - For AUTO: Pattern is analyzed to select best mode
+        mode: Search mode - "text", "regex", "semantic", or "auto" (default: "auto")
+        limit: Maximum results to return (default: 20, must be >= 1)
+        offset: Number of results to skip for pagination (default: 0)
+        include: Filter to keep only node_ids matching ANY pattern (regex patterns)
+        exclude: Filter to remove node_ids matching ANY pattern (regex patterns)
+        detail: Output verbosity - "min" (9 fields) or "max" (13 fields)
+
+    Returns:
+        Envelope with meta and results:
+        {
+            "meta": {
+                "total": 47,
+                "showing": {"from": 0, "to": 20, "count": 20},
+                "pagination": {"limit": 20, "offset": 0},
+                "folders": {"src/": 30, "tests/": 17}
+            },
+            "results": [
+                {"node_id": "...", "score": 0.92, "snippet": "...", ...}
+            ]
+        }
+
+    Example:
+        >>> await search(pattern="authentication", mode="semantic", limit=5)
+        {"meta": {...}, "results": [{...}, {...}, ...]}
+    """
+    from fs2.core.adapters.exceptions import (
+        EmbeddingAdapterError,
+        EmbeddingAuthenticationError,
+        EmbeddingRateLimitError,
+    )
+    from fs2.core.models.search import QuerySpec, SearchMode
+    from fs2.core.services.search import SearchService
+    from fs2.core.services.search.exceptions import SearchError
+
+    try:
+        # Validate pattern
+        if not pattern or not pattern.strip():
+            raise ToolError("Pattern cannot be empty or whitespace-only")
+
+        # Validate and convert mode
+        mode_upper = mode.upper()
+        try:
+            search_mode = SearchMode[mode_upper]
+        except KeyError:
+            valid_modes = ", ".join(m.value for m in SearchMode)
+            raise ToolError(f"Invalid mode '{mode}'. Must be one of: {valid_modes}") from None
+
+        # Convert include/exclude lists to tuples for QuerySpec
+        include_tuple = tuple(include) if include else None
+        exclude_tuple = tuple(exclude) if exclude else None
+
+        # Build QuerySpec (validates parameters including regex patterns)
+        try:
+            spec = QuerySpec(
+                pattern=pattern,
+                mode=search_mode,
+                limit=limit,
+                offset=offset,
+                include=include_tuple,
+                exclude=exclude_tuple,
+            )
+        except ValueError as e:
+            # Regex validation errors, limit/offset errors
+            raise ToolError(str(e)) from None
+
+        # Get dependencies
+        store = get_graph_store()
+        adapter = get_embedding_adapter()
+
+        # Create service with optional embedding adapter
+        service = SearchService(graph_store=store, embedding_adapter=adapter)
+
+        # Execute search
+        results = await service.search(spec)
+
+        # Calculate totals for envelope
+        # Note: We need the full count before pagination, but SearchService
+        # already applies pagination. For accurate total, we'd need a separate
+        # count query. For now, use len(results) + offset as estimate.
+        # This is a known limitation - total is the count we have.
+        total = len(results) + offset
+
+        # Build and return envelope
+        return _build_search_envelope(
+            results=results,
+            total=total,
+            limit=limit,
+            offset=offset,
+            include=include,
+            exclude=exclude,
+            filtered_count=None,  # Filter already applied in service
+            detail=detail,
+        )
+
+    except SearchError as e:
+        # DYK#10: Explicit SEMANTIC mode failures (no embeddings, etc.)
+        # Message already actionable, pass through
+        raise ToolError(str(e)) from None
+
+    except EmbeddingAuthenticationError:
+        # DYK#9: Embedding API auth failure
+        raise ToolError(
+            "Embedding API authentication failed. "
+            "Check FS2_AZURE__OPENAI__API_KEY configuration."
+        ) from None
+
+    except EmbeddingRateLimitError as e:
+        # DYK#9: Embedding API rate limit
+        retry_msg = f" Retry after {e.retry_after}s." if e.retry_after else ""
+        raise ToolError(
+            f"Embedding API rate limited.{retry_msg} Try TEXT/REGEX mode."
+        ) from None
+
+    except EmbeddingAdapterError as e:
+        # DYK#9: Generic embedding API failure
+        raise ToolError(f"Embedding service error: {e}. Try TEXT/REGEX mode.") from None
+
+    except GraphNotFoundError:
+        raise ToolError("Graph not found. Run 'fs2 scan' to create the graph.") from None
+
+    except GraphStoreError as e:
+        raise ToolError(f"Graph error: {e}. The graph file may be corrupted.") from None
+
+    except ToolError:
+        # Re-raise ToolErrors as-is
+        raise
+
+    except Exception as e:
+        logger.exception("Unexpected error in search tool")
+        raise ToolError(f"Unexpected error: {e}") from None
+
+
+# Register search function as MCP tool with annotations (per T008)
+# Per DYK#8: openWorldHint=True because SEMANTIC mode calls embedding APIs
+_search_tool = mcp.tool(
+    annotations={
+        "title": "Search Code",
+        "readOnlyHint": True,  # Only reads data
+        "destructiveHint": False,  # No destructive side effects
+        "idempotentHint": True,  # Same inputs return same outputs
+        "openWorldHint": True,  # SEMANTIC mode calls external embedding APIs
+    }
+)(search)

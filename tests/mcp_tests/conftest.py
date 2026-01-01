@@ -31,7 +31,6 @@ import pytest
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from mcp import ClientSession
 
 
 @pytest.fixture(autouse=True)
@@ -67,10 +66,34 @@ def make_code_node(
     signature: str | None = None,
     language: str = "python",
     parent_node_id: str | None = None,
+    # DYK#2: Added embedding support for search tests
+    embedding: tuple[tuple[float, ...], ...] | None = None,
+    smart_content: str | None = None,
+    smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
 ) -> CodeNode:
     """Helper to create CodeNode with minimal required fields.
 
     Fills in defaults for optional fields to simplify test fixture creation.
+
+    Per DYK#2: Extended with embedding, smart_content, and smart_content_embedding
+    parameters to support semantic search testing.
+
+    Args:
+        node_id: Unique node identifier.
+        category: Node category (file, class, callable, etc.).
+        name: Node name.
+        content: Node content (source code).
+        start_line: Start line in source file.
+        end_line: End line in source file.
+        signature: Optional function/method signature.
+        language: Programming language.
+        parent_node_id: Optional parent node ID.
+        embedding: Embedding vectors as tuple of tuples (multi-chunk).
+        smart_content: AI-generated summary.
+        smart_content_embedding: Embedding for smart_content.
+
+    Returns:
+        CodeNode instance.
     """
     return CodeNode(
         node_id=node_id,
@@ -91,6 +114,9 @@ def make_code_node(
         is_named=True,
         field_name=None,
         parent_node_id=parent_node_id,
+        embedding=embedding,
+        smart_content=smart_content,
+        smart_content_embedding=smart_content_embedding,
     )
 
 
@@ -231,8 +257,6 @@ async def mcp_client(tree_test_graph_store: tuple[FakeGraphStore, FakeConfigurat
     Yields:
         ClientSession connected to the MCP server.
     """
-    from mcp import ClientSession, StdioServerParameters
-    from mcp.client.stdio import stdio_client
 
     from fs2.mcp import dependencies
     from fs2.mcp.server import mcp
@@ -295,3 +319,207 @@ def sample_node() -> CodeNode:
         end_line=10,
         signature="def test_function() -> None",
     )
+
+
+# =============================================================================
+# Search Tool Fixtures (Phase 4)
+# =============================================================================
+
+
+@pytest.fixture
+def search_test_graph_store(tmp_path: Path) -> tuple[FakeGraphStore, FakeConfigurationService]:
+    """FakeGraphStore with nodes for search tests.
+
+    Creates a graph with varied content for testing search modes:
+    - Text mode: Nodes with searchable content
+    - Regex mode: Nodes with pattern-matchable content
+    - Filter tests: Nodes in different paths (auth, calc, test)
+
+    Per DYK#3: Focus on MCP-level concerns, not search logic.
+
+    Args:
+        tmp_path: Pytest's temporary directory fixture.
+
+    Returns:
+        Tuple of (FakeGraphStore, FakeConfigurationService).
+    """
+    # Create graph file for TreeService compatibility
+    graph_path = tmp_path / "graph.pickle"
+    graph_path.touch()
+
+    config = FakeConfigurationService(
+        ScanConfig(),
+        GraphConfig(graph_path=str(graph_path)),
+    )
+
+    nodes = [
+        make_code_node(
+            node_id="callable:src/auth/login.py:authenticate",
+            category="callable",
+            name="authenticate",
+            content="def authenticate(user, password):\n    return verify(user, password)",
+            start_line=1,
+            end_line=5,
+            signature="def authenticate(user: str, password: str) -> bool",
+            smart_content="Authenticates user with credentials",
+        ),
+        make_code_node(
+            node_id="callable:src/auth/session.py:create_session",
+            category="callable",
+            name="create_session",
+            content="def create_session(user_id):\n    return Session(user_id)",
+            start_line=1,
+            end_line=5,
+            signature="def create_session(user_id: int) -> Session",
+            smart_content="Creates a new session for authenticated user",
+        ),
+        make_code_node(
+            node_id="callable:src/calc/math.py:calculate",
+            category="callable",
+            name="calculate",
+            content="def calculate(x, y):\n    return x + y",
+            start_line=1,
+            end_line=5,
+            signature="def calculate(x: int, y: int) -> int",
+            smart_content="Performs mathematical calculation",
+        ),
+        make_code_node(
+            node_id="callable:tests/test_auth.py:test_login",
+            category="callable",
+            name="test_login",
+            content="def test_login():\n    assert login() works",
+            start_line=1,
+            end_line=5,
+            smart_content="Tests the login functionality",
+        ),
+    ]
+
+    store = FakeGraphStore(config)
+    store.set_nodes(nodes)
+
+    return store, config
+
+
+@pytest.fixture
+def search_semantic_graph_store(
+    tmp_path: Path,
+    fake_embedding_adapter: FakeEmbeddingAdapter,
+) -> tuple[FakeGraphStore, FakeConfigurationService, FakeEmbeddingAdapter]:
+    """FakeGraphStore with nodes containing embeddings for semantic search tests.
+
+    Creates nodes with pre-computed embeddings to test semantic search mode
+    without requiring real embedding API calls.
+
+    Per DYK#2: Embeddings are tuple[tuple[float, ...], ...] (multi-chunk).
+
+    Args:
+        tmp_path: Pytest's temporary directory fixture.
+        fake_embedding_adapter: FakeEmbeddingAdapter fixture.
+
+    Returns:
+        Tuple of (FakeGraphStore, FakeConfigurationService, FakeEmbeddingAdapter).
+    """
+    # Create graph file for TreeService compatibility
+    graph_path = tmp_path / "graph.pickle"
+    graph_path.touch()
+
+    config = FakeConfigurationService(
+        ScanConfig(),
+        GraphConfig(graph_path=str(graph_path)),
+    )
+
+    # Embeddings: tuple of tuples (multi-chunk format)
+    # Similar to "authentication" query
+    auth_embedding = ((0.9, 0.1, 0.05, 0.02),)
+    # Different from "authentication" query
+    calc_embedding = ((0.1, 0.1, 0.9, 0.8),)
+
+    nodes = [
+        make_code_node(
+            node_id="callable:src/auth/login.py:authenticate",
+            category="callable",
+            name="authenticate",
+            content="def authenticate(user, password):\n    return verify(user, password)",
+            start_line=1,
+            end_line=5,
+            signature="def authenticate(user: str, password: str) -> bool",
+            smart_content="Authenticates user with credentials",
+            embedding=auth_embedding,
+            smart_content_embedding=auth_embedding,
+        ),
+        make_code_node(
+            node_id="callable:src/calc/math.py:calculate",
+            category="callable",
+            name="calculate",
+            content="def calculate(x, y):\n    return x + y",
+            start_line=1,
+            end_line=5,
+            signature="def calculate(x: int, y: int) -> int",
+            smart_content="Performs mathematical calculation",
+            embedding=calc_embedding,
+            smart_content_embedding=calc_embedding,
+        ),
+    ]
+
+    store = FakeGraphStore(config)
+    store.set_nodes(nodes)
+
+    # Configure fake adapter to return embedding similar to auth nodes
+    fake_embedding_adapter.set_response([0.9, 0.1, 0.05, 0.02])
+
+    return store, config, fake_embedding_adapter
+
+
+@pytest.fixture
+async def search_mcp_client(
+    search_test_graph_store: tuple[FakeGraphStore, FakeConfigurationService],
+    fake_embedding_adapter: FakeEmbeddingAdapter,
+):
+    """Async MCP client for search tool testing.
+
+    Per DYK#1: Injects ALL dependencies including embedding_adapter.
+
+    Args:
+        search_test_graph_store: Graph store with search test nodes.
+        fake_embedding_adapter: FakeEmbeddingAdapter for semantic search.
+
+    Yields:
+        Client connected to MCP server with all dependencies.
+    """
+    from fastmcp.client import Client
+
+    from fs2.mcp import dependencies
+    from fs2.mcp.server import mcp
+
+    store, config = search_test_graph_store
+
+    # Per DYK#1: Inject ALL dependencies
+    dependencies.reset_services()
+    dependencies.set_config(config)
+    dependencies.set_graph_store(store)
+    dependencies.set_embedding_adapter(fake_embedding_adapter)
+
+    async with Client(mcp) as client:
+        yield client
+
+
+@pytest.fixture
+async def mcp_client_no_graph():
+    """MCP client with no graph store (for GraphNotFoundError tests).
+
+    Used to test error handling when graph file doesn't exist.
+
+    Yields:
+        Client connected to MCP server with no graph.
+    """
+    from fastmcp.client import Client
+
+    from fs2.mcp import dependencies
+    from fs2.mcp.server import mcp
+
+    # Reset to ensure clean state, don't set graph store
+    dependencies.reset_services()
+    # Config will auto-create, but graph file won't exist
+
+    async with Client(mcp) as client:
+        yield client

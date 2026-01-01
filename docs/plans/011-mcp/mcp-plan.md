@@ -1046,15 +1046,15 @@ class TestGetNodeTool:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 4.1 | [ ] | Write tests for search text mode | 2 | Tests cover: substring matching | - | |
-| 4.2 | [ ] | Write tests for search regex mode | 2 | Tests cover: pattern matching | - | |
-| 4.3 | [ ] | Write tests for search semantic mode | 3 | Tests cover: concept matching (requires embeddings) | - | Use FakeEmbeddingAdapter |
-| 4.4 | [ ] | Write tests for search include/exclude filters | 2 | Tests cover: path filtering | - | |
-| 4.5 | [ ] | Write tests for search pagination | 2 | Tests cover: limit and offset | - | |
-| 4.6 | [ ] | Implement search tool in server.py | 3 | All tests from 4.1-4.5 pass | - | async def, await service.search() |
-| 4.7 | [ ] | Add agent-optimized description | 1 | Description matches research dossier | - | |
-| 4.8 | [ ] | Add MCP annotations | 1 | readOnlyHint=True | - | |
-| 4.9 | [ ] | Write async handling test | 2 | Tool works in async context without event loop conflicts | - | |
+| 4.1 | [x] | Write tests for search text mode | 2 | Tests cover: substring matching | [📋](tasks/phase-4-search-tool-implementation/execution.log.md#task-t001-t005-tdd-test-suite) | 6 tests [^19] |
+| 4.2 | [x] | Write tests for search regex mode | 2 | Tests cover: pattern matching | [📋](tasks/phase-4-search-tool-implementation/execution.log.md#task-t001-t005-tdd-test-suite) | 4 tests [^19] |
+| 4.3 | [x] | Write tests for search semantic mode | 3 | Tests cover: concept matching (requires embeddings) | [📋](tasks/phase-4-search-tool-implementation/execution.log.md#task-t001-t005-tdd-test-suite) | 4 tests, FakeEmbeddingAdapter [^19] |
+| 4.4 | [x] | Write tests for search include/exclude filters | 2 | Tests cover: path filtering | [📋](tasks/phase-4-search-tool-implementation/execution.log.md#task-t001-t005-tdd-test-suite) | 5 tests [^19] |
+| 4.5 | [x] | Write tests for search pagination | 2 | Tests cover: limit and offset | [📋](tasks/phase-4-search-tool-implementation/execution.log.md#task-t001-t005-tdd-test-suite) | 4 tests [^19] |
+| 4.6 | [x] | Implement search tool in server.py | 3 | All tests from 4.1-4.5 pass | [📋](tasks/phase-4-search-tool-implementation/execution.log.md#task-t006c-implement-search-tool) | 34 tests passing [^20] |
+| 4.7 | [x] | Add agent-optimized description | 1 | Description matches research dossier | [📋](tasks/phase-4-search-tool-implementation/execution.log.md#task-t006c-implement-search-tool) | WHEN TO USE, WORKFLOW [^20] |
+| 4.8 | [x] | Add MCP annotations | 1 | readOnlyHint=True | [📋](tasks/phase-4-search-tool-implementation/execution.log.md#task-t006c-implement-search-tool) | openWorldHint=True (DYK#8) [^20] |
+| 4.9 | [x] | Write async handling test | 2 | Tool works in async context without event loop conflicts | [📋](tasks/phase-4-search-tool-implementation/execution.log.md#task-t006c-implement-search-tool) | 6 protocol tests [^20] |
 
 ### Test Examples (Write First!)
 
@@ -1311,11 +1311,11 @@ See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation.
 - [x] Phase 1: Core Infrastructure - COMPLETE (10/10 tasks, 21 tests passing)
 - [x] Phase 2: Tree Tool Implementation - COMPLETE (8/8 tasks, 28 tests passing)
 - [x] Phase 3: Get-Node Tool Implementation - COMPLETE (7/7 tasks, 26 tests passing)
-- [ ] Phase 4: Search Tool Implementation - PENDING
+- [x] Phase 4: Search Tool Implementation - COMPLETE (9/9 tasks, 34 tests passing, 114 total MCP tests)
 - [ ] Phase 5: CLI Integration - PENDING
 - [ ] Phase 6: Documentation - PENDING
 
-Overall Progress: 3/6 phases (50%)
+Overall Progress: 4/6 phases (67%)
 
 ### STOP Rule
 
@@ -1445,3 +1445,25 @@ Overall Progress: 3/6 phases (50%)
 
 [^18]: Phase 3 Task 3.7 - MCP protocol tests (7 tests)
   - `method:tests/mcp_tests/test_get_node_tool.py:TestGetNodeMCPProtocol.*`
+
+### Phase 4: Search Tool Implementation (Complete)
+
+[^19]: Phase 4 Tasks 4.1-4.5 - TDD tests written (34 tests total)
+  - `class:tests/mcp_tests/test_search_tool.py:TestSearchToolTextMode` - 6 tests
+  - `class:tests/mcp_tests/test_search_tool.py:TestSearchToolRegexMode` - 4 tests
+  - `class:tests/mcp_tests/test_search_tool.py:TestSearchToolSemanticMode` - 4 tests
+  - `class:tests/mcp_tests/test_search_tool.py:TestSearchToolFilters` - 5 tests
+  - `class:tests/mcp_tests/test_search_tool.py:TestSearchToolPagination` - 4 tests
+  - `class:tests/mcp_tests/test_search_tool.py:TestSearchToolCore` - 5 tests
+  - `class:tests/mcp_tests/test_search_tool.py:TestSearchToolMCPProtocol` - 6 tests
+
+[^20]: Phase 4 Tasks 4.6-4.9 - search() tool implemented
+  - `function:src/fs2/mcp/server.py:search` - Main async search tool
+  - `function:src/fs2/mcp/server.py:_build_search_envelope` - Envelope builder using SearchResultMeta
+  - `function:src/fs2/mcp/dependencies.py:get_embedding_adapter` - Embedding adapter singleton
+  - `function:src/fs2/mcp/dependencies.py:set_embedding_adapter` - Embedding adapter setter
+  - `function:tests/mcp_tests/conftest.py:search_test_graph_store` - Search test fixture
+  - `function:tests/mcp_tests/conftest.py:search_semantic_graph_store` - Semantic search fixture
+  - `function:tests/mcp_tests/conftest.py:search_mcp_client` - MCP client fixture with embeddings
+  - MCP annotations: readOnlyHint=True, openWorldHint=True (DYK#8)
+  - Exception handlers: SearchError, EmbeddingAdapter errors (DYK#9, DYK#10)

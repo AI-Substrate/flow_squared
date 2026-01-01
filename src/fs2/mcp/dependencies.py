@@ -36,12 +36,14 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
+    from fs2.core.adapters.embedding_adapter import EmbeddingAdapter
     from fs2.core.repos.graph_store import GraphStore
 
 
 # Module-level singletons (None until first access)
 _config: ConfigurationService | None = None
 _graph_store: GraphStore | None = None
+_embedding_adapter: EmbeddingAdapter | None = None
 _lock = threading.RLock()  # RLock allows reentrant acquisition (needed since get_graph_store calls get_config)
 
 
@@ -107,11 +109,39 @@ def set_graph_store(store: GraphStore) -> None:
     _graph_store = store
 
 
+def get_embedding_adapter() -> EmbeddingAdapter | None:
+    """Get the EmbeddingAdapter singleton.
+
+    Returns the cached adapter if set, otherwise None.
+    Unlike config/graph_store, we don't auto-create an embedding adapter
+    since it requires API credentials that may not be configured.
+
+    Per Phase 4: Semantic search requires explicit adapter injection.
+
+    Returns:
+        EmbeddingAdapter instance if set, None otherwise.
+    """
+    global _embedding_adapter
+    with _lock:
+        return _embedding_adapter
+
+
+def set_embedding_adapter(adapter: EmbeddingAdapter) -> None:
+    """Inject an EmbeddingAdapter (for testing or configuration).
+
+    Args:
+        adapter: EmbeddingAdapter instance (typically FakeEmbeddingAdapter).
+    """
+    global _embedding_adapter
+    _embedding_adapter = adapter
+
+
 def reset_services() -> None:
     """Reset all service singletons to None.
 
     Used in tests to ensure clean state between test cases.
     """
-    global _config, _graph_store
+    global _config, _graph_store, _embedding_adapter
     _config = None
     _graph_store = None
+    _embedding_adapter = None
