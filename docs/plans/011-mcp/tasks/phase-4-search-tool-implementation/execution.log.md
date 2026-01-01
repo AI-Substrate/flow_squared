@@ -101,6 +101,8 @@ Created comprehensive test suite following TDD (RED) approach:
 ## Task T006a: Add get_embedding_adapter() {#task-t006a-embedding-adapter-dependency}
 **Started**: 2026-01-01
 **Status**: ✅ Complete
+**Dossier Tasks**: T006a
+**Plan Tasks**: 4.6
 
 ### What I Did
 Added `get_embedding_adapter()` and `set_embedding_adapter()` to dependencies.py following the same singleton pattern as config/graph_store.
@@ -115,6 +117,8 @@ Added `get_embedding_adapter()` and `set_embedding_adapter()` to dependencies.py
 ## Task T006b: Update Fixtures {#task-t006b-update-fixtures}
 **Started**: 2026-01-01
 **Status**: ✅ Complete
+**Dossier Tasks**: T006b
+**Plan Tasks**: 4.6
 
 ### What I Did
 1. Extended `make_code_node()` with embedding, smart_content, smart_content_embedding parameters (DYK#2)
@@ -132,6 +136,8 @@ Added `get_embedding_adapter()` and `set_embedding_adapter()` to dependencies.py
 ## Task T006c + T007 + T008 + T009: Implement Search Tool {#task-t006c-implement-search-tool}
 **Started**: 2026-01-01
 **Status**: ✅ Complete
+**Dossier Tasks**: T006c, T007, T008, T009
+**Plan Tasks**: 4.6, 4.7, 4.8, 4.9
 
 ### What I Did
 1. Implemented `_build_search_envelope()` helper using SearchResultMeta (DYK#5)

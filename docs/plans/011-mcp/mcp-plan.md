@@ -1146,12 +1146,12 @@ class TestSearchTool:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 5.1 | [ ] | Write tests for CLI entry point | 2 | Tests cover: command starts server | - | |
-| 5.2 | [ ] | Write tests for --config option | 2 | Tests cover: custom config path | - | |
-| 5.3 | [ ] | Create src/fs2/cli/mcp.py | 2 | CLI entry point with logging config | - | Configure stderr FIRST |
-| 5.4 | [ ] | Register command in main.py | 1 | `fs2 mcp --help` works | - | |
-| 5.5 | [ ] | Write protocol compliance test | 2 | CLI doesn't pollute stdout | - | AC13 |
-| 5.6 | [ ] | Write tool descriptions test | 2 | Tool listing shows correct descriptions | - | AC15 |
+| 5.1 | [x] | Write tests for CLI entry point | 2 | Tests cover: command starts server | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t001-cli-entry-point-tests) | Completed [^21] |
+| 5.2 | - | Write tests for --config option | 2 | Tests cover: custom config path | - | SKIPPED per DYK#3 |
+| 5.3 | [x] | Create src/fs2/cli/mcp.py | 2 | CLI entry point with logging config | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t002-create-mcp-cli-module) | Completed [^21] |
+| 5.4 | [x] | Register command in main.py | 1 | `fs2 mcp --help` works | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t003-register-command) | Completed [^21] |
+| 5.5 | [x] | Write protocol compliance test | 2 | CLI doesn't pollute stdout | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t004-protocol-compliance-tests) | Completed [^21] |
+| 5.6 | [x] | Write tool descriptions test | 2 | Tool listing shows correct descriptions | [📋](tasks/phase-5-cli-integration/execution.log.md#task-t005-tool-descriptions-tests) | Completed [^21] |
 
 ### Test Examples (Write First!)
 
@@ -1182,10 +1182,12 @@ def test_mcp_command_config_option():
 
 ### Acceptance Criteria
 
-- [ ] All 6 tests passing (AC11, AC12, AC13, AC15 from spec)
-- [ ] `fs2 mcp` starts server
-- [ ] `fs2 mcp --config` works
-- [ ] No stdout pollution
+- [x] All 5 tests passing (AC11, AC12, AC13, AC15 from spec; 5.2 skipped per DYK#3)
+- [x] `fs2 mcp` starts server
+- [-] `fs2 mcp --config` deferred (DYK#3)
+- [x] No stdout pollution
+
+**Phase 5 Status**: COMPLETE (2026-01-01) - 5/6 tasks (1 skipped), CLI integration working
 
 ---
 
@@ -1312,10 +1314,10 @@ See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation.
 - [x] Phase 2: Tree Tool Implementation - COMPLETE (8/8 tasks, 28 tests passing)
 - [x] Phase 3: Get-Node Tool Implementation - COMPLETE (7/7 tasks, 26 tests passing)
 - [x] Phase 4: Search Tool Implementation - COMPLETE (9/9 tasks, 34 tests passing, 114 total MCP tests)
-- [ ] Phase 5: CLI Integration - PENDING
+- [x] Phase 5: CLI Integration - COMPLETE (5/6 tasks, 1 skipped per DYK#3)
 - [ ] Phase 6: Documentation - PENDING
 
-Overall Progress: 4/6 phases (67%)
+Overall Progress: 5/6 phases (83%)
 
 ### STOP Rule
 
@@ -1467,3 +1469,12 @@ Overall Progress: 4/6 phases (67%)
   - `function:tests/mcp_tests/conftest.py:search_mcp_client` - MCP client fixture with embeddings
   - MCP annotations: readOnlyHint=True, openWorldHint=True (DYK#8)
   - Exception handlers: SearchError, EmbeddingAdapter errors (DYK#9, DYK#10)
+
+[^21]: Phase 5 Tasks 5.1-5.6 - CLI Integration
+  - `file:src/fs2/cli/mcp.py` - MCP CLI command module
+  - `file:src/fs2/cli/main.py` - Command registration
+  - `file:tests/cli_tests/__init__.py` - CLI tests package
+  - `file:tests/cli_tests/conftest.py` - CLI test fixtures
+  - `file:tests/cli_tests/test_mcp_command.py` - 6 CLI tests
+  - `file:tests/mcp_tests/test_mcp_integration.py` - 6 E2E tests
+  - `file:tests/mcp_tests/test_mcp_real_embeddings.py` - 2 optional tests
