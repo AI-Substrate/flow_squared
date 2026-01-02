@@ -98,14 +98,14 @@ flowchart TD
     end
 
     subgraph Phase["Phase 3: MCP Tool Integration"]
-        T001["T001: Write docs_list tests"]:::pending
-        T002["T002: Write docs_get tests"]:::pending
-        T003["T003: Write annotation tests"]:::pending
-        T004["T004: Implement docs_list"]:::pending
-        T005["T005: Implement docs_get"]:::pending
-        T006["T006: Add annotations"]:::pending
-        T007["T007: Add error translation"]:::pending
-        T008["T008: Protocol integration tests"]:::pending
+        T001["T001: Write docs_list tests ✓"]:::completed
+        T002["T002: Write docs_get tests ✓"]:::completed
+        T003["T003: Write annotation tests ✓"]:::completed
+        T004["T004: Implement docs_list ✓"]:::completed
+        T005["T005: Implement docs_get ✓"]:::completed
+        T006["T006: Add annotations ✓"]:::completed
+        T007["T007: Add error translation ✓"]:::completed
+        T008["T008: Protocol integration tests ✓"]:::completed
 
         T001 --> T004
         T002 --> T005
@@ -119,13 +119,13 @@ flowchart TD
     end
 
     subgraph Files["Files Modified"]
-        F1["/src/fs2/mcp/server.py"]:::pending
-        F2["/tests/mcp_tests/test_docs_tools.py"]:::pending
-        F3["/tests/mcp_tests/conftest.py"]:::pending
+        F1["/src/fs2/mcp/server.py ✓"]:::completed
+        F2["/tests/mcp_tests/test_docs_tools.py ✓"]:::completed
+        F3["/tests/mcp_tests/conftest.py ✓"]:::completed
     end
 
     subgraph Tests["Test Files"]
-        TF1["test_docs_tools.py"]:::pending
+        TF1["test_docs_tools.py ✓"]:::completed
     end
 
     DocsService -.-> T004
@@ -151,14 +151,14 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Test Suite | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | ⬜ Pending | Write failing tests for docs_list tool |
-| T002 | Test Suite | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | ⬜ Pending | Write failing tests for docs_get tool |
-| T003 | Test Suite | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | ⬜ Pending | Write tests for tool annotations |
-| T004 | MCP Server | /workspaces/flow_squared/src/fs2/mcp/server.py | ⬜ Pending | Implement docs_list tool function |
-| T005 | MCP Server | /workspaces/flow_squared/src/fs2/mcp/server.py | ⬜ Pending | Implement docs_get tool function |
-| T006 | MCP Server | /workspaces/flow_squared/src/fs2/mcp/server.py | ⬜ Pending | Add tool annotations for both tools |
-| T007 | MCP Server | /workspaces/flow_squared/src/fs2/mcp/server.py | ⬜ Pending | Add DocsNotFoundError to translate_error() |
-| T008 | Integration | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py, conftest.py | ⬜ Pending | Protocol-level MCP integration tests |
+| T001 | Test Suite | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | ✅ Complete | Write failing tests for docs_list tool |
+| T002 | Test Suite | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | ✅ Complete | Write failing tests for docs_get tool |
+| T003 | Test Suite | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | ✅ Complete | Write tests for tool annotations |
+| T004 | MCP Server | /workspaces/flow_squared/src/fs2/mcp/server.py | ✅ Complete | Implement docs_list tool function |
+| T005 | MCP Server | /workspaces/flow_squared/src/fs2/mcp/server.py | ✅ Complete | Implement docs_get tool function |
+| T006 | MCP Server | /workspaces/flow_squared/src/fs2/mcp/server.py | ✅ Complete | Add tool annotations for both tools |
+| T007 | MCP Server | /workspaces/flow_squared/src/fs2/mcp/server.py | ✅ Complete | Add DocsNotFoundError to translate_error() |
+| T008 | Integration | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py, conftest.py | ✅ Complete | Protocol-level MCP integration tests |
 
 ---
 
@@ -166,14 +166,14 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|------|-----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Write tests for docs_list tool (no params, category filter, tags filter, response format) | 2 | Test | – | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | Tests fail with ModuleNotFoundError or AttributeError | – | RED phase: 6+ tests; SYNC function pattern (DYK-1) |
-| [ ] | T002 | Write tests for docs_get tool (valid id, invalid id returns None, response format with content) | 2 | Test | – | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | Tests fail with expected error | – | RED phase: 4+ tests; SYNC function pattern (DYK-1) |
-| [ ] | T003 | Write tests for tool annotations (readOnlyHint, etc.) | 1 | Test | – | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | Tests fail (no tools registered yet) | – | Per Critical Finding 03 |
-| [ ] | T004 | Implement docs_list sync tool function in server.py | 2 | Core | T001 | /workspaces/flow_squared/src/fs2/mcp/server.py | T001 tests pass | – | SYNC per DYK-1; CF-01 stderr-only; return {"docs": [...], "count": N} per DYK-5 |
-| [ ] | T005 | Implement docs_get sync tool function in server.py | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/mcp/server.py | T002 tests pass | – | SYNC per DYK-1; None per DYK-2; return {id, title, content, metadata} per DYK-5; docstring: "Use docs_list()" |
-| [ ] | T006 | Add tool annotations for docs_list and docs_get | 1 | Core | T003, T004, T005 | /workspaces/flow_squared/src/fs2/mcp/server.py | T003 tests pass | – | Per Critical Finding 03 |
-| [ ] | T007 | Add DocsNotFoundError to translate_error() + defensive test | 1 | Core | T004, T005 | /workspaces/flow_squared/src/fs2/mcp/server.py, /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | Error returns actionable message; test mocks error scenario | – | Per CF-06 and DYK-3; rare but documents error path |
-| [ ] | T008 | Write MCP protocol integration tests via docs_mcp_client | 2 | Integration | T004, T005, T006, T007 | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py, /workspaces/flow_squared/tests/mcp_tests/conftest.py | All protocol tests pass | – | Per DYK-4: Simple dedicated fixture; inject DocsService(docs_package="tests.fixtures.docs"); no GraphStore needed |
+| [x] | T001 | Write tests for docs_list tool (no params, category filter, tags filter, response format) | 2 | Test | – | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | Tests fail with ModuleNotFoundError or AttributeError | – | RED phase: 6+ tests; SYNC function pattern (DYK-1) |
+| [x] | T002 | Write tests for docs_get tool (valid id, invalid id returns None, response format with content) | 2 | Test | – | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | Tests fail with expected error | – | RED phase: 4+ tests; SYNC function pattern (DYK-1) |
+| [x] | T003 | Write tests for tool annotations (readOnlyHint, etc.) | 1 | Test | – | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | Tests fail (no tools registered yet) | – | Per Critical Finding 03 |
+| [x] | T004 | Implement docs_list sync tool function in server.py | 2 | Core | T001 | /workspaces/flow_squared/src/fs2/mcp/server.py | T001 tests pass | – | SYNC per DYK-1; CF-01 stderr-only; return {"docs": [...], "count": N} per DYK-5 |
+| [x] | T005 | Implement docs_get sync tool function in server.py | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/mcp/server.py | T002 tests pass | – | SYNC per DYK-1; None per DYK-2; return {id, title, content, metadata} per DYK-5; docstring: "Use docs_list()" |
+| [x] | T006 | Add tool annotations for docs_list and docs_get | 1 | Core | T003, T004, T005 | /workspaces/flow_squared/src/fs2/mcp/server.py | T003 tests pass | – | Per Critical Finding 03 |
+| [x] | T007 | Add DocsNotFoundError to translate_error() + defensive test | 1 | Core | T004, T005 | /workspaces/flow_squared/src/fs2/mcp/server.py, /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | Error returns actionable message; test mocks error scenario | – | Per CF-06 and DYK-3; rare but documents error path |
+| [x] | T008 | Write MCP protocol integration tests via docs_mcp_client | 2 | Integration | T004, T005, T006, T007 | /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py, /workspaces/flow_squared/tests/mcp_tests/conftest.py | All protocol tests pass | – | Per DYK-4: Simple dedicated fixture; inject DocsService(docs_package="tests.fixtures.docs"); no GraphStore needed |
 
 ---
 
@@ -491,7 +491,10 @@ _Populated by plan-6 during implementation. Links FlowSpace node IDs to plan cha
 
 | Footnote | Type | Node ID | Description |
 |----------|------|---------|-------------|
-| | | | |
+| [^6] | function | `function:src/fs2/mcp/server.py:docs_list` | List documents with filtering (sync, DYK-1) |
+| [^6] | function | `function:src/fs2/mcp/server.py:docs_get` | Get document by ID (sync, DYK-1) |
+| [^6] | file | `file:tests/mcp_tests/test_docs_tools.py` | 19 tests for docs tools |
+| [^6] | file | `file:tests/mcp_tests/conftest.py` | docs_mcp_client fixture (DYK-4) |
 
 ---
 
@@ -510,7 +513,7 @@ _Populated during implementation by plan-6. Log anything of interest to your fut
 
 | Date | Task | Type | Discovery | Resolution | References |
 |------|------|------|-----------|------------|------------|
-| | | | | | |
+| 2026-01-02 | T008 | unexpected-behavior | FastMCP returns None via `structured_content` not `content` array. When tool returns None, `result.content == []` and `result.structured_content == {"result": None}` | Test checks `structured_content` instead of parsing `content[0].text` | log#task-t008 |
 
 ---
 

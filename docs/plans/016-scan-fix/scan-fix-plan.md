@@ -4,7 +4,7 @@
 **Plan Version**: 1.0.0
 **Created**: 2026-01-02
 **Spec**: [./scan-fix-spec.md](./scan-fix-spec.md)
-**Status**: 🔄 IN PROGRESS (Phase 2 added)
+**Status**: COMPLETE (Phase 1 + Phase 2)
 
 ---
 
@@ -269,6 +269,17 @@ __host__ void launchKernel(float *a, float *b, float *c, int n) {
   - `file:justfile` - Simplified generate-fixtures recipe
   - `file:tests/fixtures/fixture_graph.pkl` - Regenerated (436 nodes, 21 files)
 
+[^8]: Subtask 002 - Extension Breakdown Summary Implementation (ST001-ST005)
+  - `class:src/fs2/core/models/extension_summary.py:ExtensionSummary` - Domain model for extension statistics
+  - `class:src/fs2/core/services/graph_utilities_service.py:GraphUtilitiesService` - New service for graph analysis
+  - `method:src/fs2/core/services/graph_utilities_service.py:GraphUtilitiesService.extract_file_path` - Static method to extract file path from node_id
+  - `method:src/fs2/core/services/graph_utilities_service.py:GraphUtilitiesService.get_extension_summary` - Main method to compute extension breakdown
+  - `function:src/fs2/cli/scan.py:_format_ext_breakdown` - CLI helper for formatting extension table
+  - `function:src/fs2/cli/scan.py:_display_graph_contents` - CLI display function for graph summary panel
+  - `file:src/fs2/core/models/__init__.py` - Export ExtensionSummary
+  - `file:src/fs2/core/services/__init__.py` - Export GraphUtilitiesService
+  - `file:tests/unit/services/test_graph_utilities_service.py` - 12 new tests (all passing)
+
 ---
 
 **Phase 1 Complete**: 2026-01-02
@@ -287,11 +298,12 @@ __host__ void launchKernel(float *a, float *b, float *c, int n) {
 
 ### Acceptance Criteria
 
-- [ ] **AC2.1**: "Unknown language for X, skipping" messages hidden by default (only shown with `--verbose`)
-- [ ] **AC2.2**: "Binary file detected: X, skipping" messages hidden by default (only shown with `--verbose`)
-- [ ] **AC2.3**: Scan summary includes skip count by extension (e.g., "Skipped: 89 .pyc, 12 .pkl")
-- [ ] **AC2.4**: All existing tests pass
-- [ ] **AC2.5**: New tests cover skip tracking behavior
+- [x] **AC2.1**: "Unknown language for X, skipping" messages hidden by default (only shown with `--verbose`) [^8]
+- [x] **AC2.2**: "Binary file detected: X, skipping" messages hidden by default (only shown with `--verbose`) [^8]
+- [x] **AC2.3**: Scan summary includes skip count by extension (e.g., "Skipped: 89 .pyc, 12 .pkl") [^8]
+- [x] **AC2.4**: All existing tests pass (1324 tests) [^8]
+- [x] **AC2.5**: New tests cover skip tracking behavior [^8]
+- [x] **AC2.6**: Graph Contents panel shows extension breakdown with file/node counts (enhancement) [^8]
 
 ---
 
@@ -301,7 +313,8 @@ Mid-implementation detours requiring structured tracking.
 
 | ID | Created | Phase | Parent Task | Reason | Status | Dossier |
 |----|---------|-------|-------------|--------|--------|---------|
-| 001-subtask-skip-summary | 2026-01-02 | Phase 2: Quiet Scan Output | T001 | T001 requires breakdown into discrete implementation steps | [ ] Pending | [Link](tasks/phase-2-quiet-scan-output/001-subtask-skip-summary.md) |
+| 001-subtask-skip-summary | 2026-01-02 | Phase 2: Quiet Scan Output | T001 | T001 requires breakdown into discrete implementation steps | [x] Complete | [Link](tasks/phase-2-quiet-scan-output/001-subtask-skip-summary.md) |
+| 002-subtask-extension-breakdown-summary | 2026-01-02 | Phase 2: Quiet Scan Output | T001 | User requested extension breakdown in final summary panel | [x] Complete | [Link](tasks/phase-2-quiet-scan-output/002-subtask-extension-breakdown-summary.md) |
 
 **Suggested Commit**:
 ```
@@ -322,3 +335,9 @@ feat(scanner): Add support for 29 additional programming languages
 - Remove matlab from CODE_LANGUAGES (unfixable .m extension conflict)
 - Simplify justfile generate-fixtures recipe
 ```
+
+---
+
+**Phase 2 Complete**: 2026-01-02
+- Subtask 001: Skip summary tracking - Complete
+- Subtask 002: Extension breakdown summary - Complete (12 tests, 1324 total tests passing)

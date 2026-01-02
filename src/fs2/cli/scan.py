@@ -31,7 +31,7 @@ from fs2.config.service import FS2ConfigurationService
 from fs2.core.adapters import FileSystemScanner, RichConsoleAdapter, TreeSitterParser
 from fs2.core.adapters.console_adapter import ConsoleAdapter
 from fs2.core.repos import NetworkXGraphStore
-from fs2.core.services import ScanPipeline
+from fs2.core.services import GraphUtilitiesService, ScanPipeline
 
 logger = logging.getLogger("fs2.cli.scan")
 
@@ -108,6 +108,8 @@ def scan(
             graph_config = config.get(GraphConfig) or GraphConfig()
             graph_path = Path(graph_config.graph_path)
             graph_path.parent.mkdir(parents=True, exist_ok=True)
+            # Ensure GraphConfig is in registry for GraphUtilitiesService
+            config.set(graph_config)
 
         # Per Subtask 001 (ST002): Override scan_paths if --scan-path provided
         # Path validation happens in FileSystemScanner (per DYK-05 Clean Architecture)
@@ -291,13 +293,21 @@ def scan(
 
         # ===== SUMMARY =====
         console.print_line()
+        skip_summary = summary.metrics.get("parsing_skipped_by_ext", {})
         _display_final_summary(
             console,
             summary,
             smart_content_enabled=smart_content_service is not None,
             embedding_enabled=embedding_service is not None,
             embedding_skipped=no_embeddings,
+            skip_summary=skip_summary,
         )
+
+        # ===== GRAPH CONTENTS (Subtask 002) =====
+        # Display extension breakdown from persisted graph
+        graph_utils = GraphUtilitiesService(config=config, graph_store=graph_store)
+        ext_summary = graph_utils.get_extension_summary()
+        _display_graph_contents(console, ext_summary)
 
         # Check for total failure
         if summary.files_scanned > 0 and len(summary.errors) >= summary.files_scanned:
@@ -359,6 +369,7 @@ def _display_final_summary(
     smart_content_enabled: bool,
     embedding_enabled: bool,
     embedding_skipped: bool,
+    skip_summary: dict[str, int] | None = None,
 ) -> None:
     """Display final summary panel."""
     if summary.success:
@@ -373,6 +384,11 @@ def _display_final_summary(
         f"Files: {summary.files_scanned}",
         f"Nodes: {summary.nodes_created}",
     ]
+
+    # Show skipped files summary
+    if skip_summary:
+        skipped_line = f"Skipped: {_format_ext_breakdown(skip_summary, limit=10)}"
+        lines.append(skipped_line)
 
     if smart_content_enabled:
         enriched = summary.metrics.get("smart_content_enriched", 0)
@@ -399,6 +415,59 @@ def _display_final_summary(
         "\n".join(lines),
         title="Scan Complete",
         success=summary.success,
+    )
+
+
+def _format_ext_breakdown(counts: dict[str, int], limit: int = 5) -> str:
+    """Format extension counts as '120 .py, 80 .ts, ...'.
+
+    Args:
+        counts: Dict mapping extension to count.
+        limit: Maximum extensions to show (default 5).
+
+    Returns:
+        Formatted string like "120 .py, 80 .ts, +3 more"
+    """
+    if not counts:
+        return ""
+    sorted_counts = sorted(counts.items(), key=lambda x: -x[1])[:limit]
+    parts = [f"{count} {ext}" for ext, count in sorted_counts]
+    remaining = len(counts) - limit
+    if remaining > 0:
+        parts.append(f"+{remaining} more")
+    return ", ".join(parts)
+
+
+def _display_graph_contents(
+    console: ConsoleAdapter,
+    ext_summary,
+) -> None:
+    """Display second box with graph contents breakdown.
+
+    KISS: Separate box from scan summary. Shows:
+    - Files by extension
+    - Nodes by extension
+
+    Args:
+        console: Console adapter for output.
+        ext_summary: ExtensionSummary from GraphUtilitiesService.
+    """
+    # Build lines
+    files_line = f"Files: {ext_summary.total_files}"
+    if ext_summary.files_by_ext:
+        files_line += f" ({_format_ext_breakdown(ext_summary.files_by_ext)})"
+
+    nodes_line = f"Nodes: {ext_summary.total_nodes}"
+    if ext_summary.nodes_by_ext:
+        nodes_line += f" ({_format_ext_breakdown(ext_summary.nodes_by_ext)})"
+
+    lines = [files_line, nodes_line]
+
+    # Display panel (no success flag - informational only)
+    console.panel(
+        "\n".join(lines),
+        title="Graph Contents",
+        success=True,  # Always blue/neutral for info panel
     )
 
 

@@ -11,10 +11,12 @@ Public API:
 - TreeNode: Recursive tree structure for tree rendering
 - DocMetadata: Document metadata for catalog listings
 - Doc: Complete document with metadata and content
+- ExtensionSummary: File/node counts by extension for graph utilities
 """
 
 from fs2.core.models.code_node import CodeNode, classify_node
 from fs2.core.models.doc import Doc, DocMetadata
+from fs2.core.models.extension_summary import ExtensionSummary
 from fs2.core.models.log_entry import LogEntry
 from fs2.core.models.log_level import LogLevel
 from fs2.core.models.process_result import ProcessResult
@@ -33,4 +35,5 @@ __all__ = [
     "TreeNode",
     "DocMetadata",
     "Doc",
+    "ExtensionSummary",
 ]

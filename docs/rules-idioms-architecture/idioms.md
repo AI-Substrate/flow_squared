@@ -613,6 +613,162 @@ tests/
 
 ---
 
+## 9. CLI Command Pattern
+
+### 9.1 Save-to-File Pattern
+
+Commands outputting structured data (JSON) MUST support both stdout and file output per R9.5:
+
+```python
+# src/fs2/cli/example_command.py
+"""Example command with save-to-file support.
+
+Per R9.5: CLI documentation requirements.
+Per R9.1: Standard option naming (--json, --file, --detail).
+"""
+
+import json
+from pathlib import Path
+from typing import Annotated
+
+import typer
+from rich.console import Console
+
+from fs2.cli.utils import safe_write_file, validate_save_path
+
+# Separate consoles: stdout for JSON, stderr for messages
+console = Console()
+stderr_console = Console(stderr=True)
+
+def example_command(
+    pattern: Annotated[str, typer.Argument(help="Filter pattern")],
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output JSON instead of text (for scripting)"),
+    ] = False,
+    file: Annotated[
+        Path | None,
+        typer.Option(
+            "--file", "-f",
+            help="Write JSON to file instead of stdout (path validated for security).",
+        ),
+    ] = None,
+) -> None:
+    """Command with structured output.
+
+    \b
+    Examples:
+        $ fs2 example              # Text output to stdout
+        $ fs2 example --json       # JSON to stdout (for piping)
+        $ fs2 example --json --file results.json  # JSON to file
+        $ fs2 example --json | jq  # Pipe to jq
+    """
+    # ... business logic to produce data ...
+    data = {"result": "example"}
+
+    if json_output or file:
+        # Convert to JSON envelope
+        envelope = {"results": data}
+        json_str = json.dumps(envelope, indent=2, default=str)
+
+        if file:
+            # Validate path (prevents directory traversal)
+            absolute_path = validate_save_path(file, stderr_console)
+            # Write with error handling (cleans up on failure)
+            safe_write_file(absolute_path, json_str, stderr_console)
+            # Confirmation on stderr (keeps stdout clean for piping)
+            stderr_console.print(f"[green]✓[/green] Wrote results to {file}")
+        else:
+            # Use raw print() for clean JSON output
+            print(json_str)
+    else:
+        # Rich text output for humans
+        console.print("Results here")
+```
+
+**Key Principles**:
+- Use raw `print()` for JSON (enables piping to jq)
+- Use `Console(stderr=True)` for status/error messages
+- Validate save paths with `validate_save_path()` (security)
+- Write files safely with `safe_write_file()` (error cleanup)
+- Document JSON envelope structure in `docs/how/cli.md`
+
+### 9.2 Exit Code Pattern
+
+All CLI commands MUST use consistent exit codes:
+
+```python
+from rich.console import Console
+import typer
+
+stderr_console = Console(stderr=True)
+
+def command():
+    """Command with proper exit codes."""
+
+    # User error (missing config, bad input) → exit 1
+    if not config_exists():
+        stderr_console.print("[red]Error:[/red] No configuration found.")
+        stderr_console.print("Run [bold]fs2 init[/bold] first.")
+        raise typer.Exit(code=1)
+
+    # System error (I/O failure, corruption) → exit 2
+    try:
+        load_graph()
+    except CorruptedGraphError as e:
+        stderr_console.print(f"[red]Error:[/red] Graph corrupted: {e}")
+        stderr_console.print("Run [bold]fs2 scan[/bold] to rebuild.")
+        raise typer.Exit(code=2)
+
+    # Success → exit 0 (implicit or explicit)
+    raise typer.Exit(code=0)
+```
+
+### 9.3 Documentation Docstring Pattern
+
+Every CLI command MUST have a docstring with examples:
+
+```python
+def search(
+    pattern: str,
+    mode: str = "auto",
+) -> None:
+    """Search the code graph.
+
+    Searches using text, regex, or semantic matching.
+
+    \b
+    Arguments:
+        pattern  Search pattern (text, regex, or query)
+
+    \b
+    Options:
+        --mode   Search mode: auto, text, regex, semantic
+
+    \b
+    Examples:
+        $ fs2 search "authentication"
+        $ fs2 search "def.*test" --mode regex
+        $ fs2 search "error handling" --mode semantic
+
+    \b
+    Exit Codes:
+        0  Success
+        1  User error (missing graph, invalid pattern)
+        2  System error (corrupted graph)
+    """
+    ...
+```
+
+**Note**: Use `\b` to preserve Rich formatting in `--help` output.
+
+<!-- USER CONTENT START -->
+<!-- Add project-specific CLI patterns here -->
+<!-- USER CONTENT END -->
+
+---
+
 *See [Constitution](../rules/constitution.md) for principles.*
 *See [Rules](rules.md) for normative statements.*
 *See [Architecture](architecture.md) for structural boundaries.*
+*See [CLI Reference](../how/cli.md) for command documentation.*

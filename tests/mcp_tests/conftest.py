@@ -523,3 +523,35 @@ async def mcp_client_no_graph():
 
     async with Client(mcp) as client:
         yield client
+
+
+# =============================================================================
+# Documentation Tool Fixtures (Phase 3)
+# =============================================================================
+
+
+@pytest.fixture
+async def docs_mcp_client():
+    """MCP client for docs tools testing.
+
+    Per DYK-4: Simple dedicated fixture that injects DocsService with test
+    fixtures. No GraphStore or other dependencies needed.
+
+    Yields:
+        Client connected to MCP server with DocsService configured.
+    """
+    from fastmcp.client import Client
+
+    from fs2.core.services.docs_service import DocsService
+    from fs2.mcp import dependencies
+    from fs2.mcp.server import mcp
+
+    # Reset and inject only DocsService
+    dependencies.reset_services()
+    test_service = DocsService(docs_package="tests.fixtures.docs")
+    dependencies.set_docs_service(test_service)
+
+    async with Client(mcp) as client:
+        yield client
+
+    # Cleanup handled by reset_mcp_dependencies autouse fixture

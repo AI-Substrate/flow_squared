@@ -9,6 +9,8 @@ Per Alignment Brief:
 - Records metrics: parsing_nodes count, parsing_errors count
 """
 
+from collections import Counter
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fs2.core.adapters.exceptions import ASTParserError

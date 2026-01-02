@@ -20,6 +20,7 @@ See tests/docs/test_sample_adapter_pattern.py for complete usage documentation.
 """
 
 from fs2.core.services.get_node_service import GetNodeService
+from fs2.core.services.graph_utilities_service import GraphUtilitiesService
 from fs2.core.services.pipeline_context import PipelineContext
 from fs2.core.services.pipeline_stage import PipelineStage
 from fs2.core.services.sample_service import SampleService, SampleServiceConfig
@@ -43,5 +44,6 @@ __all__ = [
     "ParsingStage",
     "StorageStage",
     "GetNodeService",
+    "GraphUtilitiesService",
     "TreeService",
 ]

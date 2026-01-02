@@ -52,6 +52,7 @@ from fastmcp.exceptions import ToolError
 
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.core.adapters.exceptions import (
+    DocsNotFoundError,
     GraphNotFoundError,
     GraphStoreError,
 )
@@ -59,7 +60,12 @@ from fs2.core.models.code_node import CodeNode
 from fs2.core.models.tree_node import TreeNode
 from fs2.core.services.get_node_service import GetNodeService
 from fs2.core.services.tree_service import TreeService
-from fs2.mcp.dependencies import get_config, get_embedding_adapter, get_graph_store
+from fs2.mcp.dependencies import (
+    get_config,
+    get_docs_service,
+    get_embedding_adapter,
+    get_graph_store,
+)
 
 # Create FastMCP server instance
 # Note: Tools will be added in Phase 2-4
@@ -105,7 +111,11 @@ def translate_error(exc: Exception) -> dict[str, Any]:
     action: str | None = None
 
     # Specific error handling with actionable guidance
-    if isinstance(exc, GraphNotFoundError):
+    if isinstance(exc, DocsNotFoundError):
+        # Per DYK-3: Rare error, only on broken package install
+        action = "Documentation package not found. Use docs_list() to see available documents."
+
+    elif isinstance(exc, GraphNotFoundError):
         action = "Run 'fs2 scan' to create the graph."
 
     elif isinstance(exc, GraphStoreError):
@@ -759,3 +769,132 @@ _search_tool = mcp.tool(
         "openWorldHint": True,  # SEMANTIC mode calls external embedding APIs
     }
 )(search)
+
+
+# =============================================================================
+# MCP Tools (Phase 3: Documentation - docs_list, docs_get)
+# =============================================================================
+
+
+def docs_list(
+    category: str | None = None,
+    tags: list[str] | None = None,
+) -> dict[str, Any]:
+    """List available documentation with optional filtering.
+
+    Browse available MCP documentation for AI agents. Returns a catalog of
+    documents with metadata for discovery.
+
+    Use this tool FIRST to discover what documentation is available,
+    then use docs_get(id) to retrieve the full content.
+
+    Args:
+        category: Filter by category (exact match). Example: "how-to", "reference".
+        tags: Filter by tags (OR logic - docs with ANY matching tag).
+              Example: ["agents", "config"].
+
+    Returns:
+        Dict with:
+        - docs: List of document metadata (id, title, summary, category, tags, path)
+        - count: Number of documents returned
+
+    Example:
+        >>> docs_list()
+        {"docs": [{"id": "agents", "title": "AI Agent Guidance", ...}], "count": 2}
+
+        >>> docs_list(category="how-to")
+        {"docs": [{"id": "agents", ...}], "count": 1}
+
+        >>> docs_list(tags=["config", "setup"])
+        {"docs": [...], "count": 1}
+    """
+    import dataclasses
+
+    try:
+        service = get_docs_service()
+        documents = service.list_documents(category=category, tags=tags)
+
+        # Convert DocMetadata to dicts per DYK-5
+        docs_list_result = [dataclasses.asdict(doc) for doc in documents]
+
+        return {
+            "docs": docs_list_result,
+            "count": len(docs_list_result),
+        }
+
+    except Exception as e:
+        logger.exception("Unexpected error in docs_list tool")
+        raise ToolError(f"Unexpected error: {e}") from None
+
+
+def docs_get(id: str) -> dict[str, Any] | None:
+    """Retrieve complete document content by ID.
+
+    Returns full document with metadata and content for a specific documentation
+    resource. Use docs_list() first to discover available document IDs.
+
+    Args:
+        id: Document identifier from docs_list(). Format: lowercase with hyphens.
+            Example: "agents", "configuration-guide".
+
+    Returns:
+        Dict with id, title, content, metadata if found.
+        None if document ID doesn't exist (not an error).
+
+    Example:
+        >>> docs_get(id="agents")
+        {"id": "agents", "title": "AI Agent Guidance", "content": "# AI Agent...", "metadata": {...}}
+
+        >>> docs_get(id="nonexistent")
+        None  # Not found, use docs_list() to discover IDs
+    """
+    import dataclasses
+
+    try:
+        service = get_docs_service()
+        doc = service.get_document(doc_id=id)
+
+        # Return None for not-found per AC5 and DYK-2
+        if doc is None:
+            return None
+
+        # Convert to response format per DYK-5
+        # Flatten top-level fields: id, title, content, metadata
+        metadata_dict = dataclasses.asdict(doc.metadata)
+
+        return {
+            "id": doc.metadata.id,
+            "title": doc.metadata.title,
+            "content": doc.content,
+            "metadata": metadata_dict,
+        }
+
+    except Exception as e:
+        logger.exception("Unexpected error in docs_get tool")
+        raise ToolError(f"Unexpected error: {e}") from None
+
+
+# Register docs_list function as MCP tool with annotations (per CF-03)
+# Per Critical Finding 03: readOnlyHint=True, idempotentHint=True, openWorldHint=False
+_docs_list_tool = mcp.tool(
+    annotations={
+        "title": "List Documentation",
+        "readOnlyHint": True,  # No side effects, pure read
+        "destructiveHint": False,  # No destructive operations
+        "idempotentHint": True,  # Same inputs always return same outputs
+        "openWorldHint": False,  # No external network calls, docs bundled in package
+    }
+)(docs_list)
+
+
+# Register docs_get function as MCP tool with annotations (per CF-03)
+# Per Critical Finding 03: readOnlyHint=True, idempotentHint=True, openWorldHint=False
+_docs_get_tool = mcp.tool(
+    annotations={
+        "title": "Get Documentation",
+        "readOnlyHint": True,  # No side effects, pure read
+        "destructiveHint": False,  # No destructive operations
+        "idempotentHint": True,  # Same inputs always return same outputs
+        "openWorldHint": False,  # No external network calls, docs bundled in package
+    }
+)(docs_get)

@@ -480,14 +480,14 @@ class TestDocsServiceListDocuments:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 3.1 | [ ] | Write tests for docs_list tool | 2 | Tests cover: no params, category filter, tags filter, response format | - | Create `tests/mcp_tests/test_docs_tools.py` |
-| 3.2 | [ ] | Write tests for docs_get tool | 2 | Tests cover: valid id, invalid id, response format with content | - | Extend test_docs_tools.py |
-| 3.3 | [ ] | Write tests for tool annotations | 1 | Both tools have correct annotations | - | Verify via mcp_client.list_tools() |
-| 3.4 | [ ] | Implement docs_list tool in server.py | 2 | All tests from 3.1 pass | - | Async function, proper docstring |
-| 3.5 | [ ] | Implement docs_get tool in server.py | 2 | All tests from 3.2 pass | - | Returns None for not found |
-| 3.6 | [ ] | Add tool annotations | 1 | All tests from 3.3 pass | - | readOnlyHint=True, etc. |
-| 3.7 | [ ] | Add DocsNotFoundError to translate_error() | 1 | Actionable error message returned | - | "Use docs_list() to see available documents" |
-| 3.8 | [ ] | Write MCP protocol integration tests | 2 | Tools work via mcp_client.call_tool() | - | JSON response validation |
+| 3.1 | [x] | Write tests for docs_list tool | 2 | Tests cover: no params, category filter, tags filter, response format | [📋](tasks/phase-3-mcp-tool-integration/execution.log.md#t001-write-tests-for-docs_list-tool) | 6 tests RED phase [^6] |
+| 3.2 | [x] | Write tests for docs_get tool | 2 | Tests cover: valid id, invalid id, response format with content | [📋](tasks/phase-3-mcp-tool-integration/execution.log.md#t002-write-tests-for-docs_get-tool) | 5 tests RED phase [^6] |
+| 3.3 | [x] | Write tests for tool annotations | 1 | Both tools have correct annotations | [📋](tasks/phase-3-mcp-tool-integration/execution.log.md#t003-write-tests-for-tool-annotations) | 2 async tests RED phase [^6] |
+| 3.4 | [x] | Implement docs_list tool in server.py | 2 | All tests from 3.1 pass | [📋](tasks/phase-3-mcp-tool-integration/execution.log.md#t004-implement-docs_list-sync-tool) | SYNC function GREEN phase [^6] |
+| 3.5 | [x] | Implement docs_get tool in server.py | 2 | All tests from 3.2 pass | [📋](tasks/phase-3-mcp-tool-integration/execution.log.md#t005-implement-docs_get-sync-tool) | Returns None for not found GREEN phase [^6] |
+| 3.6 | [x] | Add tool annotations | 1 | All tests from 3.3 pass | [📋](tasks/phase-3-mcp-tool-integration/execution.log.md#t006-add-tool-annotations-for-docs_list-and-docs_get) | readOnlyHint=True, idempotentHint=True [^6] |
+| 3.7 | [x] | Add DocsNotFoundError to translate_error() | 1 | Actionable error message returned | [📋](tasks/phase-3-mcp-tool-integration/execution.log.md#t007-add-docsnotfounderror-to-translate_error-defensive-test) | Defensive test added [^6] |
+| 3.8 | [x] | Write MCP protocol integration tests | 2 | Tools work via mcp_client.call_tool() | [📋](tasks/phase-3-mcp-tool-integration/execution.log.md#t008-write-mcp-protocol-integration-tests) | docs_mcp_client fixture, 5 tests [^6] |
 
 #### Test Examples (Write First!)
 
@@ -853,11 +853,11 @@ See [MCP Server Guide](docs/how/mcp-server-guide.md) for setup details.
 
 - [x] Phase 1: Domain Models and Registry - COMPLETE (31 tests)
 - [x] Phase 2: DocsService Implementation - COMPLETE (15 tests)
-- [ ] Phase 3: MCP Tool Integration - NOT STARTED
+- [x] Phase 3: MCP Tool Integration - COMPLETE (19 tests)
 - [ ] Phase 4: Curated Documentation - NOT STARTED
 - [ ] Phase 5: Testing and Documentation - NOT STARTED
 
-Overall Progress: 2/5 phases (40%)
+Overall Progress: 3/5 phases (60%)
 
 ### STOP Rule
 
@@ -898,6 +898,14 @@ Overall Progress: 2/5 phases (40%)
   - `function:src/fs2/mcp/dependencies.py:set_docs_service` - Test injection
   - `function:src/fs2/mcp/dependencies.py:reset_docs_service` - Test cleanup
 
+[^6]: Phase 3 - MCP Tool Integration (Tasks 3.1-3.8) - COMPLETE
+  - `function:src/fs2/mcp/server.py:docs_list` - List documents with filtering (sync, DYK-1)
+  - `function:src/fs2/mcp/server.py:docs_get` - Get document by ID (sync, DYK-1)
+  - `file:tests/mcp_tests/test_docs_tools.py` - 19 tests (6 docs_list + 5 docs_get + 2 annotations + 1 error + 5 protocol)
+  - `file:tests/mcp_tests/conftest.py` - Added docs_mcp_client fixture (DYK-4)
+  - Tool annotations: readOnlyHint=True, idempotentHint=True, openWorldHint=False (CF-03)
+  - Error translation: DocsNotFoundError added to translate_error() (CF-06)
+
 ---
 
-**Next Step**: Run `/plan-5-phase-tasks-and-brief --phase 3` to generate Phase 3 dossier
+**Next Step**: Run `/plan-7-code-review --phase 3` to review Phase 3 implementation

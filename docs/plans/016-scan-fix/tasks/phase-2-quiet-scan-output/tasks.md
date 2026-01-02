@@ -78,7 +78,7 @@ Reduce scan output noise while preserving skip information in summary form.
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|----------|-------|
-| [~] | T001 | Implement skip tracking and summary display | 2 | Core | -- | Multiple (see subtask) | Skip summary appears in scan output | [001-subtask-skip-summary](./001-subtask-skip-summary.md) | Breakdown created |
+| [x] | T001 | Implement skip tracking and summary display | 2 | Core | -- | Multiple (see subtask) | Skip summary appears in scan output | [001](./001-subtask-skip-summary.md), [002](./002-subtask-extension-breakdown-summary.md) | Both subtasks complete |
 
 ---
 
@@ -151,4 +151,4 @@ _Populated during implementation by plan-6. Log anything of interest to your fut
 ---
 
 **Execution Log**: `execution.log.md` (created by /plan-6-implement-phase)
-**Status**: NOT STARTED
+**Status**: COMPLETE (T001 with both subtasks)

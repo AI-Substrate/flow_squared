@@ -228,6 +228,7 @@ Unknown languages default to file-only (safe).
 
 | Guide | Description |
 |-------|-------------|
+| [CLI Reference](docs/how/cli.md) | Complete command-line interface reference |
 | [Architecture](docs/how/architecture.md) | Layer diagram, import rules |
 | [Configuration](docs/how/configuration.md) | Multi-source config, env vars |
 | [Scanning](docs/how/scanning.md) | File scanning and code graph generation |

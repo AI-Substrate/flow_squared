@@ -359,6 +359,52 @@ def command(
 - `--verbose` SHOULD be available on all commands for debugging
 - `--help` is automatic via Typer
 
+### R9.5 CLI Documentation Requirements
+
+Every CLI command change MUST include documentation in three places:
+
+**1. In-Code Docstrings** (mandatory):
+- Command purpose (first line)
+- Parameters and their meaning
+- Examples section with common use cases
+- Exit codes section (0, 1, 2 meanings)
+- Use `\b` separator to preserve Rich formatting in `--help`
+
+**2. Help Text** (mandatory for all options):
+- Every `typer.Option()` MUST have a `help=""` parameter
+- Help text MUST be clear, actionable, and user-friendly
+- Options that require another option MUST document this dependency
+
+**3. Centralized Reference** (mandatory for new commands/major features):
+- Create or update `docs/how/cli.md` with:
+  - Full command signature
+  - Parameter documentation (type, default, validation)
+  - Examples (standard usage and edge cases)
+  - Output format (JSON structure, Rich formatting)
+  - Save-to-file patterns (`--file`, `--json` interaction)
+- Cross-reference from related docs
+
+**Applicability**:
+- Applies to ALL new CLI commands
+- Applies to ALL new CLI options (including `--file`, `--json` features)
+- Applies to breaking changes to existing commands
+- Does NOT apply to bugfixes with no user-facing API change
+
+**Rationale**:
+- CLI is the primary user interface; documentation enables adoption
+- Help text alone is insufficient (doesn't show structured examples)
+- Centralized docs prevent documentation drift (single source of truth)
+
+**Pattern Example** (Save-to-File Feature):
+```
+When adding --json + --file to a command:
+- [ ] In-code: Document options, their interaction, and examples
+- [ ] Help text: "Output JSON to stdout" + "Write to file instead of stdout"
+- [ ] Centralized: Update docs/how/cli.md with JSON envelope structure
+```
+
+**Cross-Reference**: See [CLI Reference](../how/cli.md) for canonical patterns.
+
 <!-- USER CONTENT START -->
 <!-- Add project-specific CLI rules here -->
 <!-- USER CONTENT END -->
