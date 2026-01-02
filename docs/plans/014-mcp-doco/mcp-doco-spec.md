@@ -93,16 +93,20 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
 
 ## Acceptance Criteria
 
-### AC1: docs_list returns document catalog
+### AC1: docs_list returns document catalog with actionable summaries
 **Given** the MCP server is running
 **When** an agent calls `docs_list()` with no parameters
 **Then** the response contains a list of all registered documents with:
 - `id` (string, slugified)
 - `title` (string, human-readable)
-- `summary` (string, 1-2 sentences)
-- `category` (string, e.g., "how-to", "rules")
+- `summary` (string, 1-2 sentences describing WHAT the doc covers and WHEN to use it)
+- `category` (string, e.g., "how-to", "reference")
 - `tags` (list of strings)
 - `count` (total number of documents)
+
+**Summary quality requirement**: Summaries must drive discoverability by clearly stating:
+- What problem/question this doc answers
+- When an agent should read this doc
 
 ### AC2: docs_list supports category filtering
 **Given** the MCP server is running
@@ -131,15 +135,20 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
 - `message`: human-readable error description
 - `action`: suggested remediation (e.g., "Use docs_list() to see available documents")
 
-### AC6: Initial document set includes high-priority guides
-**Given** the registry is configured
+### AC6: Initial document set includes two curated docs
+**Given** the registry is configured in `src/fs2/docs/registry.yaml`
 **When** an agent calls `docs_list()`
-**Then** the response includes at minimum:
-- `agents` (docs/how/AGENTS.md)
-- `adding-services-adapters` (docs/how/adding-services-adapters.md)
-- `architecture` (docs/how/architecture.md)
-- `mcp-server-guide` (docs/how/mcp-server-guide.md)
-- `constitution` (docs/rules-idioms-architecture/constitution.md)
+**Then** the response includes:
+- `agents` → `src/fs2/docs/agents.md` (copied from `docs/how/AGENTS.md`)
+- `sample-config` → `src/fs2/docs/sample-config.yaml` (annotated YAML based on `.fs2/config.yaml`, identifiable info removed)
+
+### AC9: In-app documentation mechanism documented in idioms
+**Given** the feature is complete
+**When** a future agent reads `docs/rules-idioms-architecture/idioms.md`
+**Then** they find documentation explaining:
+- The `src/fs2/docs/` pattern for distributable in-app documentation
+- How to add new curated docs (create file + add to registry.yaml)
+- The separation between `docs/how/` (developer) and `src/fs2/docs/` (user)
 
 ### AC7: Tools have correct MCP annotations
 **Given** the tools are registered
@@ -150,10 +159,10 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
 - `idempotentHint=True`
 - `openWorldHint=False`
 
-### AC8: Documents are cached after first load
-**Given** the MCP server is running
-**When** an agent calls `docs_get(id="agents")` twice
-**Then** the second call does not re-read the file from disk (uses cached content)
+### AC8: Documents loaded via importlib.resources
+**Given** the MCP server is running (installed via uvx or local)
+**When** an agent calls `docs_get(id="agents")`
+**Then** the document is loaded from the bundled `fs2.docs` package resources
 
 ---
 
@@ -182,9 +191,10 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
 
 1. **[RESOLVED by research]** Should we use frontmatter or registry? → Registry approach recommended
 2. **[RESOLVED by research]** What documents to include initially? → Tier 1 high-priority docs (5 minimum)
-3. **Cache invalidation**: Should cache be cleared on file modification? Or only on server restart?
-4. **Registry location**: Should registry be in `src/fs2/mcp/docs/registry.yaml` or `docs/registry.yaml`?
-5. **Section extraction**: Should `docs_get` support extracting specific sections (like flowspace)? Or defer to future enhancement?
+3. **[RESOLVED]** Cache invalidation → No caching; read from `importlib.resources` each time (docs are small, bundled)
+4. **[RESOLVED]** Registry & docs location → `src/fs2/docs/` (bundled with package for uvx distribution)
+5. **[RESOLVED]** Section extraction → Full document only; curated docs are concise enough
+6. **[RESOLVED]** Doc source strategy → Curated in-app docs (separate from `docs/how/`; user-focused, not developer-focused)
 
 ---
 
@@ -215,16 +225,16 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
     {
       "id": "agents",
       "title": "AI Agent Guidance",
-      "summary": "How AI agents should use fs2 MCP tools effectively",
+      "summary": "Best practices for AI agents using fs2 tools. Read this FIRST when starting to use fs2 MCP server to understand tool selection, search strategies, and common workflows.",
       "category": "how-to",
-      "tags": ["agents", "mcp", "tools"]
+      "tags": ["agents", "mcp", "getting-started"]
     },
     {
-      "id": "adding-services-adapters",
-      "title": "Adding Services and Adapters",
-      "summary": "Step-by-step guide for implementing new adapters and services",
-      "category": "how-to",
-      "tags": ["architecture", "adapters", "services"]
+      "id": "sample-config",
+      "title": "Sample Configuration",
+      "summary": "Annotated example of .fs2/config.yaml with all options explained. Use when setting up fs2 for the first time or troubleshooting configuration issues.",
+      "category": "reference",
+      "tags": ["config", "setup", "yaml"]
     }
   ],
   "count": 2
@@ -238,10 +248,9 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
   "title": "AI Agent Guidance",
   "content": "# AI Agent Guidance\n\nThis document describes...",
   "metadata": {
-    "summary": "How AI agents should use fs2 MCP tools effectively",
+    "summary": "Best practices for AI agents using fs2 tools. Read this FIRST when starting to use fs2 MCP server to understand tool selection, search strategies, and common workflows.",
     "category": "how-to",
-    "tags": ["agents", "mcp", "tools"],
-    "path": "docs/how/AGENTS.md"
+    "tags": ["agents", "mcp", "getting-started"]
   }
 }
 ```
@@ -251,15 +260,55 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
 ## Testing Strategy
 
 - **Approach**: Full TDD
-- **Rationale**: Feature adds MCP tools with filtering logic, caching, and error handling; comprehensive tests ensure reliability
+- **Rationale**: Feature adds MCP tools with filtering logic and error handling; comprehensive tests ensure reliability
 - **Focus Areas**:
   - DocsService registry loading and document retrieval
   - Filtering logic (category, tags with OR semantics)
-  - Caching behavior (verify no re-read on second call)
-  - Error handling (missing documents, invalid paths)
+  - Error handling (missing documents, invalid IDs)
   - MCP tool integration (response format, annotations)
 - **Excluded**: Manual testing of MCP protocol transport (covered by FastMCP)
-- **Mock Usage**: [TBD - see Q3]
+- **Mock Usage**: Avoid mocks entirely
+  - Use real fixtures (sample markdown files, test registry.yaml in `tests/fixtures/`)
+  - Follows fs2 "Fakes over mocks" pattern from CLAUDE.md
+  - If ABC needed for DocsRepository, implement FakeDocsRepository with in-memory data
+
+### MCP Test Patterns (from codebase research)
+
+**Fixture Architecture**:
+```python
+# Inject fakes before creating client
+dependencies.reset_services()
+dependencies.set_config(config)
+dependencies.set_graph_store(store)
+
+async with Client(mcp) as client:
+    yield client
+```
+
+**Dual Testing**:
+1. **Direct function call** (unit): `result = docs_list(category="how-to")`
+2. **MCP protocol** (integration): `await mcp_client.call_tool("docs_list", {"category": "how-to"})`
+
+**Response Parsing**:
+```python
+result = await mcp_client.call_tool("docs_list", {})
+data = json.loads(result.content[0].text)
+```
+
+**Autouse Cleanup**: `reset_mcp_dependencies` fixture resets singletons after each test
+
+---
+
+## Documentation Strategy
+
+- **Location**: README.md only
+- **Rationale**: Quick-start documentation for MCP tools; detailed MCP info already in docs/how/mcp-server-guide.md
+- **Content**:
+  - Add section to README showing `docs_list` and `docs_get` tool usage
+  - Brief examples of filtering by category/tags
+  - Link to existing mcp-server-guide.md for setup details
+- **Target Audience**: AI agents and developers using fs2 MCP server
+- **Maintenance**: Update README when new documents are added to registry
 
 ---
 
@@ -275,7 +324,61 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
 - **Selected**: Full TDD
 - **Rationale**: Comprehensive coverage for MCP tools with filtering, caching, and error handling
 
+**Q3: Mock Usage**
+- **Selected**: Avoid mocks entirely
+- **Rationale**: Aligns with fs2 "Fakes over mocks" pattern; use real fixtures and FakeDocsRepository if needed
+
+**Q4: Documentation Strategy**
+- **Selected**: README.md only
+- **Rationale**: Quick-start docs; detailed MCP setup already in docs/how/mcp-server-guide.md
+
+**Q5: Registry & Docs Location**
+- **Selected**: `src/fs2/docs/` (registry.yaml + curated markdown files)
+- **Rationale**: Must be bundled with package for uvx distribution; use `importlib.resources` at runtime
+
+**Q6: Doc Source Strategy**
+- **Selected**: Curated in-app docs (Option B)
+- **Rationale**:
+  - `docs/how/` = Developer docs for repo contributors
+  - `src/fs2/docs/` = Curated user help, distributable via uvx
+  - No build step; manually maintained; agent/user-optimized
+
+**Q7: Cache Invalidation**
+- **Selected**: No caching
+- **Rationale**: Read from `importlib.resources` each time; docs are small and bundled, minimal perf impact
+
+**Q8: Section Extraction**
+- **Selected**: Full document only
+- **Rationale**: Curated docs are concise; no need for section parsing complexity
+
+**Q9: Initial Documentation Set**
+- **Selected**: Two docs created during plan execution
+- **Documents**:
+  1. `agents.md` - Copy of `docs/how/AGENTS.md`
+  2. `sample-config.yaml` - Annotated YAML from `.fs2/config.yaml` (identifiable info removed, detailed comments)
+- **Additional**: Update `idioms.md` to document this mechanism for future agents
+
 ---
 
-**Specification Status**: In clarification
-**Next Step**: Complete clarification questions
+## Clarification Summary
+
+| Topic | Resolution |
+|-------|------------|
+| Workflow Mode | Full |
+| Testing Strategy | Full TDD |
+| Mock Usage | Avoid mocks; use fixtures and fakes |
+| Documentation | README.md only |
+| Registry Location | `src/fs2/docs/registry.yaml` |
+| Doc Source | Curated in-app docs (separate from `docs/how/`) |
+| Cache Strategy | No caching |
+| Section Extraction | Full document only |
+| Initial Docs | `agents.md` (copy) + `sample-config.yaml` (annotated) |
+
+**Resolved**: 9/9 questions
+**Deferred**: 0
+**Outstanding**: 0
+
+---
+
+**Specification Status**: Ready for architecture
+**Next Step**: Run `/plan-3-architect` to generate phase-based plan

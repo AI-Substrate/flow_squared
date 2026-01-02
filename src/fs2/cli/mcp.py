@@ -7,7 +7,10 @@ This module imports MCPLoggingConfig and calls configure() as its first action
 when the mcp() function is invoked.
 
 Usage:
-    fs2 mcp              # Start MCP server on STDIO
+    fs2 mcp              # Start MCP server on STDIO (local install)
+
+    # Zero-install with uvx:
+    uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 mcp
 
 Per DYK#3: --config option deferred to future cross-cutting plan.
 Uses default config system (.fs2/config.yaml, ~/.config/fs2/config.yaml).

@@ -96,7 +96,9 @@ fs2 mcp
 
 **Prerequisites**: Run `fs2 scan` first to index your codebase.
 
-**Quick Setup for Claude Code**:
+### Option 1: Local Install (Recommended for Daily Use)
+
+**Claude Code**:
 ```bash
 # Add fs2 MCP server (available across all projects)
 claude mcp add fs2 --scope user -- fs2 mcp
@@ -105,7 +107,7 @@ claude mcp add fs2 --scope user -- fs2 mcp
 claude mcp list
 ```
 
-**Quick Setup for Claude Desktop** (`~/.config/claude/claude_desktop_config.json`):
+**Claude Desktop** (`~/.config/claude/claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
@@ -118,7 +120,52 @@ claude mcp list
 }
 ```
 
-**Available Tools**:
+### Option 2: Zero-Install with uvx
+
+No local installation required. Requires [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
+
+```bash
+# Run fs2 commands directly from GitHub
+uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 --help
+uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 mcp
+
+# Skip update checks (use cached version)
+uvx --offline --from git+https://github.com/AI-Substrate/flow_squared fs2 mcp
+
+# Pin to specific commit for reproducibility
+uvx --from git+https://github.com/AI-Substrate/flow_squared@main fs2 mcp
+```
+
+> First run builds from source (~30-60s). Subsequent runs use cache and are near-instant.
+
+**Permanent install** (faster startup, no update checks):
+```bash
+# Install fs2 permanently (self-bootstrapping)
+uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 install
+
+# Now use directly
+fs2 --help
+fs2 mcp
+
+# Update to latest
+fs2 upgrade
+```
+
+**Claude Desktop with uvx**:
+```json
+{
+  "mcpServers": {
+    "fs2": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/AI-Substrate/flow_squared", "fs2", "mcp"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+### Available Tools
+
 | Tool | Purpose |
 |------|---------|
 | `tree` | Explore codebase structure as a hierarchical tree |

@@ -51,11 +51,11 @@
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|-------|
-| [~] | T001 | Restructure README.md MCP section with uvx option | 1 | Docs | -- | /workspaces/flow_squared/README.md | MCP section has Option 1 (Local) + Option 2 (uvx) subsections | Reorganize lines 89-128 into subsections |
+| [x] | T001 | Restructure README.md MCP section with uvx option | 1 | Docs | -- | /workspaces/flow_squared/README.md | MCP section has Option 1 (Local) + Option 2 (uvx) subsections | Reorganize lines 89-128 into subsections |
 | [x] | T002 | ~~Add uvx alternative to CLAUDE.md~~ | -- | -- | -- | -- | SKIPPED: CLAUDE.md is for dogfooding local changes | Use local install, not uvx |
-| [ ] | T003 | Add Prerequisites + Installation sections to AGENTS.md | 1 | Docs | -- | /workspaces/flow_squared/docs/how/AGENTS.md | Prerequisites (scan step) + Installation with uvx patterns | Insert after line 7 (after Overview section) |
-| [ ] | T004 | Update mcp.py module docstring with uvx example | 1 | Docs | -- | /workspaces/flow_squared/src/fs2/cli/mcp.py | Usage section includes uvx example | Add after line 10 |
-| [ ] | T005 | Verify uvx commands work from remote | 1 | Test | T001-T004 | -- | Two-part: (1) `fs2 --help` from anywhere proves install, (2) `fs2 tree` from `/workspaces/flow_squared` proves tools work | Run part 2 from repo root (has .fs2/) |
+| [x] | T003 | Add Prerequisites + Installation sections to AGENTS.md | 1 | Docs | -- | /workspaces/flow_squared/docs/how/AGENTS.md | Prerequisites (scan step) + Installation with uvx patterns | Insert after line 7 (after Overview section) |
+| [x] | T004 | Update mcp.py module docstring with uvx example | 1 | Docs | -- | /workspaces/flow_squared/src/fs2/cli/mcp.py | Usage section includes uvx example | Add after line 10 |
+| [x] | T005 | Verify uvx commands work from remote | 1 | Test | T001-T004 | -- | Two-part: (1) `fs2 --help` from anywhere proves install, (2) `fs2 tree` from `/workspaces/flow_squared` proves tools work | Run part 2 from repo root (has .fs2/) |
 
 ### Content Templates
 
@@ -199,13 +199,13 @@ Usage:
 
 ### Acceptance Criteria
 
-- [ ] README.md contains uvx CLI usage section
-- [ ] README.md shows Claude Desktop config with uvx
+- [x] README.md contains uvx CLI usage section
+- [x] README.md shows Claude Desktop config with uvx
 - [x] ~~CLAUDE.md fs2 MCP section includes uvx alternative~~ SKIPPED (dogfood local)
-- [ ] docs/how/AGENTS.md has Prerequisites + Installation sections with uvx patterns
-- [ ] mcp.py docstring includes uvx example
-- [ ] Commit pinning pattern (`@main`, `@<sha>`) documented
-- [ ] `uvx --from git+...@main fs2 tree` and `get-node` succeed (verified)
+- [x] docs/how/AGENTS.md has Prerequisites + Installation sections with uvx patterns
+- [x] mcp.py docstring includes uvx example
+- [x] Commit pinning pattern (`@main`, `@<sha>`) documented
+- [x] `uvx --from git+...@main fs2 tree` and `get-node` succeed (verified)
 
 ### Risks
 
@@ -402,3 +402,13 @@ Proceed to implementation with `/plan-6-implement-phase`
 **Notes**:
 - T001 scope increased from "append" to "restructure" - still CS-1 but more editing
 - All insights led to plan improvements, no deferred items
+
+---
+
+## Subtasks Registry
+
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-install-upgrade-cli-commands | 2026-01-02 | Phase 1: Implementation | T001 | Add self-bootstrapping CLI commands so users can permanently install fs2 from a uvx invocation | [x] Complete | [Link](tasks/phase-1-implementation/001-subtask-install-upgrade-cli-commands.md) |

@@ -69,10 +69,10 @@ flowchart TD
     style Files fill:#F5F5F5,stroke:#E0E0E0
 
     subgraph Phase["Phase 1: uvx Documentation"]
-        T001["T001: README uvx section"]:::pending
-        T003["T003: AGENTS.md install"]:::pending
-        T004["T004: mcp.py docstring"]:::pending
-        T005["T005: Verify uvx works"]:::pending
+        T001["T001: README uvx section ✓"]:::completed
+        T003["T003: AGENTS.md install ✓"]:::completed
+        T004["T004: mcp.py docstring ✓"]:::completed
+        T005["T005: Verify uvx works ✓"]:::completed
 
         T001 --> T005
         T003 --> T005
@@ -80,9 +80,9 @@ flowchart TD
     end
 
     subgraph Files["Files"]
-        F1["/workspaces/flow_squared/README.md"]:::pending
-        F3["/workspaces/flow_squared/docs/how/AGENTS.md"]:::pending
-        F4["/workspaces/flow_squared/src/fs2/cli/mcp.py"]:::pending
+        F1["/workspaces/flow_squared/README.md ✓"]:::completed
+        F3["/workspaces/flow_squared/docs/how/AGENTS.md ✓"]:::completed
+        F4["/workspaces/flow_squared/src/fs2/cli/mcp.py ✓"]:::completed
     end
 
     T001 -.-> F1
@@ -96,11 +96,11 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | README | /workspaces/flow_squared/README.md | ⬜ Pending | Add uvx section after Claude Code setup |
+| T001 | README | /workspaces/flow_squared/README.md | ✅ Complete | Restructured with Option 1 (Local) + Option 2 (uvx) |
 | T002 | ~~CLAUDE.md~~ | -- | ✅ Skipped | CLAUDE.md is for dogfooding local changes |
-| T003 | AGENTS.md | /workspaces/flow_squared/docs/how/AGENTS.md | ⬜ Pending | Add Installation section at top |
-| T004 | mcp.py | /workspaces/flow_squared/src/fs2/cli/mcp.py | ⬜ Pending | Update Usage in module docstring |
-| T005 | Verification | -- | ⬜ Pending | Smoke test uvx from git remote |
+| T003 | AGENTS.md | /workspaces/flow_squared/docs/how/AGENTS.md | ✅ Complete | Added Prerequisites + Installation (3 options) |
+| T004 | mcp.py | /workspaces/flow_squared/src/fs2/cli/mcp.py | ✅ Complete | Added uvx example to Usage section |
+| T005 | Verification | -- | ✅ Complete | Both parts passed: --help + tree |
 
 ---
 
@@ -108,11 +108,11 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|----------|-------|
-| [~] | T001 | Restructure README.md MCP section with uvx option | 1 | Docs | -- | /workspaces/flow_squared/README.md | MCP section has Option 1 (Local) + Option 2 (uvx) subsections | -- | Reorganize lines 89-128 |
+| [x] | T001 | Restructure README.md MCP section with uvx option | 1 | Docs | -- | /workspaces/flow_squared/README.md | MCP section has Option 1 (Local) + Option 2 (uvx) subsections | 001-subtask-install-upgrade-cli-commands | Reorganize lines 89-128 |
 | [x] | T002 | ~~Add uvx alternative to CLAUDE.md~~ | -- | -- | -- | -- | SKIPPED: CLAUDE.md is for dogfooding local changes | -- | Use local install |
-| [ ] | T003 | Add Prerequisites + Installation sections to AGENTS.md | 1 | Docs | -- | /workspaces/flow_squared/docs/how/AGENTS.md | Prerequisites (scan step) + Installation with uvx patterns | -- | Insert after Overview |
-| [ ] | T004 | Update mcp.py module docstring with uvx example | 1 | Docs | -- | /workspaces/flow_squared/src/fs2/cli/mcp.py | Usage section includes uvx example | -- | Add after line 10 |
-| [ ] | T005 | Verify uvx commands work from remote | 1 | Test | T001,T003,T004 | -- | Two-part: (1) `fs2 --help` anywhere, (2) `fs2 tree` from repo root | -- | Part 2 requires `.fs2/` directory |
+| [x] | T003 | Add Prerequisites + Installation sections to AGENTS.md | 1 | Docs | -- | /workspaces/flow_squared/docs/how/AGENTS.md | Prerequisites (scan step) + Installation with uvx patterns | -- | Insert after Overview |
+| [x] | T004 | Update mcp.py module docstring with uvx example | 1 | Docs | -- | /workspaces/flow_squared/src/fs2/cli/mcp.py | Usage section includes uvx example | -- | Add after line 10 |
+| [x] | T005 | Verify uvx commands work from remote | 1 | Test | T001,T003,T004 | -- | Two-part: (1) `fs2 --help` anywhere, (2) `fs2 tree` from repo root | -- | Part 2 requires `.fs2/` directory |
 
 ---
 
