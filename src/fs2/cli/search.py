@@ -13,10 +13,13 @@ Per Subtask 003: Output envelope with metadata + results; --include/--exclude fi
 
 import asyncio
 import json
+from pathlib import Path
 from typing import Annotated
 
 import typer
 from rich.console import Console
+
+from fs2.cli.utils import safe_write_file, validate_save_path
 
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.config.objects import GraphConfig
@@ -94,6 +97,13 @@ def search(
             help="Exclude by pattern (glob like *.py or regex). Repeatable for OR logic.",
         ),
     ] = None,
+    file: Annotated[
+        Path | None,
+        typer.Option(
+            "--file", "-f",
+            help="Write JSON to file instead of stdout (path validated for security).",
+        ),
+    ] = None,
 ) -> None:
     """Search the code graph and output results as JSON envelope.
 
@@ -111,6 +121,7 @@ def search(
         $ fs2 search "auth" --include "src/"       # Filter to src/ folder
         $ fs2 search "auth" --exclude "test"       # Exclude tests
         $ fs2 search "auth" --include "src/" --include "lib/"  # OR logic
+        $ fs2 search "auth" --file results.json  # Save to file
 
     \\b
     Exit codes:
@@ -267,9 +278,20 @@ def search(
             "results": result_dicts,
         }
 
-        # Output as JSON using raw print() for clean stdout
+        # Output as JSON
         json_str = json.dumps(envelope, indent=2, default=str)
-        print(json_str)
+
+        # Handle file output vs stdout
+        if file:
+            # Validate path for security (AC4b)
+            absolute_path = validate_save_path(file, console)
+            # Write file with cleanup on error and UTF-8 encoding
+            safe_write_file(absolute_path, json_str, console)
+            # Confirmation on stderr (AC2)
+            console.print(f"[green]✓[/green] Wrote search results to {file}")
+        else:
+            # Use raw print() for clean stdout
+            print(json_str)
 
     except MissingConfigurationError:
         console.print(

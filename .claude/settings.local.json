@@ -34,7 +34,11 @@
       "Skill(didyouknow)",
       "Bash(netstat:*)",
       "Bash(UV_CACHE_DIR=.uv_cache uv run pytest:*)",
-      "Bash(ssh-keygen:*)"
+      "Bash(ssh-keygen:*)",
+      "mcp__flowspace__tree",
+      "mcp__flowspace__search",
+      "Bash(xargs ls:*)",
+      "mcp__flowspace__get_node"
     ],
     "deny": [],
     "ask": []

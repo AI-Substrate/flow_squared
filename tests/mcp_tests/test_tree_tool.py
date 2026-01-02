@@ -715,7 +715,258 @@ class TestMCPProtocolIntegration:
 
         # Check annotations are present
         if tree_tool.annotations:
-            # Annotations should indicate read-only behavior
-            # Note: These are hints per MCP spec
-            assert tree_tool.annotations.readOnlyHint is True
+            # Per AC8: readOnlyHint=False because save_to_file writes to filesystem
+            assert tree_tool.annotations.readOnlyHint is False
             assert tree_tool.annotations.destructiveHint is False
+
+
+# =============================================================================
+# Phase 1 Save-to-File: T012 - MCP tree save_to_file tests
+# =============================================================================
+
+
+class TestTreeSaveToFile:
+    """T012: Tests for tree save_to_file parameter (AC3, AC4, AC9, AC10).
+
+    AC3: save_to_file writes JSON to file and adds saved_to field
+    AC4: Path escape raises ToolError
+    AC9: Empty results still save envelope
+    AC10: Nested paths create parent directories
+    """
+
+    def test_given_save_to_file_when_tree_then_creates_file(
+        self, tree_test_graph_store: tuple, tmp_path
+    ):
+        """
+        Purpose: Verifies save_to_file creates file with tree content.
+        Quality Contribution: Enables saving tree results for later use.
+        Acceptance Criteria: File created with valid JSON content.
+
+        Task: T012 (AC3)
+        """
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        # Change to tmp_path for relative path resolution
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            output_file = "tree_output.json"
+            result = tree(pattern=".", save_to_file=output_file)
+
+            # File should exist
+            output_path = tmp_path / output_file
+            assert output_path.exists(), f"Output file not created: {output_path}"
+        finally:
+            os.chdir(original_cwd)
+
+    def test_given_save_to_file_when_tree_then_writes_valid_json(
+        self, tree_test_graph_store: tuple, tmp_path
+    ):
+        """
+        Purpose: Verifies file contains valid JSON with tree structure.
+        Quality Contribution: Consistent API structure for agents.
+        Acceptance Criteria: File contains parseable JSON with tree array.
+
+        Task: T012 (AC3)
+        """
+        import json
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            output_file = "tree_json.json"
+            result = tree(pattern=".", save_to_file=output_file)
+
+            output_path = tmp_path / output_file
+            content = output_path.read_text(encoding="utf-8")
+            data = json.loads(content)
+            # Should be a list of tree nodes
+            assert isinstance(data, list), f"Expected list, got {type(data)}"
+        finally:
+            os.chdir(original_cwd)
+
+    def test_given_save_to_file_when_tree_then_response_includes_saved_to(
+        self, tree_test_graph_store: tuple, tmp_path
+    ):
+        """
+        Purpose: Verifies response includes saved_to field.
+        Quality Contribution: Agent knows where file was saved.
+        Acceptance Criteria: returned dict has saved_to with absolute path.
+
+        Task: T012 (AC3)
+        """
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            output_file = "tree_saved.json"
+            result = tree(pattern=".", save_to_file=output_file)
+
+            # Result should be a dict with saved_to field
+            assert isinstance(result, dict), "Result should be dict when save_to_file is used"
+            assert "saved_to" in result, "Result should have 'saved_to' key"
+            assert output_file in result["saved_to"], "saved_to should contain file path"
+        finally:
+            os.chdir(original_cwd)
+
+    def test_given_path_escape_when_save_to_file_then_raises_tool_error(
+        self, tree_test_graph_store: tuple, tmp_path
+    ):
+        """
+        Purpose: Verifies path traversal attack is blocked.
+        Quality Contribution: Security - prevents writing outside cwd.
+        Acceptance Criteria: ToolError raised for path escape.
+
+        Task: T012 (AC4)
+        """
+        import os
+
+        from fastmcp.exceptions import ToolError
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            with pytest.raises(ToolError) as exc_info:
+                tree(pattern=".", save_to_file="../escape.json")
+
+            assert "escape" in str(exc_info.value).lower() or "directory" in str(exc_info.value).lower()
+        finally:
+            os.chdir(original_cwd)
+
+    def test_given_absolute_path_outside_cwd_when_save_to_file_then_raises_tool_error(
+        self, tree_test_graph_store: tuple, tmp_path
+    ):
+        """
+        Purpose: Verifies absolute paths outside cwd are blocked.
+        Quality Contribution: Security - prevents writing to arbitrary locations.
+        Acceptance Criteria: ToolError raised for absolute path outside cwd.
+
+        Task: T012 (AC4)
+        """
+        import os
+
+        from fastmcp.exceptions import ToolError
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            # Create a path outside the current directory
+            outside_path = str(tmp_path.parent / "outside" / "escape.json")
+
+            with pytest.raises(ToolError):
+                tree(pattern=".", save_to_file=outside_path)
+        finally:
+            os.chdir(original_cwd)
+
+    def test_given_empty_results_when_save_to_file_then_still_saves(
+        self, tree_test_graph_store: tuple, tmp_path
+    ):
+        """
+        Purpose: Verifies empty results still save valid JSON.
+        Quality Contribution: Consistent behavior for all queries.
+        Acceptance Criteria: File contains [] for no matches.
+
+        Task: T012 (AC9)
+        """
+        import json
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            output_file = "tree_empty.json"
+            result = tree(pattern="nonexistent_xyz_123", save_to_file=output_file)
+
+            output_path = tmp_path / output_file
+            assert output_path.exists()
+            content = output_path.read_text(encoding="utf-8")
+            data = json.loads(content)
+            assert isinstance(data, list)
+            assert len(data) == 0
+        finally:
+            os.chdir(original_cwd)
+
+    def test_given_nested_path_when_save_to_file_then_creates_subdirectory(
+        self, tree_test_graph_store: tuple, tmp_path
+    ):
+        """
+        Purpose: Verifies nested paths create parent directories.
+        Quality Contribution: Convenience - no manual mkdir needed.
+        Acceptance Criteria: Parent directories created automatically.
+
+        Task: T012 (AC10)
+        """
+        import json
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        original_cwd = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            output_file = "output/nested/tree_result.json"
+            result = tree(pattern=".", save_to_file=output_file)
+
+            output_path = tmp_path / output_file
+            assert output_path.exists(), f"Nested file not created: {output_path}"
+            # Verify it's valid JSON
+            content = output_path.read_text(encoding="utf-8")
+            json.loads(content)
+        finally:
+            os.chdir(original_cwd)

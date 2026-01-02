@@ -6,22 +6,6 @@ This document provides guidance for AI coding assistants on how to effectively u
 
 fs2 (Flowspace2) is a code intelligence tool that provides structured access to indexed codebases. When available via MCP, agents can use three tools to explore, retrieve, and search code.
 
-## Prerequisites
-
-Before using fs2 tools, index your codebase (one-time setup per repo):
-
-```bash
-# Using uvx (no local install required)
-uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 scan
-
-# For semantic search, add embeddings
-uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 scan --embed
-```
-
-This creates a `.fs2/` directory with the code graph. Re-run after significant code changes.
-
-> **Note**: First run builds from source (~30-60s). Subsequent runs use cache and are near-instant.
-
 ## Available Tools
 
 ### `tree` - Explore Codebase Structure

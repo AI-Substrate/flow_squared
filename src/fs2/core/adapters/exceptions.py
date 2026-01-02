@@ -312,3 +312,46 @@ class EmbeddingRateLimitError(EmbeddingAdapterError):
         super().__init__(message)
         self.retry_after = retry_after
         self.attempts_made = attempts_made
+
+
+# Documentation Exception Hierarchy
+# Per Critical Finding 06: Error translation with actionable messages
+# Per MCP Documentation Plan Phase 2
+
+
+class DocsNotFoundError(AdapterError):
+    """Documentation resource not found.
+
+    Raised when DocsService cannot locate a required documentation resource:
+    - Registry file (registry.yaml) missing from package
+    - Document file referenced in registry does not exist
+
+    Per Critical Finding 06: Includes actionable recovery message.
+
+    Common causes:
+    - Package not properly installed (missing docs/)
+    - Registry references a document that doesn't exist
+    - docs_package parameter points to non-existent package
+
+    Recovery:
+    - Use docs_list() to see available documents
+    - Verify the fs2.docs package is installed correctly
+    - Check registry.yaml for typos in document paths
+
+    Attributes:
+        resource: Name or path of the missing resource.
+    """
+
+    def __init__(self, resource: str, message: str | None = None):
+        """Initialize with resource identifier and optional message.
+
+        Args:
+            resource: Name or path of missing resource (e.g., "registry.yaml").
+            message: Optional custom message. Defaults to actionable message.
+        """
+        self.resource = resource
+        default_message = (
+            f"Documentation resource not found: {resource}. "
+            "Use docs_list() to see available documents."
+        )
+        super().__init__(message or default_message)

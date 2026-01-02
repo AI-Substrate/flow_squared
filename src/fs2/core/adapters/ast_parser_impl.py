@@ -307,6 +307,8 @@ class TreeSitterParser(ASTParser):
         self._scan_config = config.require(ScanConfig)
         # Cache for loaded parsers by language
         self._parsers: dict[str, object] = {}
+        # Skip tracking for summary reporting
+        self._skip_counts: dict[str, int] = {}
 
     def detect_language(self, file_path: Path) -> str | None:
         """Detect programming language from file extension or name.
@@ -339,6 +341,22 @@ class TreeSitterParser(ASTParser):
         # Unknown
         return None
 
+    def _record_skip(self, file_path: Path) -> None:
+        """Record a skipped file by extension for summary reporting."""
+        ext = file_path.suffix.lower() or "(no extension)"
+        self._skip_counts[ext] = self._skip_counts.get(ext, 0) + 1
+
+    def get_skip_summary(self) -> dict[str, int]:
+        """Return skip counts by extension. Clears counts after reading.
+
+        Returns:
+            Dict mapping file extension to skip count.
+            Example: {".pyc": 10, ".pkl": 5}
+        """
+        counts = self._skip_counts.copy()
+        self._skip_counts.clear()
+        return counts
+
     def parse(self, file_path: Path) -> list[CodeNode]:
         """Parse a source file and extract CodeNode hierarchy.
 
@@ -359,7 +377,8 @@ class TreeSitterParser(ASTParser):
         # Detect language
         language = self.detect_language(file_path)
         if language is None:
-            logger.warning(f"Unknown language for {file_path}, skipping")
+            logger.debug(f"Unknown language for {file_path}, skipping")
+            self._record_skip(file_path)
             return []
 
         # Read file content
@@ -378,7 +397,8 @@ class TreeSitterParser(ASTParser):
         # Binary file detection per CF07 - check first 8KB for null bytes
         check_size = min(len(content), 8192)
         if b"\x00" in content[:check_size]:
-            logger.warning(f"Binary file detected: {file_path}, skipping")
+            logger.debug(f"Binary file detected: {file_path}, skipping")
+            self._record_skip(file_path)
             return []
 
         # Decode content

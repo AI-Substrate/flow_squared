@@ -73,3 +73,17 @@ class ASTParser(ABC):
             or None if language cannot be determined.
         """
         ...
+
+    @abstractmethod
+    def get_skip_summary(self) -> dict[str, int]:
+        """Get skip counts by file extension and reset.
+
+        Returns aggregated counts of files skipped during parsing
+        (unknown language, binary files, etc.) grouped by extension.
+        Clears internal counts after reading to prevent double-counting.
+
+        Returns:
+            Dict mapping extension (e.g., ".pyc", "(no extension)") to count.
+            Empty dict if no files were skipped.
+        """
+        ...

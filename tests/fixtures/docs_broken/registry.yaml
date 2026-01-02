@@ -1,0 +1,11 @@
+# Broken registry that references a non-existent document file
+# Per DYK-3: Used to test fail-fast validation at init
+
+documents:
+  - id: missing-doc
+    title: "Missing Document"
+    summary: "This document references a file that does not exist."
+    category: how-to
+    tags:
+      - missing
+    path: this-file-does-not-exist.md

@@ -54,8 +54,15 @@ class ParsingStage:
             )
 
         error_count = 0
+        total = len(context.scan_results)
+        progress_callback = context.parsing_progress_callback
+        progress_interval = 100
 
-        for scan_result in context.scan_results:
+        for i, scan_result in enumerate(context.scan_results):
+            # Progress callback every 100 files for large scans
+            if progress_callback and total > 100 and i > 0 and i % progress_interval == 0:
+                progress_callback(i, total)
+
             try:
                 nodes = context.ast_parser.parse(scan_result.path)
                 context.nodes.extend(nodes)
@@ -67,5 +74,18 @@ class ParsingStage:
         # Record metrics
         context.metrics["parsing_nodes"] = len(context.nodes)
         context.metrics["parsing_errors"] = error_count
+
+        # Collect skip summary from parser
+        skip_summary = context.ast_parser.get_skip_summary()
+        context.metrics["parsing_skipped_by_ext"] = skip_summary
+        context.metrics["parsing_skipped_total"] = sum(skip_summary.values())
+
+        # Call completion callback if provided (shows summary before next stage)
+        if context.parsing_complete_callback:
+            context.parsing_complete_callback(
+                files_scanned=total,
+                nodes_created=len(context.nodes),
+                skip_summary=skip_summary,
+            )
 
         return context

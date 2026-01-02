@@ -204,6 +204,7 @@ Explore codebase structure as a hierarchical tree.
 | `pattern` | string | `"."` | Filter pattern: `"."` for all, `"ClassName"` for substring match, `"*.py"` for glob |
 | `max_depth` | int | `0` | Depth limit: `0` = unlimited, `1` = root only, `2` = roots + children |
 | `detail` | string | `"min"` | `"min"` for compact, `"max"` for full metadata |
+| `save_to_file` | string | `null` | Optional path to save tree as JSON |
 
 **Returns**: List of tree nodes, each containing:
 - `node_id`: Unique identifier (use with `get_node` for full source)
@@ -212,6 +213,7 @@ Explore codebase structure as a hierarchical tree.
 - `start_line`, `end_line`: Line range in source file
 - `children`: Nested list of child nodes
 - `hidden_children_count`: (when `max_depth` limits) count of hidden children
+- When `save_to_file` is used: returns dict with `tree` and `saved_to` fields
 
 **Example**:
 ```python
@@ -226,7 +228,12 @@ tree(pattern=".", max_depth=1)
 
 # Detailed output with signatures
 tree(pattern="Calculator", detail="max")
+
+# Save to file for later analysis
+tree(pattern=".", save_to_file="codebase_tree.json")
 ```
+
+**Security**: `save_to_file` path must be under the current working directory.
 
 ---
 
@@ -279,6 +286,7 @@ Search codebase for matching code elements by text, regex, or semantic meaning.
 | `include` | list | `null` | Regex patterns to include (e.g., `["src/.*"]`) |
 | `exclude` | list | `null` | Regex patterns to exclude (e.g., `["test.*"]`) |
 | `detail` | string | `"min"` | `"min"` for 9 fields, `"max"` for 13 fields |
+| `save_to_file` | string | `null` | Optional path to save results as JSON |
 
 **Search Modes**:
 | Mode | Use When | Example |
@@ -307,6 +315,7 @@ Search codebase for matching code elements by text, regex, or semantic meaning.
   ]
 }
 ```
+When `save_to_file` is used, adds `saved_to` field with absolute path.
 
 **Example**:
 ```python
@@ -321,7 +330,12 @@ search(pattern="authentication and authorization logic", mode="semantic")
 
 # Filtered search
 search(pattern="error", include=["src/.*"], exclude=["test.*"])
+
+# Save results to file for later analysis
+search(pattern="error handling", save_to_file="errors.json")
 ```
+
+**Security**: `save_to_file` path must be under the current working directory.
 
 ---
 

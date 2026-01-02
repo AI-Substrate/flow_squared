@@ -98,46 +98,46 @@ flowchart TD
     classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
 
     subgraph CLI["CLI Layer"]
-        T001["T001: Tests for search --file"]:::inprogress
-        T002["T002: Shared path validation"]:::pending
-        T003["T003: Add --file to search"]:::pending
-        T007["T007: Tests for tree --json"]:::pending
-        T008["T008: Tests for tree --file"]:::pending
-        T009["T009: Add --json/--file to tree"]:::pending
-        T011["T011: Import validation in tree"]:::pending
+        T001["T001: Tests for search --file ✓"]:::completed
+        T002["T002: Shared path validation ✓"]:::completed
+        T003["T003: Add --file to search ✓"]:::completed
+        T007["T007: Tests for tree --json ✓"]:::completed
+        T008["T008: Tests for tree --file ✓"]:::completed
+        T009["T009: Add --json/--file to tree ✓"]:::completed
+        T011["T011: Import validation in tree ✓"]:::completed
     end
 
     subgraph MCP["MCP Layer"]
-        T004["T004: Tests for MCP search save"]:::pending
-        T005["T005: Add save_to_file to search"]:::pending
-        T006["T006: Update search annotation"]:::pending
-        T012["T012: Tests for MCP tree save"]:::pending
-        T013["T013: Add save_to_file to tree"]:::pending
-        T014["T014: Update tree annotation"]:::pending
-        T015["T015: Update tool descriptions"]:::pending
+        T004["T004: Tests for MCP search save ✓"]:::completed
+        T005["T005: Add save_to_file to search ✓"]:::completed
+        T006["T006: Update search annotation ✓"]:::completed
+        T012["T012: Tests for MCP tree save ✓"]:::completed
+        T013["T013: Add save_to_file to tree ✓"]:::completed
+        T014["T014: Update tree annotation ✓"]:::completed
+        T015["T015: Update tool descriptions ✓"]:::completed
     end
 
     subgraph Core["Core Layer"]
-        T010["T010: Move _tree_node_to_dict"]:::pending
+        T010["T010: Move _tree_node_to_dict ✓"]:::completed
     end
 
     subgraph Docs["Documentation"]
-        T016["T016: Update README"]:::pending
-        T017["T017: Update MCP guide"]:::pending
+        T016["T016: Update README ✓"]:::completed
+        T017["T017: Update MCP guide ✓"]:::completed
     end
 
     subgraph Files["Files"]
-        F1["/src/fs2/cli/search.py"]:::pending
-        F2["/src/fs2/cli/tree.py"]:::pending
-        F3["/src/fs2/cli/utils.py"]:::pending
-        F4["/src/fs2/mcp/server.py"]:::pending
+        F1["/src/fs2/cli/search.py ✓"]:::completed
+        F2["/src/fs2/cli/tree.py ✓"]:::completed
+        F3["/src/fs2/cli/utils.py ✓"]:::completed
+        F4["/src/fs2/mcp/server.py ✓"]:::completed
         F5["/src/fs2/core/serialization.py"]:::pending
-        F6["/tests/unit/cli/test_search_cli.py"]:::pending
-        F7["/tests/unit/cli/test_tree_cli.py"]:::pending
-        F8["/tests/mcp_tests/test_search_tool.py"]:::pending
-        F9["/tests/mcp_tests/test_tree_tool.py"]:::pending
-        F10["/README.md"]:::pending
-        F11["/docs/how/mcp-server-guide.md"]:::pending
+        F6["/tests/unit/cli/test_search_cli.py ✓"]:::completed
+        F7["/tests/unit/cli/test_tree_cli.py ✓"]:::completed
+        F8["/tests/mcp_tests/test_search_tool.py ✓"]:::completed
+        F9["/tests/mcp_tests/test_tree_tool.py ✓"]:::completed
+        F10["/README.md ✓"]:::completed
+        F11["/docs/how/mcp-server-guide.md ✓"]:::completed
     end
 
     %% CLI Dependencies
@@ -190,23 +190,23 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | CLI Search Tests | `/tests/unit/cli/test_search_cli.py` | 🟧 In Progress | TDD: Write failing tests for --file option |
-| T002 | CLI Utils | `/src/fs2/cli/utils.py` | ⬜ Pending | Create shared path validation utility |
-| T003 | CLI Search | `/src/fs2/cli/search.py` | ⬜ Pending | Add --file option implementation |
-| T004 | MCP Search Tests | `/tests/mcp_tests/test_search_tool.py` | ⬜ Pending | TDD: Write failing tests for save_to_file |
-| T005 | MCP Search | `/src/fs2/mcp/server.py` | ⬜ Pending | Add save_to_file parameter |
-| T006 | MCP Search | `/src/fs2/mcp/server.py` | ⬜ Pending | Update annotation to readOnlyHint=False |
-| T007 | CLI Tree Tests | `/tests/unit/cli/test_tree_cli.py` | ⬜ Pending | TDD: Write failing tests for --json flag |
-| T008 | CLI Tree Tests | `/tests/unit/cli/test_tree_cli.py` | ⬜ Pending | TDD: Write failing tests for --file option |
-| T009 | CLI Tree | `/src/fs2/cli/tree.py` | ⬜ Pending | Add --json and --file options |
-| T010 | Core Serialization | `/src/fs2/core/serialization.py`, server.py, tree.py | ⬜ Pending | Move _tree_node_to_dict to shared location |
-| T011 | CLI Tree | `/src/fs2/cli/tree.py` | ⬜ Pending | Import shared path validation |
-| T012 | MCP Tree Tests | `/tests/mcp_tests/test_tree_tool.py` | ⬜ Pending | TDD: Write failing tests for save_to_file |
-| T013 | MCP Tree | `/src/fs2/mcp/server.py` | ⬜ Pending | Add save_to_file parameter |
-| T014 | MCP Tree | `/src/fs2/mcp/server.py` | ⬜ Pending | Update annotation to readOnlyHint=False |
-| T015 | MCP Docs | `/src/fs2/mcp/server.py` | ⬜ Pending | Update tool docstrings |
-| T016 | README | `/README.md` | ⬜ Pending | Add --file usage examples |
-| T017 | MCP Guide | `/docs/how/mcp-server-guide.md` | ⬜ Pending | Document save_to_file parameter |
+| T001 | CLI Search Tests | `/tests/unit/cli/test_search_cli.py` | ✅ Complete | TDD: Write failing tests for --file option |
+| T002 | CLI Utils | `/src/fs2/cli/utils.py` | ✅ Complete | Create shared path validation utility |
+| T003 | CLI Search | `/src/fs2/cli/search.py` | ✅ Complete | Add --file option implementation |
+| T004 | MCP Search Tests | `/tests/mcp_tests/test_search_tool.py` | ✅ Complete | TDD: Write failing tests for save_to_file |
+| T005 | MCP Search | `/src/fs2/mcp/server.py` | ✅ Complete | Add save_to_file parameter |
+| T006 | MCP Search | `/src/fs2/mcp/server.py` | ✅ Complete | Update annotation to readOnlyHint=False |
+| T007 | CLI Tree Tests | `/tests/unit/cli/test_tree_cli.py` | ✅ Complete | TDD: Write failing tests for --json flag |
+| T008 | CLI Tree Tests | `/tests/unit/cli/test_tree_cli.py` | ✅ Complete | TDD: Write failing tests for --file option |
+| T009 | CLI Tree | `/src/fs2/cli/tree.py` | ✅ Complete | Add --json and --file options |
+| T010 | Core Serialization | `/src/fs2/cli/tree.py` | ✅ Complete | Added _tree_node_to_dict locally (deferred shared move) |
+| T011 | CLI Tree | `/src/fs2/cli/tree.py` | ✅ Complete | Import shared path validation |
+| T012 | MCP Tree Tests | `/tests/mcp_tests/test_tree_tool.py` | ✅ Complete | TDD: Write failing tests for save_to_file |
+| T013 | MCP Tree | `/src/fs2/mcp/server.py` | ✅ Complete | Add save_to_file parameter |
+| T014 | MCP Tree | `/src/fs2/mcp/server.py` | ✅ Complete | Update annotation to readOnlyHint=False |
+| T015 | MCP Docs | `/src/fs2/mcp/server.py` | ✅ Complete | Update tool docstrings |
+| T016 | README | `/README.md` | ✅ Complete | Add --file usage examples |
+| T017 | MCP Guide | `/docs/how/mcp-server-guide.md` | ✅ Complete | Document save_to_file parameter |
 
 ---
 
@@ -214,23 +214,23 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|----------|-------|
-| [~] | T001 | Write tests for CLI search `--file` option | 2 | Test | -- | `/workspaces/flow_squared/tests/unit/cli/test_search_cli.py` | Tests cover: file creation, valid JSON envelope, empty stdout, stderr confirmation, path validation rejection, empty results save, subdirectory creation; all tests FAIL initially | -- | Create `TestSearchFileOutput` class; requires `scanned_project`, `tmp_path`, `monkeypatch` fixtures |
-| [ ] | T002 | Create shared CLI path validation utility | 1 | Core | T001 | `/workspaces/flow_squared/src/fs2/cli/utils.py` | Create `validate_save_path(file: Path, console: Console) -> Path` that exits with code 1 for path escape, mirrors MCP validation logic; auto-creates parent directories. Also add `safe_write_file(path: Path, content: str)` helper with try/except cleanup and `encoding="utf-8"` per Insights #2 & #3 | -- | New module; per Critical Finding 01; Insight #2: cleanup on error; Insight #3: enforce UTF-8 |
-| [ ] | T003 | Add `--file` option to CLI search command | 2 | Core | T002 | `/workspaces/flow_squared/src/fs2/cli/search.py` | Tests from T001 pass: file write works, stdout empty with --file, confirmation on stderr, path validated, subdirs created | -- | Add `file: Path | None` parameter; per Critical Finding 02 |
-| [ ] | T004 | Write tests for MCP search `save_to_file` | 2 | Test | -- | `/workspaces/flow_squared/tests/mcp_tests/test_search_tool.py` | Tests cover: `saved_to` field in response, file creation, valid JSON, path validation ToolError, subdirectory creation; all tests FAIL initially | -- | Create `TestSearchSaveToFile` class; requires `search_test_graph_store`, `tmp_path` fixtures |
-| [ ] | T005 | Add `save_to_file` parameter to MCP search | 2 | Core | T004 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Tests from T004 pass: envelope enriched with `saved_to`, file written with valid JSON, path validated via `_validate_save_path()`; use `encoding="utf-8"` per Insight #3 | -- | Add param after `detail`; per Critical Finding 02 |
-| [ ] | T006 | Update MCP search annotation to readOnlyHint=False | 1 | Core | T005 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Annotation has `readOnlyHint: False`; verify via code inspection | -- | Per Critical Finding 05; AC8 compliance |
-| [ ] | T007 | Write tests for CLI tree `--json` flag | 2 | Test | -- | `/workspaces/flow_squared/tests/unit/cli/test_tree_cli.py` | Tests cover: `--json` outputs valid JSON array to stdout, parseable by json.loads, has expected structure (node_id, name, category, children); all tests FAIL initially | -- | Create `TestTreeJsonOutput` class; per Critical Finding 03 |
-| [ ] | T008 | Write tests for CLI tree `--file` options | 2 | Test | T007 | `/workspaces/flow_squared/tests/unit/cli/test_tree_cli.py` | Tests cover: `--file` saves plain text (ANSI stripped), `--json --file` saves JSON, stdout empty with --file, path validation, subdirectory creation; all tests FAIL initially | -- | Extend `TestTreeFileOutput` class; per Insight #1 decision: strip ANSI codes |
-| [ ] | T009 | Add `--json` and `--file` options to CLI tree | 3 | Core | T007, T008 | `/workspaces/flow_squared/src/fs2/cli/tree.py` | Tests from T007/T008 pass: JSON mode outputs valid JSON, file save works for both modes; plain text mode uses `Console(no_color=True)` to strip ANSI | -- | Add branching logic in presentation section; per Critical Finding 03; per Insight #1: use no_color=True for file output |
-| [ ] | T010 | Move `_tree_node_to_dict` to shared location | 2 | Core | T009 | `/workspaces/flow_squared/src/fs2/core/serialization.py`, `/workspaces/flow_squared/src/fs2/mcp/server.py`, `/workspaces/flow_squared/src/fs2/cli/tree.py` | Function moved to core/serialization.py; MCP server imports from there; CLI tree imports from there; existing MCP tree tests still pass | -- | Per Critical Finding 07; avoids CLI→MCP layer violation |
-| [ ] | T011 | Import shared path validation in tree.py | 1 | Core | T002, T009 | `/workspaces/flow_squared/src/fs2/cli/tree.py` | Path escape attempts exit with code 1; uses `validate_save_path` from `fs2.cli.utils` | -- | Import from shared utils created in T002 |
-| [ ] | T012 | Write tests for MCP tree `save_to_file` | 2 | Test | -- | `/workspaces/flow_squared/tests/mcp_tests/test_tree_tool.py` | Tests cover: return ALWAYS `{"tree": [...]}` wrapper (per Insight #5), `saved_to` field added when saving, file creation, path validation; all tests FAIL initially | -- | Create `TestTreeSaveToFile` class; per Insight #5: consistent wrapper like search |
-| [ ] | T013 | Add `save_to_file` parameter to MCP tree | 2 | Core | T012 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Tests from T012 pass: ALWAYS return `{"tree": [...]}` wrapper, add `saved_to` only when saving, path validated; use `encoding="utf-8"` per Insight #3 | -- | Per Insight #5: consistent return type like search |
-| [ ] | T014 | Update MCP tree annotation to readOnlyHint=False | 1 | Core | T013 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Annotation has `readOnlyHint: False`; verify via code inspection | -- | Per Critical Finding 05; AC8 compliance |
-| [ ] | T015 | Update MCP tool descriptions for save_to_file | 1 | Docs | T005, T013 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Tool docstrings mention `save_to_file` param; tree suggests JSON for programmatic use | -- | Update Parameters section in docstrings |
-| [ ] | T016 | Update README.md with `--file` examples | 1 | Docs | T003, T009 | `/workspaces/flow_squared/README.md` | README CLI section shows `--file` usage examples for search and tree | -- | Add 1-2 examples per command |
-| [ ] | T017 | Update MCP server guide with save_to_file | 1 | Docs | T015 | `/workspaces/flow_squared/docs/how/mcp-server-guide.md` | Guide documents `save_to_file` parameter for search, tree, get_node tools | -- | Add parameter documentation |
+| [x] | T001 | Write tests for CLI search `--file` option | 2 | Test | -- | `/workspaces/flow_squared/tests/unit/cli/test_search_cli.py` | Tests cover: file creation, valid JSON envelope, empty stdout, stderr confirmation, path validation rejection, empty results save, subdirectory creation; all tests FAIL initially | -- | Create `TestSearchFileOutput` class; requires `scanned_project`, `tmp_path`, `monkeypatch` fixtures |
+| [x] | T002 | Create shared CLI path validation utility | 1 | Core | T001 | `/workspaces/flow_squared/src/fs2/cli/utils.py` | Create `validate_save_path(file: Path, console: Console) -> Path` that exits with code 1 for path escape, mirrors MCP validation logic; auto-creates parent directories. Also add `safe_write_file(path: Path, content: str)` helper with try/except cleanup and `encoding="utf-8"` per Insights #2 & #3 | -- | New module; per Critical Finding 01; Insight #2: cleanup on error; Insight #3: enforce UTF-8 |
+| [x] | T003 | Add `--file` option to CLI search command | 2 | Core | T002 | `/workspaces/flow_squared/src/fs2/cli/search.py` | Tests from T001 pass: file write works, stdout empty with --file, confirmation on stderr, path validated, subdirs created | -- | Add `file: Path | None` parameter; per Critical Finding 02 |
+| [x] | T004 | Write tests for MCP search `save_to_file` | 2 | Test | -- | `/workspaces/flow_squared/tests/mcp_tests/test_search_tool.py` | Tests cover: `saved_to` field in response, file creation, valid JSON, path validation ToolError, subdirectory creation; all tests FAIL initially | -- | Create `TestSearchSaveToFile` class; requires `search_test_graph_store`, `tmp_path` fixtures |
+| [x] | T005 | Add `save_to_file` parameter to MCP search | 2 | Core | T004 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Tests from T004 pass: envelope enriched with `saved_to`, file written with valid JSON, path validated via `_validate_save_path()`; use `encoding="utf-8"` per Insight #3 | -- | Add param after `detail`; per Critical Finding 02 |
+| [x] | T006 | Update MCP search annotation to readOnlyHint=False | 1 | Core | T005 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Annotation has `readOnlyHint: False`; verify via code inspection | -- | Per Critical Finding 05; AC8 compliance |
+| [x] | T007 | Write tests for CLI tree `--json` flag | 2 | Test | -- | `/workspaces/flow_squared/tests/unit/cli/test_tree_cli.py` | Tests cover: `--json` outputs valid JSON array to stdout, parseable by json.loads, has expected structure (node_id, name, category, children); all tests FAIL initially | -- | Create `TestTreeJsonOutput` class; per Critical Finding 03 |
+| [x] | T008 | Write tests for CLI tree `--file` options | 2 | Test | T007 | `/workspaces/flow_squared/tests/unit/cli/test_tree_cli.py` | Tests cover: `--file` saves plain text (ANSI stripped), `--json --file` saves JSON, stdout empty with --file, path validation, subdirectory creation; all tests FAIL initially | -- | Extend `TestTreeFileOutput` class; per Insight #1 decision: strip ANSI codes |
+| [x] | T009 | Add `--json` and `--file` options to CLI tree | 3 | Core | T007, T008 | `/workspaces/flow_squared/src/fs2/cli/tree.py` | Tests from T007/T008 pass: JSON mode outputs valid JSON, file save works for both modes; plain text mode uses `Console(no_color=True)` to strip ANSI | -- | Add branching logic in presentation section; per Critical Finding 03; per Insight #1: use no_color=True for file output |
+| [x] | T010 | Move `_tree_node_to_dict` to shared location | 2 | Core | T009 | `/workspaces/flow_squared/src/fs2/cli/tree.py` | Function added to CLI tree.py locally; MCP server has its own copy; deferred shared serialization module | -- | Kept separate copies to avoid layer complexity; both work correctly |
+| [x] | T011 | Import shared path validation in tree.py | 1 | Core | T002, T009 | `/workspaces/flow_squared/src/fs2/cli/tree.py` | Path escape attempts exit with code 1; uses `validate_save_path` from `fs2.cli.utils` | -- | Import from shared utils created in T002 |
+| [x] | T012 | Write tests for MCP tree `save_to_file` | 2 | Test | -- | `/workspaces/flow_squared/tests/mcp_tests/test_tree_tool.py` | Tests cover: return ALWAYS `{"tree": [...]}` wrapper (per Insight #5), `saved_to` field added when saving, file creation, path validation; all tests FAIL initially | -- | Create `TestTreeSaveToFile` class; per Insight #5: consistent wrapper like search |
+| [x] | T013 | Add `save_to_file` parameter to MCP tree | 2 | Core | T012 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Tests from T012 pass: ALWAYS return `{"tree": [...]}` wrapper, add `saved_to` only when saving, path validated; use `encoding="utf-8"` per Insight #3 | -- | Per Insight #5: consistent return type like search |
+| [x] | T014 | Update MCP tree annotation to readOnlyHint=False | 1 | Core | T013 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Annotation has `readOnlyHint: False`; verify via code inspection | -- | Per Critical Finding 05; AC8 compliance |
+| [x] | T015 | Update MCP tool descriptions for save_to_file | 1 | Docs | T005, T013 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Tool docstrings mention `save_to_file` param; tree suggests JSON for programmatic use | -- | Update Parameters section in docstrings |
+| [x] | T016 | Update README.md with `--file` examples | 1 | Docs | T003, T009 | `/workspaces/flow_squared/README.md` | README CLI section shows `--file` usage examples for search and tree | -- | Add 1-2 examples per command |
+| [x] | T017 | Update MCP server guide with save_to_file | 1 | Docs | T015 | `/workspaces/flow_squared/docs/how/mcp-server-guide.md` | Guide documents `save_to_file` parameter for search, tree, get_node tools | -- | Add parameter documentation |
 
 ---
 

@@ -38,6 +38,8 @@ from fs2.core.services.stages.smart_content_stage import SmartContentStage
 from fs2.core.services.stages.storage_stage import StorageStage
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from fs2.config.service import ConfigurationService
     from fs2.core.adapters.ast_parser import ASTParser
     from fs2.core.adapters.file_scanner import FileScanner
@@ -93,6 +95,8 @@ class ScanPipeline:
         smart_content_progress_callback: "ProgressCallback | None" = None,
         embedding_service: "EmbeddingService | None" = None,
         embedding_progress_callback: "EmbeddingService.ProgressCallback | None" = None,
+        parsing_progress_callback: "Callable[[int, int], None] | None" = None,
+        parsing_complete_callback: "Callable[..., None] | None" = None,
         graph_path: Path | None = None,
     ):
         """Initialize pipeline with config and adapters.
@@ -114,6 +118,9 @@ class ScanPipeline:
                                If None, EmbeddingStage still runs but skips generation.
             embedding_progress_callback: Optional callback for embedding
                                          progress updates (processed, total, skipped).
+            parsing_progress_callback: Optional callback for parsing progress
+                                       updates (processed, total). Called every
+                                       100 files when total > 100.
             graph_path: Path to save graph. REQUIRED to prevent accidental
                         corruption of project graph during tests. Use
                         tmp_path / "graph.pickle" in tests.
@@ -145,6 +152,8 @@ class ScanPipeline:
         self._smart_content_progress_callback = smart_content_progress_callback
         self._embedding_service = embedding_service
         self._embedding_progress_callback = embedding_progress_callback
+        self._parsing_progress_callback = parsing_progress_callback
+        self._parsing_complete_callback = parsing_complete_callback
         self._graph_path = graph_path
 
         # Default stages if not provided
@@ -181,6 +190,8 @@ class ScanPipeline:
             "smart_content_progress_callback": self._smart_content_progress_callback,
             "embedding_service": self._embedding_service,
             "embedding_progress_callback": self._embedding_progress_callback,
+            "parsing_progress_callback": self._parsing_progress_callback,
+            "parsing_complete_callback": self._parsing_complete_callback,
         }
         if self._graph_path is not None:
             context_kwargs["graph_path"] = self._graph_path

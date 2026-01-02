@@ -13,9 +13,10 @@ Per Alignment Brief:
 - This is intentional: stages need to modify shared state
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from fs2.config.objects import ScanConfig
@@ -24,11 +25,11 @@ if TYPE_CHECKING:
     from fs2.core.models.code_node import CodeNode
     from fs2.core.models.scan_result import ScanResult
     from fs2.core.repos.graph_store import GraphStore
+    from fs2.core.services.embedding.embedding_service import EmbeddingService
     from fs2.core.services.smart_content.smart_content_service import (
         ProgressCallback,
         SmartContentService,
     )
-    from fs2.core.services.embedding.embedding_service import EmbeddingService
 
 
 @dataclass
@@ -99,3 +100,13 @@ class PipelineContext:
     # Progress callback for embedding batch processing.
     # Called with (processed, total, skipped) counts from EmbeddingService.
     embedding_progress_callback: "Callable[[int, int, int], None] | None" = None
+
+    # Progress callback for parsing stage (Phase 2: Quiet Scan Output).
+    # Called every 100 files with (processed, total) counts.
+    # Only called when total > 100 to avoid noise on small scans.
+    parsing_progress_callback: Callable[[int, int], None] | None = None
+
+    # Completion callback for parsing stage (Phase 2: Quiet Scan Output).
+    # Called after parsing completes with files_scanned, nodes_created, skip_summary.
+    # Allows CLI to display summary before smart content stage starts.
+    parsing_complete_callback: Callable[..., None] | None = None

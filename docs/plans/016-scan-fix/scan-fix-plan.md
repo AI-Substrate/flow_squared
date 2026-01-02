@@ -4,7 +4,7 @@
 **Plan Version**: 1.0.0
 **Created**: 2026-01-02
 **Spec**: [./scan-fix-spec.md](./scan-fix-spec.md)
-**Status**: ✅ COMPLETE
+**Status**: 🔄 IN PROGRESS (Phase 2 added)
 
 ---
 
@@ -271,8 +271,37 @@ __host__ void launchKernel(float *a, float *b, float *c, int n) {
 
 ---
 
-**Implementation Complete**: 2026-01-02
+**Phase 1 Complete**: 2026-01-02
 **Execution Log**: [execution.log.md](./execution.log.md)
+
+---
+
+## Phase 2: Quiet Scan Output
+
+**Objective**: Reduce scan output noise by hiding per-file "Unknown language" messages by default, showing a summary instead.
+
+**Testing Approach**: Full TDD
+**Mock Usage**: Avoid mocks entirely
+
+**Dossier**: [tasks/phase-2-quiet-scan-output/tasks.md](./tasks/phase-2-quiet-scan-output/tasks.md)
+
+### Acceptance Criteria
+
+- [ ] **AC2.1**: "Unknown language for X, skipping" messages hidden by default (only shown with `--verbose`)
+- [ ] **AC2.2**: "Binary file detected: X, skipping" messages hidden by default (only shown with `--verbose`)
+- [ ] **AC2.3**: Scan summary includes skip count by extension (e.g., "Skipped: 89 .pyc, 12 .pkl")
+- [ ] **AC2.4**: All existing tests pass
+- [ ] **AC2.5**: New tests cover skip tracking behavior
+
+---
+
+## Subtasks Registry
+
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-skip-summary | 2026-01-02 | Phase 2: Quiet Scan Output | T001 | T001 requires breakdown into discrete implementation steps | [ ] Pending | [Link](tasks/phase-2-quiet-scan-output/001-subtask-skip-summary.md) |
 
 **Suggested Commit**:
 ```

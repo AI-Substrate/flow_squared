@@ -762,7 +762,8 @@ class TestSearchToolMCPProtocol:
         assert search_tool.annotations is not None
         # Per DYK#8: openWorldHint should be True for SEMANTIC API calls
         assert search_tool.annotations.openWorldHint is True
-        assert search_tool.annotations.readOnlyHint is True
+        # Per AC8: readOnlyHint=False because save_to_file writes to filesystem
+        assert search_tool.annotations.readOnlyHint is False
 
     @pytest.mark.asyncio
     async def test_search_no_stdout_pollution(self, search_mcp_client, capsys) -> None:
@@ -789,3 +790,243 @@ class TestSearchToolMCPProtocol:
         # Error message should mention regex or pattern
         error_msg = str(exc_info.value).lower()
         assert "regex" in error_msg or "pattern" in error_msg
+
+
+# =============================================================================
+# T004 (Phase 1: save-to-file): TestSearchSaveToFile - save_to_file parameter
+# =============================================================================
+
+
+class TestSearchSaveToFile:
+    """T004: Tests for MCP search save_to_file parameter (AC3, AC4, AC9, AC10).
+
+    Full TDD tests per save-to-file-plan.md.
+    These tests are expected to FAIL until T005 implements the feature.
+    """
+
+    @pytest.mark.asyncio
+    async def test_given_save_to_file_when_search_then_creates_file(
+        self, search_test_graph_store, tmp_path
+    ):
+        """
+        Purpose: Proves save_to_file creates the specified file.
+        Quality Contribution: Enables agents to persist search results.
+        Acceptance Criteria: File exists after call (AC3).
+
+        Task: T004
+        """
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        output_file = tmp_path / "results.json"
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            await search(pattern="auth", mode="text", save_to_file="results.json")
+        finally:
+            os.chdir(original_cwd)
+
+        assert output_file.exists(), "File should be created"
+
+    @pytest.mark.asyncio
+    async def test_given_save_to_file_when_search_then_writes_valid_json_envelope(
+        self, search_test_graph_store, tmp_path
+    ):
+        """
+        Purpose: Proves saved file contains valid JSON envelope.
+        Quality Contribution: Ensures parseable output for jq/agents.
+        Acceptance Criteria: JSON has meta and results keys (AC3).
+
+        Task: T004
+        """
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        output_file = tmp_path / "results.json"
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            await search(pattern="auth", mode="text", save_to_file="results.json")
+        finally:
+            os.chdir(original_cwd)
+
+        data = json.loads(output_file.read_text())
+        assert "meta" in data, "JSON must have 'meta' key"
+        assert "results" in data, "JSON must have 'results' key"
+
+    @pytest.mark.asyncio
+    async def test_given_save_to_file_when_search_then_response_includes_saved_to(
+        self, search_test_graph_store, tmp_path
+    ):
+        """
+        Purpose: Proves response includes saved_to field with absolute path.
+        Quality Contribution: Agents know where file was saved.
+        Acceptance Criteria: Response has saved_to with absolute path (AC3).
+
+        Task: T004
+        """
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            result = await search(pattern="auth", mode="text", save_to_file="results.json")
+        finally:
+            os.chdir(original_cwd)
+
+        assert "saved_to" in result, "Response must include saved_to"
+        assert str(tmp_path / "results.json") == result["saved_to"]
+
+    @pytest.mark.asyncio
+    async def test_given_path_escape_when_save_to_file_then_raises_tool_error(
+        self, search_test_graph_store, tmp_path
+    ):
+        """
+        Purpose: Proves path validation rejects directory traversal.
+        Quality Contribution: Security - prevents writes outside cwd.
+        Acceptance Criteria: ToolError raised for ../escape.json (AC4).
+
+        Task: T004
+        """
+        import os
+
+        from fastmcp.exceptions import ToolError
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            with pytest.raises(ToolError) as exc_info:
+                await search(pattern="auth", mode="text", save_to_file="../escape.json")
+        finally:
+            os.chdir(original_cwd)
+
+        assert "escape" in str(exc_info.value).lower() or "path" in str(exc_info.value).lower()
+
+    @pytest.mark.asyncio
+    async def test_given_absolute_path_outside_cwd_when_save_to_file_then_raises_tool_error(
+        self, search_test_graph_store, tmp_path
+    ):
+        """
+        Purpose: Proves absolute paths outside cwd are rejected.
+        Quality Contribution: Security - prevents writes to arbitrary locations.
+        Acceptance Criteria: ToolError for /tmp/outside.json (AC4).
+
+        Task: T004
+        """
+        import os
+
+        from fastmcp.exceptions import ToolError
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            with pytest.raises(ToolError):
+                await search(pattern="auth", mode="text", save_to_file="/tmp/outside.json")
+        finally:
+            os.chdir(original_cwd)
+
+    @pytest.mark.asyncio
+    async def test_given_empty_results_when_save_to_file_then_still_saves_envelope(
+        self, search_test_graph_store, tmp_path
+    ):
+        """
+        Purpose: Proves empty results still create valid file.
+        Quality Contribution: Consistent behavior for agent workflows.
+        Acceptance Criteria: Empty envelope saved (AC9).
+
+        Task: T004
+        """
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        output_file = tmp_path / "results.json"
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            await search(
+                pattern="NONEXISTENT_PATTERN_XYZ123", mode="text", save_to_file="results.json"
+            )
+        finally:
+            os.chdir(original_cwd)
+
+        assert output_file.exists(), "File should exist even with empty results"
+        data = json.loads(output_file.read_text())
+        assert data["results"] == [], "Empty results should be empty array"
+
+    @pytest.mark.asyncio
+    async def test_given_nested_path_when_save_to_file_then_creates_subdirectory(
+        self, search_test_graph_store, tmp_path
+    ):
+        """
+        Purpose: Proves subdirectories are auto-created.
+        Quality Contribution: Convenience for nested output paths.
+        Acceptance Criteria: Subdirectory created (AC10).
+
+        Task: T004
+        """
+        import os
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        output_file = tmp_path / "subdir" / "nested" / "results.json"
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            await search(
+                pattern="auth", mode="text", save_to_file="subdir/nested/results.json"
+            )
+        finally:
+            os.chdir(original_cwd)
+
+        assert output_file.exists(), "Nested file should be created"

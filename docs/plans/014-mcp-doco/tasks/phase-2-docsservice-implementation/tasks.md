@@ -50,12 +50,12 @@ Doc(
 Implement DocsService with full TDD, following the TemplateService pattern for `importlib.resources` usage, and integrating with the existing dependency injection architecture.
 
 #### Behavior Checklist (from plan acceptance criteria)
-- [ ] DocsService loads registry via importlib.resources
-- [ ] list_documents() returns all, filters by category/tags
-- [ ] get_document() returns Doc or None
-- [ ] Thread-safe singleton in dependencies.py
-- [ ] All tests passing (12+ tests)
-- [ ] No stdout output (stderr only)
+- [x] DocsService loads registry via importlib.resources
+- [x] list_documents() returns all, filters by category/tags
+- [x] get_document() returns Doc or None
+- [x] Thread-safe singleton in dependencies.py
+- [x] All tests passing (15 tests: 12 unit + 3 integration)
+- [x] No stdout output (stderr only via logging)
 
 ### Goals
 
@@ -105,13 +105,13 @@ flowchart TD
     end
 
     subgraph Phase["Phase 2: DocsService Implementation"]
-        T001["T001: Write list_documents tests"]:::pending
-        T002["T002: Write get_document tests"]:::pending
-        T003["T003: Create test fixtures"]:::pending
-        T004["T004: Create DocsNotFoundError"]:::pending
-        T005["T005: Implement DocsService"]:::pending
-        T006["T006: Add dependency injection"]:::pending
-        T007["T007: Write integration tests"]:::pending
+        T001["T001: Write list_documents tests ✓"]:::completed
+        T002["T002: Write get_document tests ✓"]:::completed
+        T003["T003: Create test fixtures ✓"]:::completed
+        T004["T004: Create DocsNotFoundError ✓"]:::completed
+        T005["T005: Implement DocsService ✓"]:::completed
+        T006["T006: Add dependency injection ✓"]:::completed
+        T007["T007: Write integration tests ✓"]:::completed
 
         T001 --> T005
         T002 --> T005
@@ -123,22 +123,22 @@ flowchart TD
     end
 
     subgraph Core["Core Files"]
-        F1["/src/fs2/core/services/docs_service.py"]:::pending
-        F2["/src/fs2/core/adapters/exceptions.py"]:::pending
-        F3["/src/fs2/mcp/dependencies.py"]:::pending
+        F1["/src/fs2/core/services/docs_service.py ✓"]:::completed
+        F2["/src/fs2/core/adapters/exceptions.py ✓"]:::completed
+        F3["/src/fs2/mcp/dependencies.py ✓"]:::completed
     end
 
     subgraph Tests["Test Files"]
-        T_unit["/tests/unit/services/test_docs_service.py"]:::pending
-        T_int["/tests/integration/test_docs_service_integration.py"]:::pending
+        T_unit["/tests/unit/services/test_docs_service.py ✓"]:::completed
+        T_int["/tests/integration/test_docs_service_integration.py ✓"]:::completed
     end
 
     subgraph Fixtures["Test Fixtures"]
-        Fix_init["/tests/fixtures/docs/__init__.py"]:::pending
-        Fix_reg["/tests/fixtures/docs/registry.yaml"]:::pending
-        Fix_doc1["/tests/fixtures/docs/sample-doc.md"]:::pending
-        Fix_doc2["/tests/fixtures/docs/another-doc.md"]:::pending
-        Fix_broken["/tests/fixtures/docs_broken/"]:::pending
+        Fix_init["/tests/fixtures/docs/__init__.py ✓"]:::completed
+        Fix_reg["/tests/fixtures/docs/registry.yaml ✓"]:::completed
+        Fix_doc1["/tests/fixtures/docs/sample-doc.md ✓"]:::completed
+        Fix_doc2["/tests/fixtures/docs/another-doc.md ✓"]:::completed
+        Fix_broken["/tests/fixtures/docs_broken/ ✓"]:::completed
     end
 
     P1_DocMetadata --> T005
@@ -164,13 +164,13 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Unit Tests | `/tests/unit/services/test_docs_service.py` | ⬜ Pending | Tests for list_documents() with all filter combinations |
-| T002 | Unit Tests | `/tests/unit/services/test_docs_service.py` | ⬜ Pending | Tests for get_document() including not-found case |
-| T003 | Test Fixtures | `/tests/fixtures/docs/`, `/tests/fixtures/docs_broken/` | ⬜ Pending | Valid fixtures + broken registry for DYK-3 validation test |
-| T004 | Domain Exception | `/src/fs2/core/adapters/exceptions.py` | ⬜ Pending | DocsNotFoundError with actionable message |
-| T005 | DocsService | `/src/fs2/core/services/docs_service.py` | ⬜ Pending | Core service with importlib.resources, path validation at init |
-| T006 | Dependency Injection | `/src/fs2/mcp/dependencies.py` | ⬜ Pending | Thread-safe singleton pattern |
-| T007 | Integration Tests | `/tests/integration/test_docs_service_integration.py` | ⬜ Pending | Tests mechanism with `tests.fixtures.docs`; prod verified Phase 5 (DYK-5) |
+| T001 | Unit Tests | `/tests/unit/services/test_docs_service.py` | ✅ Complete | Tests for list_documents() with all filter combinations |
+| T002 | Unit Tests | `/tests/unit/services/test_docs_service.py` | ✅ Complete | Tests for get_document() including not-found case |
+| T003 | Test Fixtures | `/tests/fixtures/docs/`, `/tests/fixtures/docs_broken/` | ✅ Complete | Valid fixtures + broken registry for DYK-3 validation test |
+| T004 | Domain Exception | `/src/fs2/core/adapters/exceptions.py` | ✅ Complete | DocsNotFoundError with actionable message |
+| T005 | DocsService | `/src/fs2/core/services/docs_service.py` | ✅ Complete | Core service with importlib.resources, path validation at init |
+| T006 | Dependency Injection | `/src/fs2/mcp/dependencies.py` | ✅ Complete | Thread-safe singleton pattern |
+| T007 | Integration Tests | `/tests/integration/test_docs_service_integration.py` | ✅ Complete | Tests mechanism with `tests.fixtures.docs`; prod verified Phase 5 (DYK-5) |
 
 ---
 
@@ -178,13 +178,13 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|------|-----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Write tests for DocsService.list_documents() | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/services/test_docs_service.py | Tests fail with ImportError or AttributeError (RED phase) | – | 6+ tests: all docs, category filter, tags OR filter, empty results, no matches, multiple tags |
-| [ ] | T002 | Write tests for DocsService.get_document() | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/services/test_docs_service.py | Tests fail with ImportError or AttributeError (RED phase) | – | 4+ tests: existing doc, non-existent doc (None), content matches file, metadata populated |
-| [ ] | T003 | Create test fixtures in tests/fixtures/docs/ | 2 | Setup | – | /workspaces/flow_squared/tests/fixtures/docs/__init__.py, /workspaces/flow_squared/tests/fixtures/docs/registry.yaml, /workspaces/flow_squared/tests/fixtures/docs/sample-doc.md, /workspaces/flow_squared/tests/fixtures/docs/another-doc.md, /workspaces/flow_squared/tests/fixtures/docs_broken/__init__.py, /workspaces/flow_squared/tests/fixtures/docs_broken/registry.yaml | Fixture files exist, registry is valid YAML, __init__.py makes it a package, docs_broken has missing file ref | – | Real files per spec (DYK-1); broken registry for DYK-3 test |
-| [ ] | T004 | Create DocsNotFoundError exception | 1 | Core | – | /workspaces/flow_squared/src/fs2/core/adapters/exceptions.py | Exception exists, includes actionable message | – | Per Critical Finding 06; extends AdapterError |
-| [ ] | T005 | Implement DocsService with importlib.resources | 3 | Core | T001, T002, T003, T004 | /workspaces/flow_squared/src/fs2/core/services/docs_service.py | All tests from T001, T002 pass (GREEN phase) | – | `docs_package` param (DYK-1); cache registry at init, fresh content per-call (DYK-2); validate all paths at init (DYK-3); per CF-02 |
-| [ ] | T006 | Add get_docs_service() to dependencies.py | 1 | Core | T005 | /workspaces/flow_squared/src/fs2/mcp/dependencies.py | Thread-safe singleton, includes set_ and reset_ functions | – | Simpler than other services - no get_config() call needed (DYK-4); per CF-05 |
-| [ ] | T007 | Write integration test verifying fixture package injection | 2 | Integration | T005, T006 | /workspaces/flow_squared/tests/integration/test_docs_service_integration.py | Test passes using `tests.fixtures.docs` package | – | Tests DocsService mechanism with fixtures (DYK-5); production fs2.docs verified in Phase 5 |
+| [x] | T001 | Write tests for DocsService.list_documents() | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/services/test_docs_service.py | Tests fail with ImportError or AttributeError (RED phase) | – | 6+ tests: all docs, category filter, tags OR filter, empty results, no matches, multiple tags |
+| [x] | T002 | Write tests for DocsService.get_document() | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/services/test_docs_service.py | Tests fail with ImportError or AttributeError (RED phase) | – | 4+ tests: existing doc, non-existent doc (None), content matches file, metadata populated |
+| [x] | T003 | Create test fixtures in tests/fixtures/docs/ | 2 | Setup | – | /workspaces/flow_squared/tests/fixtures/docs/__init__.py, /workspaces/flow_squared/tests/fixtures/docs/registry.yaml, /workspaces/flow_squared/tests/fixtures/docs/sample-doc.md, /workspaces/flow_squared/tests/fixtures/docs/another-doc.md, /workspaces/flow_squared/tests/fixtures/docs_broken/__init__.py, /workspaces/flow_squared/tests/fixtures/docs_broken/registry.yaml | Fixture files exist, registry is valid YAML, __init__.py makes it a package, docs_broken has missing file ref | – | Real files per spec (DYK-1); broken registry for DYK-3 test |
+| [x] | T004 | Create DocsNotFoundError exception | 1 | Core | – | /workspaces/flow_squared/src/fs2/core/adapters/exceptions.py | Exception exists, includes actionable message | – | Per Critical Finding 06; extends AdapterError |
+| [x] | T005 | Implement DocsService with importlib.resources | 3 | Core | T001, T002, T003, T004 | /workspaces/flow_squared/src/fs2/core/services/docs_service.py | All tests from T001, T002 pass (GREEN phase) | – | `docs_package` param (DYK-1); cache registry at init, fresh content per-call (DYK-2); validate all paths at init (DYK-3); per CF-02 |
+| [x] | T006 | Add get_docs_service() to dependencies.py | 1 | Core | T005 | /workspaces/flow_squared/src/fs2/mcp/dependencies.py | Thread-safe singleton, includes set_ and reset_ functions | – | Simpler than other services - no get_config() call needed (DYK-4); per CF-05 |
+| [x] | T007 | Write integration test verifying fixture package injection | 2 | Integration | T005, T006 | /workspaces/flow_squared/tests/integration/test_docs_service_integration.py | Test passes using `tests.fixtures.docs` package | – | Tests DocsService mechanism with fixtures (DYK-5); production fs2.docs verified in Phase 5 |
 
 ---
 
@@ -434,12 +434,14 @@ Phase 5 task 5.3 ("Run full test suite, fix any failures") should include verifi
 
 ### Ready Check
 
-- [ ] Phase 1 complete and all tests passing
+- [x] Phase 1 complete and all tests passing
 - [x] Critical Findings mapped to tasks (CF-01→T005, CF-02→T005, CF-05→T006, CF-06→T004)
 - [x] TemplateService pattern reviewed for importlib.resources usage
 - [x] dependencies.py pattern reviewed for singleton injection
 - [x] exceptions.py pattern reviewed for domain exception creation
-- [ ] Human approval to proceed (GO/NO-GO)
+- [x] Human approval to proceed (GO/NO-GO)
+
+**Status**: ✅ PHASE COMPLETE (2026-01-02)
 
 ---
 
@@ -449,7 +451,9 @@ _Populated by plan-6 during implementation. Links task completions to FlowSpace 
 
 | Footnote | Task(s) | FlowSpace Node ID(s) | Description |
 |----------|---------|---------------------|-------------|
-| | | | |
+| [^3] | T001, T002, T003, T007 | `file:tests/unit/services/test_docs_service.py`, `file:tests/integration/test_docs_service_integration.py`, `file:tests/fixtures/docs/*` | Test infrastructure |
+| [^4] | T004, T005 | `class:src/fs2/core/services/docs_service.py:DocsService`, `class:src/fs2/core/adapters/exceptions.py:DocsNotFoundError` | DocsService core implementation |
+| [^5] | T006 | `function:src/fs2/mcp/dependencies.py:get_docs_service`, `function:src/fs2/mcp/dependencies.py:set_docs_service`, `function:src/fs2/mcp/dependencies.py:reset_docs_service` | Dependency injection |
 
 ---
 
@@ -470,7 +474,7 @@ _Populated during implementation by plan-6. Log anything of interest to your fut
 
 | Date | Task | Type | Discovery | Resolution | References |
 |------|------|------|-----------|------------|------------|
-| | | | | | |
+| 2026-01-02 | T005 | gotcha | `importlib.resources.files()` requires `__init__.py` in all parent directories | Added `/tests/__init__.py` and `/tests/fixtures/__init__.py` | execution.log.md#t005 |
 
 **Types**: `gotcha` | `research-needed` | `unexpected-behavior` | `workaround` | `decision` | `debt` | `insight`
 

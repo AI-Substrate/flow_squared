@@ -167,9 +167,18 @@ def scan(
         ast_parser = TreeSitterParser(config)
         graph_store = NetworkXGraphStore(config)
 
+        # Track which stage banners have been shown during pipeline run
+        smart_content_banner_shown = False
+        embedding_banner_shown = False
+
         # Create progress callback for smart content (uses console adapter)
         def smart_content_progress(progress, error_message):
             """Display smart content progress using console adapter."""
+            nonlocal smart_content_banner_shown
+            if not smart_content_banner_shown:
+                console.stage_banner("SMART CONTENT")
+                smart_content_banner_shown = True
+
             if error_message:
                 console.print_error(error_message)
             else:
@@ -182,10 +191,36 @@ def scan(
 
         def embedding_progress(processed, total, skipped):
             """Display embedding progress using console adapter."""
+            nonlocal embedding_banner_shown
+            if not embedding_banner_shown:
+                console.stage_banner("EMBEDDINGS")
+                embedding_banner_shown = True
+
             pct = (processed / total * 100.0) if total else 0.0
             console.print_progress(
                 f"Embeddings: {processed}/{total} ({pct:.1f}%) processed, {skipped} skipped"
             )
+
+        def parsing_progress(processed, total):
+            """Display parsing progress using console adapter."""
+            pct = (processed / total * 100.0) if total else 0.0
+            console.print_progress(f"Parsing: {processed}/{total} files ({pct:.1f}%)")
+
+        def parsing_complete(files_scanned, nodes_created, skip_summary):
+            """Display parsing summary before next stage starts."""
+            console.print_success(f"Scanned {files_scanned} files")
+            console.print_success(f"Created {nodes_created} nodes")
+            # Always show skip summary (even if zero)
+            if skip_summary:
+                skip_parts = [
+                    f"{count} {ext}"
+                    for ext, count in sorted(
+                        skip_summary.items(), key=lambda x: -x[1]
+                    )
+                ]
+                console.print_info(f"Skipped: {', '.join(skip_parts)}")
+            else:
+                console.print_info("Skipped: 0")
 
         # Create pipeline
         pipeline = ScanPipeline(
@@ -197,21 +232,22 @@ def scan(
             smart_content_progress_callback=smart_content_progress if smart_content_service else None,
             embedding_service=embedding_service,
             embedding_progress_callback=embedding_progress if embedding_service else None,
+            parsing_progress_callback=parsing_progress,
+            parsing_complete_callback=parsing_complete,
             graph_path=graph_path,  # Per Subtask 001: Custom output path
         )
 
         # ===== STAGE 3: PARSING =====
         console.stage_banner("PARSING")
 
-        # Run the pipeline
+        # Run the pipeline (callbacks show progress and banners during execution)
         summary = pipeline.run()
 
-        console.print_success(f"Scanned {summary.files_scanned} files")
-        console.print_success(f"Created {summary.nodes_created} nodes")
-
-        # ===== STAGE 4: SMART CONTENT =====
+        # ===== STAGE 4: SMART CONTENT (summary after pipeline) =====
         if smart_content_service:
-            console.stage_banner("SMART CONTENT")
+            # Banner already shown by progress callback if any work done
+            if not smart_content_banner_shown:
+                console.stage_banner("SMART CONTENT")
 
             enriched = summary.metrics.get("smart_content_enriched", 0)
             preserved = summary.metrics.get("smart_content_preserved", 0)
@@ -229,7 +265,9 @@ def scan(
 
         # ===== STAGE 4.5: EMBEDDINGS =====
         if embedding_service:
-            console.stage_banner("EMBEDDINGS")
+            # Banner already shown by progress callback if any work done
+            if not embedding_banner_shown:
+                console.stage_banner("EMBEDDINGS")
 
             enriched = summary.metrics.get("embedding_enriched", 0)
             preserved = summary.metrics.get("embedding_preserved", 0)

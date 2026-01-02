@@ -189,7 +189,8 @@ def tree(
     pattern: str = ".",
     max_depth: int = 0,
     detail: Literal["min", "max"] = "min",
-) -> list[dict[str, Any]]:
+    save_to_file: str | None = None,
+) -> list[dict[str, Any]] | dict[str, Any]:
     """Explore codebase structure as a hierarchical tree.
 
     WHEN TO USE: Start here to understand what exists in a codebase.
@@ -216,6 +217,8 @@ def tree(
         detail: Output verbosity level.
             - "min" = node_id, name, category, lines, children (default)
             - "max" = adds signature, smart_content for detailed inspection
+        save_to_file: Optional file path to save tree as JSON.
+            Path must be under current working directory.
 
     Returns:
         List of tree nodes in hierarchical structure. Each node contains:
@@ -225,6 +228,7 @@ def tree(
         - start_line, end_line: Line range in source file
         - children: Nested list of child nodes
         - hidden_children_count: (when max_depth limits) count of hidden children
+        When save_to_file is used, returns dict with 'saved_to' field.
 
     Example:
         >>> tree(pattern="Calculator")
@@ -242,7 +246,21 @@ def tree(
         store = get_graph_store()
         service = TreeService(config=config, graph_store=store)
         tree_nodes = service.build_tree(pattern=pattern, max_depth=max_depth)
-        return [_tree_node_to_dict(tn, detail) for tn in tree_nodes]
+        tree_list = [_tree_node_to_dict(tn, detail) for tn in tree_nodes]
+
+        # Handle save_to_file if specified
+        if save_to_file is not None:
+            import json
+            from pathlib import Path
+
+            absolute_path = _validate_save_path(save_to_file)
+            output_path = Path(absolute_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(absolute_path, "w", encoding="utf-8") as f:
+                json.dump(tree_list, f, indent=2)
+            return {"tree": tree_list, "saved_to": absolute_path}
+
+        return tree_list
     except GraphNotFoundError:
         raise ToolError("Graph not found. Run 'fs2 scan' to create the graph.") from None
     except GraphStoreError as e:
@@ -258,7 +276,7 @@ def tree(
 _tree_tool = mcp.tool(
     annotations={
         "title": "Explore Code Tree",
-        "readOnlyHint": True,  # Tool only reads data, doesn't modify
+        "readOnlyHint": False,  # Can write files via save_to_file parameter
         "destructiveHint": False,  # No destructive side effects
         "idempotentHint": True,  # Same inputs always return same outputs
         "openWorldHint": False,  # No external network/API calls
@@ -513,6 +531,7 @@ async def search(
     include: list[str] | None = None,
     exclude: list[str] | None = None,
     detail: Literal["min", "max"] = "min",
+    save_to_file: str | None = None,
 ) -> dict[str, Any]:
     """Search codebase for matching code elements.
 
@@ -544,6 +563,9 @@ async def search(
         include: Filter to keep only node_ids matching ANY pattern (glob like *.py or regex)
         exclude: Filter to remove node_ids matching ANY pattern (glob like *.py or regex)
         detail: Output verbosity - "min" (9 fields) or "max" (13 fields)
+        save_to_file: Optional file path to save results as JSON.
+            Path must be under current working directory (security constraint).
+            When specified, response includes 'saved_to' field with absolute path.
 
     Returns:
         Envelope with meta and results:
@@ -649,8 +671,8 @@ async def search(
         # This is a known limitation - total is the count we have.
         total = len(results) + offset
 
-        # Build and return envelope
-        return _build_search_envelope(
+        # Build envelope
+        envelope = _build_search_envelope(
             results=results,
             total=total,
             limit=limit,
@@ -660,6 +682,27 @@ async def search(
             filtered_count=None,  # Filter already applied in service
             detail=detail,
         )
+
+        # Handle save_to_file if specified
+        if save_to_file is not None:
+            import json
+
+            # Validate path security
+            absolute_path = _validate_save_path(save_to_file)
+
+            # Create parent directories if needed (AC10)
+            from pathlib import Path
+            output_path = Path(absolute_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Write JSON to file with UTF-8 encoding (per Insight #3)
+            with open(absolute_path, "w", encoding="utf-8") as f:
+                json.dump(envelope, f, indent=2)
+
+            # Add saved_to field per AC3
+            envelope["saved_to"] = absolute_path
+
+        return envelope
 
     except SearchError as e:
         # DYK#10: Explicit SEMANTIC mode failures (no embeddings, etc.)
@@ -706,10 +749,11 @@ async def search(
 
 # Register search function as MCP tool with annotations (per T008)
 # Per DYK#8: openWorldHint=True because SEMANTIC mode calls embedding APIs
+# Per AC8: readOnlyHint=False because save_to_file writes to filesystem
 _search_tool = mcp.tool(
     annotations={
         "title": "Search Code",
-        "readOnlyHint": True,  # Only reads data
+        "readOnlyHint": False,  # Can write files via save_to_file
         "destructiveHint": False,  # No destructive side effects
         "idempotentHint": True,  # Same inputs return same outputs
         "openWorldHint": True,  # SEMANTIC mode calls external embedding APIs

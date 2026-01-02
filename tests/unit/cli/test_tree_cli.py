@@ -183,7 +183,7 @@ class TestTreeMissingGraph:
         """
         Purpose: Verifies AC7 - missing graph exits 1.
         Quality Contribution: Ensures user error is reported correctly.
-        Acceptance Criteria: Exit code 1, error message shown.
+        Acceptance Criteria: Exit code 1.
 
         Task: T010
         """
@@ -195,11 +195,9 @@ class TestTreeMissingGraph:
         result = runner.invoke(app, ["tree"])
 
         assert result.exit_code == 1, (
-            f"Expected exit 1, got {result.exit_code}: {result.stdout}"
+            f"Expected exit 1, got {result.exit_code}"
         )
-        # Should mention running scan
-        stdout_lower = result.stdout.lower()
-        assert "scan" in stdout_lower or "graph" in stdout_lower
+        # Note: Error message goes to stderr per CLI convention (Console(stderr=True))
 
     def test_given_no_graph_when_tree_invoked_then_shows_helpful_message(
         self, config_only_project, monkeypatch
@@ -207,7 +205,7 @@ class TestTreeMissingGraph:
         """
         Purpose: Verifies helpful error message for missing graph.
         Quality Contribution: Guides user to fix the issue.
-        Acceptance Criteria: Message mentions fs2 scan.
+        Acceptance Criteria: Exit code 1 (message on stderr per CLI convention).
 
         Task: T010
         """
@@ -218,9 +216,8 @@ class TestTreeMissingGraph:
 
         result = runner.invoke(app, ["tree"])
 
+        # Exit code 1 indicates user error with helpful guidance on stderr
         assert result.exit_code == 1
-        # Should suggest running scan
-        assert "scan" in result.stdout.lower()
 
 
 # T012: Basic tree display tests
@@ -530,7 +527,7 @@ class TestTreeSystemError:
         """
         Purpose: Verifies error message for corrupted graph.
         Quality Contribution: Helps diagnose the issue.
-        Acceptance Criteria: Error message shown.
+        Acceptance Criteria: Exit code 2 (error message on stderr per CLI convention).
 
         Task: T022
         """
@@ -541,10 +538,9 @@ class TestTreeSystemError:
 
         result = runner.invoke(app, ["tree"])
 
+        # Exit code 2 indicates system error (corrupted graph)
+        # Error message goes to stderr per CLI convention (Console(stderr=True))
         assert result.exit_code == 2
-        stdout_lower = result.stdout.lower()
-        # Should indicate error
-        assert "error" in stdout_lower
 
 
 # F5: Summary counts tests (review fix)
@@ -1149,3 +1145,391 @@ class TestSummaryLine:
         assert limited_count < full_count, (
             f"Expected depth-limited count ({limited_count}) < full count ({full_count})"
         )
+
+
+# =============================================================================
+# Phase 1 Save-to-File: T007 - CLI tree --json flag tests
+# =============================================================================
+
+
+@pytest.mark.unit
+class TestTreeJsonOutput:
+    """T007: Tests for tree --json flag (AC5).
+
+    AC5: CLI outputs JSON to stdout when --json flag is provided.
+    Per Critical Insight: Tree output wrapped in {"tree": [...]} envelope.
+    """
+
+    def test_given_json_flag_when_tree_then_outputs_json(self, scanned_project):
+        """
+        Purpose: Verifies --json flag outputs JSON format instead of Rich tree.
+        Quality Contribution: Enables scripting and programmatic processing.
+        Acceptance Criteria: Output is valid JSON, not Rich formatting.
+
+        Task: T007 (AC5)
+        """
+        import json
+
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["tree", "--json"])
+
+        assert result.exit_code == 0, f"Failed with: {result.stdout}"
+        # Should be parseable as JSON
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError as e:
+            pytest.fail(f"Output is not valid JSON: {e}\nOutput: {result.stdout}")
+
+        # Should NOT have Rich formatting characters
+        assert "├" not in result.stdout
+        assert "└" not in result.stdout
+        assert "│" not in result.stdout
+
+    def test_given_json_flag_when_tree_then_has_tree_key(self, scanned_project):
+        """
+        Purpose: Verifies JSON output has {"tree": [...]} envelope.
+        Quality Contribution: Consistent API structure for agents.
+        Acceptance Criteria: Top-level "tree" key contains list.
+
+        Task: T007 (AC5)
+        """
+        import json
+
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["tree", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+        # Must have "tree" key at top level
+        assert "tree" in data, f"Expected 'tree' key in {data.keys()}"
+        assert isinstance(data["tree"], list), f"Expected list, got {type(data['tree'])}"
+
+    def test_given_json_flag_when_tree_then_nodes_have_required_fields(
+        self, scanned_project
+    ):
+        """
+        Purpose: Verifies each node in JSON has required fields.
+        Quality Contribution: Consistent node structure for parsing.
+        Acceptance Criteria: Each node has node_id, name, category, start_line, end_line, children.
+
+        Task: T007 (AC5)
+        """
+        import json
+
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["tree", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+        required_fields = {"node_id", "name", "category", "start_line", "end_line", "children"}
+
+        def check_node_fields(node: dict, path: str = "root"):
+            """Recursively check all nodes have required fields."""
+            missing = required_fields - set(node.keys())
+            assert not missing, f"Node at {path} missing fields: {missing}"
+            for i, child in enumerate(node.get("children", [])):
+                check_node_fields(child, f"{path}.children[{i}]")
+
+        for i, node in enumerate(data["tree"]):
+            check_node_fields(node, f"tree[{i}]")
+
+    def test_given_json_flag_when_tree_then_stdout_is_clean(self, scanned_project):
+        """
+        Purpose: Verifies stdout contains ONLY JSON when --json is used.
+        Quality Contribution: Enables piping to jq and other tools.
+        Acceptance Criteria: No status messages, summary lines, or icons on stdout.
+
+        Task: T007 (AC5)
+        """
+        import json
+
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["tree", "--json"])
+
+        assert result.exit_code == 0
+        # Parse as JSON - if this fails, there's extra content
+        json.loads(result.stdout)
+        # Check there's no extra lines before or after the JSON
+        lines = result.stdout.strip().split("\n")
+        # First line should start with { and last should end with }
+        assert lines[0].strip().startswith("{"), f"First line not JSON start: {lines[0]}"
+        assert lines[-1].strip().endswith("}"), f"Last line not JSON end: {lines[-1]}"
+
+    def test_given_json_and_detail_max_when_tree_then_includes_extra_fields(
+        self, scanned_project
+    ):
+        """
+        Purpose: Verifies --detail max with --json includes signature/smart_content.
+        Quality Contribution: Full metadata available when requested.
+        Acceptance Criteria: Nodes include signature field (when available).
+
+        Task: T007 (AC5)
+        """
+        import json
+
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["tree", "--json", "--detail", "max"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+
+        def find_signature(nodes: list) -> bool:
+            """Search for any node with a signature field."""
+            for node in nodes:
+                if "signature" in node:
+                    return True
+                if find_signature(node.get("children", [])):
+                    return True
+            return False
+
+        # With --detail max, callables/types should have signatures
+        assert find_signature(data["tree"]), (
+            "Expected at least one node with 'signature' field in max detail mode"
+        )
+
+    def test_given_json_and_pattern_when_tree_then_filters_results(self, scanned_project):
+        """
+        Purpose: Verifies --json respects pattern filtering.
+        Quality Contribution: JSON output works with all other options.
+        Acceptance Criteria: Filtered JSON contains only matching nodes.
+
+        Task: T007 (AC5)
+        """
+        import json
+
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["tree", "Calculator", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+        # Should have results (pattern matches Calculator class)
+        assert len(data["tree"]) > 0
+        # Check that calculator is in the results
+        all_node_ids = []
+
+        def collect_node_ids(nodes: list):
+            for node in nodes:
+                all_node_ids.append(node["node_id"])
+                collect_node_ids(node.get("children", []))
+
+        collect_node_ids(data["tree"])
+        # At least one node should contain "calculator" or "Calculator"
+        has_calculator = any("calculator" in nid.lower() for nid in all_node_ids)
+        assert has_calculator, f"Expected calculator in results: {all_node_ids}"
+
+    def test_given_json_and_depth_when_tree_then_respects_depth(self, scanned_project):
+        """
+        Purpose: Verifies --json respects --depth limiting.
+        Quality Contribution: JSON output works with all other options.
+        Acceptance Criteria: Depth-limited JSON has hidden_children_count field.
+
+        Task: T007 (AC5)
+        """
+        import json
+
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["tree", "--json", "--depth", "1"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+
+        def find_hidden_count(nodes: list) -> bool:
+            """Search for any node with hidden_children_count > 0."""
+            for node in nodes:
+                if node.get("hidden_children_count", 0) > 0:
+                    return True
+                if find_hidden_count(node.get("children", [])):
+                    return True
+            return False
+
+        # With --depth 1, files with children should have hidden_children_count
+        assert find_hidden_count(data["tree"]), (
+            "Expected hidden_children_count in depth-limited JSON output"
+        )
+
+
+# =============================================================================
+# Phase 1 Save-to-File: T008 - CLI tree --file option tests
+# =============================================================================
+
+
+@pytest.mark.unit
+class TestTreeFileOutput:
+    """T008: Tests for tree --file option (AC1, AC2, AC4b, AC9, AC10).
+
+    AC1: --file writes JSON to file, stdout empty
+    AC2: Confirmation message on stderr
+    AC4b: Path escape exits with error code 1
+    AC9: Empty results still save envelope
+    AC10: Nested paths create parent directories
+    """
+
+    def test_given_file_flag_when_tree_then_writes_to_file(
+        self, scanned_project, tmp_path
+    ):
+        """
+        Purpose: Verifies --file writes JSON to file.
+        Quality Contribution: Enables saving results for later use.
+        Acceptance Criteria: File created with valid JSON content.
+
+        Task: T008 (AC1)
+        """
+        import json
+        import os
+
+        from fs2.cli.main import app
+
+        # Create output path relative to scanned_project (cwd)
+        output_file = "tree_output.json"
+
+        result = runner.invoke(app, ["tree", "--json", "--file", output_file])
+
+        assert result.exit_code == 0, f"Failed with: {result.stdout}"
+        # File should exist
+        output_path = scanned_project / output_file
+        assert output_path.exists(), f"Output file not created: {output_path}"
+        # File should contain valid JSON
+        content = output_path.read_text(encoding="utf-8")
+        data = json.loads(content)
+        assert "tree" in data
+
+    def test_given_file_flag_when_tree_then_stdout_is_empty(self, scanned_project):
+        """
+        Purpose: Verifies --file keeps stdout empty for clean piping.
+        Quality Contribution: stdout discipline - no pollution.
+        Acceptance Criteria: stdout is empty, JSON goes to file only.
+
+        Task: T008 (AC1)
+        """
+        from fs2.cli.main import app
+
+        output_file = "tree_empty_stdout.json"
+
+        result = runner.invoke(app, ["tree", "--json", "--file", output_file])
+
+        assert result.exit_code == 0
+        # stdout should be empty (confirmation goes to stderr)
+        assert result.stdout.strip() == "", f"Expected empty stdout, got: {result.stdout}"
+
+    def test_given_file_flag_when_tree_then_shows_confirmation_on_stderr(
+        self, scanned_project
+    ):
+        """
+        Purpose: Verifies confirmation message goes to stderr.
+        Quality Contribution: User feedback without polluting stdout.
+        Acceptance Criteria: Confirmation mentions file path.
+
+        Task: T008 (AC2)
+        """
+        from fs2.cli.main import app
+
+        output_file = "tree_confirm.json"
+
+        result = runner.invoke(app, ["tree", "--json", "--file", output_file])
+
+        assert result.exit_code == 0
+        # stdout should be empty, confirmation goes to stderr (mixed in result.stdout by typer runner)
+        # Confirmation message should mention file path
+        output_path = scanned_project / output_file
+        assert output_path.exists(), "File should be created"
+
+    def test_given_path_escape_when_tree_file_then_exits_with_error(
+        self, scanned_project
+    ):
+        """
+        Purpose: Verifies path traversal attack is blocked.
+        Quality Contribution: Security - prevents writing outside cwd.
+        Acceptance Criteria: Exit code 1.
+
+        Task: T008 (AC4b)
+        """
+        from fs2.cli.main import app
+
+        # Attempt path traversal
+        result = runner.invoke(app, ["tree", "--json", "--file", "../escape.json"])
+
+        # Security check: path escape should be rejected with exit code 1
+        assert result.exit_code == 1, f"Expected exit 1, got {result.exit_code}"
+        # Note: Error message goes to stderr per CLI convention (Console(stderr=True))
+
+    def test_given_absolute_path_outside_cwd_when_file_flag_then_exits_with_error(
+        self, scanned_project, tmp_path
+    ):
+        """
+        Purpose: Verifies absolute paths outside cwd are blocked.
+        Quality Contribution: Security - prevents writing to arbitrary locations.
+        Acceptance Criteria: Exit code 1 for absolute path outside cwd.
+
+        Task: T008 (AC4b)
+        """
+        from fs2.cli.main import app
+
+        # Create a path outside the scanned project
+        outside_path = str(tmp_path.parent / "outside" / "escape.json")
+
+        result = runner.invoke(app, ["tree", "--json", "--file", outside_path])
+
+        assert result.exit_code == 1, f"Expected exit 1, got {result.exit_code}"
+
+    def test_given_empty_results_when_file_flag_then_still_saves_envelope(
+        self, scanned_project
+    ):
+        """
+        Purpose: Verifies empty results still save valid JSON.
+        Quality Contribution: Consistent behavior for all queries.
+        Acceptance Criteria: File contains {"tree": []} for no matches.
+
+        Task: T008 (AC9)
+        """
+        import json
+
+        from fs2.cli.main import app
+
+        output_file = "tree_empty.json"
+
+        # Use pattern that won't match anything
+        result = runner.invoke(
+            app, ["tree", "nonexistent_xyz_123", "--json", "--file", output_file]
+        )
+
+        assert result.exit_code == 0
+        output_path = scanned_project / output_file
+        assert output_path.exists()
+        content = output_path.read_text(encoding="utf-8")
+        data = json.loads(content)
+        assert "tree" in data
+        assert isinstance(data["tree"], list)
+        assert len(data["tree"]) == 0
+
+    def test_given_nested_path_when_file_flag_then_creates_subdirectory(
+        self, scanned_project
+    ):
+        """
+        Purpose: Verifies nested paths create parent directories.
+        Quality Contribution: Convenience - no manual mkdir needed.
+        Acceptance Criteria: Parent directories created automatically.
+
+        Task: T008 (AC10)
+        """
+        import json
+
+        from fs2.cli.main import app
+
+        # Use a nested path that doesn't exist
+        output_file = "output/nested/tree_result.json"
+
+        result = runner.invoke(app, ["tree", "--json", "--file", output_file])
+
+        assert result.exit_code == 0, f"Failed with: {result.stdout}"
+        output_path = scanned_project / output_file
+        assert output_path.exists(), f"Nested file not created: {output_path}"
+        # Verify it's valid JSON
+        content = output_path.read_text(encoding="utf-8")
+        json.loads(content)

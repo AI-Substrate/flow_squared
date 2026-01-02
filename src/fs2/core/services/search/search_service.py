@@ -165,9 +165,10 @@ class SearchService:
                             "or use TEXT/REGEX mode."
                         )
                 else:
-                    # Per DYK-P3-05: Warn about partial coverage
+                    # Per DYK-P3-05: Warn about partial coverage (only if >50% missing)
                     nodes_without = len(nodes) - len(nodes_with_embeddings)
-                    if nodes_without > 0:
+                    missing_ratio = nodes_without / len(nodes) if len(nodes) > 0 else 0
+                    if missing_ratio > 0.5:
                         logger.warning(
                             f"{nodes_without} of {len(nodes)} nodes lack embeddings "
                             "and are excluded from semantic search. "

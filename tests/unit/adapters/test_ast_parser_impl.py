@@ -994,3 +994,108 @@ class TestTreeSitterParserNodeFormat:
         for node in nodes:
             assert node.start_line >= 1, f"start_line should be >= 1: {node}"
             assert node.end_line >= node.start_line, f"end_line should be >= start_line: {node}"
+
+
+class TestTreeSitterParserSkipTracking:
+    """Tests for skip tracking functionality.
+
+    Phase 2: Quiet Scan Output - verify skip counts are tracked correctly.
+    """
+
+    def test_get_skip_summary_tracks_unknown_extensions(self, tmp_path):
+        """
+        Purpose: Verifies skip tracking records unknown extensions correctly.
+        Quality Contribution: Skip summary displays accurate counts.
+        Acceptance Criteria: get_skip_summary() returns dict with extension counts.
+
+        Task: ST005 (Phase 2 subtask)
+        """
+        from fs2.config.service import FakeConfigurationService
+        from fs2.config.objects import ScanConfig
+        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
+
+        config = FakeConfigurationService(ScanConfig())
+        parser = TreeSitterParser(config)
+
+        # Create files with unknown extensions
+        (tmp_path / "file1.xyz").write_text("content")
+        (tmp_path / "file2.xyz").write_text("content")
+        (tmp_path / "file3.abc").write_text("content")
+
+        # Parse files (will skip due to unknown extension)
+        parser.parse(tmp_path / "file1.xyz")
+        parser.parse(tmp_path / "file2.xyz")
+        parser.parse(tmp_path / "file3.abc")
+
+        summary = parser.get_skip_summary()
+        assert summary == {".xyz": 2, ".abc": 1}
+
+    def test_get_skip_summary_clears_after_reading(self, tmp_path):
+        """
+        Purpose: Verifies skip summary clears counts after reading.
+        Quality Contribution: Prevents double-counting across scan cycles.
+        Acceptance Criteria: Second call returns empty dict.
+
+        Task: ST005 (Phase 2 subtask)
+        """
+        from fs2.config.service import FakeConfigurationService
+        from fs2.config.objects import ScanConfig
+        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
+
+        config = FakeConfigurationService(ScanConfig())
+        parser = TreeSitterParser(config)
+
+        (tmp_path / "file.xyz").write_text("content")
+        parser.parse(tmp_path / "file.xyz")
+
+        summary1 = parser.get_skip_summary()
+        assert summary1 == {".xyz": 1}
+
+        summary2 = parser.get_skip_summary()
+        assert summary2 == {}  # Cleared
+
+    def test_get_skip_summary_tracks_binary_files(self, tmp_path):
+        """
+        Purpose: Verifies binary file skips are also tracked.
+        Quality Contribution: Complete skip summary includes all skip types.
+        Acceptance Criteria: Binary files counted in skip summary.
+
+        Task: ST005 (Phase 2 subtask)
+        """
+        from fs2.config.service import FakeConfigurationService
+        from fs2.config.objects import ScanConfig
+        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
+
+        config = FakeConfigurationService(ScanConfig())
+        parser = TreeSitterParser(config)
+
+        # Create a binary file with known extension (will detect binary)
+        binary_content = b"valid start\x00null byte makes it binary"
+        (tmp_path / "data.py").write_bytes(binary_content)
+
+        parser.parse(tmp_path / "data.py")
+
+        summary = parser.get_skip_summary()
+        assert summary == {".py": 1}
+
+    def test_get_skip_summary_handles_no_extension(self, tmp_path):
+        """
+        Purpose: Verifies files without extension are tracked.
+        Quality Contribution: Complete skip summary for all file types.
+        Acceptance Criteria: Files without extension counted as "(no extension)".
+
+        Task: ST005 (Phase 2 subtask)
+        """
+        from fs2.config.service import FakeConfigurationService
+        from fs2.config.objects import ScanConfig
+        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
+
+        config = FakeConfigurationService(ScanConfig())
+        parser = TreeSitterParser(config)
+
+        # Create file without extension (unknown language)
+        (tmp_path / "noext").write_text("content")
+        parser.parse(tmp_path / "noext")
+
+        summary = parser.get_skip_summary()
+        assert summary == {"(no extension)": 1}

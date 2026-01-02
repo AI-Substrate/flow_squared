@@ -5,16 +5,20 @@ Supports path/glob filtering and depth limiting.
 
 Per Clean Architecture: CLI handles only arg parsing + presentation.
 Business logic (filtering, root bucketing, tree building) is delegated to TreeService.
+
+Per Phase 1 save-to-file: --json flag outputs JSON to stdout, --file writes to file.
 """
 
+import json
 import logging
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any, Literal
 
 import typer
 from rich.console import Console
 from rich.tree import Tree
 
+from fs2.cli.utils import safe_write_file, validate_save_path
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.config.objects import GraphConfig
 from fs2.config.service import FS2ConfigurationService
@@ -23,7 +27,10 @@ from fs2.core.models.tree_node import TreeNode
 from fs2.core.repos import NetworkXGraphStore
 from fs2.core.services.tree_service import TreeService
 
+# Console for Rich tree display - writes to stdout
 console = Console()
+# Console for error/status messages - writes to stderr to keep stdout clean for piping
+stderr_console = Console(stderr=True)
 logger = logging.getLogger("fs2.cli.tree")
 
 # Icon mapping per category (Discovery 13) - PRESENTATION CONCERN stays in CLI
@@ -38,6 +45,57 @@ CATEGORY_ICONS = {
     "expression": "●",
     "other": "○",
 }
+
+
+def _tree_node_to_dict(
+    tree_node: TreeNode,
+    detail: Literal["min", "max"] = "min",
+) -> dict[str, Any]:
+    """Convert TreeNode to JSON-serializable dict.
+
+    Per T009: Recursive conversion with correct fields per detail level.
+    Shares logic with MCP server's _tree_node_to_dict.
+
+    Fields always included:
+    - node_id, name, category, start_line, end_line, children
+
+    Fields included when > 0:
+    - hidden_children_count
+
+    Fields included only in max detail:
+    - signature, smart_content
+
+    Args:
+        tree_node: TreeNode from TreeService.build_tree().
+        detail: "min" for compact output, "max" for full metadata.
+
+    Returns:
+        Dict suitable for JSON serialization.
+    """
+    node = tree_node.node
+
+    # Base fields (always present)
+    result: dict[str, Any] = {
+        "node_id": node.node_id,
+        "name": node.name,
+        "category": node.category,
+        "start_line": node.start_line,
+        "end_line": node.end_line,
+        "children": [_tree_node_to_dict(child, detail) for child in tree_node.children],
+    }
+
+    # Add hidden_children_count only when > 0
+    if tree_node.hidden_children_count > 0:
+        result["hidden_children_count"] = tree_node.hidden_children_count
+
+    # Max detail includes additional fields
+    if detail == "max":
+        if node.signature:
+            result["signature"] = node.signature
+        if node.smart_content:
+            result["smart_content"] = node.smart_content
+
+    return result
 
 
 def tree(
@@ -60,6 +118,17 @@ def tree(
         bool,
         typer.Option("--verbose", "-v", help="Enable debug logging"),
     ] = False,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output JSON instead of Rich tree (for scripting)"),
+    ] = False,
+    file: Annotated[
+        Path | None,
+        typer.Option(
+            "--file", "-f",
+            help="Write JSON to file instead of stdout (requires --json, path validated for security).",
+        ),
+    ] = None,
 ) -> None:
     """Display code structure as a hierarchical tree.
 
@@ -74,6 +143,8 @@ def tree(
         $ fs2 tree "*.py"             # Glob pattern
         $ fs2 tree --depth 2          # Limit depth
         $ fs2 tree --detail max       # Show node IDs
+        $ fs2 tree --json             # Output JSON to stdout
+        $ fs2 tree --json --file results.json  # Save JSON to file
 
     \\b
     Exit codes:
@@ -85,7 +156,7 @@ def tree(
     if verbose:
         logging.basicConfig(level=logging.DEBUG)
         logger.setLevel(logging.DEBUG)
-        console.print("[dim]DEBUG: Verbose mode enabled[/dim]")
+        stderr_console.print("[dim]DEBUG: Verbose mode enabled[/dim]")
 
     try:
         # === Composition Root ===
@@ -96,7 +167,7 @@ def tree(
             # Override GraphConfig in config service
             config.set(GraphConfig(graph_path=ctx.obj.graph_file))
             if verbose:
-                console.print(f"[dim]DEBUG: Using graph file: {ctx.obj.graph_file}[/dim]")
+                stderr_console.print(f"[dim]DEBUG: Using graph file: {ctx.obj.graph_file}[/dim]")
 
         graph_store = NetworkXGraphStore(config)
 
@@ -104,28 +175,49 @@ def tree(
         service = TreeService(config=config, graph_store=graph_store)
 
         if verbose:
-            console.print("[dim]DEBUG: TreeService created[/dim]")
+            stderr_console.print("[dim]DEBUG: TreeService created[/dim]")
 
         # === Service Call ===
         try:
             tree_nodes = service.build_tree(pattern=pattern, max_depth=depth)
         except GraphNotFoundError:
-            console.print(
+            stderr_console.print(
                 "[red]Error:[/red] No graph found.\n"
                 "  Run [bold]fs2 scan[/bold] first to create the graph."
             )
             raise typer.Exit(code=1) from None
         except GraphStoreError as e:
-            console.print(f"[red]Error:[/red] {e}")
+            stderr_console.print(f"[red]Error:[/red] {e}")
             raise typer.Exit(code=2) from None
 
         if verbose:
-            console.print(
+            stderr_console.print(
                 f"[dim]DEBUG: TreeService returned {len(tree_nodes)} root nodes[/dim]"
             )
 
         # === Presentation ===
-        # Handle empty results
+        # Handle JSON output mode
+        if json_output or file:
+            # Convert to JSON-serializable format
+            detail_literal: Literal["min", "max"] = "max" if detail == "max" else "min"
+            tree_dicts = [_tree_node_to_dict(tn, detail_literal) for tn in tree_nodes]
+            envelope = {"tree": tree_dicts}
+            json_str = json.dumps(envelope, indent=2, default=str)
+
+            # Handle file output vs stdout
+            if file:
+                # Validate path for security (AC4b)
+                absolute_path = validate_save_path(file, stderr_console)
+                # Write file with cleanup on error and UTF-8 encoding
+                safe_write_file(absolute_path, json_str, stderr_console)
+                # Confirmation on stderr (AC2)
+                stderr_console.print(f"[green]✓[/green] Wrote tree results to {file}")
+            else:
+                # Use raw print() for clean stdout
+                print(json_str)
+            raise typer.Exit(code=0)
+
+        # Handle empty results (Rich output only)
         if not tree_nodes:
             if pattern == ".":
                 console.print("Found 0 nodes in 0 files")
@@ -137,7 +229,7 @@ def tree(
         _display_tree(tree_nodes, detail, depth, verbose)
 
     except MissingConfigurationError:
-        console.print(
+        stderr_console.print(
             "[red]Error:[/red] No configuration found.\n"
             "  Run [bold]fs2 init[/bold] first to create .fs2/config.yaml"
         )

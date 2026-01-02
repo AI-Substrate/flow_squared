@@ -38,12 +38,14 @@ if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
     from fs2.core.adapters.embedding_adapter import EmbeddingAdapter
     from fs2.core.repos.graph_store import GraphStore
+    from fs2.core.services.docs_service import DocsService
 
 
 # Module-level singletons (None until first access)
 _config: ConfigurationService | None = None
 _graph_store: GraphStore | None = None
 _embedding_adapter: EmbeddingAdapter | None = None
+_docs_service: DocsService | None = None
 _lock = threading.RLock()  # RLock allows reentrant acquisition (needed since get_graph_store calls get_config)
 
 
@@ -136,12 +138,54 @@ def set_embedding_adapter(adapter: EmbeddingAdapter) -> None:
     _embedding_adapter = adapter
 
 
+def get_docs_service() -> DocsService:
+    """Get the DocsService singleton.
+
+    Creates the service on first access using default fs2.docs package.
+    Returns cached instance on subsequent calls.
+
+    Per DYK-4: DocsService has no ConfigurationService dependency - simpler.
+    Per MCP Documentation Plan Phase 2.
+
+    Returns:
+        DocsService instance (real or injected for testing).
+    """
+    global _docs_service
+    with _lock:
+        if _docs_service is None:
+            from fs2.core.services.docs_service import DocsService
+
+            logger.debug("Creating DocsService singleton")
+            _docs_service = DocsService()
+    return _docs_service
+
+
+def set_docs_service(service: DocsService) -> None:
+    """Inject a DocsService (for testing).
+
+    Args:
+        service: DocsService instance (typically with fixture package).
+    """
+    global _docs_service
+    _docs_service = service
+
+
+def reset_docs_service() -> None:
+    """Reset DocsService singleton to None.
+
+    Used in tests to ensure clean state between test cases.
+    """
+    global _docs_service
+    _docs_service = None
+
+
 def reset_services() -> None:
     """Reset all service singletons to None.
 
     Used in tests to ensure clean state between test cases.
     """
-    global _config, _graph_store, _embedding_adapter
+    global _config, _graph_store, _embedding_adapter, _docs_service
     _config = None
     _graph_store = None
     _embedding_adapter = None
+    _docs_service = None

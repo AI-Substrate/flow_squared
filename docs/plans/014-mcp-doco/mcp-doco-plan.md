@@ -389,13 +389,13 @@ class TestDocMetadata:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 2.1 | [ ] | Write tests for DocsService.list_documents() | 2 | Tests cover: all docs, category filter, tags filter (OR logic), empty results | - | Create `tests/unit/services/test_docs_service.py` |
-| 2.2 | [ ] | Write tests for DocsService.get_document() | 2 | Tests cover: existing doc, non-existent doc (returns None), invalid id format | - | Extend test_docs_service.py |
-| 2.3 | [ ] | Create test fixtures in `tests/fixtures/docs/` | 1 | Sample registry.yaml + 2 sample .md files | - | Real files, no mocks |
-| 2.4 | [ ] | Implement DocsService with importlib.resources | 3 | All tests from 2.1, 2.2 pass | - | Follow TemplateService pattern |
-| 2.5 | [ ] | Create DocsNotFoundError exception | 1 | Exception with actionable message | - | Add to `src/fs2/core/adapters/exceptions.py` |
-| 2.6 | [ ] | Add get_docs_service() to dependencies.py | 1 | Thread-safe singleton pattern | - | Include set_ and reset_ functions |
-| 2.7 | [ ] | Write integration test with real package resources | 2 | Test loads from fs2.docs package | - | Requires Phase 4 docs exist |
+| 2.1 | [x] | Write tests for DocsService.list_documents() | 2 | Tests cover: all docs, category filter, tags filter (OR logic), empty results | [📋](tasks/phase-2-docsservice-implementation/execution.log.md#t001-write-tests-for-docsservicelist_documents) | 6 tests written [^3] |
+| 2.2 | [x] | Write tests for DocsService.get_document() | 2 | Tests cover: existing doc, non-existent doc (returns None), invalid id format | [📋](tasks/phase-2-docsservice-implementation/execution.log.md#t002-write-tests-for-docsserviceget_document) | 6 tests (4 get + 2 validation) [^3] |
+| 2.3 | [x] | Create test fixtures in `tests/fixtures/docs/` | 1 | Sample registry.yaml + 2 sample .md files | [📋](tasks/phase-2-docsservice-implementation/execution.log.md#t003-create-test-fixtures-in-testsfixturedocs) | Valid + broken fixtures [^3] |
+| 2.4 | [x] | Implement DocsService with importlib.resources | 3 | All tests from 2.1, 2.2 pass | [📋](tasks/phase-2-docsservice-implementation/execution.log.md#t005-implement-docsservice-with-importlibresources) | TemplateService pattern [^4] |
+| 2.5 | [x] | Create DocsNotFoundError exception | 1 | Exception with actionable message | [📋](tasks/phase-2-docsservice-implementation/execution.log.md#t004-create-docsnotfounderror-exception) | Extends AdapterError [^4] |
+| 2.6 | [x] | Add get_docs_service() to dependencies.py | 1 | Thread-safe singleton pattern | [📋](tasks/phase-2-docsservice-implementation/execution.log.md#t006-add-get_docs_service-to-dependenciespy) | No config dependency (DYK-4) [^5] |
+| 2.7 | [x] | Write integration test with real package resources | 2 | Test loads from fs2.docs package | [📋](tasks/phase-2-docsservice-implementation/execution.log.md#t007-write-integration-test-verifying-fixture-package-injection) | Tests mechanism (DYK-5) [^3] |
 
 #### Test Examples (Write First!)
 
@@ -449,12 +449,12 @@ class TestDocsServiceListDocuments:
 - [ ] Non-UTF8 document (encoding error)
 
 #### Acceptance Criteria
-- [ ] DocsService loads registry via importlib.resources
-- [ ] list_documents() returns all, filters by category/tags
-- [ ] get_document() returns Doc or None
-- [ ] Thread-safe singleton in dependencies.py
-- [ ] All tests passing (12+ tests)
-- [ ] No stdout output (stderr only)
+- [x] DocsService loads registry via importlib.resources
+- [x] list_documents() returns all, filters by category/tags
+- [x] get_document() returns Doc or None
+- [x] Thread-safe singleton in dependencies.py
+- [x] All tests passing (15 tests: 12 unit + 3 integration)
+- [x] No stdout output (stderr only via logging)
 
 ---
 
@@ -851,11 +851,13 @@ See [MCP Server Guide](docs/how/mcp-server-guide.md) for setup details.
 
 ### Phase Completion Checklist
 
-- [ ] Phase 1: Domain Models and Registry - NOT STARTED
-- [ ] Phase 2: DocsService Implementation - NOT STARTED
+- [x] Phase 1: Domain Models and Registry - COMPLETE (31 tests)
+- [x] Phase 2: DocsService Implementation - COMPLETE (15 tests)
 - [ ] Phase 3: MCP Tool Integration - NOT STARTED
 - [ ] Phase 4: Curated Documentation - NOT STARTED
 - [ ] Phase 5: Testing and Documentation - NOT STARTED
+
+Overall Progress: 2/5 phases (40%)
 
 ### STOP Rule
 
@@ -877,6 +879,25 @@ See [MCP Server Guide](docs/how/mcp-server-guide.md) for setup details.
   - `class:src/fs2/config/docs_registry.py:DocumentEntry` - Pydantic model for registry entries
   - `class:src/fs2/config/docs_registry.py:DocsRegistry` - Pydantic model for registry.yaml validation
 
+[^3]: Phase 2 - Test Infrastructure (Tasks 2.1-2.3, 2.7)
+  - `file:tests/unit/services/test_docs_service.py` - 12 unit tests for DocsService
+  - `file:tests/integration/test_docs_service_integration.py` - 3 integration tests
+  - `file:tests/fixtures/docs/registry.yaml` - Test fixture registry
+  - `file:tests/fixtures/docs/sample-doc.md` - Test document (how-to)
+  - `file:tests/fixtures/docs/another-doc.md` - Test document (reference)
+  - `file:tests/fixtures/docs_broken/registry.yaml` - Broken fixture for validation tests
+
+[^4]: Phase 2 - DocsService Core (Tasks 2.4-2.5)
+  - `class:src/fs2/core/services/docs_service.py:DocsService` - Main documentation service
+  - `method:src/fs2/core/services/docs_service.py:DocsService.list_documents` - Catalog with filtering
+  - `method:src/fs2/core/services/docs_service.py:DocsService.get_document` - Document retrieval
+  - `class:src/fs2/core/adapters/exceptions.py:DocsNotFoundError` - Domain exception
+
+[^5]: Phase 2 - Dependency Injection (Task 2.6)
+  - `function:src/fs2/mcp/dependencies.py:get_docs_service` - Thread-safe singleton getter
+  - `function:src/fs2/mcp/dependencies.py:set_docs_service` - Test injection
+  - `function:src/fs2/mcp/dependencies.py:reset_docs_service` - Test cleanup
+
 ---
 
-**Next Step**: Run `/plan-4-complete-the-plan` to validate readiness
+**Next Step**: Run `/plan-5-phase-tasks-and-brief --phase 3` to generate Phase 3 dossier

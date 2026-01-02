@@ -1,0 +1,21 @@
+# Test fixture registry for DocsService unit tests
+# Two documents with different categories and tags for filter testing
+
+documents:
+  - id: sample-doc
+    title: "Sample Documentation"
+    summary: "A sample document for testing DocsService. Use this to verify basic retrieval and metadata."
+    category: how-to
+    tags:
+      - sample
+      - testing
+    path: sample-doc.md
+
+  - id: another-doc
+    title: "Another Document"
+    summary: "Another document with different category for filter testing."
+    category: reference
+    tags:
+      - config
+      - reference
+    path: another-doc.md

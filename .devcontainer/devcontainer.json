@@ -27,7 +27,7 @@
 	},
 
 	// Run post-install script after the container is created
-	"postCreateCommand": "/usr/local/share/ssh-init.sh && /usr/local/bin/post-install.sh",
+	"postCreateCommand": "/usr/local/share/ssh-init.sh && /usr/local/bin/post-install.sh && grep -q 'alias fs2=' ~/.zshrc || echo 'alias fs2=\"uv run fs2\"' >> ~/.zshrc",
 	"postStartCommand": "/usr/local/share/ssh-init.sh",
 
 	// Mounts are in compose.yml, ports exposed via 0.0.0.0:2225 for remote SSH access

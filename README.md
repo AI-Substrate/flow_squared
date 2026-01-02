@@ -172,6 +172,25 @@ fs2 upgrade
 | `get_node` | Retrieve complete source code for a specific node |
 | `search` | Find code by text, regex, or semantic meaning |
 
+### CLI File Output
+
+Save results to files for later analysis or sharing:
+
+```bash
+# Search and save to file
+fs2 search "authentication" --file results.json
+
+# Tree as JSON (stdout)
+fs2 tree --json
+
+# Tree saved to file
+fs2 tree --json --file tree.json
+
+# With filtering
+fs2 search "error" --include "src/" --file src_errors.json
+fs2 tree Calculator --json --file calc_tree.json
+```
+
 See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation on all clients and tools.
 
 ## Language Support

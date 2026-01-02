@@ -142,3 +142,17 @@ class FakeASTParser(ASTParser):
             }
         )
         return self._languages_by_path.get(file_path)
+
+    def get_skip_summary(self) -> dict[str, int]:
+        """Return empty skip summary (fake doesn't track skips).
+
+        Returns:
+            Empty dict (fake implementation doesn't skip files).
+        """
+        self._call_history.append(
+            {
+                "method": "get_skip_summary",
+                "args": {},
+            }
+        )
+        return {}
