@@ -79,7 +79,7 @@ The fs2 MCP server (`src/fs2/mcp/server.py`) provides three tools:
 - **stdout reserved**: All logging must go to stderr (MCP JSON-RPC protocol)
 - **No caching**: Read from importlib.resources each call (docs are small)
 - **Full document only**: No section extraction in initial version
-- **Curated docs only**: 2 initial docs (agents.md, sample-config.yaml)
+- **Curated docs only**: 2 initial docs (agents.md, configuration-guide.md)
 
 ### Assumptions
 
@@ -579,7 +579,7 @@ class TestDocsGetTool:
 - `src/fs2/docs/` package directory
 - `registry.yaml` with 2 document entries
 - `agents.md` (copied/curated from docs/how/AGENTS.md)
-- `sample-config.yaml` (annotated config example)
+- `configuration-guide.md` (comprehensive configuration reference)
 - pyproject.toml update for wheel inclusion
 
 **Dependencies**: Phase 1 complete (models for validation)
@@ -595,9 +595,9 @@ class TestDocsGetTool:
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
 | 4.1 | [ ] | Create `src/fs2/docs/` package directory | 1 | Directory exists with `__init__.py` | - | Empty __init__.py is sufficient |
-| 4.2 | [ ] | Create `registry.yaml` with 2 entries | 1 | Valid YAML matching DocsRegistry schema | - | agents, sample-config entries |
+| 4.2 | [ ] | Create `registry.yaml` with 2 entries | 1 | Valid YAML matching DocsRegistry schema | - | agents, configuration-guide entries |
 | 4.3 | [ ] | Copy and curate agents.md from docs/how/AGENTS.md | 2 | Content matches source, summary is actionable | - | Keep user-focused, remove dev-only content |
-| 4.4 | [ ] | Create sample-config.yaml with annotations | 2 | Annotated YAML based on .fs2/config.yaml, no secrets | - | Detailed comments for each section |
+| 4.4 | [ ] | Create configuration-guide.md (comprehensive) | 3 | Complete configuration reference covering all topics below | - | See Configuration Guide Content section |
 | 4.5 | [ ] | Update pyproject.toml for wheel inclusion | 1 | Docs included when building wheel | - | Add to hatch.build includes |
 | 4.6 | [ ] | Verify importlib.resources access works | 1 | Test confirms files accessible | - | Create quick verification test |
 
@@ -618,22 +618,128 @@ documents:
       - getting-started
     path: agents.md
 
-  - id: sample-config
-    title: "Sample Configuration"
-    summary: "Annotated example of .fs2/config.yaml with all options explained. Use when setting up fs2 for the first time or troubleshooting configuration issues."
+  - id: configuration-guide
+    title: "Complete Configuration Guide"
+    summary: "Comprehensive reference for all fs2 configuration options. Covers file locations (user vs project), secrets management, LLM/embedding provider setup (Azure/OpenAI), and environment variable patterns. Read when setting up fs2 for the first time or troubleshooting configuration."
     category: reference
     tags:
       - config
       - setup
-      - yaml
-    path: sample-config.yaml
+      - azure
+      - openai
+      - llm
+      - embedding
+      - secrets
+    path: configuration-guide.md
 ```
+
+#### Configuration Guide Content (configuration-guide.md)
+
+The configuration guide must be a comprehensive markdown document covering:
+
+**1. Configuration File Locations**
+- User configuration: `~/.config/fs2/config.yaml` (XDG spec)
+- Project configuration: `.fs2/config.yaml`
+- Precedence: project overrides user
+
+**2. Environment Files for Secrets** (CRITICAL SECTION)
+
+Three locations, loaded in order (later overrides earlier):
+1. **User secrets**: `~/.config/fs2/secrets.env` (note: named `secrets.env`, not `.env`)
+2. **Project secrets**: `.fs2/secrets.env` (also named `secrets.env`)
+3. **Working directory**: `.env` (standard dotenv, highest priority)
+
+**Naming convention**:
+- In `~/.config/fs2/` and `.fs2/` directories → use `secrets.env`
+- In project root (working directory) → use `.env`
+
+**Example `.fs2/.env` or `.env`**:
+```bash
+# API keys for LLM and embedding services
+AZURE_OPENAI_API_KEY=your-azure-openai-key-here
+AZURE_EMBEDDING_API_KEY=your-azure-embedding-key-here
+
+# OpenAI alternative
+OPENAI_API_KEY=sk-your-openai-key-here
+```
+
+**How it works**:
+- All env files are loaded into `os.environ` BEFORE config.yaml is parsed
+- This enables `${VAR}` placeholder expansion at runtime
+- Never commit secrets to config.yaml - always use placeholders
+
+**3. Configuration Merging and Precedence**
+- Deep merge behavior (nested objects merged, not replaced)
+- Full precedence order (lowest to highest):
+  1. Default values in code
+  2. User config.yaml (`~/.config/fs2/config.yaml`)
+  3. Project config.yaml (`.fs2/config.yaml`)
+  4. `FS2_*` environment variables (highest priority)
+- Environment variable override prefix: `FS2_`
+- Double underscore for nesting: `FS2_LLM__PROVIDER=azure`
+
+**4. Environment Variable Substitution (${VAR} Expansion)**
+- Placeholder syntax: `${VAR_NAME}` in config.yaml
+- Expansion happens AFTER all config sources merged
+- Variables come from: secrets.env files, .env file, shell environment
+- Missing variables left unexpanded (consumer validates)
+- Security: literal secrets rejected (sk-* prefix check prevents accidental commits)
+
+**Example flow**:
+```yaml
+# .fs2/config.yaml
+llm:
+  api_key: ${AZURE_OPENAI_API_KEY}  # Placeholder, not literal
+```
+```bash
+# .env (loaded first)
+AZURE_OPENAI_API_KEY=actual-key-here
+```
+→ At runtime, `api_key` becomes `actual-key-here`
+
+**5. LLM Configuration**
+- Provider selection: `azure`, `openai`, `fake`
+- Azure OpenAI setup (full example with all fields)
+- OpenAI setup (full example)
+- Parameters: temperature, max_tokens, timeout, max_retries
+- Environment variable mapping
+
+**6. Embedding Configuration**
+- Mode selection: `azure`, `openai_compatible`, `fake`
+- Azure embedding setup (full example)
+- Dimensions, batch_size, retry configuration
+- Chunking configuration (code, documentation, smart_content)
+
+**7. Scan Configuration**
+- scan_paths (relative/absolute)
+- respect_gitignore
+- max_file_size_kb
+- follow_symlinks
+
+**8. Smart Content Configuration**
+- max_workers
+- max_input_tokens
+- token_limits per category
+
+**9. Search Configuration**
+- default_limit, min_similarity, regex_timeout
+
+**10. Complete Examples**
+- Minimal testing config (with `provider: fake`)
+- Azure production config (full config.yaml + .env pair)
+- OpenAI production config (full config.yaml + .env pair)
+
+**11. Troubleshooting**
+- Common errors and fixes
+- "Literal secret detected" - use ${VAR} placeholder instead
+- "Missing configuration" - check env file loaded correctly
+- Validation behavior (two-stage: pre-expansion and post-expansion)
 
 #### Acceptance Criteria
 - [ ] `src/fs2/docs/__init__.py` exists
 - [ ] registry.yaml valid and passes DocsRegistry validation
 - [ ] agents.md has actionable summary
-- [ ] sample-config.yaml is fully annotated
+- [ ] configuration-guide.md covers all 11 sections above
 - [ ] pyproject.toml includes docs in wheel
 - [ ] `importlib.resources.files("fs2.docs")` works
 

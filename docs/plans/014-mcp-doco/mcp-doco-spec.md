@@ -140,7 +140,17 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
 **When** an agent calls `docs_list()`
 **Then** the response includes:
 - `agents` → `src/fs2/docs/agents.md` (copied from `docs/how/AGENTS.md`)
-- `sample-config` → `src/fs2/docs/sample-config.yaml` (annotated YAML based on `.fs2/config.yaml`, identifiable info removed)
+- `configuration-guide` → `src/fs2/docs/configuration-guide.md` (comprehensive configuration reference)
+
+The configuration guide must cover:
+- Configuration file locations (user ~/.config/fs2/ vs project .fs2/)
+- Secrets management (secrets.env files, precedence)
+- Configuration merging (user → project → environment variables)
+- Environment variable substitution (${VAR} syntax)
+- LLM configuration (Azure OpenAI and OpenAI providers)
+- Embedding configuration (Azure and OpenAI compatible)
+- Scan, smart_content, and search configuration
+- Complete working examples for Azure and OpenAI setups
 
 ### AC9: In-app documentation mechanism documented in idioms
 **Given** the feature is complete
@@ -230,11 +240,11 @@ Based on comprehensive research of reference implementations (wormhole, flowspac
       "tags": ["agents", "mcp", "getting-started"]
     },
     {
-      "id": "sample-config",
-      "title": "Sample Configuration",
-      "summary": "Annotated example of .fs2/config.yaml with all options explained. Use when setting up fs2 for the first time or troubleshooting configuration issues.",
+      "id": "configuration-guide",
+      "title": "Complete Configuration Guide",
+      "summary": "Comprehensive reference for all fs2 configuration options. Covers file locations (user vs project), secrets management, LLM/embedding provider setup (Azure/OpenAI), and environment variable patterns. Read when setting up fs2 for the first time or troubleshooting configuration.",
       "category": "reference",
-      "tags": ["config", "setup", "yaml"]
+      "tags": ["config", "setup", "azure", "openai", "llm", "embedding", "secrets"]
     }
   ],
   "count": 2
@@ -355,7 +365,13 @@ data = json.loads(result.content[0].text)
 - **Selected**: Two docs created during plan execution
 - **Documents**:
   1. `agents.md` - Copy of `docs/how/AGENTS.md`
-  2. `sample-config.yaml` - Annotated YAML from `.fs2/config.yaml` (identifiable info removed, detailed comments)
+  2. `configuration-guide.md` - Comprehensive configuration reference covering:
+     - File locations (user ~/.config/fs2/ vs project .fs2/)
+     - Secrets management (secrets.env, .env, precedence)
+     - Configuration merging and environment variable overrides
+     - LLM setup (Azure OpenAI and OpenAI)
+     - Embedding setup (Azure and OpenAI compatible)
+     - All config sections with complete examples
 - **Additional**: Update `idioms.md` to document this mechanism for future agents
 
 ---
@@ -372,7 +388,7 @@ data = json.loads(result.content[0].text)
 | Doc Source | Curated in-app docs (separate from `docs/how/`) |
 | Cache Strategy | No caching |
 | Section Extraction | Full document only |
-| Initial Docs | `agents.md` (copy) + `sample-config.yaml` (annotated) |
+| Initial Docs | `agents.md` (copy) + `configuration-guide.md` (comprehensive) |
 
 **Resolved**: 9/9 questions
 **Deferred**: 0

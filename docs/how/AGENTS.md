@@ -43,11 +43,14 @@ uvx --from git+https://github.com/AI-Substrate/flow_squared@abc1234 fs2 mcp
 
 **Permanent install** (faster startup, no update checks):
 ```bash
-uv tool install git+https://github.com/AI-Substrate/flow_squared
-fs2 mcp  # Now available directly
+# Install fs2 permanently (self-bootstrapping)
+uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 install
+
+# Now use directly
+fs2 mcp
 
 # Update to latest
-uv tool upgrade fs2
+fs2 upgrade
 ```
 
 ### Option 2: Claude MCP Add
