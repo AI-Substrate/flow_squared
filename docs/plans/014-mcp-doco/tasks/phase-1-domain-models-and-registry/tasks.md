@@ -54,12 +54,12 @@ Doc(
 Create domain models for documentation metadata, documents, and registry validation following fs2 patterns (frozen dataclasses, Pydantic v2).
 
 **Behavior Checklist** (from spec AC1, AC4, AC6):
-- [ ] DocMetadata has all 6 required fields: id, title, summary, category, tags, path
-- [ ] Doc combines metadata with content field
-- [ ] DocsRegistry validates registry.yaml structure with actionable errors
-- [ ] Document IDs match pattern `^[a-z0-9-]+$`
-- [ ] Models are immutable (frozen)
-- [ ] Models exported from `fs2.core.models`
+- [x] DocMetadata has all 6 required fields: id, title, summary, category, tags, path
+- [x] Doc combines metadata with content field
+- [x] DocsRegistry validates registry.yaml structure with actionable errors
+- [x] Document IDs match pattern `^[a-z0-9-]+$`
+- [x] Models are immutable (frozen)
+- [x] Models exported from `fs2.core.models`
 
 ### Goals
 
@@ -101,15 +101,15 @@ flowchart TD
     style Tests fill:#F5F5F5,stroke:#E0E0E0
 
     subgraph Phase["Phase 1: Domain Models and Registry"]
-        T001["T001: Write DocMetadata tests"]:::pending
-        T002["T002: Implement DocMetadata"]:::pending
-        T003["T003: Write Doc tests"]:::pending
-        T004["T004: Implement Doc"]:::pending
-        T005["T005: Write DocsRegistry tests"]:::pending
-        T006["T006: Implement DocsRegistry"]:::pending
-        T007["T007: Write factory tests"]:::pending
-        T008["T008: Implement factory"]:::pending
-        T009["T009: Export from __init__.py"]:::pending
+        T001["T001: Write DocMetadata tests ✓"]:::completed
+        T002["T002: Implement DocMetadata ✓"]:::completed
+        T003["T003: Write Doc tests ✓"]:::completed
+        T004["T004: Implement Doc ✓"]:::completed
+        T005["T005: Write DocsRegistry tests ✓"]:::completed
+        T006["T006: Implement DocsRegistry ✓"]:::completed
+        T007["T007: Write factory tests ✓"]:::completed
+        T008["T008: Implement factory ✓"]:::completed
+        T009["T009: Export from __init__.py ✓"]:::completed
 
         T001 --> T002
         T002 --> T003
@@ -122,14 +122,14 @@ flowchart TD
     end
 
     subgraph Models["Source Files"]
-        F1["/src/fs2/core/models/doc.py"]:::pending
-        F2["/src/fs2/config/docs_registry.py"]:::pending
-        F3["/src/fs2/core/models/__init__.py"]:::pending
+        F1["/src/fs2/core/models/doc.py ✓"]:::completed
+        F2["/src/fs2/config/docs_registry.py ✓"]:::completed
+        F3["/src/fs2/core/models/__init__.py ✓"]:::completed
     end
 
     subgraph Tests["Test Files"]
-        T_DOC["/tests/unit/models/test_doc.py"]:::pending
-        T_REG["/tests/unit/config/test_docs_registry.py"]:::pending
+        T_DOC["/tests/unit/models/test_doc.py ✓"]:::completed
+        T_REG["/tests/unit/config/test_docs_registry.py ✓"]:::completed
     end
 
     T001 -.-> T_DOC
@@ -147,15 +147,15 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | DocMetadata Tests | /workspaces/flow_squared/tests/unit/models/test_doc.py | ⬜ Pending | TDD: Write failing tests first for immutability, required fields |
-| T002 | DocMetadata Model | /workspaces/flow_squared/src/fs2/core/models/doc.py | ⬜ Pending | Frozen dataclass with 6 fields, tuple for tags |
-| T003 | Doc Tests | /workspaces/flow_squared/tests/unit/models/test_doc.py | ⬜ Pending | Extend test file for Doc dataclass |
-| T004 | Doc Model | /workspaces/flow_squared/src/fs2/core/models/doc.py | ⬜ Pending | Composition: metadata + content |
-| T005 | DocsRegistry Tests | /workspaces/flow_squared/tests/unit/config/test_docs_registry.py | ⬜ Pending | Pydantic validation, ID pattern, YAML parsing |
-| T006 | DocsRegistry Model | /workspaces/flow_squared/src/fs2/config/docs_registry.py | ⬜ Pending | Per DYK-3: config/ layer for Pydantic |
-| T007 | Factory Tests | /workspaces/flow_squared/tests/unit/models/test_doc.py | ⬜ Pending | TDD: Test DocumentEntry→DocMetadata conversion |
-| T008 | Factory Method | /workspaces/flow_squared/src/fs2/core/models/doc.py | ⬜ Pending | Per DYK-1: from_registry_entry() factory |
-| T009 | Model Exports | /workspaces/flow_squared/src/fs2/core/models/__init__.py | ⬜ Pending | Add DocMetadata, Doc to __all__ |
+| T001 | DocMetadata Tests | /workspaces/flow_squared/tests/unit/models/test_doc.py | ✅ Complete | TDD: 10 failing tests written for immutability, required fields |
+| T002 | DocMetadata Model | /workspaces/flow_squared/src/fs2/core/models/doc.py | ✅ Complete | Frozen dataclass with 6 fields, tuple for tags |
+| T003 | Doc Tests | /workspaces/flow_squared/tests/unit/models/test_doc.py | ✅ Complete | 5 failing tests for Doc composition |
+| T004 | Doc Model | /workspaces/flow_squared/src/fs2/core/models/doc.py | ✅ Complete | Composition: metadata + content |
+| T005 | DocsRegistry Tests | /workspaces/flow_squared/tests/unit/config/test_docs_registry.py | ✅ Complete | 13 failing tests for Pydantic validation |
+| T006 | DocsRegistry Model | /workspaces/flow_squared/src/fs2/config/docs_registry.py | ✅ Complete | Per DYK-3: config/ layer for Pydantic |
+| T007 | Factory Tests | /workspaces/flow_squared/tests/unit/models/test_doc.py | ✅ Complete | 3 failing tests for factory conversion |
+| T008 | Factory Method | /workspaces/flow_squared/src/fs2/core/models/doc.py | ✅ Complete | Per DYK-1: from_registry_entry() factory |
+| T009 | Model Exports | /workspaces/flow_squared/src/fs2/core/models/__init__.py | ✅ Complete | Add DocMetadata, Doc to __all__ |
 
 ---
 
@@ -163,15 +163,15 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|------|-----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Write tests for DocMetadata frozen dataclass | 1 | Test | – | /workspaces/flow_squared/tests/unit/models/test_doc.py | Tests verify: immutability (FrozenInstanceError), 6 required fields (id, title, summary, category, tags, path), tags is tuple | – | Follow test_domain_models.py pattern |
-| [ ] | T002 | Implement DocMetadata in doc.py | 1 | Core | T001 | /workspaces/flow_squared/src/fs2/core/models/doc.py | All T001 tests pass, @dataclass(frozen=True) | – | Use tuple for tags (immutable) |
-| [ ] | T003 | Write tests for Doc frozen dataclass | 1 | Test | T002 | /workspaces/flow_squared/tests/unit/models/test_doc.py | Tests verify: metadata field, content field (str), immutability | – | Extend same test file |
-| [ ] | T004 | Implement Doc dataclass | 1 | Core | T003 | /workspaces/flow_squared/src/fs2/core/models/doc.py | All T003 tests pass | – | Simple composition |
-| [ ] | T005 | Write tests for DocsRegistry Pydantic model | 2 | Test | T004 | /workspaces/flow_squared/tests/unit/config/test_docs_registry.py | Tests verify: YAML parsing, validation errors for missing fields, ID pattern ^[a-z0-9-]+$, actionable error messages | – | Per Critical Finding 04, DYK-3 |
-| [ ] | T006 | Implement DocsRegistry Pydantic model | 2 | Core | T005 | /workspaces/flow_squared/src/fs2/config/docs_registry.py | All T005 tests pass, uses Pydantic v2 patterns, Field(pattern=...) | – | Per Critical Finding 04, DYK-3 |
-| [ ] | T007 | Write tests for `DocMetadata.from_registry_entry()` factory | 1 | Test | T006 | /workspaces/flow_squared/tests/unit/models/test_doc.py | Tests verify: converts DocumentEntry→DocMetadata, handles list→tuple for tags | – | Per DYK-1: Conversion gap |
-| [ ] | T008 | Implement `DocMetadata.from_registry_entry()` factory method | 1 | Core | T007 | /workspaces/flow_squared/src/fs2/core/models/doc.py | All T007 tests pass, returns frozen DocMetadata from Pydantic entry | – | Per DYK-1: Conversion gap |
-| [ ] | T009 | Export DocMetadata, Doc from __init__.py | 1 | Integration | T008 | /workspaces/flow_squared/src/fs2/core/models/__init__.py | `from fs2.core.models import DocMetadata, Doc` works | – | Update __all__ list |
+| [x] | T001 | Write tests for DocMetadata frozen dataclass | 1 | Test | – | /workspaces/flow_squared/tests/unit/models/test_doc.py | Tests verify: immutability (FrozenInstanceError), 6 required fields (id, title, summary, category, tags, path), tags is tuple | – | 10 tests [^1] |
+| [x] | T002 | Implement DocMetadata in doc.py | 1 | Core | T001 | /workspaces/flow_squared/src/fs2/core/models/doc.py | All T001 tests pass, @dataclass(frozen=True) | – | Frozen dataclass [^1] |
+| [x] | T003 | Write tests for Doc frozen dataclass | 1 | Test | T002 | /workspaces/flow_squared/tests/unit/models/test_doc.py | Tests verify: metadata field, content field (str), immutability | – | 5 tests [^1] |
+| [x] | T004 | Implement Doc dataclass | 1 | Core | T003 | /workspaces/flow_squared/src/fs2/core/models/doc.py | All T003 tests pass | – | Composition [^1] |
+| [x] | T005 | Write tests for DocsRegistry Pydantic model | 2 | Test | T004 | /workspaces/flow_squared/tests/unit/config/test_docs_registry.py | Tests verify: YAML parsing, validation errors for missing fields, ID pattern ^[a-z0-9-]+$, actionable error messages | – | 13 tests [^2] |
+| [x] | T006 | Implement DocsRegistry Pydantic model | 2 | Core | T005 | /workspaces/flow_squared/src/fs2/config/docs_registry.py | All T005 tests pass, uses Pydantic v2 patterns, Field(pattern=...) | – | Per DYK-3 [^2] |
+| [x] | T007 | Write tests for `DocMetadata.from_registry_entry()` factory | 1 | Test | T006 | /workspaces/flow_squared/tests/unit/models/test_doc.py | Tests verify: converts DocumentEntry→DocMetadata, handles list→tuple for tags | – | 3 tests [^1] |
+| [x] | T008 | Implement `DocMetadata.from_registry_entry()` factory method | 1 | Core | T007 | /workspaces/flow_squared/src/fs2/core/models/doc.py | All T007 tests pass, returns frozen DocMetadata from Pydantic entry | – | Per DYK-1 [^1] |
+| [x] | T009 | Export DocMetadata, Doc from __init__.py | 1 | Integration | T008 | /workspaces/flow_squared/src/fs2/core/models/__init__.py | `from fs2.core.models import DocMetadata, Doc` works | – | Exports [^1] |
 
 ---
 
@@ -370,23 +370,22 @@ just test
 
 ### Ready Check
 
-- [ ] Plan tasks (1.1-1.7) understood and mapped to T001-T007
-- [ ] Critical Finding 02 (importlib.resources) addressed: path is string, not Path
-- [ ] Critical Finding 04 (Registry Validation) addressed: DocsRegistry Pydantic model
-- [ ] Test patterns understood (test_domain_models.py reviewed)
-- [ ] Model patterns understood (code_node.py reviewed)
-- [ ] Export pattern understood (__init__.py reviewed)
+- [x] Plan tasks (1.1-1.7) understood and mapped to T001-T009
+- [x] Critical Finding 02 (importlib.resources) addressed: path is string, not Path
+- [x] Critical Finding 04 (Registry Validation) addressed: DocsRegistry Pydantic model
+- [x] Test patterns understood (test_domain_models.py reviewed)
+- [x] Model patterns understood (code_node.py reviewed)
+- [x] Export pattern understood (__init__.py reviewed)
 - [N/A] ADR constraints mapped to tasks - no ADRs exist for this feature
 
 ---
 
 ## Phase Footnote Stubs
 
-*Footnotes will be added during implementation via plan-6a.*
-
 | ID | Task | Description | References |
 |----|------|-------------|------------|
-| | | | |
+| [^1] | T001-T004, T007-T009 | Domain Models | `class:doc.py:DocMetadata`, `class:doc.py:Doc`, `method:doc.py:DocMetadata.from_registry_entry` |
+| [^2] | T005-T006 | Registry Validation | `class:docs_registry.py:DocumentEntry`, `class:docs_registry.py:DocsRegistry` |
 
 ---
 

@@ -129,21 +129,22 @@ Additionally, `fs2 init` should be enhanced to automatically bootstrap user-glob
 19. **AC-19**: No `--global` flag needed - users don't need to understand config hierarchy
 20. **AC-20**: `fs2 init` displays current working directory path before creating configs
 21. **AC-21**: If no `.git` folder exists in current directory, shows prominent red warning (but does not fail)
+22. **AC-22**: `fs2 init` creates `.fs2/.gitignore` that ignores everything except `config.yaml`
 
 ### CLI Guard (Require Init)
 
-22. **AC-22**: Commands like `scan`, `search`, `tree`, `get-node`, `mcp` fail if `.fs2/` doesn't exist in current directory
-23. **AC-23**: When command fails due to missing init, error message shows current working directory path
-24. **AC-24**: Error message suggests running `fs2 init` when `.fs2/` is missing
-25. **AC-25**: If no `.git` folder exists, error also shows prominent red warning (helps identify wrong directory)
-26. **AC-26**: These commands always work without init: `init`, `doctor`, `--help`, `--version`, and any subcommand `--help`
-27. **AC-27**: No auto-init behavior - commands never create `.fs2/` implicitly
+23. **AC-23**: Commands like `scan`, `search`, `tree`, `get-node`, `mcp` fail if `.fs2/` doesn't exist in current directory
+24. **AC-24**: When command fails due to missing init, error message shows current working directory path
+25. **AC-25**: Error message suggests running `fs2 init` when `.fs2/` is missing
+26. **AC-26**: If no `.git` folder exists, error also shows prominent red warning (helps identify wrong directory)
+27. **AC-27**: These commands always work without init: `init`, `doctor`, `--help`, `--version`, and any subcommand `--help`
+28. **AC-28**: No auto-init behavior - commands never create `.fs2/` implicitly
 
 ### Example Templates
 
-28. **AC-28**: `src/fs2/docs/config.yaml.example` exists with documented LLM and embedding sections
-29. **AC-29**: `src/fs2/docs/secrets.env.example` exists with placeholder variable names
-30. **AC-30**: Example templates registered in `src/fs2/docs/registry.yaml` with appropriate category/tags
+29. **AC-29**: `src/fs2/docs/config.yaml.example` exists with documented LLM and embedding sections
+30. **AC-30**: `src/fs2/docs/secrets.env.example` exists with placeholder variable names
+31. **AC-31**: Example templates registered in `src/fs2/docs/registry.yaml` with appropriate category/tags
 
 ---
 

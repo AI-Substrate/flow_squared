@@ -98,7 +98,7 @@ flowchart TD
     classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
 
     subgraph CLI["CLI Layer"]
-        T001["T001: Tests for search --file"]:::pending
+        T001["T001: Tests for search --file"]:::inprogress
         T002["T002: Shared path validation"]:::pending
         T003["T003: Add --file to search"]:::pending
         T007["T007: Tests for tree --json"]:::pending
@@ -190,7 +190,7 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | CLI Search Tests | `/tests/unit/cli/test_search_cli.py` | ⬜ Pending | TDD: Write failing tests for --file option |
+| T001 | CLI Search Tests | `/tests/unit/cli/test_search_cli.py` | 🟧 In Progress | TDD: Write failing tests for --file option |
 | T002 | CLI Utils | `/src/fs2/cli/utils.py` | ⬜ Pending | Create shared path validation utility |
 | T003 | CLI Search | `/src/fs2/cli/search.py` | ⬜ Pending | Add --file option implementation |
 | T004 | MCP Search Tests | `/tests/mcp_tests/test_search_tool.py` | ⬜ Pending | TDD: Write failing tests for save_to_file |
@@ -214,7 +214,7 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Write tests for CLI search `--file` option | 2 | Test | -- | `/workspaces/flow_squared/tests/unit/cli/test_search_cli.py` | Tests cover: file creation, valid JSON envelope, empty stdout, stderr confirmation, path validation rejection, empty results save, subdirectory creation; all tests FAIL initially | -- | Create `TestSearchFileOutput` class; requires `scanned_project`, `tmp_path`, `monkeypatch` fixtures |
+| [~] | T001 | Write tests for CLI search `--file` option | 2 | Test | -- | `/workspaces/flow_squared/tests/unit/cli/test_search_cli.py` | Tests cover: file creation, valid JSON envelope, empty stdout, stderr confirmation, path validation rejection, empty results save, subdirectory creation; all tests FAIL initially | -- | Create `TestSearchFileOutput` class; requires `scanned_project`, `tmp_path`, `monkeypatch` fixtures |
 | [ ] | T002 | Create shared CLI path validation utility | 1 | Core | T001 | `/workspaces/flow_squared/src/fs2/cli/utils.py` | Create `validate_save_path(file: Path, console: Console) -> Path` that exits with code 1 for path escape, mirrors MCP validation logic; auto-creates parent directories. Also add `safe_write_file(path: Path, content: str)` helper with try/except cleanup and `encoding="utf-8"` per Insights #2 & #3 | -- | New module; per Critical Finding 01; Insight #2: cleanup on error; Insight #3: enforce UTF-8 |
 | [ ] | T003 | Add `--file` option to CLI search command | 2 | Core | T002 | `/workspaces/flow_squared/src/fs2/cli/search.py` | Tests from T001 pass: file write works, stdout empty with --file, confirmation on stderr, path validated, subdirs created | -- | Add `file: Path | None` parameter; per Critical Finding 02 |
 | [ ] | T004 | Write tests for MCP search `save_to_file` | 2 | Test | -- | `/workspaces/flow_squared/tests/mcp_tests/test_search_tool.py` | Tests cover: `saved_to` field in response, file creation, valid JSON, path validation ToolError, subdirectory creation; all tests FAIL initially | -- | Create `TestSearchSaveToFile` class; requires `search_test_graph_store`, `tmp_path` fixtures |

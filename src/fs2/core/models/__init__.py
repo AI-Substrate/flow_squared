@@ -9,9 +9,12 @@ Public API:
 - ScanResult: File scan result with path and size
 - ScanSummary: Pipeline execution result summary
 - TreeNode: Recursive tree structure for tree rendering
+- DocMetadata: Document metadata for catalog listings
+- Doc: Complete document with metadata and content
 """
 
 from fs2.core.models.code_node import CodeNode, classify_node
+from fs2.core.models.doc import Doc, DocMetadata
 from fs2.core.models.log_entry import LogEntry
 from fs2.core.models.log_level import LogLevel
 from fs2.core.models.process_result import ProcessResult
@@ -28,4 +31,6 @@ __all__ = [
     "ScanResult",
     "ScanSummary",
     "TreeNode",
+    "DocMetadata",
+    "Doc",
 ]

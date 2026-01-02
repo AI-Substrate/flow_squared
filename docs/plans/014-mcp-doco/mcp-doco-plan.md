@@ -308,13 +308,13 @@ Acceptance Criteria: [measurable assertions]
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 1.1 | [ ] | Write tests for DocMetadata frozen dataclass | 1 | Tests verify: immutability, required fields (id, title, summary, category, tags, path), type validation | - | Create `tests/unit/models/test_doc.py` |
-| 1.2 | [ ] | Implement DocMetadata in `src/fs2/core/models/doc.py` | 1 | All tests from 1.1 pass | - | Frozen dataclass with tuple for tags |
-| 1.3 | [ ] | Write tests for Doc frozen dataclass | 1 | Tests verify: metadata field, content field, immutability | - | Extends test_doc.py |
-| 1.4 | [ ] | Implement Doc dataclass | 1 | All tests from 1.3 pass | - | Simple composition |
-| 1.5 | [ ] | Write tests for DocsRegistry Pydantic model | 2 | Tests verify: YAML parsing, validation errors, field constraints (id pattern) | - | Create `tests/unit/models/test_docs_registry.py` |
-| 1.6 | [ ] | Implement DocsRegistry Pydantic model | 2 | All tests from 1.5 pass, validates registry.yaml structure | - | Pattern `^[a-z0-9-]+$` for IDs |
-| 1.7 | [ ] | Export models from `src/fs2/core/models/__init__.py` | 1 | Can import `from fs2.core.models import DocMetadata, Doc` | - | |
+| 1.1 | [x] | Write tests for DocMetadata frozen dataclass | 1 | Tests verify: immutability, required fields (id, title, summary, category, tags, path), type validation | [📋](tasks/phase-1-domain-models-and-registry/execution.log.md#t001-write-tests-for-docmetadata-frozen-dataclass) | 10 tests written [^1] |
+| 1.2 | [x] | Implement DocMetadata in `src/fs2/core/models/doc.py` | 1 | All tests from 1.1 pass | [📋](tasks/phase-1-domain-models-and-registry/execution.log.md#t002-implement-docmetadata-in-docpy) | Frozen dataclass with tuple for tags [^1] |
+| 1.3 | [x] | Write tests for Doc frozen dataclass | 1 | Tests verify: metadata field, content field, immutability | [📋](tasks/phase-1-domain-models-and-registry/execution.log.md#t003-write-tests-for-doc-frozen-dataclass) | 5 tests written [^1] |
+| 1.4 | [x] | Implement Doc dataclass | 1 | All tests from 1.3 pass | [📋](tasks/phase-1-domain-models-and-registry/execution.log.md#t004-implement-doc-dataclass) | Simple composition [^1] |
+| 1.5 | [x] | Write tests for DocsRegistry Pydantic model | 2 | Tests verify: YAML parsing, validation errors, field constraints (id pattern) | [📋](tasks/phase-1-domain-models-and-registry/execution.log.md#t005-write-tests-for-docsregistry-pydantic-model) | 13 tests in config/ layer [^2] |
+| 1.6 | [x] | Implement DocsRegistry Pydantic model | 2 | All tests from 1.5 pass, validates registry.yaml structure | [📋](tasks/phase-1-domain-models-and-registry/execution.log.md#t006-implement-docsregistry-pydantic-model) | Pattern `^[a-z0-9-]+$` for IDs [^2] |
+| 1.7 | [x] | Export models from `src/fs2/core/models/__init__.py` | 1 | Can import `from fs2.core.models import DocMetadata, Doc` | [📋](tasks/phase-1-domain-models-and-registry/execution.log.md#t009-export-docmetadata-doc-from-__init__py) | Factory method added per DYK-1 [^1] |
 
 #### Test Examples (Write First!)
 
@@ -360,11 +360,11 @@ class TestDocMetadata:
 - [ ] Non-existent path (validated later, not here)
 
 #### Acceptance Criteria
-- [ ] DocMetadata is frozen dataclass with 6 fields
-- [ ] Doc is frozen dataclass with metadata + content
-- [ ] DocsRegistry validates YAML structure
-- [ ] All tests passing (8+ tests)
-- [ ] Models exported from `__init__.py`
+- [x] DocMetadata is frozen dataclass with 6 fields
+- [x] Doc is frozen dataclass with metadata + content
+- [x] DocsRegistry validates YAML structure
+- [x] All tests passing (31 tests)
+- [x] Models exported from `__init__.py`
 
 ---
 
@@ -867,11 +867,15 @@ See [MCP Server Guide](docs/how/mcp-server-guide.md) for setup details.
 
 ## Change Footnotes Ledger
 
-[^1]: [To be added during implementation via plan-6a]
-[^2]: [To be added during implementation via plan-6a]
-[^3]: [To be added during implementation via plan-6a]
-[^4]: [To be added during implementation via plan-6a]
-[^5]: [To be added during implementation via plan-6a]
+[^1]: Phase 1 - Domain Models (Tasks 1.1-1.4, 1.7)
+  - `class:src/fs2/core/models/doc.py:DocMetadata` - Document metadata frozen dataclass
+  - `class:src/fs2/core/models/doc.py:Doc` - Complete document frozen dataclass
+  - `method:src/fs2/core/models/doc.py:DocMetadata.from_registry_entry` - Factory method (DYK-1)
+  - `file:src/fs2/core/models/__init__.py` - Export DocMetadata, Doc
+
+[^2]: Phase 1 - Registry Validation (Tasks 1.5-1.6)
+  - `class:src/fs2/config/docs_registry.py:DocumentEntry` - Pydantic model for registry entries
+  - `class:src/fs2/config/docs_registry.py:DocsRegistry` - Pydantic model for registry.yaml validation
 
 ---
 
