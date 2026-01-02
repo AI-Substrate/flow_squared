@@ -210,3 +210,72 @@ Results include `node_id` fields for precise references:
 - `pretty` — Human-readable with details
 - `table` — Quick scanning
 - `report` — Executive summary with statistics
+
+## fs2 MCP Server (Dogfooding)
+
+This project uses its own fs2 MCP server for code exploration. **Use fs2 to work on fs2** - eat our own dogfood.
+
+### Setup
+
+```bash
+# Add fs2 MCP server (user scope for all projects)
+claude mcp add fs2 --scope user -- fs2 mcp
+
+# Verify it's configured
+claude mcp list
+```
+
+### When to Use fs2 MCP vs. Traditional Tools
+
+| Task | fs2 Tool | Alternative |
+|------|----------|-------------|
+| Explore codebase structure | `mcp__fs2__tree(pattern=".")` | `Glob` / `ls` |
+| Find class/function by name | `mcp__fs2__tree(pattern="ClassName")` | `Grep` |
+| Get full source of a node | `mcp__fs2__get_node(node_id="...")` | `Read` |
+| Semantic code search | `mcp__fs2__search(pattern="...", mode="semantic")` | Not available |
+| Text search in code | `mcp__fs2__search(pattern="...", mode="text")` | `Grep` |
+| Regex pattern search | `mcp__fs2__search(pattern="def.*test", mode="regex")` | `Grep` |
+
+### Recommended Workflows
+
+**Understanding a new area of the codebase:**
+```python
+# 1. See what exists
+mcp__fs2__tree(pattern="adapters")
+
+# 2. Drill into a specific class
+mcp__fs2__tree(pattern="EmbeddingAdapter", detail="max")
+
+# 3. Get full source
+mcp__fs2__get_node(node_id="class:src/fs2/core/adapters/embedding_adapter.py:EmbeddingAdapter")
+```
+
+**Finding code by concept:**
+```python
+# Semantic search (requires embeddings)
+mcp__fs2__search(pattern="error handling and exception translation", mode="semantic")
+
+# Text search
+mcp__fs2__search(pattern="translate_error", mode="text")
+```
+
+**Exploring service dependencies:**
+```python
+# Find all services
+mcp__fs2__tree(pattern="Service", detail="max")
+
+# Get specific service implementation
+mcp__fs2__get_node(node_id="class:src/fs2/core/services/tree_service.py:TreeService")
+```
+
+### Prerequisites
+
+Before using fs2 MCP, ensure the graph is indexed:
+```bash
+# From project root
+fs2 scan
+
+
+```
+
+See [MCP Server Guide](docs/how/mcp-server-guide.md) for full tool documentation.

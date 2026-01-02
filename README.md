@@ -86,6 +86,47 @@ fs2 scan --no-embeddings
 
 See [Embeddings Guide](docs/how/embeddings/) for detailed configuration, provider setup, and architecture.
 
+## MCP Server (AI Agent Integration)
+
+Start the MCP server for Claude Code, Claude Desktop, GitHub Copilot, or other MCP-compatible clients:
+
+```bash
+fs2 mcp
+```
+
+**Prerequisites**: Run `fs2 scan` first to index your codebase.
+
+**Quick Setup for Claude Code**:
+```bash
+# Add fs2 MCP server (available across all projects)
+claude mcp add fs2 --scope user -- fs2 mcp
+
+# Verify it's configured
+claude mcp list
+```
+
+**Quick Setup for Claude Desktop** (`~/.config/claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "fs2": {
+      "command": "fs2",
+      "args": ["mcp"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+**Available Tools**:
+| Tool | Purpose |
+|------|---------|
+| `tree` | Explore codebase structure as a hierarchical tree |
+| `get_node` | Retrieve complete source code for a specific node |
+| `search` | Find code by text, regex, or semantic meaning |
+
+See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation on all clients and tools.
+
 ## Language Support
 
 fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages are categorized as:
@@ -125,6 +166,7 @@ Unknown languages default to file-only (safe).
 | [Configuration](docs/how/configuration.md) | Multi-source config, env vars |
 | [Scanning](docs/how/scanning.md) | File scanning and code graph generation |
 | [Embeddings](docs/how/embeddings/) | Semantic embeddings for code search |
+| [MCP Server](docs/how/mcp-server-guide.md) | AI agent integration (Claude, Copilot, etc.) |
 | [TDD](docs/how/tdd.md) | Test structure, fixtures, fakes |
 | [Dependency Injection](docs/how/di.md) | DI patterns |
 | [Adding Services & Adapters](docs/how/adding-services-adapters.md) | Step-by-step guide |
