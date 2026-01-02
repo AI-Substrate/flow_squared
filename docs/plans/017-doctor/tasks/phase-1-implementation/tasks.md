@@ -173,7 +173,7 @@ flowchart TD
     T014 & T016 & T019 --> T021
 
     subgraph Files["Key Files"]
-        F1["/docs/examples/*.example"]:::pending
+        F1["/src/fs2/docs/*.example"]:::pending
         F2["/tests/unit/cli/test_doctor.py"]:::pending
         F3["/src/fs2/cli/doctor.py"]:::pending
         F4["/tests/unit/cli/test_init.py"]:::pending
@@ -199,7 +199,7 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Example Templates | docs/examples/ | ⬜ Pending | Create config.yaml.example and secrets.env.example |
+| T001 | Example Templates | src/fs2/docs/ | ⬜ Pending | Create config.yaml.example, secrets.env.example, register in registry.yaml |
 | T002 | Doctor Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | Config file discovery tests (5 locations) |
 | T003 | Doctor Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | Merge chain and override detection tests |
 | T004 | Doctor Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | LLM/embedding provider status tests |
@@ -227,7 +227,7 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Create example config templates in docs/examples/ | 1 | Setup | -- | /workspaces/flow_squared/docs/examples/config.yaml.example, /workspaces/flow_squared/docs/examples/secrets.env.example | Files exist with documented LLM/embedding sections; AC-28, AC-29 | -- | Templates sourced by init |
+| [ ] | T001 | Create example config templates in src/fs2/docs/ and register in registry.yaml | 2 | Setup | -- | /workspaces/flow_squared/src/fs2/docs/config.yaml.example, /workspaces/flow_squared/src/fs2/docs/secrets.env.example, /workspaces/flow_squared/src/fs2/docs/registry.yaml | Files exist with documented LLM/embedding sections; registered with category/tags; AC-28, AC-29, AC-30 | -- | Use importlib.resources to access |
 | [ ] | T002 | Write tests for config file discovery (all 5 locations) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: user/project YAML, user/project secrets.env, .env; missing file handling; AC-02 | -- | Use tmp_path fixtures |
 | [ ] | T003 | Write tests for merge chain computation and override detection | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: multi-layer merge, leaf-level overrides, source attribution; AC-03, AC-04 | -- | Test R1-04 edge cases |
 | [ ] | T004 | Write tests for provider status detection (LLM/embedding) | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: configured/not configured, required fields per provider; AC-05, AC-06, AC-07 | -- | Include GitHub URL generation |
@@ -242,12 +242,12 @@ flowchart TD
 | [ ] | T013 | Implement Rich output formatting | 2 | Core | T008-T012 | /workspaces/flow_squared/src/fs2/cli/doctor.py | Uses ConsoleAdapter; panels, tables, colored indicators; AC-11 | -- | Match mockup from spec |
 | [ ] | T014 | Implement doctor() command and register in main.py | 2 | Core | T013 | /workspaces/flow_squared/src/fs2/cli/doctor.py, /workspaces/flow_squared/src/fs2/cli/main.py | `fs2 doctor` runs and shows output; exit 0 healthy, 1 issues; AC-01, AC-12 | -- | Follow I1-01 CLI pattern |
 | [ ] | T015 | Write tests for enhanced init (local + global) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_init.py | Tests cover: creates both local and global, skips global if exists, shows cwd, warns if no .git; AC-14-21 | -- | No --global flag |
-| [ ] | T016 | Implement enhanced init (local + global) | 2 | Core | T015, T001 | /workspaces/flow_squared/src/fs2/cli/init.py | Creates both configs; shows cwd path; red warning if no .git; reports actions; AC-14-21 | -- | Safety check for wrong dir |
+| [ ] | T016 | Implement enhanced init (local + global) | 2 | Core | T015, T001 | /workspaces/flow_squared/src/fs2/cli/init.py | Creates both configs; shows cwd path; red warning if no .git; reports actions; AC-14-21 | -- | Use .exists() not .is_dir() for .git check (worktrees/submodules) |
 | [ ] | T017 | Write tests for CLI guard (require init) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_cli_guard.py | Tests: scan/search/tree/mcp fail without .fs2/config.yaml; init/doctor/--help work; error shows PWD and .git warning; AC-22-27 | -- | Fail fast before mkdir |
-| [ ] | T018 | Implement CLI guard decorator/callback | 2 | Core | T017 | /workspaces/flow_squared/src/fs2/cli/guard.py, /workspaces/flow_squared/src/fs2/cli/main.py | Guard checks .fs2/config.yaml exists; fails with PWD + red .git warning in error; AC-22-27 | -- | Prevents accidental .fs2/ creation |
-| [ ] | T019 | Apply CLI guard to scan, search, tree, get-node, mcp | 2 | Core | T018 | /workspaces/flow_squared/src/fs2/cli/scan.py, /workspaces/flow_squared/src/fs2/cli/search.py, /workspaces/flow_squared/src/fs2/cli/tree.py, /workspaces/flow_squared/src/fs2/cli/get_node.py, /workspaces/flow_squared/src/fs2/cli/mcp.py | Remove graph_path.mkdir from scan; add guard to all protected commands | -- | Remove side-effect dir creation |
+| [ ] | T018 | Implement CLI guard as @require_init decorator | 2 | Core | T017 | /workspaces/flow_squared/src/fs2/cli/guard.py | @require_init decorator checks .fs2/config.yaml; fails with PWD + red .git warning; AC-22-27 | -- | Decorator approach (not callback) so --help works |
+| [ ] | T019 | Apply CLI guard to scan, search, tree, get-node, mcp | 2 | Core | T018 | /workspaces/flow_squared/src/fs2/cli/scan.py, /workspaces/flow_squared/src/fs2/cli/search.py, /workspaces/flow_squared/src/fs2/cli/tree.py, /workspaces/flow_squared/src/fs2/cli/get_node.py, /workspaces/flow_squared/src/fs2/cli/mcp.py | Guard runs before mkdir; mkdir stays but only executes after guard passes | -- | Reorder, don't remove mkdir |
 | [ ] | T020 | Update README.md with doctor command documentation | 1 | Docs | T014 | /workspaces/flow_squared/README.md | README lists `fs2 doctor` with brief description and example output | -- | Per Documentation Strategy |
-| [ ] | T021 | Run full test suite and verify all ACs pass | 1 | Test | T001-T020 | -- | All 29 acceptance criteria verified; tests pass; no regressions | -- | Final validation |
+| [ ] | T021 | Run full test suite and verify all ACs pass | 1 | Test | T001-T020 | -- | All 30 acceptance criteria verified; tests pass; no regressions | -- | Final validation |
 
 ---
 
@@ -508,6 +508,160 @@ docs/plans/017-doctor/
         ├── tasks.md              # This file
         └── execution.log.md      # Created by plan-6 during implementation
 ```
+
+---
+
+## Critical Insights Discussion
+
+**Session**: 2026-01-02
+**Context**: fs2 Doctor Command Implementation - Phase 1 Tasks
+**Analyst**: AI Clarity Agent
+**Reviewer**: Development Team
+**Format**: Water Cooler Conversation (5 Critical Insights)
+
+### Insight 1: Package Resource Access - Example Files Won't Be Found via uvx
+
+**Did you know**: When users install fs2 via uvx, the `docs/examples/` directory won't exist at the filesystem path - package resources must use `importlib.resources`.
+
+**Implications**:
+- T001 originally pointed to `docs/examples/` which doesn't exist in installed packages
+- Every uvx user (our primary audience) would hit FileNotFoundError
+- Must follow mcp-doco plan pattern for package resources
+
+**Options Considered**:
+- Option A: Use importlib.resources with `src/fs2/docs/`
+- Option B: Embed templates as Python strings
+- Option C: Download from GitHub at runtime
+
+**AI Recommendation**: Option A - Use importlib.resources
+- Reasoning: Works everywhere (dev, pip, uvx); follows established mcp-doco pattern
+
+**Decision**: Store templates in `src/fs2/docs/`, register in `registry.yaml`, access via `importlib.resources.files("fs2.docs")`
+
+**Action Items**:
+- [x] Updated T001 path to `src/fs2/docs/`
+- [x] Added AC-30 for registry registration
+- [x] Updated spec, plan, and tasks
+
+**Affects**: T001, AC-28, AC-29, AC-30
+
+---
+
+### Insight 2: CLI Guard Could Break CI/CD Pipelines Using Env-Only Config
+
+**Did you know**: The CLI guard checking for `.fs2/config.yaml` could break CI workflows that configure fs2 entirely through environment variables.
+
+**Implications**:
+- Current config system supports env vars as highest priority
+- Strict guard would require config file even if env vars are set
+- CI pipelines would need to run `fs2 init` first
+
+**Options Considered**:
+- Option A: Guard checks for config OR env vars
+- Option B: Add `--no-init-check` flag
+- Option C: Check for `.fs2/` directory only
+- Option D: Strict guard with documented migration
+
+**AI Recommendation**: Option D - Strict guard
+- Reasoning: Explicit initialization is better; no CI workflows exist yet
+
+**Decision**: Strict guard requiring `.fs2/config.yaml` - no CI to break
+
+**Affects**: No changes needed - plan already implements strict guard
+
+---
+
+### Insight 3: Git Detection Will False-Positive on Git Worktrees and Submodules
+
+**Did you know**: Checking `Path(".git").is_dir()` will show false warnings for git worktrees and submodules where `.git` is a file, not a directory.
+
+**Implications**:
+- In worktrees, `.git` is a file pointing to main repo
+- In submodules, `.git` is a file with gitdir reference
+- False warnings erode trust in the warning system
+
+**Options Considered**:
+- Option A/C: Check `.git` exists (file or directory) using `.exists()`
+- Option B: Use `git rev-parse --git-dir` subprocess
+
+**AI Recommendation**: Option A/C - Use `.exists()`
+- Reasoning: Handles 99% of cases; no subprocess overhead
+
+**Decision**: Use `Path(".git").exists()` instead of `.is_dir()`
+
+**Action Items**:
+- [x] Updated T016 notes
+- [x] Updated T018 notes
+
+**Affects**: T016, T018
+
+---
+
+### Insight 4: T019 Says "Remove graph_path.mkdir" But Scan Still Needs It
+
+**Did you know**: T019's original note said "Remove graph_path.mkdir from scan" but scan legitimately needs to create the `.fs2/` directory for the graph file.
+
+**Implications**:
+- The mkdir isn't the problem - the order is
+- Scan creates `.fs2/` before checking if config exists
+- Fix is to ensure guard runs first, then mkdir
+
+**Options Considered**:
+- Option A: Reorder mkdir to after guard passes
+- Option B: Guard creates .fs2/ implicitly
+
+**AI Recommendation**: Option A - Reorder, don't remove
+- Reasoning: mkdir stays in scan, just happens after guard passes
+
+**Decision**: Guard runs first, mkdir stays but only executes after guard passes
+
+**Action Items**:
+- [x] Updated T019 validation and notes
+
+**Affects**: T019
+
+---
+
+### Insight 5: Typer Callback Guard Will Block --help Unless Carefully Implemented
+
+**Did you know**: If we implement the CLI guard as a Typer callback, it will run for ALL commands including `fs2 scan --help`, blocking help output.
+
+**Implications**:
+- `ctx.invoked_subcommand` would be "scan" for `fs2 scan --help`
+- Guard would fail before help is shown
+- AC-26 requires --help to always work
+
+**Options Considered**:
+- Option A: Callback with sys.argv check for --help
+- Option B: @require_init decorator on protected commands
+
+**AI Recommendation**: Option B - Decorator approach
+- Reasoning: Decorator only runs when command executes, not during help parsing
+
+**Decision**: Use `@require_init` decorator instead of callback
+
+**Action Items**:
+- [x] Updated T018 to specify decorator approach
+
+**Affects**: T018
+
+---
+
+## Session Summary
+
+**Insights Surfaced**: 5 critical insights identified and discussed
+**Decisions Made**: 5 decisions reached through collaborative discussion
+**Action Items Created**: 8 updates applied immediately
+**Areas Updated**:
+- spec: AC-28, AC-29, AC-30
+- plan: T001, T018, T019
+- tasks: T001, T016, T017, T018, T019
+
+**Shared Understanding Achieved**: ✓
+
+**Confidence Level**: High - Key risks identified and mitigated before implementation
+
+**Next Steps**: Proceed to implementation with `/plan-6-implement-phase`
 
 ---
 

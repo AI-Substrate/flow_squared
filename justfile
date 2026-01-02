@@ -81,20 +81,13 @@ mcp-dump TOOL="":
 
 # === Fixture Generation ===
 
-# Generate fixture graph for testing (requires Azure credentials for embeddings/smart_content)
-# Two-step process per Subtask 001:
-# 1. Scan samples with embeddings (fs2 scan handles structure + embeddings)
-# 2. Enrich with smart_content via LLM (script handles custom prompts + rate limiting)
+# Generate fixture graph with embeddings and smart content (requires Azure credentials)
 generate-fixtures:
-    @echo "Step 1: Scanning samples with embeddings..."
     uv run fs2 --graph-file tests/fixtures/fixture_graph.pkl scan \
-        --scan-path tests/fixtures/samples \
-        --no-smart-content
-    @echo "Step 2: Enriching with smart_content..."
-    uv run python scripts/enrich_fixture_smart_content.py
+        --scan-path tests/fixtures/samples
     @echo "Done! Fixture graph saved to tests/fixtures/fixture_graph.pkl"
 
-# Generate fixtures without smart_content enrichment (faster, for testing scan changes)
+# Generate fixtures without smart_content (faster, for testing scan changes)
 generate-fixtures-quick:
     uv run fs2 --graph-file tests/fixtures/fixture_graph.pkl scan \
         --scan-path tests/fixtures/samples \

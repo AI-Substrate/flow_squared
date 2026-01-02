@@ -141,8 +141,9 @@ Additionally, `fs2 init` should be enhanced to automatically bootstrap user-glob
 
 ### Example Templates
 
-28. **AC-28**: `docs/examples/config.yaml.example` exists with documented LLM and embedding sections
-29. **AC-29**: `docs/examples/secrets.env.example` exists with placeholder variable names
+28. **AC-28**: `src/fs2/docs/config.yaml.example` exists with documented LLM and embedding sections
+29. **AC-29**: `src/fs2/docs/secrets.env.example` exists with placeholder variable names
+30. **AC-30**: Example templates registered in `src/fs2/docs/registry.yaml` with appropriate category/tags
 
 ---
 

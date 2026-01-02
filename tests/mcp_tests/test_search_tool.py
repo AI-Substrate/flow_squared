@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 class TestSearchToolTextMode:
     """TDD tests for search text mode (T001)."""
 
-    def test_search_text_returns_envelope(
+    async def test_search_text_returns_envelope(
         self, search_test_graph_store
     ) -> None:
         """Search returns envelope with meta and results keys."""
@@ -45,15 +45,12 @@ class TestSearchToolTextMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="auth", mode="text")
-        )
+        result = await search(pattern="auth", mode="text")
 
         assert "meta" in result
         assert "results" in result
 
-    def test_search_text_matches_substring_in_content(
+    async def test_search_text_matches_substring_in_content(
         self, search_test_graph_store
     ) -> None:
         """Text mode finds nodes with pattern in content."""
@@ -66,16 +63,13 @@ class TestSearchToolTextMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="authenticate", mode="text")
-        )
+        result = await search(pattern="authenticate", mode="text")
 
         assert len(result["results"]) >= 1
         node_ids = [r["node_id"] for r in result["results"]]
         assert any("auth" in nid for nid in node_ids)
 
-    def test_search_text_matches_in_node_id(
+    async def test_search_text_matches_in_node_id(
         self, search_test_graph_store
     ) -> None:
         """Text mode finds nodes with pattern in node_id."""
@@ -88,15 +82,12 @@ class TestSearchToolTextMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="login", mode="text")
-        )
+        result = await search(pattern="login", mode="text")
 
         # Pattern should match node_id containing "login"
         assert len(result["results"]) >= 1
 
-    def test_search_text_matches_in_smart_content(
+    async def test_search_text_matches_in_smart_content(
         self, search_test_graph_store
     ) -> None:
         """Text mode finds nodes with pattern in smart_content."""
@@ -109,15 +100,12 @@ class TestSearchToolTextMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="credentials", mode="text")
-        )
+        result = await search(pattern="credentials", mode="text")
 
         # smart_content contains "credentials"
         assert len(result["results"]) >= 1
 
-    def test_search_text_case_insensitive(
+    async def test_search_text_case_insensitive(
         self, search_test_graph_store
     ) -> None:
         """Text mode is case insensitive."""
@@ -130,19 +118,13 @@ class TestSearchToolTextMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-
-        result_upper = asyncio.get_event_loop().run_until_complete(
-            search(pattern="AUTH", mode="text")
-        )
-        result_lower = asyncio.get_event_loop().run_until_complete(
-            search(pattern="auth", mode="text")
-        )
+        result_upper = await search(pattern="AUTH", mode="text")
+        result_lower = await search(pattern="auth", mode="text")
 
         # Both should find the same results
         assert len(result_upper["results"]) == len(result_lower["results"])
 
-    def test_search_text_no_matches_returns_empty(
+    async def test_search_text_no_matches_returns_empty(
         self, search_test_graph_store
     ) -> None:
         """Text mode returns empty results for no matches."""
@@ -155,10 +137,7 @@ class TestSearchToolTextMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="xyznonexistent123", mode="text")
-        )
+        result = await search(pattern="xyznonexistent123", mode="text")
 
         assert result["results"] == []
         assert result["meta"]["total"] == 0
@@ -172,7 +151,7 @@ class TestSearchToolTextMode:
 class TestSearchToolRegexMode:
     """TDD tests for search regex mode (T002)."""
 
-    def test_search_regex_pattern_matching(
+    async def test_search_regex_pattern_matching(
         self, search_test_graph_store
     ) -> None:
         """Regex mode matches patterns with regex syntax."""
@@ -185,15 +164,12 @@ class TestSearchToolRegexMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="auth.*user", mode="regex")
-        )
+        result = await search(pattern="auth.*user", mode="regex")
 
         # Should match "authenticate" content
         assert "results" in result
 
-    def test_search_regex_invalid_pattern_raises_error(
+    async def test_search_regex_invalid_pattern_raises_error(
         self, search_test_graph_store
     ) -> None:
         """Regex mode raises error for invalid patterns."""
@@ -208,16 +184,12 @@ class TestSearchToolRegexMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-
         with pytest.raises(ToolError) as exc_info:
-            asyncio.get_event_loop().run_until_complete(
-                search(pattern="[invalid", mode="regex")
-            )
+            await search(pattern="[invalid", mode="regex")
 
         assert "regex" in str(exc_info.value).lower() or "pattern" in str(exc_info.value).lower()
 
-    def test_search_regex_groups_work(
+    async def test_search_regex_groups_work(
         self, search_test_graph_store
     ) -> None:
         """Regex mode supports capture groups."""
@@ -230,15 +202,12 @@ class TestSearchToolRegexMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="(auth|calc)", mode="regex")
-        )
+        result = await search(pattern="(auth|calc)", mode="regex")
 
         # Should match nodes with "auth" or "calc"
         assert "results" in result
 
-    def test_search_regex_special_chars(
+    async def test_search_regex_special_chars(
         self, search_test_graph_store
     ) -> None:
         """Regex mode handles special characters."""
@@ -251,11 +220,8 @@ class TestSearchToolRegexMode:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
         # Pattern with escaped dot
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=r"\.py", mode="regex")
-        )
+        result = await search(pattern=r"\.py", mode="regex")
 
         # Should match file paths containing ".py"
         assert "results" in result
@@ -269,7 +235,7 @@ class TestSearchToolRegexMode:
 class TestSearchToolSemanticMode:
     """TDD tests for search semantic mode (T003)."""
 
-    def test_search_semantic_requires_embeddings(
+    async def test_search_semantic_requires_embeddings(
         self, search_semantic_graph_store
     ) -> None:
         """Semantic mode requires nodes to have embeddings."""
@@ -283,16 +249,13 @@ class TestSearchToolSemanticMode:
         dependencies.set_graph_store(store)
         dependencies.set_embedding_adapter(adapter)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="authentication", mode="semantic")
-        )
+        result = await search(pattern="authentication", mode="semantic")
 
         # Should find nodes based on embedding similarity
         assert "results" in result
         assert len(result["results"]) >= 1
 
-    def test_search_semantic_returns_scored_results(
+    async def test_search_semantic_returns_scored_results(
         self, search_semantic_graph_store
     ) -> None:
         """Semantic mode returns results with scores."""
@@ -306,17 +269,14 @@ class TestSearchToolSemanticMode:
         dependencies.set_graph_store(store)
         dependencies.set_embedding_adapter(adapter)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="authentication", mode="semantic")
-        )
+        result = await search(pattern="authentication", mode="semantic")
 
         # All results should have scores (use tolerance for float precision)
         for r in result["results"]:
             assert "score" in r
             assert -0.001 <= r["score"] <= 1.001  # Allow float precision tolerance
 
-    def test_search_semantic_no_embeddings_raises_error(
+    async def test_search_semantic_no_embeddings_raises_error(
         self, search_test_graph_store
     ) -> None:
         """Semantic mode raises error when no embeddings exist (explicit mode)."""
@@ -332,17 +292,13 @@ class TestSearchToolSemanticMode:
         dependencies.set_graph_store(store)
         # No embedding adapter set!
 
-        import asyncio
-
         with pytest.raises(ToolError) as exc_info:
-            asyncio.get_event_loop().run_until_complete(
-                search(pattern="auth", mode="semantic")
-            )
+            await search(pattern="auth", mode="semantic")
 
         # Error should mention embeddings or semantic
         assert "embedding" in str(exc_info.value).lower() or "semantic" in str(exc_info.value).lower()
 
-    def test_search_semantic_auto_fallback_to_text(
+    async def test_search_semantic_auto_fallback_to_text(
         self, search_test_graph_store
     ) -> None:
         """AUTO mode falls back to TEXT when no embeddings available."""
@@ -356,10 +312,7 @@ class TestSearchToolSemanticMode:
         dependencies.set_graph_store(store)
         # No embedding adapter - should fall back to TEXT
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="auth", mode="auto")
-        )
+        result = await search(pattern="auth", mode="auto")
 
         # Should succeed with TEXT fallback
         assert "results" in result
@@ -373,7 +326,7 @@ class TestSearchToolSemanticMode:
 class TestSearchToolFilters:
     """TDD tests for search include/exclude filters (T004)."""
 
-    def test_search_include_filter_keeps_matching(
+    async def test_search_include_filter_keeps_matching(
         self, search_test_graph_store
     ) -> None:
         """Include filter keeps only matching node_ids."""
@@ -386,16 +339,13 @@ class TestSearchToolFilters:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", include=["auth"])
-        )
+        result = await search(pattern=".", mode="text", include=["auth"])
 
         # All results should contain "auth" in node_id
         for r in result["results"]:
             assert "auth" in r["node_id"]
 
-    def test_search_exclude_filter_removes_matching(
+    async def test_search_exclude_filter_removes_matching(
         self, search_test_graph_store
     ) -> None:
         """Exclude filter removes matching node_ids."""
@@ -408,16 +358,13 @@ class TestSearchToolFilters:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", exclude=["test"])
-        )
+        result = await search(pattern=".", mode="text", exclude=["test"])
 
         # No results should contain "test" in node_id
         for r in result["results"]:
             assert "test" not in r["node_id"]
 
-    def test_search_include_exclude_combined(
+    async def test_search_include_exclude_combined(
         self, search_test_graph_store
     ) -> None:
         """Include and exclude filters work together."""
@@ -430,17 +377,14 @@ class TestSearchToolFilters:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", include=["src"], exclude=["test"])
-        )
+        result = await search(pattern=".", mode="text", include=["src"], exclude=["test"])
 
         # Results should contain "src" but not "test"
         for r in result["results"]:
             assert "src" in r["node_id"]
             assert "test" not in r["node_id"]
 
-    def test_search_include_or_logic(
+    async def test_search_include_or_logic(
         self, search_test_graph_store
     ) -> None:
         """Include filter uses OR logic across patterns."""
@@ -453,16 +397,13 @@ class TestSearchToolFilters:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", include=["auth", "calc"])
-        )
+        result = await search(pattern=".", mode="text", include=["auth", "calc"])
 
         # Results should contain "auth" OR "calc"
         for r in result["results"]:
             assert "auth" in r["node_id"] or "calc" in r["node_id"]
 
-    def test_search_invalid_filter_regex_raises_error(
+    async def test_search_invalid_filter_regex_raises_error(
         self, search_test_graph_store
     ) -> None:
         """Invalid regex in filter raises error."""
@@ -477,12 +418,8 @@ class TestSearchToolFilters:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-
         with pytest.raises(ToolError) as exc_info:
-            asyncio.get_event_loop().run_until_complete(
-                search(pattern="auth", mode="text", include=["[invalid"])
-            )
+            await search(pattern="auth", mode="text", include=["[invalid"])
 
         assert "regex" in str(exc_info.value).lower() or "pattern" in str(exc_info.value).lower()
 
@@ -500,7 +437,7 @@ class TestSearchToolGlobPatterns:
     test_pattern_utils.py), so these tests focus on MCP integration.
     """
 
-    def test_search_glob_star_py_filters_correctly(
+    async def test_search_glob_star_py_filters_correctly(
         self, search_test_graph_store
     ) -> None:
         """Glob *.py pattern converted to regex and filters correctly."""
@@ -513,17 +450,14 @@ class TestSearchToolGlobPatterns:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", include=["*.py"])
-        )
+        result = await search(pattern=".", mode="text", include=["*.py"])
 
         # All results should have .py in node_id
         assert result["meta"]["total"] > 0
         for r in result["results"]:
             assert ".py" in r["node_id"], f"Expected .py in {r['node_id']}"
 
-    def test_search_extension_pattern_filters_correctly(
+    async def test_search_extension_pattern_filters_correctly(
         self, search_test_graph_store
     ) -> None:
         """Extension pattern .py (without *) works correctly."""
@@ -536,17 +470,14 @@ class TestSearchToolGlobPatterns:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", include=[".py"])
-        )
+        result = await search(pattern=".", mode="text", include=[".py"])
 
         # All results should have .py in node_id
         assert result["meta"]["total"] > 0
         for r in result["results"]:
             assert ".py" in r["node_id"], f"Expected .py in {r['node_id']}"
 
-    def test_search_glob_exclude_works(
+    async def test_search_glob_exclude_works(
         self, search_test_graph_store
     ) -> None:
         """Glob pattern in exclude filter works."""
@@ -559,17 +490,14 @@ class TestSearchToolGlobPatterns:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
         # Exclude all .py files - should get 0 results since fixture only has .py
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", exclude=["*.py"])
-        )
+        result = await search(pattern=".", mode="text", exclude=["*.py"])
 
         # No results should have .py (all excluded)
         for r in result["results"]:
             assert ".py" not in r["node_id"], f"Unexpected .py in {r['node_id']}"
 
-    def test_search_regex_still_works(
+    async def test_search_regex_still_works(
         self, search_test_graph_store
     ) -> None:
         """Regex patterns still work (backward compatibility)."""
@@ -582,11 +510,8 @@ class TestSearchToolGlobPatterns:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
         # Use regex pattern that should pass through unchanged
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", include=[".*auth.*"])
-        )
+        result = await search(pattern=".", mode="text", include=[".*auth.*"])
 
         # All results should have auth in node_id
         for r in result["results"]:
@@ -601,7 +526,7 @@ class TestSearchToolGlobPatterns:
 class TestSearchToolPagination:
     """TDD tests for search limit/offset pagination (T005)."""
 
-    def test_search_limit_restricts_results(
+    async def test_search_limit_restricts_results(
         self, search_test_graph_store
     ) -> None:
         """Limit parameter restricts number of results."""
@@ -614,14 +539,11 @@ class TestSearchToolPagination:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", limit=2)
-        )
+        result = await search(pattern=".", mode="text", limit=2)
 
         assert len(result["results"]) <= 2
 
-    def test_search_offset_skips_results(
+    async def test_search_offset_skips_results(
         self, search_test_graph_store
     ) -> None:
         """Offset parameter skips results."""
@@ -634,23 +556,17 @@ class TestSearchToolPagination:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-
         # Get all results
-        result_all = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", limit=10)
-        )
+        result_all = await search(pattern=".", mode="text", limit=10)
 
         # Get results with offset
-        result_offset = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", limit=10, offset=1)
-        )
+        result_offset = await search(pattern=".", mode="text", limit=10, offset=1)
 
         # If there are results, offset should skip one
         if len(result_all["results"]) > 1:
             assert result_offset["results"][0]["node_id"] == result_all["results"][1]["node_id"]
 
-    def test_search_limit_offset_combined(
+    async def test_search_limit_offset_combined(
         self, search_test_graph_store
     ) -> None:
         """Limit and offset work together for pagination."""
@@ -663,11 +579,7 @@ class TestSearchToolPagination:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text", limit=2, offset=1)
-        )
+        result = await search(pattern=".", mode="text", limit=2, offset=1)
 
         # Should have at most 2 results
         assert len(result["results"]) <= 2
@@ -676,7 +588,7 @@ class TestSearchToolPagination:
         assert result["meta"]["pagination"]["limit"] == 2
         assert result["meta"]["pagination"]["offset"] == 1
 
-    def test_search_default_limit_is_20(
+    async def test_search_default_limit_is_20(
         self, search_test_graph_store
     ) -> None:
         """Default limit is 20."""
@@ -689,10 +601,7 @@ class TestSearchToolPagination:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern=".", mode="text")
-        )
+        result = await search(pattern=".", mode="text")
 
         # Meta should show default limit
         assert result["meta"]["pagination"]["limit"] == 20
@@ -706,7 +615,7 @@ class TestSearchToolPagination:
 class TestSearchToolCore:
     """TDD tests for search tool core functionality (T006)."""
 
-    def test_search_min_detail_has_9_fields(
+    async def test_search_min_detail_has_9_fields(
         self, search_test_graph_store
     ) -> None:
         """Min detail results have 9 fields."""
@@ -719,16 +628,13 @@ class TestSearchToolCore:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="auth", mode="text", detail="min")
-        )
+        result = await search(pattern="auth", mode="text", detail="min")
 
         if result["results"]:
             # Min detail has exactly 9 fields per SearchResult.to_dict()
             assert len(result["results"][0]) == 9
 
-    def test_search_max_detail_has_13_fields(
+    async def test_search_max_detail_has_13_fields(
         self, search_test_graph_store
     ) -> None:
         """Max detail results have 13 fields."""
@@ -741,16 +647,13 @@ class TestSearchToolCore:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="auth", mode="text", detail="max")
-        )
+        result = await search(pattern="auth", mode="text", detail="max")
 
         if result["results"]:
             # Max detail has exactly 13 fields per SearchResult.to_dict()
             assert len(result["results"][0]) == 13
 
-    def test_search_envelope_has_meta_and_results(
+    async def test_search_envelope_has_meta_and_results(
         self, search_test_graph_store
     ) -> None:
         """Response envelope has meta and results keys."""
@@ -763,10 +666,7 @@ class TestSearchToolCore:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="auth", mode="text")
-        )
+        result = await search(pattern="auth", mode="text")
 
         assert "meta" in result
         assert "results" in result
@@ -778,7 +678,7 @@ class TestSearchToolCore:
         assert "pagination" in meta
         assert "folders" in meta
 
-    def test_search_empty_pattern_raises_error(
+    async def test_search_empty_pattern_raises_error(
         self, search_test_graph_store
     ) -> None:
         """Empty pattern raises error."""
@@ -793,16 +693,12 @@ class TestSearchToolCore:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-
         with pytest.raises(ToolError) as exc_info:
-            asyncio.get_event_loop().run_until_complete(
-                search(pattern="", mode="text")
-            )
+            await search(pattern="", mode="text")
 
         assert "empty" in str(exc_info.value).lower() or "pattern" in str(exc_info.value).lower()
 
-    def test_search_returns_scores_in_range(
+    async def test_search_returns_scores_in_range(
         self, search_test_graph_store
     ) -> None:
         """All results have scores in 0.0-1.0 range."""
@@ -815,10 +711,7 @@ class TestSearchToolCore:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        import asyncio
-        result = asyncio.get_event_loop().run_until_complete(
-            search(pattern="auth", mode="text")
-        )
+        result = await search(pattern="auth", mode="text")
 
         for r in result["results"]:
             assert 0.0 <= r["score"] <= 1.0

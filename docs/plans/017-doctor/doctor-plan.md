@@ -61,7 +61,7 @@
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|-------|
-| [ ] | T001 | Create example config templates in docs/examples/ | 1 | Setup | -- | /workspaces/flow_squared/docs/examples/config.yaml.example, /workspaces/flow_squared/docs/examples/secrets.env.example | Files exist with documented LLM/embedding sections; AC-28, AC-29 | Templates sourced by init |
+| [ ] | T001 | Create example config templates in src/fs2/docs/ and register in registry.yaml | 2 | Setup | -- | /workspaces/flow_squared/src/fs2/docs/config.yaml.example, /workspaces/flow_squared/src/fs2/docs/secrets.env.example, /workspaces/flow_squared/src/fs2/docs/registry.yaml | Files exist with documented LLM/embedding sections; registered with category/tags; AC-28, AC-29, AC-30 | Use importlib.resources to access |
 | [ ] | T002 | Write tests for config file discovery (all 5 locations) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: user/project YAML, user/project secrets.env, .env; missing file handling; AC-02 | Use tmp_path fixtures |
 | [ ] | T003 | Write tests for merge chain computation and override detection | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: multi-layer merge, leaf-level overrides, source attribution; AC-03, AC-04 | Test R1-04 edge cases |
 | [ ] | T004 | Write tests for provider status detection (LLM/embedding) | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: configured/not configured, required fields per provider; AC-05, AC-06, AC-07 | Include GitHub URL generation |
@@ -78,10 +78,10 @@
 | [ ] | T015 | Write tests for enhanced init (local + global) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_init.py | Tests cover: creates both local and global, skips global if exists, shows cwd, warns if no .git; AC-14-21 | No --global flag |
 | [ ] | T016 | Implement enhanced init (local + global) | 2 | Core | T015, T001 | /workspaces/flow_squared/src/fs2/cli/init.py | Creates both configs; shows cwd path; red warning if no .git; reports actions; AC-14-21 | Safety check for wrong dir |
 | [ ] | T017 | Write tests for CLI guard (require init) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_cli_guard.py | Tests: scan/search/tree/mcp fail without .fs2/config.yaml; init/doctor/--help work; error shows PWD and .git warning; AC-22-27 | Fail fast before mkdir |
-| [ ] | T018 | Implement CLI guard decorator/callback | 2 | Core | T017 | /workspaces/flow_squared/src/fs2/cli/guard.py, /workspaces/flow_squared/src/fs2/cli/main.py | Guard checks .fs2/config.yaml exists; fails with PWD + red .git warning in error; AC-22-27 | Prevents accidental .fs2/ creation |
-| [ ] | T019 | Apply CLI guard to scan, search, tree, get-node, mcp | 2 | Core | T018 | /workspaces/flow_squared/src/fs2/cli/scan.py, search.py, tree.py, get_node.py, mcp.py | Remove graph_path.mkdir from scan; add guard to all protected commands | Remove side-effect dir creation |
+| [ ] | T018 | Implement CLI guard as @require_init decorator | 2 | Core | T017 | /workspaces/flow_squared/src/fs2/cli/guard.py | @require_init decorator checks .fs2/config.yaml; fails with PWD + red .git warning; AC-22-27 | Decorator (not callback) so --help works |
+| [ ] | T019 | Apply CLI guard to scan, search, tree, get-node, mcp | 2 | Core | T018 | /workspaces/flow_squared/src/fs2/cli/scan.py, search.py, tree.py, get_node.py, mcp.py | Guard runs before mkdir; mkdir stays but only executes after guard passes | Reorder, don't remove mkdir |
 | [ ] | T020 | Update README.md with doctor command documentation | 1 | Docs | T014 | /workspaces/flow_squared/README.md | README lists `fs2 doctor` with brief description and example output | Per Documentation Strategy |
-| [ ] | T021 | Run full test suite and verify all ACs pass | 1 | Test | T001-T020 | -- | All 29 acceptance criteria verified; tests pass; no regressions | Final validation |
+| [ ] | T021 | Run full test suite and verify all ACs pass | 1 | Test | T001-T020 | -- | All 30 acceptance criteria verified; tests pass; no regressions | Final validation |
 
 ### Acceptance Criteria
 
@@ -112,8 +112,9 @@
 - [ ] AC-25: If no `.git` folder exists, error also shows prominent red warning (helps identify wrong directory)
 - [ ] AC-26: These commands always work without init: `init`, `doctor`, `--help`, `--version`, and any subcommand `--help`
 - [ ] AC-27: No auto-init behavior - commands never create `.fs2/` implicitly
-- [ ] AC-28: docs/examples/config.yaml.example exists
-- [ ] AC-29: docs/examples/secrets.env.example exists
+- [ ] AC-28: src/fs2/docs/config.yaml.example exists
+- [ ] AC-29: src/fs2/docs/secrets.env.example exists
+- [ ] AC-30: Example templates registered in src/fs2/docs/registry.yaml
 
 ### Risks
 

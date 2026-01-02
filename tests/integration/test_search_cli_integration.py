@@ -2,6 +2,8 @@
 
 Uses the real scanned ast_samples graph for end-to-end validation.
 Per Phase 5 tasks.md T013: Validates real graph, real search, pagination.
+
+Note: CLI returns envelope format {meta: {...}, results: [...]}
 """
 
 import json
@@ -18,13 +20,13 @@ runner = CliRunner()
 class TestSearchIntegration:
     """T013: Integration tests using scanned_fixtures_graph."""
 
-    def test_given_real_graph_when_search_then_returns_json_array(
+    def test_given_real_graph_when_search_then_returns_json_envelope(
         self, scanned_fixtures_graph
     ):
         """
         Purpose: Validates end-to-end search from real scanned graph.
         Quality Contribution: Ensures real-world usage works.
-        Acceptance Criteria: Returns valid JSON array with results.
+        Acceptance Criteria: Returns valid JSON envelope with meta and results.
 
         Task: T013
         """
@@ -33,10 +35,11 @@ class TestSearchIntegration:
 
         assert result.exit_code == 0, f"Expected exit 0: {result.stdout}"
 
-        data = json.loads(result.stdout)
-        assert isinstance(data, list), f"Expected list, got {type(data)}"
+        envelope = json.loads(result.stdout)
+        assert "meta" in envelope, "Expected envelope with 'meta' key"
+        assert "results" in envelope, "Expected envelope with 'results' key"
         # Should find Calculator class in ast_samples
-        assert len(data) > 0, "Expected at least one result for 'Calculator'"
+        assert len(envelope["results"]) > 0, "Expected at least one result for 'Calculator'"
 
     def test_given_real_graph_when_search_then_results_have_node_id(
         self, scanned_fixtures_graph
@@ -51,11 +54,12 @@ class TestSearchIntegration:
         result = runner.invoke(app, ["search", "Calculator"])
 
         assert result.exit_code == 0
-        data = json.loads(result.stdout)
-        assert len(data) > 0
+        envelope = json.loads(result.stdout)
+        results = envelope["results"]
+        assert len(results) > 0
 
         # Each result should have node_id
-        for item in data:
+        for item in results:
             assert "node_id" in item, f"Missing node_id in result: {item}"
 
     def test_given_real_graph_when_search_with_limit_then_respects_limit(
@@ -71,8 +75,8 @@ class TestSearchIntegration:
         result = runner.invoke(app, ["search", "def", "--limit", "3"])
 
         assert result.exit_code == 0
-        data = json.loads(result.stdout)
-        assert len(data) <= 3, f"Expected at most 3 results, got {len(data)}"
+        envelope = json.loads(result.stdout)
+        assert len(envelope["results"]) <= 3, f"Expected at most 3 results, got {len(envelope['results'])}"
 
     def test_given_real_graph_when_search_with_offset_then_paginates(
         self, scanned_fixtures_graph
@@ -87,12 +91,12 @@ class TestSearchIntegration:
         # Get first page
         result1 = runner.invoke(app, ["search", "def", "--limit", "2", "--offset", "0"])
         assert result1.exit_code == 0
-        page1 = json.loads(result1.stdout)
+        page1 = json.loads(result1.stdout)["results"]
 
         # Get second page
         result2 = runner.invoke(app, ["search", "def", "--limit", "2", "--offset", "2"])
         assert result2.exit_code == 0
-        page2 = json.loads(result2.stdout)
+        page2 = json.loads(result2.stdout)["results"]
 
         # If we have enough results, pages should be different
         if len(page1) == 2 and len(page2) > 0:
@@ -117,10 +121,10 @@ class TestSearchIntegration:
         )
 
         assert result.exit_code == 0
-        data = json.loads(result.stdout)
-        assert len(data) > 0
+        results = json.loads(result.stdout)["results"]
+        assert len(results) > 0
 
-        first = data[0]
+        first = results[0]
         assert "content" in first, f"Max detail should include content: {first.keys()}"
         assert len(first) == 13, f"Expected 13 fields in max detail, got {len(first)}"
 
@@ -139,10 +143,10 @@ class TestSearchIntegration:
         )
 
         assert result.exit_code == 0
-        data = json.loads(result.stdout)
-        assert len(data) > 0
+        results = json.loads(result.stdout)["results"]
+        assert len(results) > 0
 
-        first = data[0]
+        first = results[0]
         assert "content" not in first, f"Min detail should exclude content: {first.keys()}"
         assert len(first) == 9, f"Expected 9 fields in min detail, got {len(first)}"
 
@@ -159,22 +163,24 @@ class TestSearchIntegration:
         result = runner.invoke(app, ["search", "Calc.*", "--mode", "regex"])
 
         assert result.exit_code == 0
-        data = json.loads(result.stdout)
+        envelope = json.loads(result.stdout)
         # Should find Calculator or similar patterns
-        assert isinstance(data, list)
+        assert "results" in envelope
+        assert isinstance(envelope["results"], list)
 
-    def test_given_real_graph_when_no_matches_then_returns_empty_array(
+    def test_given_real_graph_when_no_matches_then_returns_empty_results(
         self, scanned_fixtures_graph
     ):
         """
-        Purpose: Validates no-match returns empty array.
+        Purpose: Validates no-match returns empty results.
         Quality Contribution: Edge case verified end-to-end.
-        Acceptance Criteria: Returns [] for non-matching pattern.
+        Acceptance Criteria: Returns envelope with empty results for non-matching pattern.
 
         Task: T013
         """
         result = runner.invoke(app, ["search", "xyznonexistent12345"])
 
         assert result.exit_code == 0
-        data = json.loads(result.stdout)
-        assert data == [], f"Expected empty array, got {data}"
+        envelope = json.loads(result.stdout)
+        assert envelope["results"] == [], f"Expected empty results, got {envelope['results']}"
+        assert envelope["meta"]["total"] == 0

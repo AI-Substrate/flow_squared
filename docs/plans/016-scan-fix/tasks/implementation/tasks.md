@@ -49,7 +49,7 @@ Add file extension mappings for 29 programming languages per plan acceptance cri
 
 **Behavior Checklist**:
 - [ ] `.gd` files detected as `gdscript` and classified as `ContentType.CODE`
-- [ ] All 7 broken CODE_LANGUAGES (commonlisp, cuda, fortran, glsl, hlsl, wgsl) have working extension mappings
+- [ ] 6 of 7 broken CODE_LANGUAGES (commonlisp, cuda, fortran, glsl, hlsl, wgsl) have working extension mappings; matlab removed (unfixable .m conflict)
 - [ ] Web framework extensions (`.vue`, `.svelte`, `.astro`) detected and indexed
 - [ ] Hardware extensions (`.sv`, `.svh`, `.vhd`, `.vhdl`) detected and indexed
 - [ ] Test suite passes with new language detection tests
@@ -198,7 +198,7 @@ flowchart TD
 | [ ] | T004 | Add `"gdscript"` to CODE_LANGUAGES set (new Game Engines section after line 163) | 1 | Core | T003 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py` | GDScript files classified as ContentType.CODE | -- | Enables callable extraction |
 | [ ] | T005 | Add CUDA extensions `".cu": "cuda"`, `".cuh": "cuda"` to EXTENSION_TO_LANGUAGE | 1 | Core | T002 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py` | T002 test passes | -- | TDD GREEN phase |
 | [ ] | T006 | Add remaining 37 extension mappings for 27 languages per Extension Mapping Reference in plan | 2 | Core | T003,T005 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py` | All 40 extensions present in dict | -- | Per Finding 05 |
-| [ ] | T007 | Add ~19 languages to CODE_LANGUAGES: vue, svelte, astro, verilog, vhdl, solidity, cairo, odin, gleam, hare, pony, haxe, elm, purescript, cobol, pascal, ada, objc | 1 | Core | T006 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py` | All 20 languages in CODE_LANGUAGES set | -- | Per Finding 12 |
+| [ ] | T007 | Add ~19 languages to CODE_LANGUAGES (vue, svelte, astro, verilog, vhdl, solidity, cairo, odin, gleam, hare, pony, haxe, elm, purescript, cobol, pascal, ada, objc) AND remove `matlab` (broken - no extension mapping possible due to .m conflict) | 1 | Core | T006 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py` | 19 languages added, matlab removed | -- | Per Finding 12 + Insight #5 |
 | [ ] | T008 | Add 5 filename mappings to FILENAME_TO_LANGUAGE: BUILD, BUILD.bazel, WORKSPACE, meson.build, meson_options.txt | 1 | Core | T006 | `/workspaces/flow_squared/src/fs2/core/adapters/ast_parser_impl.py` | All 5 filenames mapped | -- | Build system support |
 | [ ] | T009 | Create GDScript test fixture directory and player.gd file with class, extends, functions | 1 | Fixture | T003 | `/workspaces/flow_squared/tests/fixtures/ast_samples/gdscript/player.gd` | File exists, valid GDScript syntax | -- | Per research dossier |
 | [ ] | T010 | Create CUDA test fixture directory and vector_add.cu file with __global__ and __host__ functions | 1 | Fixture | T005 | `/workspaces/flow_squared/tests/fixtures/ast_samples/cuda/vector_add.cu` | File exists, valid CUDA syntax | -- | Per research dossier |
@@ -221,7 +221,7 @@ flowchart TD
 | Finding | Constraint/Requirement | Tasks Addressing |
 |---------|----------------------|------------------|
 | **01: GDScript grammar available** | Can add `.gd` mapping immediately | T003, T004 |
-| **02: 7 CODE_LANGUAGES broken** | Must add extension mappings for cuda, glsl, hlsl, etc. | T006 |
+| **02: 7 CODE_LANGUAGES broken** | Add extension mappings for 6; remove matlab from set | T006, T007 |
 | **03: All 29 grammars verified** | No grammar-related blockers | All core tasks |
 | **04: Graceful degradation exists** | No error handling changes needed | N/A - no changes |
 | **05: Insertion points mapped** | Insert at lines 131 (extensions), 170 (CODE_LANGUAGES) | T003-T008 |
@@ -302,7 +302,7 @@ sequenceDiagram
     Note over Dev,CI: Fixture Phase
     Dev->>Fixture: Create gdscript/player.gd
     Dev->>Fixture: Create cuda/vector_add.cu
-    Dev->>Fixture: Run generate-fixtures-quick
+    Dev->>Fixture: Run generate-fixtures (full mode)
     Fixture-->>Dev: fixture_graph.pkl updated
 
     Note over Dev,CI: Verification Phase
@@ -357,7 +357,7 @@ def test_detect_language_gdscript(self, tmp_path):
 4. **T004**: Add `"gdscript"` to CODE_LANGUAGES (new Game Engines section)
 5. **T005**: Add `".cu": "cuda"`, `".cuh": "cuda"` to EXTENSION_TO_LANGUAGE
 6. **T006**: Add all 37 remaining extensions per plan Extension Mapping Reference
-7. **T007**: Add 19 languages to CODE_LANGUAGES per plan CODE_LANGUAGES additions
+7. **T007**: Add 19 languages to CODE_LANGUAGES AND remove `matlab` (unfixable .m conflict)
 8. **T008**: Add 5 filename mappings to FILENAME_TO_LANGUAGE
 9. **T009**: Create `tests/fixtures/ast_samples/gdscript/` directory, write `player.gd`
 10. **T010**: Create `tests/fixtures/ast_samples/cuda/` directory, write `vector_add.cu`
@@ -400,7 +400,7 @@ just lint
 |------|----------|------------|
 | Tree-sitter grammar bug for specific language | Low | Verified all 29 grammars work; DefaultHandler covers all |
 | Extension conflict causes confusion | Medium | Only `.v` conflict; using `.sv` for Verilog per Finding 08 |
-| Fixture regeneration fails | Low | `generate-fixtures-quick` doesn't need Azure credentials |
+| Fixture regeneration fails | Low | Azure credentials confirmed available; full mode will work |
 | New tests interfere with existing tests | Low | Pure additive; existing tests unaffected |
 
 ### Ready Check
@@ -477,3 +477,179 @@ _See also: `execution.log.md` for detailed narrative._
 **Status**: READY FOR IMPLEMENTATION
 
 **Next step**: Run `/plan-6-implement-phase --plan "docs/plans/016-scan-fix/scan-fix-plan.md"` after human GO.
+
+---
+
+## Critical Insights Discussion
+
+**Session**: 2026-01-02
+**Context**: Implementation Plan for Expanding Language Support (scan-fix) - Pre-implementation clarity session
+**Analyst**: AI Clarity Agent
+**Reviewer**: Development Team
+**Format**: Water Cooler Conversation (5 Critical Insights)
+
+### Insight 1: Grammar Availability Isn't Actually Tested
+
+**Did you know**: The detection tests only verify string mapping (`".gd"` → `"gdscript"`), not that tree-sitter actually has a working parser for that language.
+
+**Implications**:
+- Tests pass if extension mapping exists, even if grammar is missing
+- Runtime failures would only appear during actual scans
+- Research verification is the only grammar validation
+
+**Options Considered**:
+- Option A: Add Parser Availability Tests - CS-2
+- Option B: Integration Test via Fixtures - CS-1 (already planned)
+- Option C: Smoke Test for All 29 Languages - CS-3
+- Option D: Rely on Runtime Graceful Degradation - CS-1
+
+**AI Recommendation**: Option B (Integration Test via Fixtures)
+- Reasoning: T009/T010/T011 already validate parsing for GDScript + CUDA through real fixtures
+
+**Discussion Summary**: User agreed that fixture-based validation is sufficient. GDScript and CUDA get real parsing tests; other 27 languages rely on research verification.
+
+**Decision**: Rely on fixture-based integration testing (Option B)
+
+**Action Items**: None - plan already covers this
+
+**Affects**: No plan changes needed
+
+---
+
+### Insight 2: Fixture Coverage Is Minimal Compared to Existing Languages
+
+**Did you know**: Existing languages have 2-5 fixture files each (Python has 5, TypeScript has 4), but new languages get only 1 each.
+
+**Implications**:
+- Lower edge case coverage for new languages
+- Less feature variety tested
+- Smaller regression surface
+
+**Options Considered**:
+- Option A: Keep Minimal (2 fixtures total) - CS-1
+- Option B: Add Error Handling Fixtures - CS-2
+- Option C: Add Feature Variety Fixtures - CS-3
+- Option D: Add Representative Fixtures for Other Categories - CS-3
+
+**AI Recommendation**: Option A (Keep Minimal)
+- Reasoning: Spec clarification Q3 explicitly decided 2 fixtures; graceful degradation handles edge cases
+
+**Discussion Summary**: User agreed to maintain scope discipline per spec. Can always add more fixtures later if issues arise.
+
+**Decision**: Keep minimal fixture coverage (Option A)
+
+**Action Items**: None - plan already reflects this
+
+**Affects**: No changes needed
+
+---
+
+### Insight 3: Objective-C Has an Asymmetric User Experience
+
+**Did you know**: The plan adds `.mm` (Objective-C++) but explicitly skips `.m` (pure Objective-C), creating inconsistent support for iOS developers.
+
+**Implications**:
+- Pure Objective-C (`.m`) files won't be indexed
+- Objective-C++ (`.mm`) files will work
+- Most iOS projects use `.m` predominantly
+
+**Options Considered**:
+- Option A: Accept the Asymmetry - CS-1
+- Option B: Skip objc Entirely - CS-1
+- Option C: Add `.m` with MATLAB Warning - CS-2
+- Option D: Document as Future Enhancement - CS-1
+
+**AI Recommendation**: Option A (Accept the Asymmetry)
+- Reasoning: Spec Q2 already resolved this; partial support is better than none
+
+**Discussion Summary**: User accepted the asymmetry. Document as known limitation for future content-based detection.
+
+**Decision**: Accept Objective-C asymmetry (Option A)
+
+**Action Items**:
+- [ ] Add to Discoveries & Learnings during implementation: "`.m` not mapped due to MATLAB conflict"
+
+**Affects**: No plan changes; document insight during T006 execution
+
+---
+
+### Insight 4: `generate-fixtures-quick` Skips Smart Content Generation
+
+**Did you know**: The "quick" fixture regeneration mode doesn't call the LLM, meaning new fixtures wouldn't have AI-generated summaries.
+
+**Implications**:
+- New fixtures would lack smart_content field
+- Inconsistency with existing fixtures
+- Potential test behavior differences
+
+**Options Considered**:
+- Option A: Accept Missing Smart Content - CS-1
+- Option B: Use Full Generation If Credentials Available - CS-2
+- Option C: Manually Add Smart Content - CS-3
+- Option D: Document and Verify Test Compatibility - CS-2
+- Option E: Use Full Generation (credentials confirmed) - CS-1
+
+**AI Recommendation**: Initially Option A, but user asked about full generation
+
+**Discussion Summary**: User confirmed Azure credentials are available. Switched to full generation mode for consistency.
+
+**Decision**: Use full fixture generation with AI summaries
+
+**Action Items**: None - plan updated
+
+**Affects**:
+- T011: Changed to `just generate-fixtures`
+- AC9: Updated command reference
+- Finding 10: Updated to reflect credentials available
+- Risk table: Updated mitigation
+
+---
+
+### Insight 5: The 7 "Broken" Languages Have Been Silently Broken Since Day One
+
+**Did you know**: 7 languages in `CODE_LANGUAGES` have never worked because they have no file extension mapping - they were promises, not features.
+
+**Implications**:
+- MATLAB in CODE_LANGUAGES is a lie (no `.m` mapping possible)
+- 6 of 7 get fixed by this plan
+- MATLAB stays permanently broken
+
+**Options Considered**:
+- Option A: Acknowledge and Proceed - CS-1
+- Option B: Remove MATLAB from CODE_LANGUAGES - CS-1
+- Option C: Document MATLAB Limitation - CS-1
+
+**AI Recommendation**: Option B (Remove MATLAB from CODE_LANGUAGES)
+- Reasoning: Truth in codebase - CODE_LANGUAGES should only list working languages
+
+**Discussion Summary**: User agreed that keeping broken entries is dishonest. Remove matlab to maintain API integrity.
+
+**Decision**: Remove MATLAB from CODE_LANGUAGES
+
+**Action Items**: None - T007 now includes matlab removal
+
+**Affects**:
+- T007: Scope expanded to include matlab removal
+- AC3: Updated to reflect "6 of 7 fixed, matlab removed"
+- Finding 02: Updated action
+
+---
+
+## Session Summary
+
+**Insights Surfaced**: 5 critical insights identified and discussed
+**Decisions Made**: 5 decisions reached through collaborative discussion
+**Action Items Created**: 1 follow-up task (document .m limitation in Discoveries)
+**Areas Updated**:
+- T007 task scope (add languages + remove matlab)
+- T011 command (generate-fixtures instead of generate-fixtures-quick)
+- AC3, AC9 acceptance criteria
+- Finding 02, Finding 10 constraints
+- Risk mitigations
+
+**Shared Understanding Achieved**: ✓
+
+**Confidence Level**: High - All key risks identified and mitigated; plan is comprehensive
+
+**Next Steps**:
+Run `/plan-6-implement-phase --plan "docs/plans/016-scan-fix/scan-fix-plan.md"` to begin implementation

@@ -90,6 +90,11 @@ EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".scala": "scala",
     ".swift": "swift",
     ".dart": "dart",
+    # Game engines
+    ".gd": "gdscript",
+    # GPU/CUDA
+    ".cu": "cuda",
+    ".cuh": "cuda",
     # Scripting
     ".sh": "bash",
     ".bash": "bash",
@@ -128,6 +133,70 @@ EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".r": "r",
     ".R": "r",
     ".jl": "julia",
+    # Web frameworks
+    ".vue": "vue",
+    ".svelte": "svelte",
+    ".astro": "astro",
+    ".heex": "heex",
+    ".twig": "twig",
+    # Shaders/GPU (fix broken CODE_LANGUAGES)
+    ".glsl": "glsl",
+    ".vert": "glsl",
+    ".frag": "glsl",
+    ".geom": "glsl",
+    ".comp": "glsl",
+    ".hlsl": "hlsl",
+    ".fx": "hlsl",
+    ".wgsl": "wgsl",
+    # Hardware/FPGA
+    ".sv": "verilog",
+    ".svh": "verilog",
+    ".vhd": "vhdl",
+    ".vhdl": "vhdl",
+    # Blockchain
+    ".sol": "solidity",
+    ".cairo": "cairo",
+    # Emerging languages
+    ".odin": "odin",
+    ".gleam": "gleam",
+    ".ha": "hare",
+    ".pony": "pony",
+    ".hx": "haxe",
+    # Functional (commonlisp extensions)
+    ".lisp": "commonlisp",
+    ".cl": "commonlisp",
+    ".lsp": "commonlisp",
+    ".elm": "elm",
+    ".purs": "purescript",
+    # Config/Data
+    ".nix": "nix",
+    ".proto": "proto",
+    ".jsonnet": "jsonnet",
+    ".libsonnet": "jsonnet",
+    ".kdl": "kdl",
+    ".ron": "ron",
+    ".prisma": "prisma",
+    ".thrift": "thrift",
+    # Build systems
+    ".star": "starlark",
+    ".bzl": "starlark",
+    # Legacy/Enterprise (fix broken CODE_LANGUAGES)
+    ".f": "fortran",
+    ".for": "fortran",
+    ".f90": "fortran",
+    ".f95": "fortran",
+    ".cob": "cobol",
+    ".cbl": "cobol",
+    ".pas": "pascal",
+    ".adb": "ada",
+    ".ads": "ada",
+    # Mobile (Objective-C++)
+    ".mm": "objc",
+    # Documentation
+    ".tex": "latex",
+    ".sty": "latex",
+    ".typ": "typst",
+    ".org": "org",
 }
 
 # Filename to language mapping (for files without extensions)
@@ -141,11 +210,19 @@ FILENAME_TO_LANGUAGE: dict[str, str] = {
     "Rakefile": "ruby",
     ".gitignore": "gitignore",
     ".gitattributes": "gitattributes",
+    # Build systems (Bazel/Starlark)
+    "BUILD": "starlark",
+    "BUILD.bazel": "starlark",
+    "WORKSPACE": "starlark",
+    # Meson build system
+    "meson.build": "meson",
+    "meson_options.txt": "meson",
 }
 
 # Languages that should be parsed into functions/classes/methods (whitelist)
 # These are "real code" languages where extracting callable/type nodes is valuable.
 # Used to determine ContentType.CODE vs ContentType.CONTENT.
+# NOTE: matlab removed - has no extension mapping (.m conflict with Objective-C)
 CODE_LANGUAGES: set[str] = {
     # Systems programming
     "c", "cpp", "rust", "go", "zig", "d", "nim",
@@ -160,13 +237,27 @@ CODE_LANGUAGES: set[str] = {
     # Functional
     "haskell", "ocaml", "elixir", "erlang", "clojure", "scheme", "racket", "commonlisp",
     # Mobile
-    "swift", "dart",
+    "swift", "dart", "objc",
     # Scientific
-    "r", "julia", "matlab", "fortran",
+    "r", "julia", "fortran",
     # GPU/Shaders
     "cuda", "glsl", "hlsl", "wgsl",
     # Other
     "v",
+    # Game engines
+    "gdscript",
+    # Web frameworks (component-based with script sections)
+    "vue", "svelte", "astro",
+    # Hardware (modules/entities/functions)
+    "verilog", "vhdl",
+    # Blockchain (contracts/functions)
+    "solidity", "cairo",
+    # Emerging languages
+    "odin", "gleam", "hare", "pony", "haxe",
+    # Functional (additional)
+    "elm", "purescript",
+    # Legacy (procedures/functions)
+    "cobol", "pascal", "ada",
 }
 
 # Languages with extractable structure (includes CODE + structured content).
