@@ -488,6 +488,112 @@ class TestSearchToolFilters:
 
 
 # =============================================================================
+# T007: TestSearchToolGlobPatterns - Glob pattern support (plan 015)
+# =============================================================================
+
+
+class TestSearchToolGlobPatterns:
+    """Tests for glob pattern support in MCP search (T007 - plan 015).
+
+    Verifies that glob patterns like *.py and .py work through the MCP layer.
+    The pattern conversion is tested thoroughly at unit level (44 tests in
+    test_pattern_utils.py), so these tests focus on MCP integration.
+    """
+
+    def test_search_glob_star_py_filters_correctly(
+        self, search_test_graph_store
+    ) -> None:
+        """Glob *.py pattern converted to regex and filters correctly."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        import asyncio
+        result = asyncio.get_event_loop().run_until_complete(
+            search(pattern=".", mode="text", include=["*.py"])
+        )
+
+        # All results should have .py in node_id
+        assert result["meta"]["total"] > 0
+        for r in result["results"]:
+            assert ".py" in r["node_id"], f"Expected .py in {r['node_id']}"
+
+    def test_search_extension_pattern_filters_correctly(
+        self, search_test_graph_store
+    ) -> None:
+        """Extension pattern .py (without *) works correctly."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        import asyncio
+        result = asyncio.get_event_loop().run_until_complete(
+            search(pattern=".", mode="text", include=[".py"])
+        )
+
+        # All results should have .py in node_id
+        assert result["meta"]["total"] > 0
+        for r in result["results"]:
+            assert ".py" in r["node_id"], f"Expected .py in {r['node_id']}"
+
+    def test_search_glob_exclude_works(
+        self, search_test_graph_store
+    ) -> None:
+        """Glob pattern in exclude filter works."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        import asyncio
+        # Exclude all .py files - should get 0 results since fixture only has .py
+        result = asyncio.get_event_loop().run_until_complete(
+            search(pattern=".", mode="text", exclude=["*.py"])
+        )
+
+        # No results should have .py (all excluded)
+        for r in result["results"]:
+            assert ".py" not in r["node_id"], f"Unexpected .py in {r['node_id']}"
+
+    def test_search_regex_still_works(
+        self, search_test_graph_store
+    ) -> None:
+        """Regex patterns still work (backward compatibility)."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = search_test_graph_store
+
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        import asyncio
+        # Use regex pattern that should pass through unchanged
+        result = asyncio.get_event_loop().run_until_complete(
+            search(pattern=".", mode="text", include=[".*auth.*"])
+        )
+
+        # All results should have auth in node_id
+        for r in result["results"]:
+            assert "auth" in r["node_id"], f"Expected auth in {r['node_id']}"
+
+
+# =============================================================================
 # T005: TestSearchToolPagination - Limit/offset pagination
 # =============================================================================
 

@@ -104,21 +104,14 @@ See `research-dossier.md` for full analysis including language classification sy
 
 ## Open Questions
 
-1. **Q1**: Should we resolve the `.v` extension conflict (V language vs Verilog)?
-   - Current: `.v` maps to V language
-   - Option A: Keep as V, use `.sv`/`.svh` for Verilog only
-   - Option B: Change to Verilog (more common in industry)
-   - **Recommendation**: Option A (non-breaking)
+1. **Q1**: ~~Should we resolve the `.v` extension conflict (V language vs Verilog)?~~
+   - **RESOLVED**: Keep `.v` as V language; Verilog uses `.sv`/`.svh` only (non-breaking)
 
-2. **Q2**: Should we add `.m` for MATLAB or Objective-C?
-   - Both are valid uses
-   - Currently unmapped
-   - **Recommendation**: Skip for now, document as known limitation
+2. **Q2**: ~~Should we add `.m` for MATLAB or Objective-C?~~
+   - **RESOLVED**: Skip `.m` mapping; document as known limitation
 
-3. **Q3**: How many test fixture samples to add?
-   - Minimum: 1 high-demand (GDScript), 1 medium-demand (CUDA)
-   - Maximum: 1 per language category
-   - **Recommendation**: Minimum (2 samples) - keeps fixtures lean
+3. **Q3**: ~~How many test fixture samples to add?~~
+   - **RESOLVED**: Minimum (2 samples) - GDScript + CUDA
 
 ## ADR Seeds (Optional)
 
@@ -157,6 +150,17 @@ See `research-dossier.md` for full analysis including language classification sy
 - **Answer**: A (Avoid mocks entirely)
 - **Rationale**: Use test fixture graph pickle only; regenerate if needed; align with existing search/tree tests
 
+**Q4: Documentation Strategy**
+- **Answer**: D (No new documentation)
+- **Rationale**: Internal dictionary changes; supported languages discoverable via code
+
+**Q5: Open Questions Resolution**
+- **Answer**: Y (Accept all recommendations)
+- **Decisions**:
+  - `.v` stays as V language; Verilog uses `.sv`/`.svh` only
+  - `.m` not mapped; documented as known limitation
+  - 2 test fixtures only (GDScript + CUDA)
+
 ---
 
 ## Testing Strategy
@@ -179,6 +183,14 @@ See `research-dossier.md` for full analysis including language classification sy
 - Use test fixture graph pickle (`tests/fixtures/fixture_graph.pkl`)
 - Regenerate fixtures with `just generate-fixtures` when adding new samples
 - Align test patterns with existing search and tree tests in codebase
+
+## Documentation Strategy
+
+**Location**: None (internal changes)
+
+**Rationale**: Adding language mappings is an internal implementation detail. Supported languages are discoverable by inspecting `EXTENSION_TO_LANGUAGE` in source code.
+
+**Maintenance**: N/A
 
 ---
 

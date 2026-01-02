@@ -541,8 +541,8 @@ async def search(
         mode: Search mode - "text", "regex", "semantic", or "auto" (default: "auto")
         limit: Maximum results to return (default: 20, must be >= 1)
         offset: Number of results to skip for pagination (default: 0)
-        include: Filter to keep only node_ids matching ANY pattern (regex patterns)
-        exclude: Filter to remove node_ids matching ANY pattern (regex patterns)
+        include: Filter to keep only node_ids matching ANY pattern (glob like *.py or regex)
+        exclude: Filter to remove node_ids matching ANY pattern (glob like *.py or regex)
         detail: Output verbosity - "min" (9 fields) or "max" (13 fields)
 
     Returns:
@@ -571,6 +571,7 @@ async def search(
     from fs2.core.models.search import QuerySpec, SearchMode
     from fs2.core.services.search import SearchService
     from fs2.core.services.search.exceptions import SearchError
+    from fs2.core.utils import normalize_filter_pattern
 
     try:
         from pathlib import Path
@@ -589,9 +590,17 @@ async def search(
             valid_modes = ", ".join(m.value for m in SearchMode)
             raise ToolError(f"Invalid mode '{mode}'. Must be one of: {valid_modes}") from None
 
-        # Convert include/exclude lists to tuples for QuerySpec
-        include_tuple = tuple(include) if include else None
-        exclude_tuple = tuple(exclude) if exclude else None
+        # Convert glob patterns to regex, then to tuples for QuerySpec
+        # normalize_filter_pattern() auto-detects globs like *.py and .cs
+        try:
+            include_tuple = (
+                tuple(normalize_filter_pattern(p) for p in include) if include else None
+            )
+            exclude_tuple = (
+                tuple(normalize_filter_pattern(p) for p in exclude) if exclude else None
+            )
+        except ValueError as e:
+            raise ToolError(str(e)) from None
 
         # Build QuerySpec (validates parameters including regex patterns)
         try:
@@ -619,7 +628,9 @@ async def search(
         store.load(graph_path)
 
         # Create embedding adapter from config (or use injected one for testing)
-        from fs2.core.adapters.embedding_adapter import create_embedding_adapter_from_config
+        from fs2.core.adapters.embedding_adapter import (
+            create_embedding_adapter_from_config,
+        )
 
         adapter = get_embedding_adapter()
         if adapter is None:

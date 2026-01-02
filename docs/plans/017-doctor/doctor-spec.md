@@ -30,7 +30,7 @@ See `research-dossier.md` for full analysis.
 4. Which `${VAR}` placeholders are unresolved
 5. Clear next steps when configuration is incomplete
 
-Additionally, `fs2 init` should be enhanced to bootstrap user-global config (`~/.config/fs2/`) with example templates, not just local project config.
+Additionally, `fs2 init` should be enhanced to automatically bootstrap user-global config (`~/.config/fs2/`) alongside local project config, eliminating the need for users to understand the internal config hierarchy.
 
 ---
 
@@ -45,7 +45,7 @@ Additionally, `fs2 init` should be enhanced to bootstrap user-global config (`~/
 7. **Setup Detection**: Warn when no configs exist and suggest `fs2 init`
 8. **Workspace Awareness**: Warn when central configs exist but local `.fs2/` is missing
 9. **Human-Readable Output**: Use Rich library for clear, scannable terminal output
-10. **Enhanced Init**: Allow `fs2 init --global` to bootstrap `~/.config/fs2/` with example configs
+10. **Enhanced Init**: `fs2 init` automatically bootstraps both local `./.fs2/` and global `~/.config/fs2/` configs in one command
 
 ---
 
@@ -121,17 +121,28 @@ Additionally, `fs2 init` should be enhanced to bootstrap user-global config (`~/
 
 ### fs2 init Enhancement
 
-14. **AC-14**: `fs2 init --global` creates `~/.config/fs2/` directory structure
-15. **AC-15**: `fs2 init --global` copies `config.yaml.example` to `~/.config/fs2/config.yaml.example`
-16. **AC-16**: `fs2 init --global` copies `secrets.env.example` to `~/.config/fs2/secrets.env.example`
+14. **AC-14**: `fs2 init` creates both local `./.fs2/` AND global `~/.config/fs2/` in one command
+15. **AC-15**: If global `~/.config/fs2/` already exists, it is skipped (not overwritten, no error)
+16. **AC-16**: If local `./.fs2/` already exists, `--force` is required to overwrite (unchanged from current behavior)
 17. **AC-17**: Example files are sourced from `docs/examples/` (not hardcoded in Python)
-18. **AC-18**: `fs2 init` (without --global) continues to create local `./.fs2/` as before
-19. **AC-19**: `fs2 init --global` exits with actionable error if config already exists (never overwrites)
+18. **AC-18**: Reports what was created: "Created local config", "Created global config", "Skipped global (already exists)"
+19. **AC-19**: No `--global` flag needed - users don't need to understand config hierarchy
+20. **AC-20**: `fs2 init` displays current working directory path before creating configs
+21. **AC-21**: If no `.git` folder exists in current directory, shows prominent red warning (but does not fail)
+
+### CLI Guard (Require Init)
+
+22. **AC-22**: Commands like `scan`, `search`, `tree`, `get-node`, `mcp` fail if `.fs2/` doesn't exist in current directory
+23. **AC-23**: When command fails due to missing init, error message shows current working directory path
+24. **AC-24**: Error message suggests running `fs2 init` when `.fs2/` is missing
+25. **AC-25**: If no `.git` folder exists, error also shows prominent red warning (helps identify wrong directory)
+26. **AC-26**: These commands always work without init: `init`, `doctor`, `--help`, `--version`, and any subcommand `--help`
+27. **AC-27**: No auto-init behavior - commands never create `.fs2/` implicitly
 
 ### Example Templates
 
-20. **AC-20**: `docs/examples/config.yaml.example` exists with documented LLM and embedding sections
-21. **AC-21**: `docs/examples/secrets.env.example` exists with placeholder variable names
+28. **AC-28**: `docs/examples/config.yaml.example` exists with documented LLM and embedding sections
+29. **AC-29**: `docs/examples/secrets.env.example` exists with placeholder variable names
 
 ---
 
@@ -162,8 +173,8 @@ Additionally, `fs2 init` should be enhanced to bootstrap user-global config (`~/
 2. **Q2**: Should doctor warn about literal secrets in config files (security check)?
    - *Decision*: **Yes** - include `sk-*` prefix detection and >64 char string warnings per PL-07
 
-3. **Q3**: Should `fs2 init --global --force` overwrite existing user config?
-   - *Decision*: **No `--force` for --global** - if config exists, exit with actionable error showing what exists and how to manually edit/remove
+3. **Q3**: How should `fs2 init` handle existing global config?
+   - *Decision*: **Skip silently** - if global exists, just skip it and continue with local; report "Skipped global (already exists)"
 
 ---
 
@@ -301,11 +312,11 @@ $ fs2 doctor
 - **Rationale**: Security best practice; patterns already exist in codebase per PL-07
 - **Updated**: AC-13 added, Open Questions Q2 resolved
 
-**Q5: Init Overwrite Behavior**
-- **Question**: Should `fs2 init --global --force` overwrite existing config?
-- **Answer**: Never overwrite - exit with actionable error if pre-existing
-- **Rationale**: Safer approach; user must manually remove/edit existing config
-- **Updated**: AC-19 updated, Open Questions Q3 resolved, removed --force concept for --global
+**Q5: Init Behavior**
+- **Question**: How should `fs2 init` handle global config setup?
+- **Answer**: `fs2 init` does both local AND global in one command. If global exists, skip silently. No `--global` flag needed.
+- **Rationale**: Users shouldn't need to understand config hierarchy internals. One command does everything.
+- **Updated**: AC-14-19 rewritten, `--global` flag removed, simpler UX
 
 ---
 

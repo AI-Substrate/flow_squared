@@ -931,3 +931,179 @@ class TestSearchIncludeExcludeOptions:
 
         assert result.exit_code == 1
         # Error should be on stderr (empty stdout)
+
+
+# ============================================================================
+# ST008: Glob Pattern Support Tests
+# ============================================================================
+
+
+@pytest.mark.unit
+class TestSearchGlobPatterns:
+    """ST008: Tests for glob pattern support in --include/--exclude (T004).
+
+    These tests verify that glob patterns like *.py, .cs, and test_* work
+    correctly when filtering search results. Uses scanned_fixtures_graph
+    which contains multiple file types (.py, .cs, .md, .ts, etc.).
+    """
+
+    def test_given_glob_star_py_when_include_then_filters_to_py_only(
+        self, scanned_fixtures_graph
+    ):
+        """
+        Purpose: Proves *.py glob pattern filters to Python files only.
+        Quality Contribution: Glob pattern support (AC1).
+        Acceptance Criteria: All results have .py extension.
+
+        Task: T004
+        """
+        from fs2.cli.main import app
+
+        # scanned_fixtures_graph already sets chdir and NO_COLOR
+
+        result = runner.invoke(app, ["search", ".", "--include", "*.py", "--limit", "50"])
+
+        assert result.exit_code == 0
+        output = json.loads(result.stdout)
+        assert output["meta"]["total"] > 0
+
+        # All results should have .py in node_id
+        for r in output["results"]:
+            assert ".py" in r["node_id"], f"Expected .py in {r['node_id']}"
+
+    def test_given_glob_star_cs_when_include_then_filters_to_cs_only(
+        self, scanned_fixtures_graph
+    ):
+        """
+        Purpose: Proves *.cs glob pattern filters to C# files only.
+        Quality Contribution: Glob pattern support for non-Python files.
+        Acceptance Criteria: All results have .cs extension.
+
+        Task: T004
+        """
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["search", ".", "--include", "*.cs", "--limit", "50"])
+
+        assert result.exit_code == 0
+        output = json.loads(result.stdout)
+        assert output["meta"]["total"] > 0
+
+        # All results should have .cs in node_id
+        for r in output["results"]:
+            assert ".cs" in r["node_id"], f"Expected .cs in {r['node_id']}"
+
+    def test_given_glob_star_md_when_include_then_filters_to_md_only(
+        self, scanned_fixtures_graph
+    ):
+        """
+        Purpose: Proves *.md glob pattern filters to markdown files only.
+        Quality Contribution: Glob pattern support for docs.
+        Acceptance Criteria: All results have .md extension.
+
+        Task: T004
+        """
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["search", ".", "--include", "*.md", "--limit", "50"])
+
+        assert result.exit_code == 0
+        output = json.loads(result.stdout)
+        assert output["meta"]["total"] > 0
+
+        # All results should have .md in node_id
+        for r in output["results"]:
+            assert ".md" in r["node_id"], f"Expected .md in {r['node_id']}"
+
+    def test_given_extension_pattern_when_include_then_filters_correctly(
+        self, scanned_fixtures_graph
+    ):
+        """
+        Purpose: Proves .cs extension pattern (without *) works.
+        Quality Contribution: Extension pattern support (AC2).
+        Acceptance Criteria: All results have .cs extension.
+
+        Task: T004
+        """
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["search", ".", "--include", ".cs", "--limit", "50"])
+
+        assert result.exit_code == 0
+        output = json.loads(result.stdout)
+        assert output["meta"]["total"] > 0
+
+        # All results should have .cs in node_id
+        for r in output["results"]:
+            assert ".cs" in r["node_id"], f"Expected .cs in {r['node_id']}"
+
+    def test_given_extension_ts_when_include_then_excludes_typescript_dir(
+        self, scanned_fixtures_graph
+    ):
+        """
+        Purpose: Proves .ts extension doesn't match 'typescript' directory.
+        Quality Contribution: Extension anchoring works correctly (AC2).
+        Acceptance Criteria: Results have .ts extension, not 'typescript' substring.
+
+        Task: T004
+        """
+        from fs2.cli.main import app
+
+        result = runner.invoke(app, ["search", ".", "--include", ".ts", "--limit", "50"])
+
+        assert result.exit_code == 0
+        output = json.loads(result.stdout)
+
+        # All results should have .ts extension (before : or at end)
+        for r in output["results"]:
+            node_id = r["node_id"]
+            # Must have .ts followed by : or end of string
+            has_ts_extension = ".ts:" in node_id or node_id.endswith(".ts")
+            assert has_ts_extension, f"Expected .ts extension in {node_id}"
+
+    def test_given_glob_exclude_when_search_then_removes_matching(
+        self, scanned_fixtures_graph
+    ):
+        """
+        Purpose: Proves --exclude with glob pattern removes matches.
+        Quality Contribution: Exclude pattern support with globs.
+        Acceptance Criteria: No results have excluded extension.
+
+        Task: T004
+        """
+        from fs2.cli.main import app
+
+        result = runner.invoke(
+            app, ["search", ".", "--exclude", "*.md", "--limit", "50"]
+        )
+
+        assert result.exit_code == 0
+        output = json.loads(result.stdout)
+        assert output["meta"]["total"] > 0
+
+        # No results should have .md in node_id
+        for r in output["results"]:
+            assert ".md" not in r["node_id"], f"Unexpected .md in {r['node_id']}"
+
+    def test_given_regex_pattern_when_include_then_still_works(
+        self, scanned_fixtures_graph
+    ):
+        """
+        Purpose: Proves regex patterns still work (backward compat - AC4).
+        Quality Contribution: Backward compatibility with regex.
+        Acceptance Criteria: Calculator.* matches calculator patterns.
+
+        Task: T004
+        """
+        from fs2.cli.main import app
+
+        # Use a regex pattern that shouldn't be converted
+        result = runner.invoke(
+            app, ["search", ".", "--include", ".*class.*", "--limit", "50"]
+        )
+
+        assert result.exit_code == 0
+        output = json.loads(result.stdout)
+        # Should match any node with 'class' in the ID
+        for r in output["results"]:
+            assert "class" in r["node_id"].lower(), f"Expected class in {r['node_id']}"

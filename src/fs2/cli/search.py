@@ -30,6 +30,7 @@ from fs2.core.models.search.search_result_meta import (
 from fs2.core.repos import NetworkXGraphStore
 from fs2.core.services.search import SearchService
 from fs2.core.services.search.exceptions import SearchError
+from fs2.core.utils import normalize_filter_pattern
 
 # Console for error/status messages - writes to stderr to keep stdout clean for piping
 console = Console(stderr=True)
@@ -83,14 +84,14 @@ def search(
         list[str] | None,
         typer.Option(
             "--include",
-            help="Keep only results matching pattern (text/regex). Repeatable for OR logic.",
+            help="Filter by pattern (glob like *.py or regex). Repeatable for OR logic.",
         ),
     ] = None,
     exclude: Annotated[
         list[str] | None,
         typer.Option(
             "--exclude",
-            help="Remove results matching pattern (text/regex). Repeatable for OR logic.",
+            help="Exclude by pattern (glob like *.py or regex). Repeatable for OR logic.",
         ),
     ] = None,
 ) -> None:
@@ -149,9 +150,18 @@ def search(
         )
         raise typer.Exit(code=1)
 
-    # Convert to tuples for QuerySpec (validation happens in QuerySpec)
-    include_patterns = tuple(include) if include else None
-    exclude_patterns = tuple(exclude) if exclude else None
+    # Convert glob patterns to regex, then to tuples for QuerySpec
+    # normalize_filter_pattern() auto-detects globs like *.py and .cs
+    try:
+        include_patterns = (
+            tuple(normalize_filter_pattern(p) for p in include) if include else None
+        )
+        exclude_patterns = (
+            tuple(normalize_filter_pattern(p) for p in exclude) if exclude else None
+        )
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1) from None
 
     try:
         # === Composition Root ===
@@ -172,7 +182,9 @@ def search(
         graph_store.load(graph_path)
 
         # Try to create embedding adapter if configured (for semantic search)
-        from fs2.core.adapters.embedding_adapter import create_embedding_adapter_from_config
+        from fs2.core.adapters.embedding_adapter import (
+            create_embedding_adapter_from_config,
+        )
 
         embedding_adapter = create_embedding_adapter_from_config(config)
 

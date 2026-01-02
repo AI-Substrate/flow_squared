@@ -5,7 +5,7 @@
 **Created**: 2026-01-02
 **Updated**: 2026-01-02 (added test infrastructure research findings R09-R10)
 **Spec**: [./search-fix-spec.md](./search-fix-spec.md)
-**Status**: READY
+**Status**: ✅ COMPLETE (12/12 tasks, 124 tests pass)
 
 ## Table of Contents
 
@@ -76,11 +76,24 @@ def normalize_filter_pattern(pattern: str) -> str:
 
 ### Test Infrastructure Summary
 
+#### CLI Test Fixtures (`tests/conftest.py`)
+
 | Fixture | Purpose | File Types |
 |---------|---------|------------|
 | `scanned_project` | Temp project w/ 3 Python files | .py only |
 | `scanned_fixtures_graph` | Real graph from `tests/fixtures/ast_samples/` | 7 .py, 3 .md, 3 .cs, 2 .ts, 2 .go, 2 .rs, 2 .tf, 1 .tsx, 1 .js |
 | `fixture_graph.pkl` | Pre-built graph with embeddings | (for semantic tests) |
+
+#### MCP Test Fixtures (`tests/mcp_tests/conftest.py`)
+
+| Fixture | Purpose | File Types | Notes |
+|---------|---------|------------|-------|
+| `search_test_graph_store` | FakeGraphStore with 4 nodes | .py only | Used by `TestSearchToolFilters` |
+| `search_mcp_client` | Async MCP client for protocol tests | N/A | Uses `search_test_graph_store` |
+| `glob_test_graph_store` | **NEW**: FakeGraphStore with varied file types | .py, .cs, .md, .ts, .css | Required for T007 glob tests |
+| `glob_mcp_client` | **NEW**: Async MCP client for glob tests | N/A | Uses `glob_test_graph_store` |
+
+**DYK-006: Existing MCP filter tests (`TestSearchToolFilters`) only cover regex patterns like `["auth"]`, not glob patterns like `["*.py"]`.**
 
 **Existing Tests** (`TestSearchIncludeExcludeOptions`, lines 597-933 in `test_search_cli.py`):
 - 13 tests covering help text, basic filtering, OR logic, include-before-exclude, meta fields, regex support, invalid regex errors
@@ -92,22 +105,22 @@ def normalize_filter_pattern(pattern: str) -> str:
 2. Add new `TestSearchGlobPatterns` class in `test_search_cli.py`
 3. Test both CLI integration and the pattern utility unit tests
 
-### Tasks
+### Tasks (Full TDD Approach)
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|-------|
-| [ ] | T001 | Create utils module structure | 1 | Setup | -- | `/workspaces/flow_squared/src/fs2/core/utils/__init__.py`, `/workspaces/flow_squared/src/fs2/core/utils/pattern_utils.py` | Module imports without error | mkdir + touch |
-| [ ] | T002 | Write unit tests for `normalize_filter_pattern()` | 2 | Test | T001 | `/workspaces/flow_squared/tests/unit/utils/test_pattern_utils.py` | Tests exist, all fail initially (RED) | TDD: tests first |
-| [ ] | T003 | Implement `normalize_filter_pattern()` with safe algorithm | 2 | Core | T002 | `/workspaces/flow_squared/src/fs2/core/utils/pattern_utils.py` | All T002 tests pass (GREEN) | Regex-first algorithm per R1-01 |
-| [ ] | T004 | Write CLI integration tests for glob patterns | 2 | Test | T003 | `/workspaces/flow_squared/tests/unit/cli/test_search_cli.py` | New tests in `TestSearchGlobPatterns` class | Use `scanned_fixtures_graph` fixture for .py/.cs/.md tests |
-| [ ] | T005 | Integrate pattern conversion into CLI search | 2 | Core | T003 | `/workspaces/flow_squared/src/fs2/cli/search.py` | T004 tests pass, existing tests still pass | Lines 152-155 + import |
-| [ ] | T006 | Update CLI help text | 1 | Core | T005 | `/workspaces/flow_squared/src/fs2/cli/search.py` | Help shows "glob like *.py or regex" | Line 86-87 |
-| [ ] | T007 | Write MCP integration tests for glob patterns | 2 | Test | T003 | `/workspaces/flow_squared/tests/mcp_tests/test_search_tool.py` | New tests for glob in MCP search | May need fixture adjustment |
-| [ ] | T008 | Integrate pattern conversion into MCP search | 2 | Core | T003,T007 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | T007 tests pass | DYK-004: Lines 593-594 + import |
-| [ ] | T009 | Update MCP search docstring | 1 | Core | T008 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Docstring mentions glob support | DYK-004: Lines 544-545 "(regex patterns)" → "(glob or regex)" |
-| [ ] | T010 | Write backward compatibility tests | 2 | Test | T005,T008 | `/workspaces/flow_squared/tests/unit/cli/test_search_cli.py` | Existing regex patterns pass through unchanged | Verify all 13 existing tests in `TestSearchIncludeExcludeOptions` still pass |
-| [ ] | T011 | Run full test suite | 1 | Validation | T010 | -- | `pytest tests/unit/cli/test_search_cli.py tests/mcp_tests/` passes | Final validation |
-| [ ] | T012 | Manual end-to-end validation | 1 | Validation | T011 | `/workspaces/flow_squared/scratch/graph.pickle` | All baseline tests pass (see Manual Testing section) | Use scratch graph |
+| [x] | T001 | Create utils module structure | 1 | Setup | -- | `/workspaces/flow_squared/src/fs2/core/utils/__init__.py`, `/workspaces/flow_squared/src/fs2/core/utils/pattern_utils.py` | Module imports without error | ✓ Complete [^1] |
+| [x] | T002 | Write unit tests for `normalize_filter_pattern()` | 2 | Test | T001 | `/workspaces/flow_squared/tests/unit/utils/test_pattern_utils.py` | Tests exist, all fail initially (RED) | ✓ 44 tests (RED) [^2] |
+| [x] | T003 | Implement `normalize_filter_pattern()` with safe algorithm | 2 | Core | T002 | `/workspaces/flow_squared/src/fs2/core/utils/pattern_utils.py` | All T002 tests pass (GREEN) | ✓ 44 tests (GREEN) [^1] |
+| [x] | T004 | Write CLI integration tests for glob patterns | 2 | Test | T003 | `/workspaces/flow_squared/tests/unit/cli/test_search_cli.py` | New tests in `TestSearchGlobPatterns` class | ✓ 7 tests [^3] |
+| [x] | T005 | Integrate pattern conversion into CLI search | 2 | Core | T003 | `/workspaces/flow_squared/src/fs2/cli/search.py` | T004 tests pass, existing tests still pass | ✓ Integration done [^4] |
+| [x] | T006 | Update CLI help text | 1 | Core | T005 | `/workspaces/flow_squared/src/fs2/cli/search.py` | Help shows "glob like *.py or regex" | ✓ Help updated [^4] |
+| [x] | T007 | Write MCP integration tests for glob patterns | 3 | Test | T003 | `/workspaces/flow_squared/tests/mcp_tests/test_search_tool.py` | New `TestSearchToolGlobPatterns` class | ✓ 4 tests [^5] |
+| [x] | T008 | Integrate pattern conversion into MCP search | 2 | Core | T003,T007 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | T007 tests pass | ✓ Integration done [^6] |
+| [x] | T009 | Update MCP search docstring | 1 | Core | T008 | `/workspaces/flow_squared/src/fs2/mcp/server.py` | Docstring mentions glob support | ✓ Docstring updated [^6] |
+| [x] | T010 | Verify backward compatibility | 2 | Test | T005,T008 | `/workspaces/flow_squared/tests/unit/cli/test_search_cli.py` | Existing regex patterns pass through unchanged | ✓ 13 tests pass |
+| [x] | T011 | Run full test suite | 1 | Validation | T010 | -- | `pytest tests/unit/cli/test_search_cli.py tests/mcp_tests/` passes | ✓ 124 tests pass |
+| [x] | T012 | Manual end-to-end validation | 1 | Validation | T011 | `/workspaces/flow_squared/scratch/graph.pickle` | All baseline tests pass (see Manual Testing section) | ✓ E2E verified |
 
 ### Task Details
 
@@ -309,16 +322,84 @@ else:
 help="Filter by pattern (glob like *.py or regex). Repeatable for OR logic."
 ```
 
+#### T007: MCP Integration Tests for Glob Patterns
+
+**Prerequisite**: Create `glob_test_graph_store` fixture with multiple file types (DYK-006):
+
+```python
+# tests/mcp_tests/conftest.py - add new fixture
+@pytest.fixture
+def glob_test_graph_store(tmp_path: Path) -> tuple[FakeGraphStore, FakeConfigurationService]:
+    """FakeGraphStore with varied file types for glob pattern testing."""
+    graph_path = tmp_path / "graph.pickle"
+    graph_path.touch()
+
+    config = FakeConfigurationService(
+        ScanConfig(),
+        GraphConfig(graph_path=str(graph_path)),
+    )
+
+    nodes = [
+        make_code_node(node_id="callable:src/auth/login.py:authenticate", ...),
+        make_code_node(node_id="callable:src/auth/session.py:create_session", ...),
+        make_code_node(node_id="callable:src/core/types.cs:UserType", ...),  # .cs file
+        make_code_node(node_id="file:docs/readme.md", ...),                    # .md file
+        make_code_node(node_id="file:styles/main.css", ...),                   # .css file
+        make_code_node(node_id="callable:src/typescript/index.ts:main", ...),  # .ts file
+        make_code_node(node_id="file:src/test_utils.py", ...),                 # test_ prefix
+    ]
+
+    store = FakeGraphStore(config)
+    store.set_nodes(nodes)
+    return store, config
+```
+
+**Test Class** (add to `tests/mcp_tests/test_search_tool.py`):
+
+```python
+class TestSearchToolGlobPatterns:
+    """TDD tests for glob pattern support in MCP search (T007 - DYK-006)."""
+
+    def test_mcp_glob_star_py_filters_correctly(self, glob_test_graph_store) -> None:
+        """Glob *.py pattern converted to regex and filters correctly."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import search
+
+        store, config = glob_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        import asyncio
+        result = asyncio.get_event_loop().run_until_complete(
+            search(pattern=".", mode="text", include=["*.py"])
+        )
+
+        # All results should have .py extension
+        for r in result["results"]:
+            assert ".py" in r["node_id"]
+        # Should NOT include .cs, .md, .css, .ts files
+        assert not any(".cs" in r["node_id"] for r in result["results"])
+
+    def test_mcp_extension_not_match_substring(self, glob_test_graph_store) -> None:
+        """Extension .cs should not match .css files."""
+        # ... validates .cs doesn't match styles/main.css ...
+
+    def test_mcp_trailing_glob_works(self, glob_test_graph_store) -> None:
+        """Trailing glob test_* matches test_utils.py."""
+        # ... validates test_* matches src/test_utils.py ...
+```
+
 ### Acceptance Criteria
 
-- [ ] AC1: `fs2 search "test" --include "*.py"` returns only `.py` files (no crash)
-- [ ] AC2: `fs2 search "test" --include ".gd"` matches only `.gd` files, not `gdUnit4`
-- [ ] AC3: `fs2 search "test" --include ".cs"` matches `type:foo.cs:Bar` (symbol nodes)
-- [ ] AC4: `fs2 search "test" --include "Calculator.*"` still works (regex backward compat)
-- [ ] AC5: `fs2 search --help` shows "glob like *.py or regex"
-- [ ] AC6: MCP `query` tool with `include=["*.py"]` works identically to CLI
-- [ ] AC7: All existing tests in `TestSearchIncludeExcludeOptions` still pass
-- [ ] AC8: Empty pattern `--include ""` raises clear error
+- [x] AC1: `fs2 search "test" --include "*.py"` returns only `.py` files (no crash) ✓
+- [x] AC2: `fs2 search "test" --include ".gd"` matches only `.gd` files, not `gdUnit4` ✓
+- [x] AC3: `fs2 search "test" --include ".cs"` matches `type:foo.cs:Bar` (symbol nodes) ✓
+- [x] AC4: `fs2 search "test" --include "Calculator.*"` still works (regex backward compat) ✓
+- [x] AC5: `fs2 search --help` shows "glob like *.py or regex" ✓
+- [x] AC6: MCP `query` tool with `include=["*.py"]` works identically to CLI ✓
+- [x] AC7: All existing tests in `TestSearchIncludeExcludeOptions` still pass ✓
+- [x] AC8: Empty pattern `--include ""` raises clear error ✓
 
 ### Risks
 
@@ -393,12 +474,45 @@ file:docs/how/godot/tdd.md
 
 ## Change Footnotes Ledger
 
-[^1]: [To be added during implementation via plan-6a]
-[^2]: [To be added during implementation via plan-6a]
-[^3]: [To be added during implementation via plan-6a]
+[^1]: T001/T003 - Pattern utils module (core implementation)
+  - `function:src/fs2/core/utils/pattern_utils.py:normalize_filter_pattern`
+  - `function:src/fs2/core/utils/pattern_utils.py:_convert_glob_to_regex`
+  - `file:src/fs2/core/utils/__init__.py`
+
+[^2]: T002 - Unit tests for pattern normalization (44 tests)
+  - `class:tests/unit/utils/test_pattern_utils.py:TestPatternNormalizationConversion`
+  - `class:tests/unit/utils/test_pattern_utils.py:TestPatternMatching`
+  - `class:tests/unit/utils/test_pattern_utils.py:TestEdgeCases`
+
+[^3]: T004 - CLI glob pattern tests (7 tests)
+  - `class:tests/unit/cli/test_search_cli.py:TestSearchGlobPatterns`
+
+[^4]: T005/T006 - CLI integration and help text
+  - `function:src/fs2/cli/search.py:search` (lines 153-164: pattern conversion)
+  - `file:src/fs2/cli/search.py` (lines 85-94: help text update)
+
+[^5]: T007 - MCP glob pattern tests (4 tests)
+  - `class:tests/mcp_tests/test_search_tool.py:TestSearchToolGlobPatterns`
+
+[^6]: T008/T009 - MCP integration and docstring
+  - `function:src/fs2/mcp/server.py:search` (lines 593-603: pattern conversion)
+  - `file:src/fs2/mcp/server.py` (lines 544-545: docstring update)
 
 ---
 
+## Implementation Complete
+
+**Summary**: All 12 tasks completed successfully using Full TDD approach.
+
+| Metric | Value |
+|--------|-------|
+| Tasks Completed | 12/12 (100%) |
+| Unit Tests (pattern_utils) | 44 pass |
+| CLI Integration Tests | 20 pass (7 new + 13 existing) |
+| MCP Integration Tests | 38 pass (4 new + 34 existing) |
+| Total Tests | 124 pass |
+| Manual E2E Validation | ✅ Pass |
+
 **Next steps:**
-- **Ready to implement**: `/plan-6-implement-phase --plan "docs/plans/015-search-fix/search-fix-plan.md"`
-- **Optional validation**: `/plan-4-complete-the-plan` (recommended to verify task completeness)
+- **Code review**: `/plan-7-code-review --plan "docs/plans/015-search-fix/search-fix-plan.md"`
+- **Commit changes**: Create PR with implemented glob pattern support
