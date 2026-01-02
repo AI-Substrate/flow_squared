@@ -238,6 +238,27 @@ Config sources in order (highest to lowest priority):
 - New patterns MUST be documented with examples
 - Breaking changes MUST be noted in constitution amendments
 
+### R6.4 Bundled Documentation Maintenance
+
+Bundled documentation in `src/fs2/docs/` ships with the package and is discoverable via MCP tools (`docs_list`, `docs_get`). Because these files are "hidden" compared to `docs/`, they require explicit maintenance awareness.
+
+**When to update bundled docs**:
+- Changes to configuration schema (`src/fs2/config/objects.py`) MUST trigger review of `configuration-guide.md`
+- New MCP tools MUST trigger review of `agents.md` for tool documentation
+- Changes to registry schema MUST trigger review of `registry.yaml`
+
+**Maintenance checklist for config changes**:
+- [ ] Update relevant sections in `src/fs2/docs/configuration-guide.md`
+- [ ] Verify examples match current defaults and validation rules
+- [ ] Update tags in `registry.yaml` if new config areas added
+
+**Maintenance checklist for MCP tool changes**:
+- [ ] Update tool documentation in `src/fs2/docs/agents.md`
+- [ ] Update tags in `registry.yaml` if new tool categories added
+- [ ] Verify workflows still match available tool capabilities
+
+**Rationale**: Bundled docs can drift from code because they're separate files. This rule ensures future plans consider bundled docs updates when making changes that affect documented behavior.
+
 <!-- USER CONTENT START -->
 <!-- Add project-specific documentation rules here -->
 <!-- USER CONTENT END -->

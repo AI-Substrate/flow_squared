@@ -66,9 +66,9 @@ def search(
         int,
         typer.Option(
             "--limit", "-l",
-            help="Maximum number of results (default: 20)",
+            help="Maximum number of results (default: 5)",
         ),
-    ] = 20,
+    ] = 5,
     offset: Annotated[
         int,
         typer.Option(

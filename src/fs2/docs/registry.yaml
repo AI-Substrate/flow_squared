@@ -1,0 +1,31 @@
+# fs2 Documentation Registry
+# This file maps document IDs to their metadata for MCP discovery
+
+documents:
+  - id: agents
+    title: "AI Agent Guidance"
+    summary: "Best practices for AI agents using fs2 tools. Read this FIRST when starting to use fs2 MCP server to understand tool selection, search strategies, and common workflows."
+    category: how-to
+    tags:
+      - agents
+      - mcp
+      - getting-started
+      - tree
+      - get-node
+      - search
+      - tools
+    path: agents.md
+
+  - id: configuration-guide
+    title: "Complete Configuration Guide"
+    summary: "Comprehensive reference for all fs2 configuration options. Covers file locations (user vs project), secrets management, LLM/embedding provider setup (Azure/OpenAI), and environment variable patterns. Read when setting up fs2 for the first time or troubleshooting configuration."
+    category: reference
+    tags:
+      - config
+      - setup
+      - azure
+      - openai
+      - llm
+      - embedding
+      - secrets
+    path: configuration-guide.md

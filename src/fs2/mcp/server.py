@@ -536,7 +536,7 @@ def _build_search_envelope(
 async def search(
     pattern: str,
     mode: str = "auto",
-    limit: int = 20,
+    limit: int = 5,
     offset: int = 0,
     include: list[str] | None = None,
     exclude: list[str] | None = None,
@@ -568,7 +568,7 @@ async def search(
             - For SEMANTIC: Natural language query
             - For AUTO: Pattern is analyzed to select best mode
         mode: Search mode - "text", "regex", "semantic", or "auto" (default: "auto")
-        limit: Maximum results to return (default: 20, must be >= 1)
+        limit: Maximum results to return (default: 5, must be >= 1)
         offset: Number of results to skip for pagination (default: 0)
         include: Filter to keep only node_ids matching ANY pattern (glob like *.py or regex)
         exclude: Filter to remove node_ids matching ANY pattern (glob like *.py or regex)

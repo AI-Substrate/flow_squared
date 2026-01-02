@@ -254,7 +254,7 @@ fs2 search PATTERN [OPTIONS]
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--mode` / `-m` | auto\|text\|regex\|semantic | auto | Search mode |
-| `--limit` / `-l` | int | 20 | Max results |
+| `--limit` / `-l` | int | 5 | Max results |
 | `--offset` / `-o` | int | 0 | Skip N results (pagination) |
 | `--detail` / `-d` | min\|max | min | Detail level |
 | `--include` | string | - | Filter pattern (glob/regex, repeatable) |
@@ -297,6 +297,8 @@ fs2 search PATTERN [OPTIONS]
   ]
 }
 ```
+
+**Default Limit:** 5 results (use `--limit` to increase)
 
 **Detail Levels:**
 - **min** (9 fields): node_id, name, category, snippet, start_line, end_line, score, file_path, qualified_name

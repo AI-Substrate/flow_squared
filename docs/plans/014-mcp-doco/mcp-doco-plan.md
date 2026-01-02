@@ -594,12 +594,12 @@ class TestDocsGetTool:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 4.1 | [ ] | Create `src/fs2/docs/` package directory | 1 | Directory exists with `__init__.py` | - | Empty __init__.py is sufficient |
-| 4.2 | [ ] | Create `registry.yaml` with 2 entries | 1 | Valid YAML matching DocsRegistry schema | - | agents, configuration-guide entries |
-| 4.3 | [ ] | Copy and curate agents.md from docs/how/AGENTS.md | 2 | Content matches source, summary is actionable | - | Keep user-focused, remove dev-only content |
-| 4.4 | [ ] | Create configuration-guide.md (comprehensive) | 3 | Complete configuration reference covering all topics below | - | See Configuration Guide Content section |
-| 4.5 | [ ] | Update pyproject.toml for wheel inclusion | 1 | Docs included when building wheel | - | Add to hatch.build includes |
-| 4.6 | [ ] | Verify importlib.resources access works | 1 | Test confirms files accessible | - | Create quick verification test |
+| 4.1 | [x] | Create `src/fs2/docs/` package directory | 1 | Directory exists with `__init__.py` | [📋](tasks/phase-4-curated-documentation/execution.log.md#task-t001) | Created with module docstring [^7] |
+| 4.2 | [x] | Create `registry.yaml` with 2 entries | 1 | Valid YAML matching DocsRegistry schema | [📋](tasks/phase-4-curated-documentation/execution.log.md#task-t002) | agents (expanded tags), configuration-guide [^7] |
+| 4.3 | [x] | Copy agents.md from doc-samples | 1 | Content copied, file accessible | [📋](tasks/phase-4-curated-documentation/execution.log.md#task-t003) | 182 lines from doc-samples [^7] |
+| 4.4 | [x] | Copy configuration-guide.md from doc-samples | 1 | Content copied, file accessible | [📋](tasks/phase-4-curated-documentation/execution.log.md#task-t004) | 535 lines from doc-samples [^7] |
+| 4.5 | [x] | Update pyproject.toml for wheel inclusion | 1 | Docs included when building wheel | [📋](tasks/phase-4-curated-documentation/execution.log.md#task-t005) | Added *.yaml and *.md patterns [^7] |
+| 4.6 | [x] | Verify importlib.resources access works | 1 | Test confirms files accessible | [📋](tasks/phase-4-curated-documentation/execution.log.md#task-t006) | All 62 tests pass [^7] |
 
 #### Registry Content (registry.yaml)
 
@@ -736,12 +736,12 @@ AZURE_OPENAI_API_KEY=actual-key-here
 - Validation behavior (two-stage: pre-expansion and post-expansion)
 
 #### Acceptance Criteria
-- [ ] `src/fs2/docs/__init__.py` exists
-- [ ] registry.yaml valid and passes DocsRegistry validation
-- [ ] agents.md has actionable summary
-- [ ] configuration-guide.md covers all 11 sections above
-- [ ] pyproject.toml includes docs in wheel
-- [ ] `importlib.resources.files("fs2.docs")` works
+- [x] `src/fs2/docs/__init__.py` exists
+- [x] registry.yaml valid and passes DocsRegistry validation
+- [x] agents.md has actionable summary
+- [x] configuration-guide.md covers all 11 sections above
+- [x] pyproject.toml includes docs in wheel
+- [x] `importlib.resources.files("fs2.docs")` works
 
 ---
 
@@ -854,10 +854,10 @@ See [MCP Server Guide](docs/how/mcp-server-guide.md) for setup details.
 - [x] Phase 1: Domain Models and Registry - COMPLETE (31 tests)
 - [x] Phase 2: DocsService Implementation - COMPLETE (15 tests)
 - [x] Phase 3: MCP Tool Integration - COMPLETE (19 tests)
-- [ ] Phase 4: Curated Documentation - NOT STARTED
+- [x] Phase 4: Curated Documentation - COMPLETE (7 tasks, 62 total tests)
 - [ ] Phase 5: Testing and Documentation - NOT STARTED
 
-Overall Progress: 3/5 phases (60%)
+Overall Progress: 4/5 phases (80%)
 
 ### STOP Rule
 
@@ -906,6 +906,15 @@ Overall Progress: 3/5 phases (60%)
   - Tool annotations: readOnlyHint=True, idempotentHint=True, openWorldHint=False (CF-03)
   - Error translation: DocsNotFoundError added to translate_error() (CF-06)
 
+[^7]: Phase 4 - Curated Documentation (Tasks 4.1-4.7) - COMPLETE
+  - `file:src/fs2/docs/__init__.py` - Package init with module docstring (T001)
+  - `file:src/fs2/docs/registry.yaml` - 2 document entries: agents, configuration-guide (T002)
+  - `file:src/fs2/docs/agents.md` - AI agent guidance (182 lines) copied from doc-samples (T003)
+  - `file:src/fs2/docs/configuration-guide.md` - Configuration reference (535 lines) copied from doc-samples (T004)
+  - `file:pyproject.toml` - Added docs patterns to wheel/sdist includes (T005)
+  - Registry tags expanded per DYK-5: agents entry has [agents, mcp, getting-started, tree, get-node, search, tools]
+  - R6.4 Bundled Documentation Maintenance rule added to rules.md (T007)
+
 ---
 
-**Next Step**: Run `/plan-7-code-review --phase 3` to review Phase 3 implementation
+**Next Step**: Run `/plan-7-code-review --phase 4` to review Phase 4 implementation

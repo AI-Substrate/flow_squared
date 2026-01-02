@@ -89,27 +89,30 @@ flowchart TD
     end
 
     subgraph Phase["Phase 4: Curated Documentation"]
-        T001["T001: Create fs2/docs/ package"]:::pending
-        T002["T002: Create registry.yaml"]:::pending
-        T003["T003: Curate agents.md"]:::pending
-        T004["T004: Write configuration-guide.md"]:::pending
-        T005["T005: Update pyproject.toml"]:::pending
-        T006["T006: Verify importlib.resources"]:::pending
+        T001["T001: Create fs2/docs/ package ✓"]:::completed
+        T002["T002: Create registry.yaml ✓"]:::completed
+        T003["T003: Curate agents.md ✓"]:::completed
+        T004["T004: Write configuration-guide.md ✓"]:::completed
+        T005["T005: Update pyproject.toml ✓"]:::completed
+        T006["T006: Verify importlib.resources ✓"]:::completed
+        T007["T007: Add R6.4 rule to rules.md ✓"]:::completed
 
         T001 --> T002
         T002 --> T003
         T002 --> T004
         T003 --> T006
         T004 --> T006
+        T004 --> T007
         T005 --> T006
     end
 
     subgraph Files["Files"]
-        F1["/src/fs2/docs/__init__.py"]:::pending
-        F2["/src/fs2/docs/registry.yaml"]:::pending
-        F3["/src/fs2/docs/agents.md"]:::pending
-        F4["/src/fs2/docs/configuration-guide.md"]:::pending
-        F5["/pyproject.toml"]:::pending
+        F1["/src/fs2/docs/__init__.py ✓"]:::completed
+        F2["/src/fs2/docs/registry.yaml ✓"]:::completed
+        F3["/src/fs2/docs/agents.md ✓"]:::completed
+        F4["/src/fs2/docs/configuration-guide.md ✓"]:::completed
+        F5["/pyproject.toml ✓"]:::completed
+        F6["/docs/rules-idioms-architecture/rules.md ✓"]:::completed
     end
 
     T001 -.-> F1
@@ -121,6 +124,7 @@ flowchart TD
     T006 -.-> F2
     T006 -.-> F3
     T006 -.-> F4
+    T007 -.-> F6
 
     DocsRegistry --> T002
     DocsService --> T006
@@ -133,12 +137,13 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Package Init | /src/fs2/docs/__init__.py | ⬜ Pending | Empty __init__.py for Python package recognition |
-| T002 | Registry | /src/fs2/docs/registry.yaml | ⬜ Pending | 2 entries matching DocsRegistry schema (Phase 1) |
-| T003 | Agents Doc | /src/fs2/docs/agents.md | ⬜ Pending | Copy from doc-samples/agents.md (183 lines) |
-| T004 | Config Guide | /src/fs2/docs/configuration-guide.md | ⬜ Pending | Copy from doc-samples/configuration-guide.md (536 lines) |
-| T005 | Build Config | /pyproject.toml | ⬜ Pending | Add docs to wheel includes |
-| T006 | Verification | Multiple | ⬜ Pending | Smoke test importlib.resources access |
+| T001 | Package Init | /src/fs2/docs/__init__.py | ✅ Complete | Empty __init__.py for Python package recognition |
+| T002 | Registry | /src/fs2/docs/registry.yaml | ✅ Complete | 2 entries matching DocsRegistry schema (Phase 1) |
+| T003 | Agents Doc | /src/fs2/docs/agents.md | ✅ Complete | Copy from doc-samples/agents.md (183 lines) |
+| T004 | Config Guide | /src/fs2/docs/configuration-guide.md | ✅ Complete | Copy from doc-samples/configuration-guide.md (536 lines) |
+| T005 | Build Config | /pyproject.toml | ✅ Complete | Add docs to wheel includes |
+| T006 | Verification | Multiple | ✅ Complete | Smoke test importlib.resources access |
+| T007 | Project Rules | /docs/rules-idioms-architecture/rules.md | ✅ Complete | Add R6.4 for bundled docs maintenance |
 
 ---
 
@@ -146,12 +151,13 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|--------------------------------------|-----|------|--------------|---------------------------------------------|------------------------------------------|----------|-------|
-| [ ] | T001 | Create `src/fs2/docs/` package directory with `__init__.py` | 1 | Setup | – | /workspaces/flow_squared/src/fs2/docs/__init__.py | Directory exists, `__init__.py` is empty or has module docstring | – | Required for importlib.resources |
-| [ ] | T002 | Create `registry.yaml` with 2 document entries | 1 | Core | T001 | /workspaces/flow_squared/src/fs2/docs/registry.yaml | YAML is valid, passes DocsRegistry validation, contains agents + configuration-guide entries | – | Per plan § registry content; agents entry gets expanded tags: [agents, mcp, getting-started, tree, get-node, search, tools] (DYK-5) |
-| [ ] | T003 | Copy `agents.md` from `doc-samples/agents.md` | 1 | Content | T002 | /workspaces/flow_squared/src/fs2/docs/agents.md | Content copied, file accessible via importlib.resources | – | Source: doc-samples (183 lines) |
-| [ ] | T004 | Copy `configuration-guide.md` from `doc-samples/configuration-guide.md` | 1 | Content | T002 | /workspaces/flow_squared/src/fs2/docs/configuration-guide.md | Content copied, file accessible via importlib.resources | – | Source: doc-samples (536 lines) |
-| [ ] | T005 | Update `pyproject.toml` to include docs in wheel | 1 | Build | T001 | /workspaces/flow_squared/pyproject.toml | Docs package included in wheel build | – | Add `"src/fs2/docs/**/*.yaml"` and `"src/fs2/docs/**/*.md"` to hatch.build includes (DYK-1) |
-| [ ] | T006 | Verify importlib.resources access works | 1 | Verify | T003, T004, T005 | /workspaces/flow_squared/src/fs2/docs/ | Python REPL test confirms files accessible via importlib.resources | – | Smoke test; manual wheel verification after push (DYK-2) |
+| [x] | T001 | Create `src/fs2/docs/` package directory with `__init__.py` | 1 | Setup | – | /workspaces/flow_squared/src/fs2/docs/__init__.py | Directory exists, `__init__.py` is empty or has module docstring | – | Required for importlib.resources |
+| [x] | T002 | Create `registry.yaml` with 2 document entries | 1 | Core | T001 | /workspaces/flow_squared/src/fs2/docs/registry.yaml | YAML is valid, passes DocsRegistry validation, contains agents + configuration-guide entries | – | Per plan § registry content; agents entry gets expanded tags: [agents, mcp, getting-started, tree, get-node, search, tools] (DYK-5) |
+| [x] | T003 | Copy `agents.md` from `doc-samples/agents.md` | 1 | Content | T002 | /workspaces/flow_squared/src/fs2/docs/agents.md | Content copied, file accessible via importlib.resources | – | Source: doc-samples (183 lines) |
+| [x] | T004 | Copy `configuration-guide.md` from `doc-samples/configuration-guide.md` | 1 | Content | T002 | /workspaces/flow_squared/src/fs2/docs/configuration-guide.md | Content copied, file accessible via importlib.resources | – | Source: doc-samples (536 lines) |
+| [x] | T005 | Update `pyproject.toml` to include docs in wheel | 1 | Build | T001 | /workspaces/flow_squared/pyproject.toml | Docs package included in wheel build | – | Add `"src/fs2/docs/**/*.yaml"` and `"src/fs2/docs/**/*.md"` to hatch.build includes (DYK-1) |
+| [x] | T006 | Verify importlib.resources access works | 1 | Verify | T003, T004, T005 | /workspaces/flow_squared/src/fs2/docs/ | Python REPL test confirms files accessible via importlib.resources | – | Smoke test; manual wheel verification after push (DYK-2) |
+| [x] | T007 | Add R6.4 Bundled Documentation Maintenance rule | 1 | Doc | T004 | /workspaces/flow_squared/docs/rules-idioms-architecture/rules.md | R6.4 added to Section 6 (Documentation Rules) after R6.3 | – | Ensures future plans update bundled docs when config changes (DYK-4) |
 
 ---
 
@@ -540,11 +546,12 @@ docs/plans/014-mcp-doco/
 
 **Discussion Summary**: User agreed drift is acceptable reality.
 
-**Decision**: Accept docs drift, fix during periodic reviews or when users report issues
+**Decision**: Accept docs drift, fix during periodic reviews or when users report issues; add rule to ensure future awareness
 
-**Action Items**: None (awareness captured)
+**Action Items**:
+- [x] Add T007: Add R6.4 rule to rules.md for bundled docs maintenance
 
-**Affects**: Future maintenance (not Phase 4)
+**Affects**: Future maintenance; T007 added to Phase 4
 
 ---
 
@@ -581,11 +588,12 @@ docs/plans/014-mcp-doco/
 
 **Insights Surfaced**: 5 critical insights identified and discussed
 **Decisions Made**: 5 decisions reached through collaborative discussion
-**Action Items Created**: 3 task updates applied immediately
+**Action Items Created**: 4 task updates applied
 **Areas Updated**:
 - T002: Expanded tags for agents.md (DYK-5)
 - T005: Explicit include patterns (DYK-1)
 - T006: Manual wheel verification note (DYK-2)
+- T007: NEW - Add R6.4 rule for bundled docs maintenance (DYK-4)
 
 **Shared Understanding Achieved**: ✓
 
