@@ -304,8 +304,40 @@ def _find_placeholders_in_value(value: Any, path: str = "") -> list[dict[str, st
     return placeholders
 
 
+def _load_all_env_values() -> dict[str, str]:
+    """Load all environment values from env files + os.environ (read-only).
+
+    Returns:
+        Combined dict of all available environment variables.
+    """
+    # Start with os.environ
+    combined = dict(os.environ)
+
+    # Load env files in precedence order (lower to higher)
+    user_config_dir = get_user_config_dir()
+    project_config_dir = get_project_config_dir()
+
+    env_files = [
+        user_config_dir / "secrets.env",      # lowest priority
+        project_config_dir / "secrets.env",
+        Path.cwd() / ".env",                  # highest priority
+    ]
+
+    for env_file in env_files:
+        if env_file.exists():
+            values = dotenv_values(env_file)
+            combined.update(values)
+
+    return combined
+
+
 def validate_placeholders() -> list[dict[str, Any]]:
-    """Find all ${VAR} placeholders and check if they resolve in os.environ.
+    """Find all ${VAR} placeholders and check if they resolve.
+
+    Checks against os.environ AND values loaded from:
+    - ~/.config/fs2/secrets.env
+    - .fs2/secrets.env
+    - .env
 
     Returns:
         List of placeholder dicts with name, path, and resolved status.
@@ -314,6 +346,9 @@ def validate_placeholders() -> list[dict[str, Any]]:
     final_config = chain["final"]
 
     placeholders = _find_placeholders_in_value(final_config)
+
+    # Load all env values (including from env files)
+    all_env_values = _load_all_env_values()
 
     # Deduplicate by name and add resolved status
     seen = set()
@@ -324,7 +359,7 @@ def validate_placeholders() -> list[dict[str, Any]]:
             result.append({
                 "name": p["name"],
                 "path": p["path"],
-                "resolved": p["name"] in os.environ,
+                "resolved": p["name"] in all_env_values,
             })
 
     return result
@@ -619,12 +654,48 @@ def _render_output() -> None:
     ))
     console.print()
 
-    # Config files section
+    # Config files section with hierarchy
     console.print("[bold]📁 Configuration Files:[/bold]")
     files = discover_config_files()
-    for key, info in files.items():
-        status = "[green]✓[/green]" if info["exists"] else "[red]✗[/red] (not found)"
-        console.print(f"  {status} {info['path']}")
+    console.print()
+
+    # Config (YAML) - highest priority first
+    console.print("  [dim]Config (YAML) - first wins:[/dim]")
+    user_cfg = files["user_config"]
+    proj_cfg = files["project_config"]
+    user_status = "[green]✓[/green]" if user_cfg["exists"] else "[red]✗[/red]"
+    proj_status = "[green]✓[/green]" if proj_cfg["exists"] else "[red]✗[/red]"
+
+    # Find FS2_* environment variables
+    fs2_env_vars = {k: v for k, v in os.environ.items() if k.startswith("FS2_")}
+
+    # Display in priority order (highest first)
+    if fs2_env_vars:
+        console.print(f"    1. [green]✓[/green] Environment (FS2_*) - {len(fs2_env_vars)} set")
+        for var_name, var_value in sorted(fs2_env_vars.items()):
+            # Mask values that look like secrets
+            if "KEY" in var_name or "SECRET" in var_name or "PASSWORD" in var_name:
+                display_value = "****"
+            else:
+                display_value = var_value if len(var_value) <= 40 else var_value[:37] + "..."
+            console.print(f"       [dim]{var_name}={display_value}[/dim]")
+    else:
+        console.print("    1. [dim]✗ Environment (FS2_*) - none set[/dim]")
+    console.print(f"    2. {proj_status} {proj_cfg['path']}")
+    console.print(f"    3. {user_status} {user_cfg['path']}")
+    console.print()
+
+    # Secrets (ENV) - highest priority first
+    console.print("  [dim]Secrets (ENV) - first wins:[/dim]")
+    user_sec = files["user_secrets"]
+    proj_sec = files["project_secrets"]
+    dotenv = files["dotenv"]
+    user_sec_status = "[green]✓[/green]" if user_sec["exists"] else "[red]✗[/red]"
+    proj_sec_status = "[green]✓[/green]" if proj_sec["exists"] else "[red]✗[/red]"
+    dotenv_status = "[green]✓[/green]" if dotenv["exists"] else "[red]✗[/red]"
+    console.print(f"    1. {dotenv_status} {dotenv['path']}")
+    console.print(f"    2. {proj_sec_status} {proj_sec['path']}")
+    console.print(f"    3. {user_sec_status} {user_sec['path']}")
     console.print()
 
     # Provider status section
@@ -638,10 +709,10 @@ def _render_output() -> None:
         console.print(f"  [red]✗[/red] LLM: {llm['provider']} (misconfigured)")
         for issue in llm["issues"]:
             console.print(f"      {issue}")
-        console.print(f"    → {llm['docs_url']}")
+        console.print(f"    → {llm['docs_url']}", soft_wrap=True)
     else:
         console.print("  [red]✗[/red] LLM: NOT CONFIGURED")
-        console.print(f"    → {llm['docs_url']}")
+        console.print(f"    → {llm['docs_url']}", soft_wrap=True)
 
     emb = providers["embedding"]
     if emb["configured"]:
@@ -650,10 +721,10 @@ def _render_output() -> None:
         console.print(f"  [red]✗[/red] Embeddings: {emb['mode']} (misconfigured)")
         for issue in emb["issues"]:
             console.print(f"      {issue}")
-        console.print(f"    → {emb['docs_url']}")
+        console.print(f"    → {emb['docs_url']}", soft_wrap=True)
     else:
         console.print("  [red]✗[/red] Embeddings: NOT CONFIGURED")
-        console.print(f"    → {emb['docs_url']}")
+        console.print(f"    → {emb['docs_url']}", soft_wrap=True)
     console.print()
 
     # Placeholders section
@@ -689,7 +760,7 @@ def _render_output() -> None:
                 console.print(f"  • Schema error: {e['field']} - {e['message']}")
             elif e["type"] == "provider_requirement":
                 console.print(f"  • Missing: {e['field']} - {e['message']}")
-                console.print(f"    → {e['docs_url']}")
+                console.print(f"    → {e['docs_url']}", soft_wrap=True)
         console.print()
 
     # Suggestions section
