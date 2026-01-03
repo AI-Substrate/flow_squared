@@ -42,7 +42,9 @@
       "mcp__perplexity__perplexity_search",
       "Bash(done)",
       "Bash(chmod:*)",
-      "Bash(./scripts/fs2-watch.sh:*)"
+      "Bash(./scripts/fs2-watch.sh:*)",
+      "Bash(bash -n:*)",
+      "Bash(fs2 scan:*)"
     ],
     "deny": [],
     "ask": []

@@ -147,7 +147,18 @@
 
 ---
 
+## Subtasks Registry
+
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-doctor-llm-provider-test | 2026-01-03 | Phase 1: Implementation | T014 | Original doctor validates config structure but not connectivity. Users need pre-flight check that credentials actually work before running expensive scan operations. | [ ] Pending | [Link](tasks/phase-1-implementation/001-subtask-doctor-llm-provider-test.md) |
+
+---
+
 **Next steps:**
 - **Ready to implement**: `/plan-6-implement-phase --plan "docs/plans/017-doctor/doctor-plan.md"`
 - **Optional validation**: `/plan-4-complete-the-plan` (recommended for CS-3+ tasks)
 - **Optional task expansion**: `/plan-5-phase-tasks-and-brief` (if you want a separate dossier)
+- **Subtask implementation**: `/plan-6-implement-phase --subtask 001-subtask-doctor-llm-provider-test --plan "docs/plans/017-doctor/doctor-plan.md"`

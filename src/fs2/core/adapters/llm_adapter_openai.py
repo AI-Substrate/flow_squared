@@ -9,8 +9,11 @@ Per Insight 04: Validate api_key not empty at init.
 """
 
 import asyncio
+import logging
 import random
 from typing import TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 from openai import AsyncOpenAI
 
@@ -139,6 +142,23 @@ class OpenAIAdapter(LLMAdapter):
                 content = choice.message.content or ""
                 finish_reason = choice.finish_reason or "stop"
                 tokens_used = response.usage.total_tokens if response.usage else 0
+
+                # Treat empty response as retryable (API may be overloaded)
+                if not content.strip():
+                    if attempt < self._llm_config.max_retries:
+                        delay = 2 * (2**attempt) + random.uniform(0, 1)
+                        logger.warning(
+                            "Empty response from OpenAI (attempt %d/%d), retrying in %.1fs",
+                            attempt + 1,
+                            self._llm_config.max_retries + 1,
+                            delay,
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        raise LLMAdapterError(
+                            f"LLM returned empty response after {self._llm_config.max_retries + 1} attempts"
+                        )
 
                 return LLMResponse(
                     content=content,

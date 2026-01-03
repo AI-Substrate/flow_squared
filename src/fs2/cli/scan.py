@@ -19,6 +19,7 @@ Per Phase 0 (Subtask 001):
 
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -309,6 +310,9 @@ def scan(
         ext_summary = graph_utils.get_extension_summary()
         _display_graph_contents(console, ext_summary)
 
+        # Show completion timestamp (useful for watch mode)
+        _display_completion_timestamp(console)
+
         # Check for total failure
         if summary.files_scanned > 0 and len(summary.errors) >= summary.files_scanned:
             raise typer.Exit(code=2)
@@ -469,6 +473,12 @@ def _display_graph_contents(
         title="Graph Contents",
         success=True,  # Always blue/neutral for info panel
     )
+
+
+def _display_completion_timestamp(console: ConsoleAdapter) -> None:
+    """Display completion timestamp (useful for watch mode)."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    console.print_success(f"Completed at {timestamp}")
 
 
 def _create_smart_content_service(config, console: ConsoleAdapter):
