@@ -77,62 +77,6 @@ See [Developer Setup](#developer-setup) below for contributing.
 | [Agent Integration](docs/how/AGENTS.md) | How AI agents should use fs2 tools effectively |
 | [LLM Setup](docs/how/llm-service-setup.md) | Configure Azure OpenAI or other LLM providers |
 
-## Scanning
-
-Scan your codebase to build a queryable code graph:
-
-```bash
-# Initialize config (first time)
-fs2 init
-
-# Run scan
-fs2 scan
-
-# Verbose mode (shows per-file progress)
-fs2 scan --verbose
-```
-
-**Configuration** (`.fs2/config.yaml`):
-
-```yaml
-scan:
-  scan_paths:
-    - "."
-  respect_gitignore: true
-  max_file_size_kb: 500
-```
-
-**Output**: Graph saved to `.fs2/graph.pickle`
-
-See [Scanning Guide](docs/how/scanning.md) for details on node types, troubleshooting, and advanced configuration.
-
-## Embeddings
-
-Enable semantic search by generating embeddings for your code:
-
-```yaml
-# .fs2/config.yaml
-embedding:
-  mode: azure  # azure | openai_compatible | fake
-  dimensions: 1024
-  azure:
-    endpoint: "${FS2_AZURE__EMBEDDING__ENDPOINT}"
-    api_key: "${FS2_AZURE__EMBEDDING__API_KEY}"
-    deployment_name: "text-embedding-3-small"
-```
-
-```bash
-# Scan with embeddings (default when config exists)
-fs2 scan
-
-# Scan without embeddings (faster, no API calls)
-fs2 scan --no-embeddings
-```
-
-**Content-Type Aware Chunking**: Code uses 400-token chunks for precision, documentation uses 800-token chunks for context.
-
-See [Embeddings Guide](docs/how/embeddings/) for detailed configuration, provider setup, and architecture.
-
 ## MCP Server (AI Agent Integration)
 
 Start the MCP server for Claude Code, Claude Desktop, GitHub Copilot, or other MCP-compatible clients:
@@ -234,42 +178,63 @@ Or with uvx:
 | `get_node` | Retrieve complete source code for a specific node |
 | `search` | Find code by text, regex, or semantic meaning |
 
-### CLI File Output
+See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation.
 
-Save results to files for later analysis or sharing:
+## Scanning
+
+Scan your codebase to build a queryable code graph:
 
 ```bash
-# Search and save to file
-fs2 search "authentication" --file results.json
+# Initialize config (first time)
+fs2 init
 
-# Tree as JSON (stdout)
-fs2 tree --json
+# Run scan
+fs2 scan
 
-# Tree saved to file
-fs2 tree --json --file tree.json
-
-# With filtering
-fs2 search "error" --include "src/" --file src_errors.json
-fs2 tree Calculator --json --file calc_tree.json
+# Verbose mode (shows per-file progress)
+fs2 scan --verbose
 ```
 
-See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation on all clients and tools.
+**Configuration** (`.fs2/config.yaml`):
 
-### Troubleshooting
+```yaml
+scan:
+  scan_paths:
+    - "."
+  respect_gitignore: true
+  max_file_size_kb: 500
+```
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| `command not found: uvx` | uv not installed | Install uv: `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| `command not found: fs2` | Not permanently installed | Run `uvx --from git+...flow_squared fs2 install` |
-| uvx hangs on first run | Building from source | Wait 30-60 seconds (normal for first run) |
-| `Graph not found` error | Haven't scanned yet | Run `fs2 init` then `fs2 scan` |
-| MCP server not responding | stdout pollution | Check nothing prints to stdout before mcp import |
-| Wrong version after upgrade | Cache stale | Run `uvx --refresh --from git+... fs2 --version` |
+**Output**: Graph saved to `.fs2/graph.pickle`
 
-**Exit codes**:
-- `0` - Success
-- `1` - User error (missing config, bad arguments) - check your command
-- `2` - System error (corrupted graph, internal failure) - report a bug
+See [Scanning Guide](docs/how/scanning.md) for details on node types, troubleshooting, and advanced configuration.
+
+## Embeddings
+
+Enable semantic search by generating embeddings for your code:
+
+```yaml
+# .fs2/config.yaml
+embedding:
+  mode: azure  # azure | openai_compatible | fake
+  dimensions: 1024
+  azure:
+    endpoint: "${FS2_AZURE__EMBEDDING__ENDPOINT}"
+    api_key: "${FS2_AZURE__EMBEDDING__API_KEY}"
+    deployment_name: "text-embedding-3-small"
+```
+
+```bash
+# Scan with embeddings (default when config exists)
+fs2 scan
+
+# Scan without embeddings (faster, no API calls)
+fs2 scan --no-embeddings
+```
+
+**Content-Type Aware Chunking**: Code uses 400-token chunks for precision, documentation uses 800-token chunks for context.
+
+See [Embeddings Guide](docs/how/embeddings/) for detailed configuration, provider setup, and architecture.
 
 ## Language Support
 
