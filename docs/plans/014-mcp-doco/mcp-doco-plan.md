@@ -3,7 +3,7 @@
 **Plan Version**: 1.0.0
 **Created**: 2026-01-02
 **Spec**: [./mcp-doco-spec.md](./mcp-doco-spec.md)
-**Status**: DRAFT
+**Status**: COMPLETE
 
 ---
 
