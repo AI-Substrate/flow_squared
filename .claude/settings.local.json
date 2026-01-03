@@ -38,7 +38,9 @@
       "mcp__flowspace__tree",
       "mcp__flowspace__search",
       "Bash(xargs ls:*)",
-      "mcp__flowspace__get_node"
+      "mcp__flowspace__get_node",
+      "mcp__perplexity__perplexity_search",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

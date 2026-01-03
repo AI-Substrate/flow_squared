@@ -1,34 +1,81 @@
 # Flowspace2 (fs2)
 
-A Python project skeleton implementing **Clean Architecture** with strict dependency boundaries.
+Code intelligence for your codebase. Scan, search, and explore code with AI agents via MCP.
 
-## Quick Start
+## Installation
+
+### Prerequisites
+
+fs2 requires [uv](https://docs.astral.sh/uv/), the fast Python package manager:
 
 ```bash
-# Clone and install
-git clone <repo-url>
-cd flow_squared
-uv sync --extra dev
+# Install uv (macOS/Linux)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Run tests
-just test          # All tests (209+)
-just test-unit     # Unit tests only
-just lint          # Ruff linting
-just fix           # Auto-fix + format
+# Or with Homebrew
+brew install uv
 ```
 
-## Project Structure
+### Option 1: Zero-Install with uvx (Recommended)
 
+Run fs2 directly from GitHub with no local installation:
+
+```bash
+# Run any fs2 command directly
+uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 --help
+uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 init
+uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 scan
 ```
-src/fs2/
-├── cli/              # Presentation layer (Typer + Rich)
-├── core/
-│   ├── models/       # Domain models (frozen dataclasses)
-│   ├── services/     # Composition layer
-│   ├── adapters/     # ABC interfaces + implementations
-│   └── repos/        # Repository interfaces
-└── config/           # Pydantic-settings configuration
+
+> **Note**: First run builds from source (~30-60 seconds). Subsequent runs use cache and are near-instant. Don't Ctrl+C during the first run!
+
+### Option 2: Permanent Install (Faster Daily Use)
+
+After trying fs2 with uvx, install it permanently for instant startup:
+
+```bash
+# Self-bootstrapping install (run once)
+uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 install
+
+# Now use directly (no uvx prefix needed)
+fs2 --help
+fs2 --version    # Shows: fs2 v0.1.0 (abc1234)
 ```
+
+**Upgrade to latest**:
+```bash
+fs2 upgrade      # Or: fs2 install (same idempotent behavior)
+```
+
+### Verify Installation
+
+```bash
+fs2 --version
+# Output: fs2 v0.1.0 (abc1234)
+#         └─ version  └─ git commit (if installed from git)
+```
+
+### Installation Methods Summary
+
+| Method | Command | Best For |
+|--------|---------|----------|
+| **Zero-install** | `uvx --from git+...github...flow_squared fs2` | Trying it out, CI/CD |
+| **Permanent** | `fs2 install` (after uvx) | Daily use |
+| **Pinned version** | `uvx --from git+...@abc1234 fs2` | Reproducible builds |
+
+See [Developer Setup](#developer-setup) below for contributing.
+
+## Guides
+
+| Guide | Description |
+|-------|-------------|
+| [CLI Reference](docs/how/cli.md) | All commands, options, and output formats |
+| [Scanning](docs/how/scanning.md) | Build the code graph, configure paths, troubleshoot |
+| [MCP Server](docs/how/mcp-server-guide.md) | Connect Claude, Copilot, and other AI agents |
+| [Embeddings](docs/how/embeddings/) | Enable semantic search with vector embeddings |
+| [Configuration](docs/how/configuration.md) | Environment variables, YAML files, precedence |
+| [Agent Integration](docs/how/AGENTS.md) | How AI agents should use fs2 tools effectively |
+| [LLM Setup](docs/how/llm-service-setup.md) | Configure Azure OpenAI or other LLM providers |
 
 ## Scanning
 
@@ -94,20 +141,26 @@ Start the MCP server for Claude Code, Claude Desktop, GitHub Copilot, or other M
 fs2 mcp
 ```
 
-**Prerequisites**: Run `fs2 scan` first to index your codebase.
+**Prerequisites**: Run `fs2 init` then `fs2 scan` first to index your codebase.
 
-### Option 1: Local Install (Recommended for Daily Use)
+### Claude Code
 
-**Claude Code**:
 ```bash
 # Add fs2 MCP server (available across all projects)
 claude mcp add fs2 --scope user -- fs2 mcp
 
-# Verify it's configured
+# Or with uvx (no permanent install needed)
+claude mcp add fs2 --scope user -- uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 mcp
+
+# Verify configuration
 claude mcp list
 ```
 
-**Claude Desktop** (`~/.config/claude/claude_desktop_config.json`):
+### Claude Desktop
+
+Config location: `~/.config/claude/claude_desktop_config.json` (Linux/macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows)
+
+**With permanent install**:
 ```json
 {
   "mcpServers": {
@@ -120,38 +173,7 @@ claude mcp list
 }
 ```
 
-### Option 2: Zero-Install with uvx
-
-No local installation required. Requires [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
-
-```bash
-# Run fs2 commands directly from GitHub
-uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 --help
-uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 mcp
-
-# Skip update checks (use cached version)
-uvx --offline --from git+https://github.com/AI-Substrate/flow_squared fs2 mcp
-
-# Pin to specific commit for reproducibility
-uvx --from git+https://github.com/AI-Substrate/flow_squared@main fs2 mcp
-```
-
-> First run builds from source (~30-60s). Subsequent runs use cache and are near-instant.
-
-**Permanent install** (faster startup, no update checks):
-```bash
-# Install fs2 permanently (self-bootstrapping)
-uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 install
-
-# Now use directly
-fs2 --help
-fs2 mcp
-
-# Update to latest
-fs2 upgrade
-```
-
-**Claude Desktop with uvx**:
+**With uvx (zero-install)**:
 ```json
 {
   "mcpServers": {
@@ -159,6 +181,46 @@ fs2 upgrade
       "command": "uvx",
       "args": ["--from", "git+https://github.com/AI-Substrate/flow_squared", "fs2", "mcp"],
       "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+**Pinned to specific commit** (for reproducibility):
+```json
+{
+  "mcpServers": {
+    "fs2": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/AI-Substrate/flow_squared@abc1234", "fs2", "mcp"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+### GitHub Copilot (VS Code)
+
+Create `.vscode/mcp.json` in your project:
+
+```json
+{
+  "servers": {
+    "fs2": {
+      "command": "fs2",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Or with uvx:
+```json
+{
+  "servers": {
+    "fs2": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/AI-Substrate/flow_squared", "fs2", "mcp"]
     }
   }
 }
@@ -193,6 +255,22 @@ fs2 tree Calculator --json --file calc_tree.json
 
 See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation on all clients and tools.
 
+### Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `command not found: uvx` | uv not installed | Install uv: `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| `command not found: fs2` | Not permanently installed | Run `uvx --from git+...flow_squared fs2 install` |
+| uvx hangs on first run | Building from source | Wait 30-60 seconds (normal for first run) |
+| `Graph not found` error | Haven't scanned yet | Run `fs2 init` then `fs2 scan` |
+| MCP server not responding | stdout pollution | Check nothing prints to stdout before mcp import |
+| Wrong version after upgrade | Cache stale | Run `uvx --refresh --from git+... fs2 --version` |
+
+**Exit codes**:
+- `0` - Success
+- `1` - User error (missing config, bad arguments) - check your command
+- `2` - System error (corrupted graph, internal failure) - report a bug
+
 ## Language Support
 
 fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages are categorized as:
@@ -217,27 +295,65 @@ fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages ar
 
 Unknown languages default to file-only (safe).
 
-## Key Patterns
+## Canonical Example
+
+See `tests/docs/test_sample_adapter_pattern.py` for 19 tests demonstrating the full composition pattern.
+
+## Developer Setup
+
+For contributing to fs2:
+
+```bash
+git clone https://github.com/AI-Substrate/flow_squared
+cd flow_squared
+uv sync --extra dev
+```
+
+### Development Commands
+
+```bash
+# Run tests
+just test          # All tests (209+)
+just test-unit     # Unit tests only
+just test-mcp      # MCP integration tests
+
+# Code quality
+just lint          # Ruff linting
+just fix           # Auto-fix + format
+
+# Scan this project (dogfooding)
+fs2 init
+fs2 scan
+```
+
+### Project Structure
+
+```
+src/fs2/
+├── cli/              # Presentation layer (Typer + Rich)
+├── core/
+│   ├── models/       # Domain models (frozen dataclasses)
+│   ├── services/     # Composition layer
+│   ├── adapters/     # ABC interfaces + implementations
+│   └── repos/        # Repository interfaces
+├── mcp/              # MCP server (FastMCP)
+└── config/           # Pydantic-settings configuration
+```
+
+### Key Patterns
 
 - **ABC-based interfaces** with `@abstractmethod` for explicit contracts
 - **Fakes over mocks** for testing
 - **ConfigurationService** registry pattern (no singletons)
 - **No concept leakage** - components get their own configs internally
 
-## Documentation
+### Developer Guides
 
 | Guide | Description |
 |-------|-------------|
-| [CLI Reference](docs/how/cli.md) | Complete command-line interface reference |
-| [Architecture](docs/how/architecture.md) | Layer diagram, import rules |
-| [Configuration](docs/how/configuration.md) | Multi-source config, env vars |
-| [Scanning](docs/how/scanning.md) | File scanning and code graph generation |
-| [Embeddings](docs/how/embeddings/) | Semantic embeddings for code search |
-| [MCP Server](docs/how/mcp-server-guide.md) | AI agent integration (Claude, Copilot, etc.) |
-| [TDD](docs/how/tdd.md) | Test structure, fixtures, fakes |
-| [Dependency Injection](docs/how/di.md) | DI patterns |
-| [Adding Services & Adapters](docs/how/adding-services-adapters.md) | Step-by-step guide |
-
-## Canonical Example
-
-See `tests/docs/test_sample_adapter_pattern.py` for 19 tests demonstrating the full composition pattern.
+| [Architecture](docs/how/architecture.md) | Clean Architecture layers, dependency rules |
+| [TDD](docs/how/tdd.md) | Test structure, fixtures, fakes over mocks |
+| [Dependency Injection](docs/how/di.md) | Constructor injection, ConfigurationService |
+| [Adding Services & Adapters](docs/how/adding-services-adapters.md) | Step-by-step guide for new components |
+| [LLM Adapter Extension](docs/how/llm-adapter-extension.md) | Add new LLM providers (OpenAI, Anthropic, etc.) |
+| [Wormhole MCP](docs/how/wormhole-mcp-guide.md) | VS Code LSP integration for development |

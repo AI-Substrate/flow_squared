@@ -588,10 +588,10 @@ class TestSearchToolPagination:
         assert result["meta"]["pagination"]["limit"] == 2
         assert result["meta"]["pagination"]["offset"] == 1
 
-    async def test_search_default_limit_is_20(
+    async def test_search_default_limit_is_5(
         self, search_test_graph_store
     ) -> None:
-        """Default limit is 20."""
+        """Default limit is 5."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
 
@@ -604,7 +604,7 @@ class TestSearchToolPagination:
         result = await search(pattern=".", mode="text")
 
         # Meta should show default limit
-        assert result["meta"]["pagination"]["limit"] == 20
+        assert result["meta"]["pagination"]["limit"] == 5
 
 
 # =============================================================================

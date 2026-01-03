@@ -782,11 +782,16 @@ def docs_list(
 ) -> dict[str, Any]:
     """List available documentation with optional filtering.
 
-    Browse available MCP documentation for AI agents. Returns a catalog of
-    documents with metadata for discovery.
+    WHEN TO USE: Discover what documentation is available before reading.
+    Call this FIRST to browse the catalog, then use docs_get(id) to retrieve content.
 
-    Use this tool FIRST to discover what documentation is available,
-    then use docs_get(id) to retrieve the full content.
+    PREREQUISITES: None - documentation is bundled with fs2.
+
+    WORKFLOW:
+    1. Use docs_list() to see all available documents
+    2. Use docs_list(category="how-to") to filter by category
+    3. Use docs_list(tags=["config"]) to filter by tags (OR logic)
+    4. Use docs_get(id) with a document ID to retrieve full content
 
     Args:
         category: Filter by category (exact match). Example: "how-to", "reference".
@@ -830,8 +835,10 @@ def docs_list(
 def docs_get(id: str) -> dict[str, Any] | None:
     """Retrieve complete document content by ID.
 
-    Returns full document with metadata and content for a specific documentation
-    resource. Use docs_list() first to discover available document IDs.
+    WHEN TO USE: Read full documentation after discovering IDs via docs_list().
+    Use after docs_list() to get the complete content of a specific document.
+
+    PREREQUISITES: Call docs_list() first to discover available document IDs.
 
     Args:
         id: Document identifier from docs_list(). Format: lowercase with hyphens.
