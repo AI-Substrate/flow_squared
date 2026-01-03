@@ -40,7 +40,9 @@
       "Bash(xargs ls:*)",
       "mcp__flowspace__get_node",
       "mcp__perplexity__perplexity_search",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/fs2-watch.sh:*)"
     ],
     "deny": [],
     "ask": []
