@@ -79,6 +79,12 @@ test-semantic-search:
 mcp-dump TOOL="":
     @uv run python scripts/mcp_tools_dump.py {{TOOL}} 2>/dev/null
 
+# === Documentation Build ===
+
+# Build bundled docs: copy from docs/how/user/ to src/fs2/docs/
+doc-build:
+    uv run python scripts/doc_build.py
+
 # === Fixture Generation ===
 
 # Generate fixture graph with embeddings and smart content (requires Azure credentials)

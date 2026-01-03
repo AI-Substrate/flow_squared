@@ -155,7 +155,7 @@ diagnostic_collect: (no params for workspace-wide)
 3. **Check bridge health first** - Run `bridge_status` if tools aren't responding
 4. **Prefer Wormhole for code structure** - Use Grep/Glob only for text/file searches
 
-See `docs/how/wormhole-mcp-guide.md` for detailed documentation.
+See `docs/how/user/wormhole-mcp-guide.md` for detailed documentation.
 
 ## FlowSpace MCP Server (Semantic Code Search)
 

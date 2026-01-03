@@ -54,7 +54,7 @@ Additionally, `fs2 init` should be enhanced to automatically bootstrap user-glob
 1. **Config Editing**: Doctor is read-only diagnostic; does not modify configuration files
 2. **Auto-Fix**: Does not automatically resolve configuration issues (only reports and suggests)
 3. **Secret Display**: Never displays actual secret values (only shows resolution status: ✓/✗)
-4. **Config Validation Beyond Structure**: Does not test API connectivity or credential validity
+4. **API Connectivity Testing**: Does not test API connectivity or credential validity (only validates config structure)
 5. **Interactive Prompts**: No interactive configuration wizard (that's a separate feature)
 6. **Performance Profiling**: Does not measure config loading performance
 
@@ -144,7 +144,17 @@ Additionally, `fs2 init` should be enhanced to automatically bootstrap user-glob
 
 29. **AC-29**: `src/fs2/docs/config.yaml.example` exists with documented LLM and embedding sections
 30. **AC-30**: `src/fs2/docs/secrets.env.example` exists with placeholder variable names
-31. **AC-31**: Example templates registered in `src/fs2/docs/registry.yaml` with appropriate category/tags
+31. **AC-31**: Example templates accessible via `importlib.resources.files("fs2.docs")` (NOT registered in registry.yaml - they're templates, not documentation)
+
+### Config Validation
+
+32. **AC-32**: `fs2 doctor` attempts to load all found config files using YAML parser and catches syntax errors
+33. **AC-33**: YAML syntax errors display line number and actionable fix suggestion
+34. **AC-34**: Pydantic validation errors display field path and expected type
+35. **AC-35**: LLM provider validation checks required fields based on provider type (azure needs endpoint/deployment/api_key, openai needs api_key, etc.)
+36. **AC-36**: Embedding mode validation checks required fields based on mode (azure, openai, local, none)
+37. **AC-37**: Validation errors include clickable link to relevant documentation section (configuration-guide.md)
+38. **AC-38**: Doctor distinguishes between "not configured" (missing section) vs "misconfigured" (present but invalid)
 
 ---
 

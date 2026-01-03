@@ -495,7 +495,7 @@ just fix
 2. Export from `src/fs2/core/models/__init__.py`
 3. Write tests in `tests/unit/models/`
 
-See [Adding Services & Adapters](../how/adding-services-adapters.md) for detailed guide.
+See [Adding Services & Adapters](../how/dev/adding-services-adapters.md) for detailed guide.
 
 <!-- USER CONTENT START -->
 <!-- Add project-specific extension patterns here -->

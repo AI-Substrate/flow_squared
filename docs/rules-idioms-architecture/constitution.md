@@ -368,7 +368,8 @@ Every test MUST include:
 | **Rules** | Normative MUST/SHOULD statements | `docs/rules-idioms-architecture/rules.md` |
 | **Idioms** | Recurring patterns and examples | `docs/rules-idioms-architecture/idioms.md` |
 | **Architecture** | Structure, boundaries, contracts | `docs/rules-idioms-architecture/architecture.md` |
-| **How-To Guides** | Implementation guides | `docs/how/*.md` |
+| **How-To Guides** | User guides (bundled) | `docs/how/user/*.md` |
+| **Developer Guides** | Contributor guides | `docs/how/dev/*.md` |
 
 ---
 

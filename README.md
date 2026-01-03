@@ -69,13 +69,13 @@ See [Developer Setup](#developer-setup) below for contributing.
 
 | Guide | Description |
 |-------|-------------|
-| [CLI Reference](docs/how/cli.md) | All commands, options, and output formats |
-| [Scanning](docs/how/scanning.md) | Build the code graph, configure paths, troubleshoot |
-| [MCP Server](docs/how/mcp-server-guide.md) | Connect Claude, Copilot, and other AI agents |
-| [Embeddings](docs/how/embeddings/) | Enable semantic search with vector embeddings |
-| [Configuration](docs/how/configuration.md) | Environment variables, YAML files, precedence |
-| [Agent Integration](docs/how/AGENTS.md) | How AI agents should use fs2 tools effectively |
-| [LLM Setup](docs/how/llm-service-setup.md) | Configure Azure OpenAI or other LLM providers |
+| [CLI Reference](docs/how/user/cli.md) | All commands, options, and output formats |
+| [Scanning](docs/how/user/scanning.md) | Build the code graph, configure paths, troubleshoot |
+| [MCP Server](docs/how/user/mcp-server-guide.md) | Connect Claude, Copilot, and other AI agents |
+| [Embeddings](docs/how/user/embeddings.md) | Enable semantic search with vector embeddings |
+| [Configuration](docs/how/user/configuration.md) | Environment variables, YAML files, precedence |
+| [Agent Integration](docs/how/user/AGENTS.md) | How AI agents should use fs2 tools effectively |
+| [LLM Setup](docs/how/user/llm-service-setup.md) | Configure Azure OpenAI or other LLM providers |
 
 ## MCP Server (AI Agent Integration)
 
@@ -207,18 +207,18 @@ Available documents:
 - `agents` - Best practices for AI agents using fs2 tools
 - `configuration-guide` - Comprehensive configuration reference
 
-See [Writing New Curated Documentation](docs/how/write-new-content-guide.md) for adding new documents.
+See [Writing New Curated Documentation](docs/how/dev/write-new-content-guide.md) for adding new documents.
 
-See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation.
+See [MCP Server Guide](docs/how/user/mcp-server-guide.md) for detailed documentation.
 
 ## Scanning
 
 Scan your codebase to build a queryable code graph.
 
 > **⚠️ Configure LLM & Embeddings First**: For full functionality (smart content summaries and semantic search), set up your API credentials before scanning. See:
-> - [Embeddings Configuration](docs/how/embeddings/2-configuration.md) - Azure/OpenAI embedding setup
-> - [LLM Service Setup](docs/how/llm-service-setup.md) - Smart content generation
-> - [Configuration Guide](docs/how/configuration.md) - Environment variables and YAML
+> - [Embeddings Guide](docs/how/user/embeddings.md) - Azure/OpenAI embedding setup
+> - [LLM Service Setup](docs/how/user/llm-service-setup.md) - Smart content generation
+> - [Configuration Guide](docs/how/user/configuration.md) - Environment variables and YAML
 >
 > **Quick setup**:
 > ```bash
@@ -252,7 +252,7 @@ scan:
 
 **Output**: Graph saved to `.fs2/graph.pickle`
 
-See [Scanning Guide](docs/how/scanning.md) for details on node types, troubleshooting, and advanced configuration.
+See [Scanning Guide](docs/how/user/scanning.md) for details on node types, troubleshooting, and advanced configuration.
 
 ## Embeddings
 
@@ -279,7 +279,7 @@ fs2 scan --no-embeddings
 
 **Content-Type Aware Chunking**: Code uses 400-token chunks for precision, documentation uses 800-token chunks for context.
 
-See [Embeddings Guide](docs/how/embeddings/) for detailed configuration, provider setup, and architecture.
+See [Embeddings Guide](docs/how/user/embeddings.md) for detailed configuration, provider setup, and architecture.
 
 ## Language Support
 
@@ -361,9 +361,9 @@ src/fs2/
 
 | Guide | Description |
 |-------|-------------|
-| [Architecture](docs/how/architecture.md) | Clean Architecture layers, dependency rules |
-| [TDD](docs/how/tdd.md) | Test structure, fixtures, fakes over mocks |
-| [Dependency Injection](docs/how/di.md) | Constructor injection, ConfigurationService |
-| [Adding Services & Adapters](docs/how/adding-services-adapters.md) | Step-by-step guide for new components |
-| [LLM Adapter Extension](docs/how/llm-adapter-extension.md) | Add new LLM providers (OpenAI, Anthropic, etc.) |
-| [Wormhole MCP](docs/how/wormhole-mcp-guide.md) | VS Code LSP integration for development |
+| [Architecture](docs/how/dev/architecture.md) | Clean Architecture layers, dependency rules |
+| [TDD](docs/how/dev/tdd.md) | Test structure, fixtures, fakes over mocks |
+| [Dependency Injection](docs/how/dev/di.md) | Constructor injection, ConfigurationService |
+| [Adding Services & Adapters](docs/how/dev/adding-services-adapters.md) | Step-by-step guide for new components |
+| [LLM Adapter Extension](docs/how/dev/llm-adapter-extension.md) | Add new LLM providers (OpenAI, Anthropic, etc.) |
+| [Wormhole MCP](docs/how/user/wormhole-mcp-guide.md) | VS Code LSP integration for development |

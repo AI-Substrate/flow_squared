@@ -397,7 +397,7 @@ Every CLI command change MUST include documentation in three places:
 - Options that require another option MUST document this dependency
 
 **3. Centralized Reference** (mandatory for new commands/major features):
-- Create or update `docs/how/cli.md` with:
+- Create or update `docs/how/user/cli.md` with:
   - Full command signature
   - Parameter documentation (type, default, validation)
   - Examples (standard usage and edge cases)
@@ -421,10 +421,10 @@ Every CLI command change MUST include documentation in three places:
 When adding --json + --file to a command:
 - [ ] In-code: Document options, their interaction, and examples
 - [ ] Help text: "Output JSON to stdout" + "Write to file instead of stdout"
-- [ ] Centralized: Update docs/how/cli.md with JSON envelope structure
+- [ ] Centralized: Update docs/how/user/cli.md with JSON envelope structure
 ```
 
-**Cross-Reference**: See [CLI Reference](../how/cli.md) for canonical patterns.
+**Cross-Reference**: See [CLI Reference](../how/user/cli.md) for canonical patterns.
 
 <!-- USER CONTENT START -->
 <!-- Add project-specific CLI rules here -->

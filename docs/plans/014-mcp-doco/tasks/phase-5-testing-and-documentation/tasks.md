@@ -773,7 +773,7 @@ fs2 bundles curated documentation in `src/fs2/docs/` that is accessible via MCP 
 - Registry-based metadata in `registry.yaml`
 - Accessible via `docs_list()` and `docs_get()` MCP tools
 
-**See**: [Writing New Curated Documentation](../how/write-new-content-guide.md) for full guide.
+**See**: [Writing New Curated Documentation](../how/dev/write-new-content-guide.md) for full guide.
 
 <!-- USER CONTENT START -->
 <!-- Add project-specific in-app docs patterns here -->

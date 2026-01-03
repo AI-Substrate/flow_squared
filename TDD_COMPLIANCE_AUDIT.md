@@ -388,7 +388,7 @@ All Phase 6 acceptance criteria verified in execution log:
 - **Quality**: Excellent - shows clear task progression and acceptance criteria verification
 
 ### Scanning Guide
-- **File**: `/workspaces/flow_squared/docs/how/scanning.md`
+- **File**: `/workspaces/flow_squared/docs/how/user/scanning.md`
 - **Lines**: 252
 - **Content**: Quick start, configuration options, CLI flags, supported languages, troubleshooting
 

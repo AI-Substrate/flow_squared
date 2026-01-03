@@ -78,7 +78,7 @@ $ fs2 scan
 ## Objectives & Scope
 
 ### Objective
-Implement the `fs2 doctor` diagnostic command, enhance `fs2 init` for unified local+global setup, and add CLI guards to prevent operations in uninitialized directories. Satisfies all 29 acceptance criteria from the spec.
+Implement the `fs2 doctor` diagnostic command with full config validation, enhance `fs2 init` for unified local+global setup, and add CLI guards to prevent operations in uninitialized directories. Satisfies all 38 acceptance criteria from the spec.
 
 ### Goals
 
@@ -88,9 +88,15 @@ Implement the `fs2 doctor` diagnostic command, enhance `fs2 init` for unified lo
 - ✅ Detect LLM/embedding provider configuration status
 - ✅ Validate placeholder resolution
 - ✅ Detect literal secrets in config files
-- ✅ Enhance `fs2 init` to create both local and global configs (AC-14 through AC-21)
-- ✅ Add CLI guard for protected commands (AC-22 through AC-27)
-- ✅ Create example config templates (AC-28, AC-29)
+- ✅ **Full config validation** with actionable errors (AC-32 through AC-38):
+  - YAML syntax validation with line numbers
+  - Pydantic schema validation with field paths
+  - Provider-specific required fields validation
+  - Links to configuration-guide.md for fixes
+  - Distinguish "not configured" vs "misconfigured"
+- ✅ Enhance `fs2 init` to create both local and global configs (AC-14 through AC-22)
+- ✅ Add CLI guard for protected commands (AC-23 through AC-28)
+- ✅ Create example config templates (AC-29, AC-30, AC-31)
 
 ### Non-Goals
 
@@ -154,6 +160,14 @@ flowchart TD
         T020["T020: README update"]:::pending
     end
 
+    subgraph ConfigValidation["Config Validation"]
+        T022["T022: YAML syntax tests"]:::pending
+        T023["T023: Pydantic schema tests"]:::pending
+        T024["T024: Provider validation tests"]:::pending
+        T025["T025: Validation helpers"]:::pending
+        T026["T026: Provider validation impl"]:::pending
+    end
+
     subgraph Validation["Validation"]
         T021["T021: Full test suite"]:::pending
     end
@@ -170,7 +184,10 @@ flowchart TD
     T017 --> T018
     T018 --> T019
     T014 --> T020
-    T014 & T016 & T019 --> T021
+    T002 --> T022 & T023 & T024
+    T022 & T023 & T024 --> T025
+    T025 --> T026
+    T014 & T016 & T019 & T026 --> T021
 
     subgraph Files["Key Files"]
         F1["/src/fs2/docs/*.example"]:::pending
@@ -199,7 +216,7 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Example Templates | src/fs2/docs/ | ⬜ Pending | Create config.yaml.example, secrets.env.example, register in registry.yaml |
+| T001 | Example Templates | src/fs2/docs/ | ⬜ Pending | Create config.yaml.example, secrets.env.example (NOT registered in registry) |
 | T002 | Doctor Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | Config file discovery tests (5 locations) |
 | T003 | Doctor Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | Merge chain and override detection tests |
 | T004 | Doctor Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | LLM/embedding provider status tests |
@@ -220,6 +237,11 @@ flowchart TD
 | T019 | Guard Application | scan.py, search.py, tree.py, get_node.py, mcp.py | ⬜ Pending | Apply guard to protected commands |
 | T020 | Documentation | README.md | ⬜ Pending | Document doctor command |
 | T021 | Validation | -- | ⬜ Pending | Full test suite verification |
+| T022 | Validation Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | YAML syntax validation tests |
+| T023 | Validation Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | Pydantic schema validation tests |
+| T024 | Validation Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | Provider-specific validation tests |
+| T025 | Validation Core | src/fs2/cli/doctor.py | ⬜ Pending | Config validation helpers |
+| T026 | Validation Core | src/fs2/cli/doctor.py | ⬜ Pending | Provider validation with doc links |
 
 ---
 
@@ -227,7 +249,7 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Create example config templates in src/fs2/docs/ and register in registry.yaml | 2 | Setup | -- | /workspaces/flow_squared/src/fs2/docs/config.yaml.example, /workspaces/flow_squared/src/fs2/docs/secrets.env.example, /workspaces/flow_squared/src/fs2/docs/registry.yaml | Files exist with documented LLM/embedding sections; registered with category/tags; AC-29, AC-30, AC-31 | -- | Use importlib.resources to access |
+| [ ] | T001 | Create example config templates in src/fs2/docs/ | 2 | Setup | -- | /workspaces/flow_squared/src/fs2/docs/config.yaml.example, /workspaces/flow_squared/src/fs2/docs/secrets.env.example | Files exist with documented LLM/embedding sections; AC-29, AC-30, AC-31 | -- | Do NOT register in registry.yaml (templates, not docs); access via importlib.resources.files("fs2.docs") |
 | [ ] | T002 | Write tests for config file discovery (all 5 locations) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: user/project YAML, user/project secrets.env, .env; missing file handling; AC-02 | -- | Use tmp_path fixtures |
 | [ ] | T003 | Write tests for merge chain computation and override detection | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: multi-layer merge, leaf-level overrides, source attribution; AC-03, AC-04 | -- | Test R1-04 edge cases |
 | [ ] | T004 | Write tests for provider status detection (LLM/embedding) | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: configured/not configured, required fields per provider; AC-05, AC-06, AC-07 | -- | Include GitHub URL generation |
@@ -247,7 +269,12 @@ flowchart TD
 | [ ] | T018 | Implement CLI guard as @require_init decorator | 2 | Core | T017 | /workspaces/flow_squared/src/fs2/cli/guard.py | @require_init decorator checks .fs2/config.yaml; fails with PWD + red .git warning; AC-23-28 | -- | Decorator approach (not callback) so --help works |
 | [ ] | T019 | Apply CLI guard to scan, search, tree, get-node, mcp | 2 | Core | T018 | /workspaces/flow_squared/src/fs2/cli/scan.py, /workspaces/flow_squared/src/fs2/cli/search.py, /workspaces/flow_squared/src/fs2/cli/tree.py, /workspaces/flow_squared/src/fs2/cli/get_node.py, /workspaces/flow_squared/src/fs2/cli/mcp.py | Guard runs before mkdir; mkdir stays but only executes after guard passes | -- | Reorder, don't remove mkdir |
 | [ ] | T020 | Update README.md with doctor command documentation | 1 | Docs | T014 | /workspaces/flow_squared/README.md | README lists `fs2 doctor` with brief description and example output | -- | Per Documentation Strategy |
-| [ ] | T021 | Run full test suite and verify all ACs pass | 1 | Test | T001-T020 | -- | All 31 acceptance criteria verified; tests pass; no regressions | -- | Final validation |
+| [ ] | T021 | Run full test suite and verify all ACs pass | 1 | Test | T001-T020, T022-T026 | -- | All 38 acceptance criteria verified; tests pass; no regressions | -- | Final validation |
+| [ ] | T022 | Write tests for YAML syntax validation | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: malformed YAML, encoding issues, line number in error; AC-32, AC-33 | -- | Test with intentionally broken configs |
+| [ ] | T023 | Write tests for pydantic schema validation | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: wrong types, missing required fields, field path in error; AC-34 | -- | Test FS2Settings validation errors |
+| [ ] | T024 | Write tests for provider-specific validation | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: Azure needs endpoint+deployment+api_key, OpenAI needs api_key, etc; AC-35, AC-36, AC-38 | -- | Per-provider required fields |
+| [ ] | T025 | Implement config validation helpers | 3 | Core | T022-T024 | /workspaces/flow_squared/src/fs2/cli/doctor.py | Load configs with actual loaders; catch YAML/pydantic errors; translate to actionable messages; AC-32, AC-33, AC-34 | -- | Use pydantic validation_error.errors() for field paths |
+| [ ] | T026 | Implement provider-specific validation with doc links | 2 | Core | T025 | /workspaces/flow_squared/src/fs2/cli/doctor.py | Validate LLM/embedding required fields per provider; link to configuration-guide.md; AC-35, AC-36, AC-37, AC-38 | -- | Show "not configured" vs "misconfigured" |
 
 ---
 
@@ -263,6 +290,8 @@ flowchart TD
 | **I1-02**: Use raw loaders to avoid singleton pollution | Call `load_yaml_config()` directly | T008 |
 | **R1-04**: Deep merge doesn't track source attribution | Load configs separately; compare values manually | T003, T009 |
 | **R1-09**: `scan` creates `.fs2/` via `graph_path.parent.mkdir()` | Add CLI guard that fails fast BEFORE any mkdir | T017, T018, T019 |
+| **NEW**: Config validation must be actionable | YAML errors show line; pydantic errors show field path; link to docs | T022-T026 |
+| **NEW**: Distinguish "not configured" vs "misconfigured" | Different UX for missing vs invalid config sections | T024, T026 |
 
 ### Invariants & Guardrails
 
@@ -411,6 +440,9 @@ sequenceDiagram
 | `test_doctor.py::TestPlaceholders` | 3+ | Configs with ${VAR} | Verify resolution status |
 | `test_doctor.py::TestSecretDetection` | 3+ | Configs with secrets | Verify sk-* and >64 char detection |
 | `test_doctor.py::TestEdgeCases` | 3+ | Empty/missing configs | Verify suggestions and exit codes |
+| `test_doctor.py::TestYAMLValidation` | 4+ | Malformed YAML configs | Verify YAML syntax errors with line numbers (AC-32, AC-33) |
+| `test_doctor.py::TestPydanticValidation` | 4+ | Invalid typed configs | Verify schema errors with field paths (AC-34) |
+| `test_doctor.py::TestProviderValidation` | 6+ | Incomplete provider configs | Verify per-provider required fields (AC-35, AC-36, AC-38) |
 | `test_init.py::TestEnhancedInit` | 5+ | tmp_path, monkeypatch | Verify local+global creation, .git warning |
 | `test_cli_guard.py::TestGuard` | 6+ | tmp_path, monkeypatch | Verify guard blocks uninitialized commands |
 
@@ -536,14 +568,14 @@ docs/plans/017-doctor/
 **AI Recommendation**: Option A - Use importlib.resources
 - Reasoning: Works everywhere (dev, pip, uvx); follows established mcp-doco pattern
 
-**Decision**: Store templates in `src/fs2/docs/`, register in `registry.yaml`, access via `importlib.resources.files("fs2.docs")`
+**Decision**: Store templates in `src/fs2/docs/`, do NOT register in `registry.yaml` (templates are not documentation), access via `importlib.resources.files("fs2.docs")`
 
 **Action Items**:
 - [x] Updated T001 path to `src/fs2/docs/`
-- [x] Added AC-30 for registry registration
+- [x] Updated AC-31 to clarify templates are NOT registered (they're templates, not docs)
 - [x] Updated spec, plan, and tasks
 
-**Affects**: T001, AC-28, AC-29, AC-30
+**Affects**: T001, AC-29, AC-30, AC-31
 
 ---
 

@@ -61,7 +61,7 @@
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|-------|
-| [ ] | T001 | Create example config templates in src/fs2/docs/ and register in registry.yaml | 2 | Setup | -- | /workspaces/flow_squared/src/fs2/docs/config.yaml.example, /workspaces/flow_squared/src/fs2/docs/secrets.env.example, /workspaces/flow_squared/src/fs2/docs/registry.yaml | Files exist with documented LLM/embedding sections; registered with category/tags; AC-29, AC-30, AC-31 | Use importlib.resources to access |
+| [ ] | T001 | Create example config templates in src/fs2/docs/ | 2 | Setup | -- | /workspaces/flow_squared/src/fs2/docs/config.yaml.example, /workspaces/flow_squared/src/fs2/docs/secrets.env.example | Files exist with documented LLM/embedding sections; AC-29, AC-30, AC-31 | Do NOT register in registry.yaml (templates, not docs); access via importlib.resources |
 | [ ] | T002 | Write tests for config file discovery (all 5 locations) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: user/project YAML, user/project secrets.env, .env; missing file handling; AC-02 | Use tmp_path fixtures |
 | [ ] | T003 | Write tests for merge chain computation and override detection | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: multi-layer merge, leaf-level overrides, source attribution; AC-03, AC-04 | Test R1-04 edge cases |
 | [ ] | T004 | Write tests for provider status detection (LLM/embedding) | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: configured/not configured, required fields per provider; AC-05, AC-06, AC-07 | Include GitHub URL generation |
@@ -81,7 +81,12 @@
 | [ ] | T018 | Implement CLI guard as @require_init decorator | 2 | Core | T017 | /workspaces/flow_squared/src/fs2/cli/guard.py | @require_init decorator checks .fs2/config.yaml; fails with PWD + red .git warning; AC-23-28 | Decorator (not callback) so --help works |
 | [ ] | T019 | Apply CLI guard to scan, search, tree, get-node, mcp | 2 | Core | T018 | /workspaces/flow_squared/src/fs2/cli/scan.py, search.py, tree.py, get_node.py, mcp.py | Guard runs before mkdir; mkdir stays but only executes after guard passes | Reorder, don't remove mkdir |
 | [ ] | T020 | Update README.md with doctor command documentation | 1 | Docs | T014 | /workspaces/flow_squared/README.md | README lists `fs2 doctor` with brief description and example output | Per Documentation Strategy |
-| [ ] | T021 | Run full test suite and verify all ACs pass | 1 | Test | T001-T020 | -- | All 31 acceptance criteria verified; tests pass; no regressions | Final validation |
+| [ ] | T021 | Run full test suite and verify all ACs pass | 1 | Test | T001-T020, T022-T026 | -- | All 38 acceptance criteria verified; tests pass; no regressions | Final validation |
+| [ ] | T022 | Write tests for YAML syntax validation | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: malformed YAML, encoding issues, line number in error; AC-32, AC-33 | Test with intentionally broken configs |
+| [ ] | T023 | Write tests for pydantic schema validation | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: wrong types, missing required fields, field path in error; AC-34 | Test FS2Settings validation errors |
+| [ ] | T024 | Write tests for provider-specific validation | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: Azure needs endpoint+deployment+api_key, OpenAI needs api_key, etc; AC-35, AC-36, AC-38 | Per-provider required fields |
+| [ ] | T025 | Implement config validation helpers | 3 | Core | T022-T024 | /workspaces/flow_squared/src/fs2/cli/doctor.py | Load configs with actual loaders; catch YAML/pydantic errors; translate to actionable messages; AC-32, AC-33, AC-34 | Use pydantic validation_error.errors() for field paths |
+| [ ] | T026 | Implement provider-specific validation with doc links | 2 | Core | T025 | /workspaces/flow_squared/src/fs2/cli/doctor.py | Validate LLM/embedding required fields per provider; link to configuration-guide.md; AC-35, AC-36, AC-37, AC-38 | Show "not configured" vs "misconfigured" |
 
 ### Acceptance Criteria
 
@@ -115,7 +120,14 @@
 - [ ] AC-28: No auto-init behavior - commands never create `.fs2/` implicitly
 - [ ] AC-29: src/fs2/docs/config.yaml.example exists
 - [ ] AC-30: src/fs2/docs/secrets.env.example exists
-- [ ] AC-31: Example templates registered in src/fs2/docs/registry.yaml
+- [ ] AC-31: Example templates accessible via importlib.resources (NOT registered in registry.yaml)
+- [ ] AC-32: Doctor loads configs with YAML parser, catches syntax errors
+- [ ] AC-33: YAML syntax errors display line number and actionable fix
+- [ ] AC-34: Pydantic validation errors display field path and expected type
+- [ ] AC-35: LLM provider validation checks required fields per provider type
+- [ ] AC-36: Embedding mode validation checks required fields per mode
+- [ ] AC-37: Validation errors include clickable link to configuration-guide.md
+- [ ] AC-38: Doctor distinguishes "not configured" vs "misconfigured"
 
 ### Risks
 

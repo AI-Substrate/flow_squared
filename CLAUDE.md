@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+# CRITICAL
+
+Please priortise dogfooding fs2 (Flowspace 2) - i.e. use it to work on our very own project. Use the tree, get-node, search and any other commands we have access to to really test out that the system works! Prio it for finding information in our very own code base. This is a no fail goal. 
+
 ## Project Identity
 
 > **Flowspace2** (short: **fs2**) — A ground-up rebuild of Flowspace with Clean Architecture
@@ -155,7 +159,7 @@ diagnostic_collect: (no params for workspace-wide)
 3. **Check bridge health first** - Run `bridge_status` if tools aren't responding
 4. **Prefer Wormhole for code structure** - Use Grep/Glob only for text/file searches
 
-See `docs/how/wormhole-mcp-guide.md` for detailed documentation.
+See `docs/how/user/wormhole-mcp-guide.md` for detailed documentation.
 
 ## FlowSpace MCP Server (Semantic Code Search)
 
@@ -278,4 +282,4 @@ fs2 scan
 
 ```
 
-See [MCP Server Guide](docs/how/mcp-server-guide.md) for full tool documentation.
+See [MCP Server Guide](docs/how/user/mcp-server-guide.md) for full tool documentation.
