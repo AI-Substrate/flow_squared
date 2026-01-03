@@ -72,10 +72,8 @@ See [Developer Setup](#developer-setup) below for contributing.
 | [CLI Reference](docs/how/user/cli.md) | All commands, options, and output formats |
 | [Scanning](docs/how/user/scanning.md) | Build the code graph, configure paths, troubleshoot |
 | [MCP Server](docs/how/user/mcp-server-guide.md) | Connect Claude, Copilot, and other AI agents |
-| [Embeddings](docs/how/user/embeddings.md) | Enable semantic search with vector embeddings |
-| [Configuration](docs/how/user/configuration.md) | Environment variables, YAML files, precedence |
+| [Configuration Guide](docs/how/user/configuration-guide.md) | LLM, embeddings, secrets, and all config options |
 | [Agent Integration](docs/how/user/AGENTS.md) | How AI agents should use fs2 tools effectively |
-| [LLM Setup](docs/how/user/llm-service-setup.md) | Configure Azure OpenAI or other LLM providers |
 
 ## MCP Server (AI Agent Integration)
 
@@ -215,10 +213,7 @@ See [MCP Server Guide](docs/how/user/mcp-server-guide.md) for detailed documenta
 
 Scan your codebase to build a queryable code graph.
 
-> **⚠️ Configure LLM & Embeddings First**: For full functionality (smart content summaries and semantic search), set up your API credentials before scanning. See:
-> - [Embeddings Guide](docs/how/user/embeddings.md) - Azure/OpenAI embedding setup
-> - [LLM Service Setup](docs/how/user/llm-service-setup.md) - Smart content generation
-> - [Configuration Guide](docs/how/user/configuration.md) - Environment variables and YAML
+> **⚠️ Configure LLM & Embeddings First**: For full functionality (smart content summaries and semantic search), set up your API credentials before scanning. See the [Configuration Guide](docs/how/user/configuration-guide.md) for complete setup instructions.
 >
 > **Quick setup**:
 > ```bash
@@ -279,7 +274,7 @@ fs2 scan --no-embeddings
 
 **Content-Type Aware Chunking**: Code uses 400-token chunks for precision, documentation uses 800-token chunks for context.
 
-See [Embeddings Guide](docs/how/user/embeddings.md) for detailed configuration, provider setup, and architecture.
+See the [Configuration Guide](docs/how/user/configuration-guide.md) for detailed embeddings configuration, provider setup, and architecture.
 
 ## Language Support
 

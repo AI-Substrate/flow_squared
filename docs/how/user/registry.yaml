@@ -22,7 +22,7 @@ documents:
   # === Configuration ===
   - id: configuration-guide
     title: "Complete Configuration Guide"
-    summary: "Comprehensive reference for all fs2 configuration options. Covers file locations, secrets management, LLM/embedding provider setup (Azure/OpenAI), and environment variable patterns."
+    summary: "Comprehensive reference for all fs2 configuration. Covers file locations, secrets, LLM/embedding providers (Azure/OpenAI), embeddings architecture, chunking strategy, and troubleshooting."
     category: reference
     tags:
       - config
@@ -31,6 +31,8 @@ documents:
       - openai
       - llm
       - embedding
+      - embeddings
+      - semantic-search
       - secrets
     path: configuration-guide.md
 
@@ -43,17 +45,6 @@ documents:
       - environment
       - precedence
     path: configuration.md
-
-  - id: llm-service-setup
-    title: "LLM Service Setup"
-    summary: "Setup guide for LLM services used by smart content generation. Covers Azure OpenAI and OpenAI provider configuration."
-    category: how-to
-    tags:
-      - llm
-      - azure
-      - openai
-      - smart-content
-    path: llm-service-setup.md
 
   # === Core Features ===
   - id: cli
@@ -86,20 +77,6 @@ documents:
       - copilot
       - tools
     path: mcp-server-guide.md
-
-  # === Embeddings ===
-  - id: embeddings
-    title: "Embeddings Guide"
-    summary: "Complete guide to embeddings for semantic search. Covers architecture, configuration, Azure/OpenAI providers, chunking strategy, and troubleshooting."
-    category: how-to
-    tags:
-      - embeddings
-      - semantic-search
-      - azure
-      - openai
-      - config
-      - vectors
-    path: embeddings.md
 
   # === IDE Integration ===
   - id: wormhole-mcp-guide

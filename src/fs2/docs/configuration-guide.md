@@ -16,6 +16,8 @@ This document is a comprehensive reference for all fs2 configuration options. Re
 10. [Complete Examples](#complete-examples)
 11. [Troubleshooting](#troubleshooting)
 
+**Deep Dives**: LLM Service Usage, Embeddings Architecture, Content-Type Chunking, Error Handling
+
 ---
 
 ## Configuration File Locations
@@ -248,6 +250,57 @@ llm:
   # No other fields required
 ```
 
+### LLM Service Usage
+
+To use the LLM service programmatically:
+
+```python
+from fs2.core.services.llm_service import LLMService
+from fs2.config import ConfigurationService
+
+# Create service from configuration
+config = ConfigurationService()
+llm_service = LLMService.create(config)
+
+# Generate content
+result = await llm_service.generate("Summarize this function...")
+print(result.content)
+```
+
+### Content Filter Handling
+
+Azure OpenAI may filter content. Check the `was_filtered` flag:
+
+```python
+result = await llm_service.generate(prompt)
+if result.was_filtered:
+    print("Content was filtered by Azure content safety")
+else:
+    print(result.content)
+```
+
+### Testing with FakeLLMAdapter
+
+For testing without API calls:
+
+```python
+from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+
+# Create fake adapter
+fake = FakeLLMAdapter()
+
+# Set predetermined responses
+fake.set_response("Expected response for testing")
+
+# Use in tests
+result = await fake.generate("Any prompt")
+assert result.content == "Expected response for testing"
+
+# Check call history
+assert len(fake.call_history) == 1
+assert fake.call_history[0]["prompt"] == "Any prompt"
+```
+
 ---
 
 ## Embedding Configuration
@@ -301,6 +354,105 @@ embedding:
 embedding:
   mode: fake
   dimensions: 1024
+```
+
+### Embeddings Architecture
+
+The embedding pipeline integrates into the scan process:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Scan Pipeline                                                   │
+│                                                                  │
+│  DiscoveryStage → ParsingStage → SmartContentStage              │
+│                                        ↓                         │
+│                                  EmbeddingStage                  │
+│                                        ↓                         │
+│                                   StorageStage                   │
+└─────────────────────────────────────────────────────────────────┘
+                                        ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  EmbeddingService                                                │
+│                                                                  │
+│  1. Content-type classification (CODE vs CONTENT)               │
+│  2. Chunking (400/800/8000 tokens based on type)                │
+│  3. Batch API calls via EmbeddingAdapter                        │
+│  4. Reassemble chunks → CodeNode.embedding                      │
+└─────────────────────────────────────────────────────────────────┘
+                                        ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  EmbeddingAdapter (ABC)                                          │
+│                                                                  │
+│  ├── AzureEmbeddingAdapter (Azure OpenAI)                       │
+│  ├── OpenAICompatibleEmbeddingAdapter (Generic)                 │
+│  └── FakeEmbeddingAdapter (Testing)                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Content-Type Aware Chunking
+
+Different content types use different chunk sizes for optimal search quality:
+
+| Content Type | Max Tokens | Overlap | Rationale |
+|--------------|------------|---------|-----------|
+| **Code** | 400 | 50 | Small chunks for precise function/method matching |
+| **Documentation** | 800 | 120 | Larger chunks to preserve narrative context |
+| **Smart Content** | 8000 | 0 | AI descriptions rarely need chunking |
+
+Code files (Python, Go, TypeScript, etc.) are classified as CODE. Documentation files (Markdown, RST) are classified as CONTENT.
+
+### Dual Embedding Strategy
+
+Each code node can have two embeddings:
+
+1. **`embedding`**: Vector representation of the raw source code
+2. **`smart_content_embedding`**: Vector representation of the AI-generated description
+
+This enables hybrid search strategies:
+- Search by code similarity (find similar implementations)
+- Search by semantic meaning (find code matching a description)
+
+### Incremental Updates
+
+Embeddings are preserved across scans for unchanged content:
+
+1. On first scan, all nodes get embeddings
+2. On subsequent scans, only changed nodes are re-embedded
+3. Hash-based detection: `embedding_hash` vs `content_hash`
+
+This minimizes API calls and speeds up incremental scans.
+
+### Memory Implications
+
+Vector dimensions affect memory usage:
+
+| Dimensions | 10,000 nodes | 50,000 nodes |
+|------------|--------------|--------------|
+| 1024 | ~40MB | ~200MB |
+| 1536 | ~60MB | ~300MB |
+| 3072 | ~120MB | ~600MB |
+
+Use 1024 dimensions for a good balance of quality and memory.
+
+### Embedding Error Handling
+
+All adapters raise domain-specific exceptions:
+
+```python
+from fs2.core.adapters import (
+    EmbeddingAdapterError,
+    EmbeddingAuthenticationError,
+    EmbeddingRateLimitError,
+)
+
+try:
+    embedding = await adapter.embed_text(content)
+except EmbeddingAuthenticationError:
+    print("Check your API credentials")
+except EmbeddingRateLimitError as e:
+    print(f"Rate limited. Retry after: {e.retry_after}s")
+except EmbeddingAdapterError as e:
+    print(f"Embedding failed: {e}")
 ```
 
 ---

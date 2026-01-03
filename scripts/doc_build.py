@@ -28,6 +28,15 @@ def main() -> int:
     # Ensure target exists
     target_dir.mkdir(parents=True, exist_ok=True)
 
+    # Clean target directory (remove old .md and .yaml files, preserve __init__.py)
+    for old_file in target_dir.glob("*.md"):
+        old_file.unlink()
+    for old_file in target_dir.glob("*.yaml"):
+        old_file.unlink()
+    for old_dir in target_dir.iterdir():
+        if old_dir.is_dir() and old_dir.name != "__pycache__":
+            shutil.rmtree(old_dir)
+
     # Track what we copy
     copied_files = []
     copied_dirs = []

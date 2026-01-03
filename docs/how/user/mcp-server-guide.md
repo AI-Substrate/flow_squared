@@ -17,18 +17,19 @@ The fs2 MCP server exposes code graph traversal, node retrieval, and semantic se
 Before using the MCP server:
 
 1. **Install fs2**: Ensure `fs2` is installed and available in your PATH
-2. **Index your codebase**: Run `fs2 scan` to create the code graph
-3. **Optional: Enable embeddings**: Run `fs2 scan --embed` for semantic search
+2. **Configure LLM and Embeddings**: You must follow the [Configuration Guide](configuration-guide.md) to set up LLM and embedding settings. Without this, smart content and semantic search will not work.
+3. **Index your codebase**: Run `fs2 scan` to create the code graph
 
 ```bash
 # Initialize config (first time)
 fs2 init
 
+# Configure credentials (required for full functionality)
+# Edit .fs2/config.yaml with Azure/OpenAI settings
+# See: configuration-guide.md
+
 # Index codebase
 fs2 scan
-
-# With embeddings for semantic search
-fs2 scan --embed
 ```
 
 ---
