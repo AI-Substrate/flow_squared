@@ -56,6 +56,11 @@ def main() -> int:
         shutil.copy2(md_file, target_dir / target_name)
         copied_files.append(f"{md_file.name} -> {target_name}")
 
+    # Copy all .example files (config templates, not registered in registry.yaml)
+    for example_file in source_dir.glob("*.example"):
+        shutil.copy2(example_file, target_dir / example_file.name)
+        copied_files.append(example_file.name)
+
     # Copy subdirectories (like embeddings/)
     for subdir in source_dir.iterdir():
         if subdir.is_dir() and not subdir.name.startswith("."):

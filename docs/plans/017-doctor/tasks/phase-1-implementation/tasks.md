@@ -123,26 +123,26 @@ flowchart TD
     classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
 
     subgraph Setup["Setup"]
-        T001["T001: Example templates"]:::pending
+        T001["T001: Example templates ✓"]:::completed
     end
 
     subgraph DoctorTests["Doctor Tests"]
-        T002["T002: Config discovery tests"]:::pending
-        T003["T003: Merge chain tests"]:::pending
-        T004["T004: Provider status tests"]:::pending
-        T005["T005: Placeholder tests"]:::pending
-        T006["T006: Secret detection tests"]:::pending
-        T007["T007: Edge case tests"]:::pending
+        T002["T002: Config discovery tests ✓"]:::completed
+        T003["T003: Merge chain tests ✓"]:::completed
+        T004["T004: Provider status tests ✓"]:::completed
+        T005["T005: Placeholder tests ✓"]:::completed
+        T006["T006: Secret detection tests ✓"]:::completed
+        T007["T007: Edge case tests ✓"]:::completed
     end
 
     subgraph DoctorCore["Doctor Core"]
-        T008["T008: Config inspection helpers"]:::pending
-        T009["T009: Merge chain computation"]:::pending
-        T010["T010: Provider detection"]:::pending
-        T011["T011: Placeholder validation"]:::pending
-        T012["T012: Secret detection"]:::pending
-        T013["T013: Rich output formatting"]:::pending
-        T014["T014: Doctor command"]:::pending
+        T008["T008: Config inspection helpers ✓"]:::completed
+        T009["T009: Merge chain computation ✓"]:::completed
+        T010["T010: Provider detection ✓"]:::completed
+        T011["T011: Placeholder validation ✓"]:::completed
+        T012["T012: Secret detection ✓"]:::completed
+        T013["T013: Rich output formatting ✓"]:::completed
+        T014["T014: Doctor command ✓"]:::completed
     end
 
     subgraph InitEnhancement["Init Enhancement"]
@@ -161,11 +161,11 @@ flowchart TD
     end
 
     subgraph ConfigValidation["Config Validation"]
-        T022["T022: YAML syntax tests"]:::pending
-        T023["T023: Pydantic schema tests"]:::pending
-        T024["T024: Provider validation tests"]:::pending
-        T025["T025: Validation helpers"]:::pending
-        T026["T026: Provider validation impl"]:::pending
+        T022["T022: YAML syntax tests ✓"]:::completed
+        T023["T023: Pydantic schema tests ✓"]:::completed
+        T024["T024: Provider validation tests ✓"]:::completed
+        T025["T025: Validation helpers ✓"]:::completed
+        T026["T026: Provider validation impl ✓"]:::completed
     end
 
     subgraph Validation["Validation"]
@@ -190,9 +190,10 @@ flowchart TD
     T014 & T016 & T019 & T026 --> T021
 
     subgraph Files["Key Files"]
-        F1["/src/fs2/docs/*.example"]:::pending
-        F2["/tests/unit/cli/test_doctor.py"]:::pending
-        F3["/src/fs2/cli/doctor.py"]:::pending
+        F1["/docs/how/user/*.example ✓"]:::completed
+        F1b["/scripts/doc_build.py ✓"]:::completed
+        F2["/tests/unit/cli/test_doctor.py ✓"]:::completed
+        F3["/src/fs2/cli/doctor.py ✓"]:::completed
         F4["/tests/unit/cli/test_init.py"]:::pending
         F5["/src/fs2/cli/init.py"]:::pending
         F6["/tests/unit/cli/test_cli_guard.py"]:::pending
@@ -200,9 +201,9 @@ flowchart TD
         F8["/src/fs2/cli/main.py"]:::pending
     end
 
-    T001 -.-> F1
-    T002 & T003 & T004 & T005 & T006 & T007 -.-> F2
-    T008 & T009 & T010 & T011 & T012 & T013 & T014 -.-> F3
+    T001 -.-> F1 & F1b
+    T002 & T003 & T004 & T005 & T006 & T007 & T022 & T023 & T024 -.-> F2
+    T008 & T009 & T010 & T011 & T012 & T013 & T014 & T025 & T026 -.-> F3
     T015 -.-> F4
     T016 -.-> F5
     T017 -.-> F6
@@ -216,7 +217,7 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Example Templates | src/fs2/docs/ | ⬜ Pending | Create config.yaml.example, secrets.env.example (NOT registered in registry) |
+| T001 | Example Templates + Build | docs/how/user/, scripts/, pyproject.toml | ✅ Complete | Create templates in docs/how/user/, update doc_build.py + pyproject.toml |
 | T002 | Doctor Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | Config file discovery tests (5 locations) |
 | T003 | Doctor Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | Merge chain and override detection tests |
 | T004 | Doctor Tests | tests/unit/cli/test_doctor.py | ⬜ Pending | LLM/embedding provider status tests |
@@ -249,7 +250,7 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Create example config templates in src/fs2/docs/ | 2 | Setup | -- | /workspaces/flow_squared/src/fs2/docs/config.yaml.example, /workspaces/flow_squared/src/fs2/docs/secrets.env.example | Files exist with documented LLM/embedding sections; AC-29, AC-30, AC-31 | -- | Do NOT register in registry.yaml (templates, not docs); access via importlib.resources.files("fs2.docs") |
+| [x] | T001 | Create example config templates and update build pipeline | 2 | Setup | -- | /workspaces/flow_squared/docs/how/user/config.yaml.example, /workspaces/flow_squared/docs/how/user/secrets.env.example, /workspaces/flow_squared/scripts/doc_build.py, /workspaces/flow_squared/pyproject.toml | Templates in docs/how/user/; doc_build.py copies .example files; pyproject.toml includes *.example in wheel; AC-29, AC-30, AC-31 | -- | Source of truth in docs/how/user/, NOT src/fs2/docs/; run `just doc-build` to copy; access via importlib.resources.files("fs2.docs") |
 | [ ] | T002 | Write tests for config file discovery (all 5 locations) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: user/project YAML, user/project secrets.env, .env; missing file handling; AC-02 | -- | Use tmp_path fixtures |
 | [ ] | T003 | Write tests for merge chain computation and override detection | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: multi-layer merge, leaf-level overrides, source attribution; AC-03, AC-04 | -- | Test R1-04 edge cases |
 | [ ] | T004 | Write tests for provider status detection (LLM/embedding) | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: configured/not configured, required fields per provider; AC-05, AC-06, AC-07 | -- | Include GitHub URL generation |
@@ -310,6 +311,8 @@ flowchart TD
 | `/workspaces/flow_squared/src/fs2/cli/init.py` | Current init implementation to enhance |
 | `/workspaces/flow_squared/src/fs2/cli/scan.py` | CLI pattern to follow; guard application target |
 | `/workspaces/flow_squared/src/fs2/core/adapters/console_adapter.py` | ConsoleAdapter ABC for Rich output |
+| `/workspaces/flow_squared/scripts/doc_build.py` | Doc build script to extend for .example files |
+| `/workspaces/flow_squared/docs/how/dev/write-new-content-guide.md` | Documentation workflow (source of truth pattern) |
 
 ### Visual Alignment Aids
 
@@ -568,14 +571,15 @@ docs/plans/017-doctor/
 **AI Recommendation**: Option A - Use importlib.resources
 - Reasoning: Works everywhere (dev, pip, uvx); follows established mcp-doco pattern
 
-**Decision**: Store templates in `src/fs2/docs/`, do NOT register in `registry.yaml` (templates are not documentation), access via `importlib.resources.files("fs2.docs")`
+**Decision**: Store templates in `docs/how/user/` (source of truth per write-new-content-guide.md), update `doc_build.py` to copy `.example` files, update `pyproject.toml` to include `*.example` in wheel. Access via `importlib.resources.files("fs2.docs")`. Do NOT register in `registry.yaml` (templates, not documentation).
 
 **Action Items**:
-- [x] Updated T001 path to `src/fs2/docs/`
-- [x] Updated AC-31 to clarify templates are NOT registered (they're templates, not docs)
-- [x] Updated spec, plan, and tasks
+- [x] Updated T001 to create templates in `docs/how/user/`
+- [x] T001 now includes updating `doc_build.py` to copy `.example` files
+- [x] T001 now includes updating `pyproject.toml` to include `*.example` in wheel
+- [x] Updated AC-31 to clarify the full build pipeline
 
-**Affects**: T001, AC-29, AC-30, AC-31
+**Affects**: T001, AC-29, AC-30, AC-31, scripts/doc_build.py, pyproject.toml
 
 ---
 

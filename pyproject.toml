@@ -67,6 +67,7 @@ include = [
     "src/fs2/core/templates/**/*.j2",
     "src/fs2/docs/**/*.yaml",
     "src/fs2/docs/**/*.md",
+    "src/fs2/docs/**/*.example",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -74,6 +75,7 @@ include = [
     "src/fs2/core/templates/**/*.j2",
     "src/fs2/docs/**/*.yaml",
     "src/fs2/docs/**/*.md",
+    "src/fs2/docs/**/*.example",
 ]
 
 [tool.pytest.ini_options]

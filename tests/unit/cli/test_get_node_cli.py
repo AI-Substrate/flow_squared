@@ -323,7 +323,7 @@ class TestGetNodeErrors:
         """
         Purpose: Proves missing config returns user error with guidance.
         Quality Contribution: Guides user to run fs2 init first.
-        Acceptance Criteria: Exit 1, stdout is empty (guidance goes to stderr).
+        Acceptance Criteria: Exit 1, stdout contains init suggestion (per CLI guard).
 
         Task: T008a
         """
@@ -337,7 +337,7 @@ class TestGetNodeErrors:
         assert result.exit_code == 1, (
             f"Expected exit 1, got {result.exit_code}: {result.stdout}"
         )
-        # Stdout should be empty (guidance message goes to stderr for clean piping)
-        assert result.stdout == "", (
-            f"Expected empty stdout for error case, got: {result.stdout}"
+        # CLI guard suggests running init
+        assert "init" in result.stdout.lower(), (
+            f"Expected 'init' in output, got: {result.stdout}"
         )

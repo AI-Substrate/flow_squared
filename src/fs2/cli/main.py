@@ -19,7 +19,9 @@ from typing import Annotated
 
 import typer
 
+from fs2.cli.doctor import doctor
 from fs2.cli.get_node import get_node
+from fs2.cli.guard import require_init
 from fs2.cli.init import init
 from fs2.cli.install import get_version_string, install, upgrade
 from fs2.cli.mcp import mcp
@@ -75,12 +77,16 @@ def main(
 
 
 # Register commands
-app.command(name="scan")(scan)
+# Commands that require init (guarded)
+app.command(name="scan")(require_init(scan))
+app.command(name="tree")(require_init(tree))
+app.command(name="get-node")(require_init(get_node))
+app.command(name="search")(require_init(search))
+app.command(name="mcp")(require_init(mcp))
+
+# Commands that always work (not guarded)
 app.command(name="init")(init)
-app.command(name="tree")(tree)
-app.command(name="get-node")(get_node)
-app.command(name="search")(search)
-app.command(name="mcp")(mcp)
+app.command(name="doctor")(doctor)
 app.command(name="install")(install)
 app.command(name="upgrade")(upgrade)
 

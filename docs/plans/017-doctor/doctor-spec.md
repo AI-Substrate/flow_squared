@@ -142,9 +142,9 @@ Additionally, `fs2 init` should be enhanced to automatically bootstrap user-glob
 
 ### Example Templates
 
-29. **AC-29**: `src/fs2/docs/config.yaml.example` exists with documented LLM and embedding sections
-30. **AC-30**: `src/fs2/docs/secrets.env.example` exists with placeholder variable names
-31. **AC-31**: Example templates accessible via `importlib.resources.files("fs2.docs")` (NOT registered in registry.yaml - they're templates, not documentation)
+29. **AC-29**: `docs/how/user/config.yaml.example` exists with documented LLM and embedding sections (source of truth)
+30. **AC-30**: `docs/how/user/secrets.env.example` exists with placeholder variable names (source of truth)
+31. **AC-31**: `just doc-build` copies `.example` files to `src/fs2/docs/` and `pyproject.toml` includes them in wheel; accessible via `importlib.resources.files("fs2.docs")` (NOT registered in registry.yaml - they're templates, not documentation)
 
 ### Config Validation
 

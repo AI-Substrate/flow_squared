@@ -75,6 +75,40 @@ See [Developer Setup](#developer-setup) below for contributing.
 | [Configuration Guide](docs/how/user/configuration-guide.md) | LLM, embeddings, secrets, and all config options |
 | [Agent Integration](docs/how/user/AGENTS.md) | How AI agents should use fs2 tools effectively |
 
+## Quick Diagnostics
+
+If you're having configuration issues, use the doctor command:
+
+```bash
+fs2 doctor
+```
+
+This displays:
+- All config file locations (found/not found)
+- LLM and embedding provider status
+- Unresolved `${VAR}` placeholders
+- YAML syntax and schema validation errors
+- Actionable suggestions with documentation links
+
+Example output:
+```
+╭─ fs2 Configuration Health Check ─╮
+│ Current Directory: /my-project   │
+╰──────────────────────────────────╯
+
+📁 Configuration Files:
+  ✓ ~/.config/fs2/config.yaml
+  ✗ ./.fs2/secrets.env (not found)
+
+🔌 Provider Status:
+  ✓ LLM: azure (configured)
+  ✗ Embeddings: NOT CONFIGURED
+    → https://github.com/.../configuration-guide.md
+
+💡 Suggestions:
+  • Set AZURE_EMBEDDING_API_KEY to enable embeddings
+```
+
 ## MCP Server (AI Agent Integration)
 
 Start the MCP server for Claude Code, Claude Desktop, GitHub Copilot, or other MCP-compatible clients:

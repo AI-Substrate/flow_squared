@@ -3,7 +3,10 @@
 Full TDD tests for the init command covering:
 - T014a: Create .fs2/config.yaml with defaults
 - T014c: Warn when config already exists
+- T015: Enhanced init tests (local + global, .git warning, .gitignore)
 """
+
+from pathlib import Path
 
 from typer.testing import CliRunner
 
@@ -169,3 +172,293 @@ class TestMissingConfigError:
         # Should mention init command
         stdout_lower = result.stdout.lower()
         assert "init" in stdout_lower, f"Expected 'init' in: {result.stdout}"
+
+
+# =============================================================================
+# T015: ENHANCED INIT TESTS
+# =============================================================================
+
+
+class TestEnhancedInitLocalAndGlobal:
+    """T015: Tests for enhanced init (local + global)."""
+
+    def test_given_init_when_run_then_creates_local_config(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Verifies init creates local .fs2/config.yaml.
+        Quality Contribution: Ensures local config works.
+        Acceptance Criteria: AC-14 - Creates local .fs2/.
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0, f"Failed with: {result.stdout}"
+        assert (project_dir / ".fs2" / "config.yaml").exists()
+
+    def test_given_init_when_run_then_creates_global_config(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Verifies init creates global config too.
+        Quality Contribution: Ensures user-level config exists.
+        Acceptance Criteria: AC-14 - Creates global ~/.config/fs2/.
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0, f"Failed with: {result.stdout}"
+        global_config = fake_home / ".config" / "fs2" / "config.yaml"
+        assert global_config.exists()
+
+    def test_given_global_exists_when_init_then_skips_global(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Verifies init skips existing global config.
+        Quality Contribution: Doesn't overwrite user config.
+        Acceptance Criteria: AC-15 - Skips global if exists.
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        global_dir = fake_home / ".config" / "fs2"
+        global_dir.mkdir(parents=True)
+        global_config = global_dir / "config.yaml"
+        original_content = "# Original global config\n"
+        global_config.write_text(original_content)
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0
+        # Global should NOT be overwritten
+        assert global_config.read_text() == original_content
+        # Should mention skipped
+        assert "skipped" in result.stdout.lower() or "already exists" in result.stdout.lower()
+
+    def test_given_init_when_run_then_shows_cwd(self, tmp_path, monkeypatch):
+        """
+        Purpose: Verifies init displays current directory.
+        Quality Contribution: User knows where config is created.
+        Acceptance Criteria: AC-20 - Shows current directory path.
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0
+        # Should show current directory
+        assert str(project_dir) in result.stdout or "project" in result.stdout
+
+    def test_given_no_git_when_init_then_shows_warning(self, tmp_path, monkeypatch):
+        """
+        Purpose: Verifies init warns when no .git folder.
+        Quality Contribution: Helps identify wrong directory.
+        Acceptance Criteria: AC-21 - Shows red warning if no .git.
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        # No .git directory
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0  # Warning, not failure
+        stdout_lower = result.stdout.lower()
+        assert ".git" in stdout_lower or "git" in stdout_lower
+
+    def test_given_git_exists_when_init_then_no_git_warning(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Verifies no .git warning when .git exists.
+        Quality Contribution: No noise when in correct directory.
+        Acceptance Criteria: AC-21 - No warning when .git present.
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        (project_dir / ".git").mkdir()  # Git directory exists
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0
+        # Should NOT contain .git warning
+        stdout_lower = result.stdout.lower()
+        assert "warning" not in stdout_lower or ".git" not in stdout_lower
+
+    def test_given_init_when_run_then_creates_gitignore(self, tmp_path, monkeypatch):
+        """
+        Purpose: Verifies init creates .fs2/.gitignore.
+        Quality Contribution: Secrets excluded from git.
+        Acceptance Criteria: AC-22 - Creates .fs2/.gitignore.
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0
+        gitignore = project_dir / ".fs2" / ".gitignore"
+        assert gitignore.exists()
+
+    def test_given_init_when_run_then_gitignore_keeps_config_yaml(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Verifies .gitignore ignores all except config.yaml.
+        Quality Contribution: Config tracked, secrets ignored.
+        Acceptance Criteria: AC-22 - .gitignore ignores all except config.yaml.
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0
+        gitignore = project_dir / ".fs2" / ".gitignore"
+        content = gitignore.read_text()
+        # Should ignore everything
+        assert "*" in content
+        # Should NOT ignore config.yaml
+        assert "!config.yaml" in content
+
+    def test_given_init_when_run_then_reports_actions(self, tmp_path, monkeypatch):
+        """
+        Purpose: Verifies init reports what was created.
+        Quality Contribution: User knows what happened.
+        Acceptance Criteria: AC-18 - Reports created/skipped.
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0
+        stdout_lower = result.stdout.lower()
+        # Should report both local and global
+        assert "local" in stdout_lower or ".fs2" in stdout_lower
+        assert "global" in stdout_lower or ".config" in stdout_lower
+
+    def test_given_git_worktree_when_init_then_no_git_warning(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Verifies .git file (worktree) doesn't trigger warning.
+        Quality Contribution: Supports git worktrees.
+        Acceptance Criteria: AC-21 - Uses .exists() not .is_dir().
+        """
+        from fs2.cli.main import app
+
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        # Git worktree has .git as a file, not directory
+        (project_dir / ".git").write_text("gitdir: /some/other/path")
+
+        monkeypatch.chdir(project_dir)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+
+        result = runner.invoke(app, ["init"])
+
+        assert result.exit_code == 0
+        # Should NOT contain .git warning (worktree is valid)
+        stdout_lower = result.stdout.lower()
+        # Check for absence of warning about .git specifically
+        assert not ("no .git" in stdout_lower and "warning" in stdout_lower)

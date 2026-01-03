@@ -1,0 +1,116 @@
+# fs2 Configuration File Example
+# Copy this file to .fs2/config.yaml and customize for your project.
+# See docs/how/user/configuration-guide.md for full documentation.
+#
+# IMPORTANT: Never put literal API keys in this file!
+# Use ${ENV_VAR} placeholders that reference values from secrets.env or .env
+
+# =============================================================================
+# SCAN CONFIGURATION
+# =============================================================================
+# Controls how fs2 discovers and processes source files.
+
+scan:
+  # Directories to scan (relative to project root)
+  scan_paths:
+    - "."
+
+  # Respect .gitignore patterns
+  respect_gitignore: true
+
+  # Maximum file size to parse (in KB)
+  max_file_size_kb: 500
+
+  # Follow symbolic links
+  follow_symlinks: false
+
+# =============================================================================
+# LLM CONFIGURATION (Optional - for smart content generation)
+# =============================================================================
+# Configures the Large Language Model for AI-generated code summaries.
+# Required for `fs2 scan --smart-content` feature.
+#
+# Provider options:
+#   azure  - Azure OpenAI Service (requires: base_url, azure_deployment_name, azure_api_version)
+#   openai - OpenAI API (requires: api_key)
+#   fake   - Mock provider for testing (no requirements)
+
+# --- Azure OpenAI Example ---
+# llm:
+#   provider: azure
+#   api_key: ${AZURE_OPENAI_API_KEY}
+#   base_url: ${AZURE_OPENAI_ENDPOINT}
+#   azure_deployment_name: gpt-4
+#   azure_api_version: 2024-12-01-preview
+#   model: gpt-4
+#   temperature: 0.1
+#   max_tokens: 1024
+#   timeout: 30
+#   max_retries: 3
+
+# --- OpenAI Example ---
+# llm:
+#   provider: openai
+#   api_key: ${OPENAI_API_KEY}
+#   model: gpt-4-turbo
+#   temperature: 0.1
+#   max_tokens: 1024
+#   timeout: 30
+#   max_retries: 3
+
+# --- Fake Provider (Testing) ---
+# llm:
+#   provider: fake
+
+# =============================================================================
+# EMBEDDING CONFIGURATION (Optional - for semantic search)
+# =============================================================================
+# Configures vector embeddings for semantic code search.
+# Required for `fs2 scan --embed` feature.
+#
+# Mode options:
+#   azure            - Azure OpenAI Embeddings (requires: azure.endpoint, azure.api_key)
+#   openai_compatible - OpenAI-compatible API
+#   fake             - Mock embeddings for testing
+
+# --- Azure Embedding Example ---
+# embedding:
+#   mode: azure
+#   dimensions: 1024
+#   batch_size: 16
+#   azure:
+#     endpoint: ${AZURE_EMBEDDING_ENDPOINT}
+#     api_key: ${AZURE_EMBEDDING_API_KEY}
+#     deployment_name: text-embedding-3-small
+#     api_version: 2024-02-01
+#   max_retries: 3
+#   base_delay: 2.0
+#   max_delay: 60.0
+
+# --- Fake Embedding (Testing) ---
+# embedding:
+#   mode: fake
+#   dimensions: 1024
+
+# =============================================================================
+# SEARCH CONFIGURATION (Optional)
+# =============================================================================
+# Controls search behavior for the fs2 search command.
+
+# search:
+#   default_limit: 20
+#   min_similarity: 0.25
+#   regex_timeout: 2.0
+
+# =============================================================================
+# SMART CONTENT CONFIGURATION (Optional)
+# =============================================================================
+# Configures AI-generated summaries for code elements.
+
+# smart_content:
+#   max_workers: 50
+#   max_input_tokens: 50000
+#   token_limits:
+#     file: 200
+#     type: 200
+#     callable: 150

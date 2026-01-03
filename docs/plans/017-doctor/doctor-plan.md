@@ -61,7 +61,7 @@
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|-------|
-| [ ] | T001 | Create example config templates in src/fs2/docs/ | 2 | Setup | -- | /workspaces/flow_squared/src/fs2/docs/config.yaml.example, /workspaces/flow_squared/src/fs2/docs/secrets.env.example | Files exist with documented LLM/embedding sections; AC-29, AC-30, AC-31 | Do NOT register in registry.yaml (templates, not docs); access via importlib.resources |
+| [ ] | T001 | Create example config templates and update build pipeline | 2 | Setup | -- | /workspaces/flow_squared/docs/how/user/config.yaml.example, /workspaces/flow_squared/docs/how/user/secrets.env.example, /workspaces/flow_squared/scripts/doc_build.py, /workspaces/flow_squared/pyproject.toml | Templates in docs/how/user/; doc_build.py copies .example files; pyproject.toml includes *.example in wheel; AC-29, AC-30, AC-31 | Source of truth in docs/how/user/, NOT src/fs2/docs/; run `just doc-build` to copy |
 | [ ] | T002 | Write tests for config file discovery (all 5 locations) | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: user/project YAML, user/project secrets.env, .env; missing file handling; AC-02 | Use tmp_path fixtures |
 | [ ] | T003 | Write tests for merge chain computation and override detection | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: multi-layer merge, leaf-level overrides, source attribution; AC-03, AC-04 | Test R1-04 edge cases |
 | [ ] | T004 | Write tests for provider status detection (LLM/embedding) | 2 | Test | T002 | /workspaces/flow_squared/tests/unit/cli/test_doctor.py | Tests cover: configured/not configured, required fields per provider; AC-05, AC-06, AC-07 | Include GitHub URL generation |
@@ -118,9 +118,9 @@
 - [ ] AC-26: If no `.git` folder exists, error also shows prominent red warning (helps identify wrong directory)
 - [ ] AC-27: These commands always work without init: `init`, `doctor`, `--help`, `--version`, and any subcommand `--help`
 - [ ] AC-28: No auto-init behavior - commands never create `.fs2/` implicitly
-- [ ] AC-29: src/fs2/docs/config.yaml.example exists
-- [ ] AC-30: src/fs2/docs/secrets.env.example exists
-- [ ] AC-31: Example templates accessible via importlib.resources (NOT registered in registry.yaml)
+- [ ] AC-29: docs/how/user/config.yaml.example exists (source of truth)
+- [ ] AC-30: docs/how/user/secrets.env.example exists (source of truth)
+- [ ] AC-31: doc-build copies .example files; pyproject.toml includes in wheel; accessible via importlib.resources
 - [ ] AC-32: Doctor loads configs with YAML parser, catches syntax errors
 - [ ] AC-33: YAML syntax errors display line number and actionable fix
 - [ ] AC-34: Pydantic validation errors display field path and expected type
