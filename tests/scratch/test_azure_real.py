@@ -33,7 +33,6 @@ AZURE_API_VERSION = "2024-12-01-preview"
 async def main():
     """Run a test generation against real Azure OpenAI."""
     from fs2.config.objects import LLMConfig
-    from fs2.config.service import ConfigurationService
     from fs2.core.services.llm_service import LLMService
 
     # Check for API key

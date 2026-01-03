@@ -20,7 +20,6 @@ import typer
 from rich.console import Console
 
 from fs2.cli.utils import safe_write_file, validate_save_path
-
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.config.objects import GraphConfig
 from fs2.config.service import FS2ConfigurationService

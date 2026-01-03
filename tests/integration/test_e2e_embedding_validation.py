@@ -11,12 +11,15 @@ from pathlib import Path
 
 import pytest
 
-from fs2.config.objects import ChunkConfig, EmbeddingConfig, ScanConfig, SmartContentConfig
+from fs2.config.objects import (
+    ChunkConfig,
+    EmbeddingConfig,
+    ScanConfig,
+    SmartContentConfig,
+)
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters.ast_parser_impl import TreeSitterParser
-from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
 from fs2.core.adapters.file_scanner_impl import FileSystemScanner
-from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
 from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
 from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 from fs2.core.services.embedding.embedding_service import EmbeddingService
@@ -151,7 +154,7 @@ class TestEndToEndEmbeddingValidation:
         )
 
         # Print summary for logging
-        print(f"\n=== E2E Embedding Validation Results ===")
+        print("\n=== E2E Embedding Validation Results ===")
         print(f"Files scanned: {summary.files_scanned}")
         print(f"Nodes created: {summary.nodes_created}")
         print(f"Nodes with content: {len(nodes_with_content)}")
@@ -162,7 +165,7 @@ class TestEndToEndEmbeddingValidation:
         print(f"Smart content enriched: {summary.metrics.get('smart_content_enriched', 0)}")
         print(f"Embedding enriched: {summary.metrics.get('embedding_enriched', 0)}")
         print(f"Embedding preserved: {summary.metrics.get('embedding_preserved', 0)}")
-        print(f"========================================\n")
+        print("========================================\n")
 
     def test_given_samples_when_scanning_then_embedding_format_correct(
         self, samples_path: Path, embedding_config: EmbeddingConfig, fixture_graph, test_graph_path: Path
@@ -210,5 +213,5 @@ class TestEndToEndEmbeddingValidation:
             # Per DYK-1: tuple[tuple[float, ...], ...]
             assert isinstance(node.embedding, tuple), f"Expected tuple, got {type(node.embedding)}"
             assert len(node.embedding) >= 1, "Expected at least one chunk"
-            assert isinstance(node.embedding[0], tuple), f"Expected inner tuple"
+            assert isinstance(node.embedding[0], tuple), "Expected inner tuple"
             assert len(node.embedding[0]) == 1024, f"Expected 1024 dims, got {len(node.embedding[0])}"

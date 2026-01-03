@@ -598,10 +598,9 @@ class TestAzureEmbeddingAdapterDimensionsMismatch:
             return_value=MagicMock(
                 embeddings=MagicMock(create=AsyncMock(return_value=mock_response))
             ),
-        ):
-            with caplog.at_level(logging.WARNING):
-                # Act
-                result = await adapter.embed_text("test")
+        ), caplog.at_level(logging.WARNING):
+            # Act
+            result = await adapter.embed_text("test")
 
         # Assert - warning logged
         assert "dimension" in caplog.text.lower() or "mismatch" in caplog.text.lower()

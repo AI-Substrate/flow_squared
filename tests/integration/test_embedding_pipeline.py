@@ -18,7 +18,12 @@ from pathlib import Path
 
 import pytest
 
-from fs2.config.objects import ChunkConfig, EmbeddingConfig, ScanConfig, SmartContentConfig
+from fs2.config.objects import (
+    ChunkConfig,
+    EmbeddingConfig,
+    ScanConfig,
+    SmartContentConfig,
+)
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter

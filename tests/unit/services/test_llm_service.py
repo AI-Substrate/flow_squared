@@ -8,7 +8,7 @@ Tests cover:
 - T018: Delegates to adapter for generate calls
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 

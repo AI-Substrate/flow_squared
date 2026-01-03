@@ -6,8 +6,8 @@ with networkx DiGraph backend.
 """
 
 import pickle
+
 import pytest
-from pathlib import Path
 
 
 def make_file_node(file_path: str = "src/main.py", content: str = "# test") -> "CodeNode":
@@ -90,10 +90,10 @@ class TestNetworkXGraphStoreNodeOperations:
 
         Task: T011
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
         from fs2.core.utils.hash import compute_content_hash
 
         config = FakeConfigurationService(ScanConfig())
@@ -162,8 +162,8 @@ class TestNetworkXGraphStoreNodeOperations:
 
         Task: T012
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -193,8 +193,8 @@ class TestNetworkXGraphStoreNodeOperations:
 
         Task: T013
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -220,8 +220,8 @@ class TestNetworkXGraphStoreNodeOperations:
 
         Task: T014
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -260,8 +260,8 @@ class TestNetworkXGraphStoreNodeOperations:
 
         Task: T015
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -291,8 +291,8 @@ class TestNetworkXGraphStoreNodeOperations:
 
         Task: T016
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -326,8 +326,8 @@ class TestNetworkXGraphStorePersistence:
 
         Task: T017 (per CF05)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -356,8 +356,8 @@ class TestNetworkXGraphStorePersistence:
 
         Task: T018 (per CF14)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -383,9 +383,11 @@ class TestNetworkXGraphStorePersistence:
         Task: T019 (per CF14)
         """
         import logging
+
         import networkx as nx
-        from fs2.config.service import FakeConfigurationService
+
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         # Create file with different version
@@ -412,8 +414,8 @@ class TestNetworkXGraphStorePersistence:
 
         Task: T020 (AC8)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -449,10 +451,10 @@ class TestNetworkXGraphStorePersistence:
 
         Task: T021 (per CF10)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.exceptions import GraphStoreError
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = NetworkXGraphStore(config)
@@ -472,10 +474,10 @@ class TestNetworkXGraphStorePersistence:
 
         Task: T022 (per CF10)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.exceptions import GraphStoreError
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = NetworkXGraphStore(config)
@@ -497,10 +499,10 @@ class TestNetworkXGraphStorePersistence:
 
         Task: T022a (Security hardening)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.exceptions import GraphStoreError
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = NetworkXGraphStore(config)
@@ -508,8 +510,6 @@ class TestNetworkXGraphStorePersistence:
         # Create malicious pickle with os.system call
         # This is a classic RCE payload - if unpickled without restriction,
         # it would execute arbitrary code
-        import io
-        import pickletools
 
         class MaliciousReducer:
             """Pickle that would execute code if loaded unsafely."""
@@ -544,8 +544,8 @@ class TestNetworkXGraphStoreEdgeCases:
 
         Task: T024
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -562,8 +562,8 @@ class TestNetworkXGraphStoreEdgeCases:
 
         Task: T025
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -590,8 +590,8 @@ class TestNetworkXGraphStoreEdgeCases:
 
         Task: T026
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -614,8 +614,8 @@ class TestNetworkXGraphStoreEdgeCases:
 
         Task: T027
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -644,8 +644,8 @@ class TestNetworkXGraphStoreEdgeCases:
 
         Task: T014 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -665,8 +665,8 @@ class TestNetworkXGraphStoreEdgeCases:
 
         Task: T020 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())

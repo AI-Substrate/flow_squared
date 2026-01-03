@@ -16,10 +16,8 @@ from pathlib import Path
 import pytest
 
 from fs2.core.models.search import QuerySpec, SearchMode
-from fs2.core.repos.graph_store_fake import FakeGraphStore
 from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 from fs2.core.services.search import SearchService
-
 
 # Path to fixture graph
 FIXTURE_GRAPH_PATH = Path(__file__).parent.parent / "fixtures" / "fixture_graph.pkl"
@@ -32,8 +30,8 @@ def graph_store() -> NetworkXGraphStore:
         pytest.skip(f"Fixture graph not found: {FIXTURE_GRAPH_PATH}")
 
     # Create a graph store and load the fixture
-    from fs2.config.service import FakeConfigurationService
     from fs2.config.objects import GraphConfig, ScanConfig
+    from fs2.config.service import FakeConfigurationService
 
     config = FakeConfigurationService(
         GraphConfig(graph_path=str(FIXTURE_GRAPH_PATH)),

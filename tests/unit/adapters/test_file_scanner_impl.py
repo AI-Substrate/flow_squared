@@ -6,8 +6,8 @@ Purpose: Verify FileSystemScanner gitignore handling, traversal, and error handl
 
 import os
 import sys
+
 import pytest
-from pathlib import Path
 
 
 @pytest.mark.unit
@@ -22,8 +22,8 @@ class TestFileSystemScannerConstruction:
 
         Task: T010
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         config = FakeConfigurationService(ScanConfig())
@@ -39,8 +39,8 @@ class TestFileSystemScannerConstruction:
 
         Task: T010 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner import FileScanner
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
@@ -57,8 +57,8 @@ class TestFileSystemScannerConstruction:
 
         Task: T011
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Pass specific config values
@@ -87,8 +87,8 @@ class TestFileSystemScannerBasicTraversal:
 
         Task: T012
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
         from fs2.core.models import ScanResult
 
@@ -120,8 +120,8 @@ class TestFileSystemScannerBasicTraversal:
 
         Task: T012 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -151,8 +151,8 @@ class TestFileSystemScannerBasicTraversal:
 
         Task: T012 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -182,8 +182,8 @@ class TestFileSystemScannerBasicTraversal:
 
         Task: T024
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -217,8 +217,8 @@ class TestFileSystemScannerGitignore:
 
         Task: T013
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -250,8 +250,8 @@ class TestFileSystemScannerGitignore:
 
         Task: T014
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -284,8 +284,8 @@ class TestFileSystemScannerGitignore:
 
         Task: T014b
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -321,8 +321,8 @@ class TestFileSystemScannerGitignore:
 
         Task: T013 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -351,8 +351,8 @@ class TestFileSystemScannerGitignore:
 
         Task: T022
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange - malformed gitignore (pathspec handles most gracefully)
@@ -379,8 +379,8 @@ class TestFileSystemScannerGitignore:
 
         Task: T013 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -412,8 +412,8 @@ class TestFileSystemScannerSymlinks:
 
         Task: T015
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -446,8 +446,8 @@ class TestFileSystemScannerSymlinks:
 
         Task: T015b
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -478,8 +478,8 @@ class TestFileSystemScannerSymlinks:
 
         Task: T016
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange - directory symlink
@@ -525,8 +525,9 @@ class TestFileSystemScannerSymlinks:
         Task: T017
         """
         import logging
-        from fs2.config.service import FakeConfigurationService
+
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -561,8 +562,8 @@ class TestFileSystemScannerEdgeCases:
 
         Task: T018
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange - empty directory
@@ -588,8 +589,8 @@ class TestFileSystemScannerEdgeCases:
 
         Task: T018 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -621,10 +622,10 @@ class TestFileSystemScannerErrorHandling:
 
         Task: T019
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.exceptions import FileScannerError
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         config = FakeConfigurationService(
             ScanConfig(scan_paths=[str(tmp_path / "nonexistent")])
@@ -648,8 +649,8 @@ class TestFileSystemScannerErrorHandling:
         for handling PermissionError on stat() exists but is only triggered when the
         file is owned by another user or we can't access the parent directory.
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -684,8 +685,8 @@ class TestFileSystemScannerErrorHandling:
 
         Task: T020b
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -722,8 +723,8 @@ class TestFileSystemScannerErrorHandling:
 
         Task: T021
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -763,8 +764,8 @@ class TestFileSystemScannerErrorHandling:
 
         Task: T023
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange
@@ -792,10 +793,10 @@ class TestFileSystemScannerErrorHandling:
 
         Task: T023b
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.exceptions import FileScannerError
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         # Arrange - create scanner but DON'T call scan()
         (tmp_path / "test.py").write_text("# test")

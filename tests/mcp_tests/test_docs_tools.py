@@ -18,7 +18,6 @@ import pytest
 
 from fs2.mcp import dependencies
 
-
 # =============================================================================
 # T001: TestDocsListTool - Direct function call tests
 # =============================================================================

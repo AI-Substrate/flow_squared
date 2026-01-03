@@ -41,7 +41,7 @@ def test_llm_adapter_generate_is_async():
     # Check that generate is defined as a coroutine function
     assert hasattr(LLMAdapter, "generate")
     # For ABCs, check if it's marked as abstract and would be async
-    generate_method = getattr(LLMAdapter, "generate")
+    generate_method = LLMAdapter.generate
     # The method should be a coroutine function (async def)
     assert asyncio.iscoroutinefunction(generate_method)
 

@@ -127,7 +127,7 @@ class EmbeddingService:
         }
 
     @classmethod
-    def create(cls, config: "ConfigurationService") -> "EmbeddingService":
+    def create(cls, config: ConfigurationService) -> EmbeddingService:
         """Factory to build EmbeddingService with configured adapters."""
         from fs2.config.objects import EmbeddingConfig
         from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter

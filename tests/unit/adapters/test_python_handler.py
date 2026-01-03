@@ -22,7 +22,6 @@ Worked Example:
     assert "body" in handler.container_types  # Inherited from default
 """
 
-import pytest
 
 
 class TestPythonHandler:

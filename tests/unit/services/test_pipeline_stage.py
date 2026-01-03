@@ -11,10 +11,7 @@ Per Alignment Brief:
 - name property + process method
 """
 
-from pathlib import Path
-from typing import Protocol, runtime_checkable
-
-import pytest
+from typing import Protocol
 
 from fs2.config.objects import ScanConfig
 
@@ -40,7 +37,6 @@ class TestPipelineStageProtocol:
         Quality Contribution: Stages must be identifiable for logging.
         Acceptance Criteria: Protocol specifies name property.
         """
-        from fs2.core.services.pipeline_stage import PipelineStage
 
         # Create a conforming class to verify protocol spec
         class ConformingStage:
@@ -62,7 +58,6 @@ class TestPipelineStageProtocol:
         Quality Contribution: Stages must process context.
         Acceptance Criteria: Protocol specifies process method.
         """
-        from fs2.core.services.pipeline_stage import PipelineStage
         from fs2.core.services.pipeline_context import PipelineContext
 
         # Create a conforming class to verify protocol spec
@@ -90,8 +85,8 @@ class TestPipelineStageRuntimeCheckable:
         Quality Contribution: Pipeline can validate stage types at runtime.
         Acceptance Criteria: isinstance returns True for conforming classes.
         """
-        from fs2.core.services.pipeline_stage import PipelineStage
         from fs2.core.services.pipeline_context import PipelineContext
+        from fs2.core.services.pipeline_stage import PipelineStage
 
         class ConformingStage:
             @property

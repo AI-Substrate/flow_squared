@@ -855,9 +855,9 @@ See [MCP Server Guide](docs/how/mcp-server-guide.md) for setup details.
 - [x] Phase 2: DocsService Implementation - COMPLETE (15 tests)
 - [x] Phase 3: MCP Tool Integration - COMPLETE (19 tests)
 - [x] Phase 4: Curated Documentation - COMPLETE (7 tasks, 62 total tests)
-- [ ] Phase 5: Testing and Documentation - NOT STARTED
+- [x] Phase 5: Testing and Documentation - COMPLETE (7 tasks, 65 docs tests, 1567 total tests)
 
-Overall Progress: 4/5 phases (80%)
+Overall Progress: 5/5 phases (100%) - FEATURE COMPLETE
 
 ### STOP Rule
 
@@ -915,6 +915,15 @@ Overall Progress: 4/5 phases (80%)
   - Registry tags expanded per DYK-5: agents entry has [agents, mcp, getting-started, tree, get-node, search, tools]
   - R6.4 Bundled Documentation Maintenance rule added to rules.md (T007)
 
+[^8]: Phase 5 - Testing and Documentation (Tasks 5.1-5.7) - COMPLETE
+  - `file:README.md` - Added Documentation Tools section after Available Tools table (T004)
+  - `file:docs/how/write-new-content-guide.md` - New guide for adding curated docs (T005)
+  - `file:docs/rules-idioms-architecture/idioms.md` - Added Section 10 In-App Documentation Pattern (T006)
+  - `function:src/fs2/mcp/server.py:docs_list` - Added WHEN TO USE, PREREQUISITES, WORKFLOW (T002)
+  - `function:src/fs2/mcp/server.py:docs_get` - Added WHEN TO USE, PREREQUISITES (T002)
+  - Test coverage: 87% for docs-related code (T003)
+  - All 1567 tests passing (T002)
+
 ---
 
-**Next Step**: Run `/plan-7-code-review --phase 4` to review Phase 4 implementation
+**FEATURE COMPLETE**: MCP Documentation Tools feature is fully implemented. All acceptance criteria satisfied.

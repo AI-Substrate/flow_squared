@@ -180,7 +180,7 @@ class TestDocsRegistry:
         Purpose: Proves DocsRegistry parses valid structure
         Quality Contribution: Basic construction works
         """
-        from fs2.config.docs_registry import DocumentEntry, DocsRegistry
+        from fs2.config.docs_registry import DocsRegistry, DocumentEntry
 
         registry = DocsRegistry(
             documents=[
@@ -215,7 +215,7 @@ class TestDocsRegistry:
         Purpose: Proves registry can hold multiple documents
         Quality Contribution: Supports real-world usage
         """
-        from fs2.config.docs_registry import DocumentEntry, DocsRegistry
+        from fs2.config.docs_registry import DocsRegistry, DocumentEntry
 
         registry = DocsRegistry(
             documents=[

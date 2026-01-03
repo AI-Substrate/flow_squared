@@ -33,8 +33,8 @@ class TestParsingStageProtocol:
         Quality Contribution: Ensures stage can be used in pipeline.
         Acceptance Criteria: isinstance check passes.
         """
-        from fs2.core.services.stages.parsing_stage import ParsingStage
         from fs2.core.services.pipeline_stage import PipelineStage
+        from fs2.core.services.stages.parsing_stage import ParsingStage
 
         stage = ParsingStage()
         assert isinstance(stage, PipelineStage)

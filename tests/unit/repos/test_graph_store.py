@@ -4,8 +4,9 @@ Tasks: T001-T003
 Purpose: Verify GraphStore ABC defines correct interface.
 """
 
-import pytest
 from abc import ABC
+
+import pytest
 
 
 @pytest.mark.unit
@@ -183,10 +184,10 @@ class TestGraphStoreGetMetadataContract:
 
         Task: T003
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = NetworkXGraphStore(config)
@@ -220,10 +221,10 @@ class TestGraphStoreGetMetadataContract:
 
         Task: T003
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.exceptions import GraphStoreError
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = NetworkXGraphStore(config)
@@ -239,10 +240,10 @@ class TestGraphStoreGetMetadataContract:
 
         Task: T003
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = NetworkXGraphStore(config)

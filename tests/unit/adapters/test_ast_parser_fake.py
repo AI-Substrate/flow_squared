@@ -5,8 +5,9 @@ Purpose: Verify FakeASTParser implements ASTParser ABC correctly.
 Per CF02: Adapter ABC with Dual Implementation Pattern.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.unit
@@ -21,8 +22,8 @@ class TestFakeASTParser:
 
         Task: T005
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -38,8 +39,8 @@ class TestFakeASTParser:
 
         Task: T005
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
         from fs2.core.models import CodeNode
         from fs2.core.models.content_type import ContentType
@@ -74,8 +75,8 @@ class TestFakeASTParser:
 
         Task: T005 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -93,8 +94,8 @@ class TestFakeASTParser:
 
         Task: T006
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -114,8 +115,8 @@ class TestFakeASTParser:
 
         Task: T006 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -138,8 +139,8 @@ class TestFakeASTParser:
 
         Task: T007
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
         from fs2.core.adapters.exceptions import ASTParserError
 
@@ -163,8 +164,8 @@ class TestFakeASTParser:
 
         Task: T007 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -184,8 +185,8 @@ class TestFakeASTParser:
 
         Task: T007 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -201,8 +202,8 @@ class TestFakeASTParser:
 
         Task: T008
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser import ASTParser
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
 

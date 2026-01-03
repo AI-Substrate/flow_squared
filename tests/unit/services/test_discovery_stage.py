@@ -31,8 +31,8 @@ class TestDiscoveryStageProtocol:
         Quality Contribution: Ensures stage can be used in pipeline.
         Acceptance Criteria: isinstance check passes.
         """
-        from fs2.core.services.stages.discovery_stage import DiscoveryStage
         from fs2.core.services.pipeline_stage import PipelineStage
+        from fs2.core.services.stages.discovery_stage import DiscoveryStage
 
         stage = DiscoveryStage()
         assert isinstance(stage, PipelineStage)
@@ -153,9 +153,9 @@ class TestDiscoveryStageErrorHandling:
         Quality Contribution: Pipeline continues despite scanner errors.
         Acceptance Criteria: Error message in context.errors, no exception raised.
         """
-        from fs2.core.services.stages.discovery_stage import DiscoveryStage
-        from fs2.core.adapters.file_scanner import FileScanner
         from fs2.core.adapters.exceptions import FileScannerError
+        from fs2.core.adapters.file_scanner import FileScanner
+        from fs2.core.services.stages.discovery_stage import DiscoveryStage
 
         # Create a scanner that raises on scan()
         class FailingScanner(FileScanner):

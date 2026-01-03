@@ -14,7 +14,6 @@ from dataclasses import FrozenInstanceError
 
 import pytest
 
-
 # Constants for expected fields per DYK-02
 MIN_FIELDS = {
     "node_id",

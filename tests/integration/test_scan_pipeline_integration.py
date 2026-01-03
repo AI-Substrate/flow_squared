@@ -13,13 +13,14 @@ Per Phase 5 Tasks:
 - T026: AC10 error handling verification
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
-from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 from fs2.core.adapters.ast_parser_impl import TreeSitterParser
+from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 from fs2.core.services.scan_pipeline import ScanPipeline
 

@@ -17,8 +17,7 @@ Per DYK-P3-01: Tests are async for compatibility with SemanticMatcher.
 import pytest
 
 from fs2.core.models.code_node import CodeNode
-from fs2.core.models.search import QuerySpec, SearchMode, SearchResult
-
+from fs2.core.models.search import QuerySpec, SearchMode
 
 # ============================================================================
 # Test Fixtures - Helper functions to create test nodes
@@ -323,8 +322,8 @@ class TestRegexMatcherErrorHandling:
         Quality Contribution: Good UX for invalid input.
         Acceptance Criteria: SearchError raised with descriptive message.
         """
-        from fs2.core.services.search.regex_matcher import RegexMatcher
         from fs2.core.services.search.exceptions import SearchError
+        from fs2.core.services.search.regex_matcher import RegexMatcher
 
         matcher = RegexMatcher(timeout=2.0)
         nodes = [create_node("test:node")]
@@ -345,8 +344,8 @@ class TestRegexMatcherErrorHandling:
         Quality Contribution: Helps users fix patterns.
         Acceptance Criteria: Error mentions pattern issue.
         """
-        from fs2.core.services.search.regex_matcher import RegexMatcher
         from fs2.core.services.search.exceptions import SearchError
+        from fs2.core.services.search.regex_matcher import RegexMatcher
 
         matcher = RegexMatcher(timeout=2.0)
         nodes = [create_node("test:node")]

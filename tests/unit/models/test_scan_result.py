@@ -4,9 +4,10 @@ Task: T000a
 Purpose: Verify ScanResult frozen dataclass with path and size_bytes fields.
 """
 
-import pytest
 from dataclasses import FrozenInstanceError
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.unit

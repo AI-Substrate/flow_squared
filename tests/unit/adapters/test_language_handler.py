@@ -26,7 +26,6 @@ Worked Example:
 
 import pytest
 
-
 # =============================================================================
 # ST001: LanguageHandler ABC Tests
 # =============================================================================
@@ -52,8 +51,9 @@ class TestLanguageHandlerABC:
 
         Why: Each handler must identify which language it handles.
         """
-        from fs2.core.adapters.ast_languages.handler import LanguageHandler
         import inspect
+
+        from fs2.core.adapters.ast_languages.handler import LanguageHandler
 
         # Check that language is defined as abstract
         assert hasattr(LanguageHandler, "language")
@@ -69,8 +69,9 @@ class TestLanguageHandlerABC:
         Why: Container types determine which tree-sitter nodes to traverse
         but not extract (skip wrappers like Python's "block" nodes).
         """
-        from fs2.core.adapters.ast_languages.handler import LanguageHandler
         import inspect
+
+        from fs2.core.adapters.ast_languages.handler import LanguageHandler
 
         assert hasattr(LanguageHandler, "container_types")
         assert isinstance(
@@ -199,9 +200,10 @@ class TestParserHandlerIntegration:
         """
         import tempfile
         from pathlib import Path
-        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
+
+        from fs2.config.objects import GraphConfig, ScanConfig
         from fs2.config.service import FakeConfigurationService
-        from fs2.config.objects import ScanConfig, GraphConfig
+        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(
             ScanConfig(scan_paths=["src"], respect_gitignore=True),
@@ -242,9 +244,10 @@ def hello():
         """
         import tempfile
         from pathlib import Path
-        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
+
+        from fs2.config.objects import GraphConfig, ScanConfig
         from fs2.config.service import FakeConfigurationService
-        from fs2.config.objects import ScanConfig, GraphConfig
+        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(
             ScanConfig(scan_paths=["src"], respect_gitignore=True),
@@ -290,6 +293,7 @@ class MyClass:
         This test inspects the source code to verify no hardcoded set.
         """
         import inspect
+
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         # Get the source code of _extract_nodes method

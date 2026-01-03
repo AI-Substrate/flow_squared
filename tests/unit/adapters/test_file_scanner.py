@@ -4,8 +4,9 @@ Tasks: T001-T003
 Purpose: Verify FileScanner ABC defines correct interface.
 """
 
-import pytest
 from abc import ABC
+
+import pytest
 
 
 @pytest.mark.unit

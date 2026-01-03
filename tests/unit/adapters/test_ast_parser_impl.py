@@ -11,9 +11,8 @@ Per CF11: Node ID uniqueness with position-based anonymous IDs.
 Per CF13: Language detection ambiguity (.h -> cpp default).
 """
 
-import pytest
-from pathlib import Path
 
+import pytest
 
 # =============================================================================
 # Language Detection Tests (T010-T017)
@@ -33,8 +32,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T010
         AC: AC4
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -54,8 +53,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T011
         AC: AC4
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -75,8 +74,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T011
         AC: AC4
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -96,8 +95,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T011
         AC: AC4
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -117,8 +116,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T012
         AC: AC4
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -138,8 +137,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T013
         AC: AC4
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -159,8 +158,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T014
         AC: AC4
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -180,8 +179,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T014b
         AC: AC4 (extended)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -201,8 +200,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T014c
         AC: AC4 (extended)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -222,8 +221,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T014d
         AC: AC4 (extended)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -243,8 +242,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T014e
         AC: AC4 (extended)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -267,8 +266,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T014e
         AC: AC4 (extended)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -288,8 +287,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T015
         CF: CF13
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -309,8 +308,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T016
         CF: CF10
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -329,8 +328,8 @@ class TestTreeSitterParserLanguageDetection:
 
         Task: T016 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -350,8 +349,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T001 (scan-fix plan)
         AC: AC1
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -372,8 +371,8 @@ class TestTreeSitterParserLanguageDetection:
         Task: T002 (scan-fix plan)
         AC: AC3
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -404,8 +403,8 @@ class TestTreeSitterParserPythonHierarchy:
         Task: T018
         AC: AC5
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -429,8 +428,8 @@ class TestTreeSitterParserPythonHierarchy:
         Task: T019
         AC: AC5
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -457,8 +456,8 @@ class TestTreeSitterParserPythonHierarchy:
         Task: T020
         AC: AC5
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -483,8 +482,8 @@ class TestTreeSitterParserPythonHierarchy:
         Task: T021
         AC: AC5
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -509,8 +508,8 @@ class TestTreeSitterParserPythonHierarchy:
         Task: T022
         AC: AC5
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -534,8 +533,8 @@ class TestTreeSitterParserPythonHierarchy:
         Task: T023
         CF: CF08
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -570,8 +569,8 @@ class Level1:
         Task: T020 (supplementary)
         AC: AC7
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -607,8 +606,8 @@ class TestTreeSitterParserMultiLanguage:
         Task: T025
         AC: AC4, AC5
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -630,8 +629,8 @@ class TestTreeSitterParserMultiLanguage:
         Task: T025
         AC: AC4, AC5
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -654,8 +653,8 @@ class TestTreeSitterParserMultiLanguage:
         Task: T026
         AC: AC4
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -678,8 +677,8 @@ class TestTreeSitterParserMultiLanguage:
         Task: T027
         AC: AC4
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -701,8 +700,8 @@ class TestTreeSitterParserMultiLanguage:
         Task: T028
         AC: AC4 (extended)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -726,8 +725,8 @@ class TestTreeSitterParserMultiLanguage:
         Task: T028
         AC: AC4 (extended)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -759,8 +758,8 @@ class TestTreeSitterParserErrorHandling:
         Task: T032
         CF: CF07
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -782,8 +781,8 @@ class TestTreeSitterParserErrorHandling:
         Task: T033
         CF: CF10
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -806,8 +805,9 @@ class TestTreeSitterParserErrorHandling:
         """
         import os
         import stat
-        from fs2.config.service import FakeConfigurationService
+
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
         from fs2.core.adapters.exceptions import ASTParserError
 
@@ -834,8 +834,8 @@ class TestTreeSitterParserErrorHandling:
         Task: T035
         AC: AC10
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -857,8 +857,8 @@ class TestTreeSitterParserErrorHandling:
 
         Task: T036
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -890,8 +890,8 @@ class TestTreeSitterParserNodeFormat:
         Task: T037
         AC: AC7
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -913,8 +913,8 @@ class TestTreeSitterParserNodeFormat:
         Task: T038
         AC: AC7
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -936,8 +936,8 @@ class TestTreeSitterParserNodeFormat:
         Task: T039
         AC: AC7
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -958,8 +958,8 @@ class TestTreeSitterParserNodeFormat:
 
         Task: T040
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -981,8 +981,8 @@ class TestTreeSitterParserNodeFormat:
 
         Task: T040 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -1010,8 +1010,8 @@ class TestTreeSitterParserSkipTracking:
 
         Task: ST005 (Phase 2 subtask)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -1038,8 +1038,8 @@ class TestTreeSitterParserSkipTracking:
 
         Task: ST005 (Phase 2 subtask)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -1062,8 +1062,8 @@ class TestTreeSitterParserSkipTracking:
 
         Task: ST005 (Phase 2 subtask)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())
@@ -1086,8 +1086,8 @@ class TestTreeSitterParserSkipTracking:
 
         Task: ST005 (Phase 2 subtask)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         config = FakeConfigurationService(ScanConfig())

@@ -4,8 +4,9 @@ Tasks: T005-T008
 Purpose: Verify FakeFileScanner implements FileScanner ABC correctly.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.unit
@@ -20,8 +21,8 @@ class TestFakeFileScanner:
 
         Task: T005
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 
         config = FakeConfigurationService(ScanConfig())
@@ -37,8 +38,8 @@ class TestFakeFileScanner:
 
         Task: T006
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_fake import FakeFileScanner
         from fs2.core.models import ScanResult
 
@@ -63,8 +64,8 @@ class TestFakeFileScanner:
 
         Task: T006 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 
         config = FakeConfigurationService(ScanConfig())
@@ -82,8 +83,8 @@ class TestFakeFileScanner:
 
         Task: T007
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 
         config = FakeConfigurationService(ScanConfig())
@@ -102,8 +103,8 @@ class TestFakeFileScanner:
 
         Task: T007 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 
         config = FakeConfigurationService(ScanConfig())
@@ -126,8 +127,8 @@ class TestFakeFileScanner:
 
         Task: T008
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 
         config = FakeConfigurationService(ScanConfig())
@@ -147,8 +148,8 @@ class TestFakeFileScanner:
 
         Task: T008 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 
         config = FakeConfigurationService(ScanConfig())
@@ -164,8 +165,8 @@ class TestFakeFileScanner:
 
         Task: T005 (supplementary)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.file_scanner import FileScanner
         from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 

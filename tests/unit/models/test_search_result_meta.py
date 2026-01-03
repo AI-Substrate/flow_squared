@@ -13,7 +13,6 @@ Per DYK-003-05: meta.include/exclude are always arrays, omitted when empty.
 
 import pytest
 
-
 # ============================================================================
 # ST001: SearchResultMeta Structure Tests
 # ============================================================================

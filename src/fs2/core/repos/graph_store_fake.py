@@ -14,7 +14,6 @@ Per Critical Finding 01: Receives ConfigurationService, not extracted config.
 Per Critical Finding 02: Adapter ABC with Dual Implementation Pattern.
 """
 
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 

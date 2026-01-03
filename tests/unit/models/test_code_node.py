@@ -24,6 +24,7 @@ import pytest
 
 from fs2.core.utils.hash import compute_content_hash
 
+
 @pytest.mark.unit
 class TestCodeNodeStructure:
     """Tests for CodeNode dataclass structure and immutability (T003-T011, T013)."""

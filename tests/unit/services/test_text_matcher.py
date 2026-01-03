@@ -16,7 +16,6 @@ import pytest
 from fs2.core.models.code_node import CodeNode
 from fs2.core.models.search import QuerySpec, SearchMode, SearchResult
 
-
 # ============================================================================
 # Test Fixtures - Helper functions to create test nodes
 # ============================================================================

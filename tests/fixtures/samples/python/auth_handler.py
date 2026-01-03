@@ -7,7 +7,6 @@ JWT validation, session management, and role-based access control.
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional
 
 
 class AuthRole(Enum):
@@ -28,7 +27,7 @@ class AuthToken:
     role: AuthRole
     issued_at: datetime
     expires_at: datetime
-    refresh_token: Optional[str] = None
+    refresh_token: str | None = None
 
     @property
     def is_expired(self) -> bool:

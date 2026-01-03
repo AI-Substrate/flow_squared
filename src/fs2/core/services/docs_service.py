@@ -27,7 +27,7 @@ from fs2.core.adapters.exceptions import DocsNotFoundError
 from fs2.core.models import Doc, DocMetadata
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    pass
 
 logger = logging.getLogger(__name__)
 

@@ -15,8 +15,6 @@ Tests cover:
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 import pytest
 
 from fs2.config.objects import ChunkConfig, EmbeddingConfig
@@ -631,9 +629,9 @@ class TestChunkingBehavior:
         Quality Contribution: Validates multi-chunk embedding storage per DYK-1.
         Acceptance Criteria: Embedding tuple has >1 element.
         """
-        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
 
         # Create token counter that returns ~10 tokens per line
         fake_config_service = FakeConfigurationService(ScanConfig())
@@ -647,7 +645,7 @@ class TestChunkingBehavior:
                 f"def function_{i}():",
                 f"    '''Docstring for function {i}.'''",
                 f"    result = compute_{i}()",
-                f"    return result",
+                "    return result",
             ])
         long_content = "\n".join(lines)  # ~20 lines → ~100+ tokens
 
@@ -696,9 +694,9 @@ class TestChunkingBehavior:
         Quality Contribution: Validates single-chunk path.
         Acceptance Criteria: Embedding tuple has exactly 1 element.
         """
-        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
 
         fake_config_service = FakeConfigurationService(ScanConfig())
         token_counter = FakeTokenCounterAdapter(fake_config_service)
@@ -773,9 +771,9 @@ class TestChunkOverlapBehavior:
         Quality Contribution: Validates context preservation in chunking.
         Acceptance Criteria: Multiple chunks created with overlap.
         """
-        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
 
         fake_config_service = FakeConfigurationService(ScanConfig())
         token_counter = FakeTokenCounterAdapter(fake_config_service)
@@ -851,9 +849,9 @@ class TestLongLineSplitting:
         Quality Contribution: Handles edge case of very long lines.
         Acceptance Criteria: Line split produces multiple chunks.
         """
-        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
 
         fake_config_service = FakeConfigurationService(ScanConfig())
         token_counter = FakeTokenCounterAdapter(fake_config_service)
@@ -1232,9 +1230,9 @@ class TestChunkOffsetPopulation:
         Quality Contribution: Validates Phase 0 implementation
         Acceptance Criteria: embedding_chunk_offsets is populated with one tuple
         """
-        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
 
         fake_config_service = FakeConfigurationService(ScanConfig())
         token_counter = FakeTokenCounterAdapter(fake_config_service)
@@ -1352,9 +1350,9 @@ class TestChunkOffsetPopulation:
         Quality Contribution: Documents asymmetry by design
         Acceptance Criteria: Only raw content embedding has chunk offsets
         """
-        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.token_counter_adapter_fake import FakeTokenCounterAdapter
 
         fake_config_service = FakeConfigurationService(ScanConfig())
         token_counter = FakeTokenCounterAdapter(fake_config_service)

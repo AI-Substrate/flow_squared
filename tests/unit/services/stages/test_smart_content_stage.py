@@ -23,8 +23,6 @@ Per Alignment Brief:
 
 from dataclasses import replace
 
-import pytest
-
 from fs2.config.objects import ScanConfig
 from fs2.core.models.code_node import CodeNode
 from fs2.core.services.pipeline_context import PipelineContext

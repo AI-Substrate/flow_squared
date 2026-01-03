@@ -4,8 +4,9 @@ Tasks: T005-T009
 Purpose: Verify FakeGraphStore implements GraphStore ABC correctly.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 
 @pytest.mark.unit
@@ -20,8 +21,8 @@ class TestFakeGraphStore:
 
         Task: T005 (partial)
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -37,8 +38,8 @@ class TestFakeGraphStore:
 
         Task: T008
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store import GraphStore
         from fs2.core.repos.graph_store_fake import FakeGraphStore
 
@@ -55,10 +56,10 @@ class TestFakeGraphStore:
 
         Task: T005
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)
@@ -102,10 +103,10 @@ class TestFakeGraphStore:
 
         Task: T006
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)
@@ -136,10 +137,10 @@ class TestFakeGraphStore:
 
         Task: T006
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)
@@ -187,8 +188,8 @@ class TestFakeGraphStore:
 
         Task: T006
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
@@ -208,10 +209,10 @@ class TestFakeGraphStore:
 
         Task: T007
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.exceptions import GraphStoreError
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)
@@ -229,10 +230,10 @@ class TestFakeGraphStore:
 
         Task: T007
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.exceptions import GraphStoreError
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)
@@ -250,10 +251,10 @@ class TestFakeGraphStore:
 
         Task: T009
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)
@@ -282,10 +283,10 @@ class TestFakeGraphStore:
 
         Task: T009
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)
@@ -332,10 +333,10 @@ class TestFakeGraphStore:
 
         Task: T009
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)
@@ -381,10 +382,10 @@ class TestFakeGraphStore:
 
         Task: T009
         """
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
-        from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.config.service import FakeConfigurationService
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)

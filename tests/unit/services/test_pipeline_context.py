@@ -13,8 +13,6 @@ Per Alignment Brief:
 
 from pathlib import Path
 
-import pytest
-
 from fs2.config.objects import ScanConfig
 from fs2.config.service import FakeConfigurationService
 
@@ -125,8 +123,8 @@ class TestPipelineContextMutability:
         Quality Contribution: Stages can append results.
         Acceptance Criteria: append() modifies scan_results in place.
         """
-        from fs2.core.services.pipeline_context import PipelineContext
         from fs2.core.models.scan_result import ScanResult
+        from fs2.core.services.pipeline_context import PipelineContext
 
         ctx = PipelineContext(scan_config=ScanConfig())
         result = ScanResult(path=Path("test.py"), size_bytes=100)
@@ -142,8 +140,8 @@ class TestPipelineContextMutability:
         Quality Contribution: Stages can append nodes.
         Acceptance Criteria: append() modifies nodes in place.
         """
-        from fs2.core.services.pipeline_context import PipelineContext
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.services.pipeline_context import PipelineContext
 
         ctx = PipelineContext(scan_config=ScanConfig())
         node = CodeNode.create_file(
@@ -201,8 +199,8 @@ class TestPipelineContextAdapterInjection:
         Quality Contribution: Pipeline injects adapters before running.
         Acceptance Criteria: file_scanner accessible after assignment.
         """
-        from fs2.core.services.pipeline_context import PipelineContext
         from fs2.core.adapters.file_scanner_fake import FakeFileScanner
+        from fs2.core.services.pipeline_context import PipelineContext
 
         config_service = FakeConfigurationService(ScanConfig())
         scanner = FakeFileScanner(config_service)
@@ -218,8 +216,8 @@ class TestPipelineContextAdapterInjection:
         Quality Contribution: Pipeline injects adapters before running.
         Acceptance Criteria: ast_parser accessible after assignment.
         """
-        from fs2.core.services.pipeline_context import PipelineContext
         from fs2.core.adapters.ast_parser_fake import FakeASTParser
+        from fs2.core.services.pipeline_context import PipelineContext
 
         config_service = FakeConfigurationService(ScanConfig())
         parser = FakeASTParser(config_service)
@@ -235,8 +233,8 @@ class TestPipelineContextAdapterInjection:
         Quality Contribution: Pipeline injects adapters before running.
         Acceptance Criteria: graph_store accessible after assignment.
         """
-        from fs2.core.services.pipeline_context import PipelineContext
         from fs2.core.repos.graph_store_fake import FakeGraphStore
+        from fs2.core.services.pipeline_context import PipelineContext
 
         config_service = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config_service)
@@ -295,8 +293,8 @@ class TestPipelineContextPriorNodes:
         Why: Pipeline loads graph and builds dict for fast node lookup.
         Contract: prior_nodes can be set to dict mapping node_id to CodeNode.
         """
-        from fs2.core.services.pipeline_context import PipelineContext
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.services.pipeline_context import PipelineContext
 
         node = CodeNode.create_file(
             file_path="test.py",
@@ -325,8 +323,8 @@ class TestPipelineContextPriorNodes:
         Why: Workshop decision - node matching by node_id for O(1) lookup.
         Contract: prior_nodes[node_id] returns CodeNode in O(1).
         """
-        from fs2.core.services.pipeline_context import PipelineContext
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.services.pipeline_context import PipelineContext
 
         # Create multiple nodes
         node1 = CodeNode.create_file(

@@ -86,7 +86,7 @@ class FakeLLMAdapter(LLMAdapter):
         >>> # Returns smart_content from fixture for the extracted code
     """
 
-    def __init__(self, fixture_index: "FixtureIndex | None" = None) -> None:
+    def __init__(self, fixture_index: FixtureIndex | None = None) -> None:
         """Initialize the fake adapter with optional fixture index.
 
         Args:

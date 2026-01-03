@@ -82,7 +82,7 @@ class FakeEmbeddingAdapter(EmbeddingAdapter):
     def __init__(
         self,
         dimensions: int = 1024,
-        fixture_index: "FixtureIndex | None" = None,
+        fixture_index: FixtureIndex | None = None,
     ) -> None:
         """Initialize the fake adapter with optional dimensions and fixture index.
 

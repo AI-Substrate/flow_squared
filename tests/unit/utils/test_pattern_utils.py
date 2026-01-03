@@ -149,9 +149,9 @@ class TestEdgeCases:
     def test_extension_with_hyphen_not_matched(self) -> None:
         """Extension patterns only match word characters (limitation per R08).
 
-        .py-old won't match ^\\.\w+$ so it falls through to regex handling.
+        .py-old won't match ^\\.\\w+$ so it falls through to regex handling.
         As regex, it would match any char + py-old, so user should use
-        explicit regex \.py-old if needed.
+        explicit regex \\.py-old if needed.
         """
         # .py-old is not a simple extension pattern, treated as regex
         result = normalize_filter_pattern(".py-old")

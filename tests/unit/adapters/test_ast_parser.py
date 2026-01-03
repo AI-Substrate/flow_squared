@@ -5,8 +5,9 @@ Purpose: Verify ASTParser ABC defines correct interface.
 Per CF02: Adapter ABC with Dual Implementation Pattern.
 """
 
-import pytest
 from abc import ABC
+
+import pytest
 
 
 @pytest.mark.unit

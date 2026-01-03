@@ -17,7 +17,7 @@ import asyncio
 
 import pytest
 
-from fs2.config.objects import ChunkConfig, EmbeddingConfig
+from fs2.config.objects import EmbeddingConfig
 from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
 from fs2.core.adapters.exceptions import EmbeddingRateLimitError
 from fs2.core.models.code_node import CodeNode

@@ -1382,7 +1382,6 @@ class TestTreeFileOutput:
         Task: T008 (AC1)
         """
         import json
-        import os
 
         from fs2.cli.main import app
 

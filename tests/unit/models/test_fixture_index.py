@@ -22,8 +22,8 @@ class TestFixtureIndexFromGraphStore:
 
     def test_from_graph_store_builds_index(self):
         """Index contains all nodes from the graph store."""
-        from fs2.core.models.fixture_index import FixtureIndex
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.models.fixture_index import FixtureIndex
 
         # Create a mock graph store with nodes
         nodes = [
@@ -74,8 +74,8 @@ class TestFixtureIndexFromGraphStore:
 
     def test_from_graph_store_skips_nodes_without_embeddings(self):
         """Nodes without embeddings are indexed but return None for get_embedding."""
-        from fs2.core.models.fixture_index import FixtureIndex
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.models.fixture_index import FixtureIndex
 
         node = CodeNode.create_file(
             file_path="test.py",
@@ -109,8 +109,8 @@ class TestFixtureIndexGetEmbedding:
     @pytest.fixture
     def fixture_index(self):
         """Create a fixture index with sample nodes."""
-        from fs2.core.models.fixture_index import FixtureIndex
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.models.fixture_index import FixtureIndex
 
         nodes = [
             CodeNode.create_file(
@@ -172,8 +172,8 @@ class TestFixtureIndexGetSmartContent:
     @pytest.fixture
     def fixture_index(self):
         """Create a fixture index with sample nodes."""
-        from fs2.core.models.fixture_index import FixtureIndex
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.models.fixture_index import FixtureIndex
 
         nodes = [
             CodeNode.create_file(
@@ -315,8 +315,8 @@ class TestFixtureIndexLookupByContent:
     @pytest.fixture
     def fixture_index(self):
         """Create a fixture index with sample nodes."""
-        from fs2.core.models.fixture_index import FixtureIndex
         from fs2.core.models.code_node import CodeNode
+        from fs2.core.models.fixture_index import FixtureIndex
 
         nodes = [
             CodeNode.create_file(

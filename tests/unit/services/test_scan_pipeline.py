@@ -17,17 +17,16 @@ Per Alignment Brief:
 """
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from fs2.config.objects import ScanConfig
 from fs2.config.service import FakeConfigurationService
-from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 from fs2.core.adapters.ast_parser_fake import FakeASTParser
-from fs2.core.repos.graph_store_fake import FakeGraphStore
+from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 from fs2.core.models.code_node import CodeNode
 from fs2.core.models.scan_result import ScanResult
+from fs2.core.repos.graph_store_fake import FakeGraphStore
 from fs2.core.services.pipeline_context import PipelineContext
 
 
@@ -72,8 +71,11 @@ class TestScanPipelineConstruction:
         Quality Contribution: Clear error on misconfiguration.
         Acceptance Criteria: MissingConfigurationError raised.
         """
+        from fs2.config.service import (
+            FakeConfigurationService,
+            MissingConfigurationError,
+        )
         from fs2.core.services.scan_pipeline import ScanPipeline
-        from fs2.config.service import FakeConfigurationService, MissingConfigurationError
 
         # Empty config service - no ScanConfig
         config_service = FakeConfigurationService()
@@ -187,8 +189,8 @@ class TestScanPipelineSummaryGeneration:
         Quality Contribution: Provides execution results.
         Acceptance Criteria: ScanSummary returned with correct fields.
         """
-        from fs2.core.services.scan_pipeline import ScanPipeline
         from fs2.core.models.scan_summary import ScanSummary
+        from fs2.core.services.scan_pipeline import ScanPipeline
 
         config_service = FakeConfigurationService(ScanConfig())
         scanner = FakeFileScanner(config_service)
@@ -464,7 +466,6 @@ class TestScanPipelineCustomStages:
         Acceptance Criteria: Custom stages are executed.
         """
         from fs2.core.services.scan_pipeline import ScanPipeline
-        from fs2.core.services.pipeline_stage import PipelineStage
 
         config_service = FakeConfigurationService(ScanConfig())
         scanner = FakeFileScanner(config_service)

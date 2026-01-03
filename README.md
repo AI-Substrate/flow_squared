@@ -177,12 +177,57 @@ Or with uvx:
 | `tree` | Explore codebase structure as a hierarchical tree |
 | `get_node` | Retrieve complete source code for a specific node |
 | `search` | Find code by text, regex, or semantic meaning |
+| `docs_list` | Browse available documentation with optional filtering |
+| `docs_get` | Retrieve full document content by ID |
+
+### Documentation Tools
+
+The MCP server includes self-service documentation tools for AI agents:
+
+**Browse documentation**:
+```python
+# List all documents
+docs_list()
+# Returns: {"docs": [...], "count": 2}
+
+# Filter by category
+docs_list(category="how-to")
+
+# Filter by tags (OR logic - matches ANY tag)
+docs_list(tags=["config", "setup"])
+```
+
+**Get full document**:
+```python
+docs_get(id="agents")
+# Returns: {"id": "agents", "title": "...", "content": "...", "metadata": {...}}
+```
+
+Available documents:
+- `agents` - Best practices for AI agents using fs2 tools
+- `configuration-guide` - Comprehensive configuration reference
+
+See [Writing New Curated Documentation](docs/how/write-new-content-guide.md) for adding new documents.
 
 See [MCP Server Guide](docs/how/mcp-server-guide.md) for detailed documentation.
 
 ## Scanning
 
-Scan your codebase to build a queryable code graph:
+Scan your codebase to build a queryable code graph.
+
+> **⚠️ Configure LLM & Embeddings First**: For full functionality (smart content summaries and semantic search), set up your API credentials before scanning. See:
+> - [Embeddings Configuration](docs/how/embeddings/2-configuration.md) - Azure/OpenAI embedding setup
+> - [LLM Service Setup](docs/how/llm-service-setup.md) - Smart content generation
+> - [Configuration Guide](docs/how/configuration.md) - Environment variables and YAML
+>
+> **Quick setup**:
+> ```bash
+> cp .fs2/config.yaml.example .fs2/config.yaml
+> # Edit .fs2/config.yaml with your Azure/OpenAI credentials
+> # Or set: FS2_AZURE__EMBEDDING__API_KEY, FS2_AZURE__EMBEDDING__ENDPOINT
+> ```
+>
+> Without configuration, use `fs2 scan --no-embeddings` for basic scanning (no semantic search).
 
 ```bash
 # Initialize config (first time)

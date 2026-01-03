@@ -90,12 +90,12 @@ flowchart TD
 
     subgraph Phase["Phase 5: Testing and Documentation"]
         T001["T001: Verify fixtures with prod content ✓"]:::completed
-        T002["T002: Run full test suite"]:::inprogress
-        T003["T003: Verify coverage >80%"]:::pending
-        T004["T004: Update README.md"]:::pending
-        T005["T005: Create write-new-content-guide.md"]:::pending
-        T006["T006: Update idioms.md (link)"]:::pending
-        T007["T007: Run lint"]:::pending
+        T002["T002: Run full test suite ✓"]:::completed
+        T003["T003: Verify coverage >80% ✓"]:::completed
+        T004["T004: Update README.md ✓"]:::completed
+        T005["T005: Create write-new-content-guide.md ✓"]:::completed
+        T006["T006: Update idioms.md (link) ✓"]:::completed
+        T007["T007: Run lint ✓"]:::completed
 
         T001 --> T002
         T002 --> T003
@@ -106,9 +106,9 @@ flowchart TD
     end
 
     subgraph Files["Files Modified"]
-        F1["/workspaces/flow_squared/README.md"]:::pending
-        F2["/workspaces/flow_squared/docs/how/write-new-content-guide.md"]:::pending
-        F3["/workspaces/flow_squared/docs/rules-idioms-architecture/idioms.md"]:::pending
+        F1["/workspaces/flow_squared/README.md ✓"]:::completed
+        F2["/workspaces/flow_squared/docs/how/write-new-content-guide.md ✓"]:::completed
+        F3["/workspaces/flow_squared/docs/rules-idioms-architecture/idioms.md ✓"]:::completed
     end
 
     P3_FIXTURE -.-> T001
@@ -126,12 +126,12 @@ flowchart TD
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
 | T001 | Test Infrastructure | tests/mcp_tests/conftest.py (read), tests/mcp_tests/test_docs_tools.py | ✅ Complete | Verify Phase 3 fixtures work with production content |
-| T002 | Full Test Suite | All test files | 🟧 In Progress | Run `just test`, expect 1587+ tests |
-| T003 | Coverage Report | Coverage output | ⬜ Pending | Verify >80% for src/fs2/core/services/docs_service.py and related |
-| T004 | README | /workspaces/flow_squared/README.md | ⬜ Pending | Add "Documentation Tools" section after "Available Tools" |
-| T005 | Guide | /workspaces/flow_squared/docs/how/write-new-content-guide.md | ⬜ Pending | Create in-app docs guide (AC9 content) |
-| T006 | Idioms | /workspaces/flow_squared/docs/rules-idioms-architecture/idioms.md | ⬜ Pending | Add brief Section 10 linking to guide |
-| T007 | Linting | All source files | ⬜ Pending | Run `just lint`, fix any issues |
+| T002 | Full Test Suite | All test files | ✅ Complete | Run `just test`, expect 1587+ tests |
+| T003 | Coverage Report | Coverage output | ✅ Complete | Verify >80% for src/fs2/core/services/docs_service.py and related |
+| T004 | README | /workspaces/flow_squared/README.md | ✅ Complete | Add "Documentation Tools" section after "Available Tools" |
+| T005 | Guide | /workspaces/flow_squared/docs/how/write-new-content-guide.md | ✅ Complete | Create in-app docs guide (AC9 content) |
+| T006 | Idioms | /workspaces/flow_squared/docs/rules-idioms-architecture/idioms.md | ✅ Complete | Add brief Section 10 linking to guide |
+| T007 | Linting | All source files | ✅ Complete | Run `just lint`, fix any issues |
 
 ---
 
@@ -140,12 +140,12 @@ flowchart TD
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|------|-----|------|--------------|------------------|------------|----------|-------|
 | [x] | T001 | Verify test fixtures work with production fs2.docs package | 1 | Verification | – | /workspaces/flow_squared/tests/mcp_tests/conftest.py, /workspaces/flow_squared/tests/mcp_tests/test_docs_tools.py | Run subset of tests with fs2.docs, all pass | – | Confirm Phase 3 fixtures work |
-| [~] | T002 | Run full test suite and fix any failures | 2 | Testing | T001 | /workspaces/flow_squared/ | `just test` passes, 1587+ tests green | – | No regressions |
-| [ ] | T003 | Verify test coverage exceeds 80% for new code | 1 | Verification | T002 | /workspaces/flow_squared/src/fs2/core/services/docs_service.py, /workspaces/flow_squared/src/fs2/mcp/server.py | Coverage report shows >80% for docs-related code | – | Per CF-08 |
-| [ ] | T004 | Update README.md with Documentation Tools section | 2 | Doc | T003 | /workspaces/flow_squared/README.md | Section exists after "Available Tools" table with docs_list/docs_get examples | – | Per Documentation Strategy |
-| [ ] | T005 | Create docs/how/write-new-content-guide.md | 2 | Doc | T004 | /workspaces/flow_squared/docs/how/write-new-content-guide.md | Guide covers in-app docs pattern, registry schema, build config | – | Per AC9 |
-| [ ] | T006 | Update idioms.md with brief reference to guide | 1 | Doc | T005 | /workspaces/flow_squared/docs/rules-idioms-architecture/idioms.md | Section 10 exists with link to write-new-content-guide.md | – | Per AC9 |
-| [ ] | T007 | Run lint and fix any issues | 1 | Quality | T006 | /workspaces/flow_squared/ | `just lint` passes | – | – |
+| [x] | T002 | Run full test suite and fix any failures | 2 | Testing | T001 | /workspaces/flow_squared/ | `just test` passes, 1587+ tests green | – | No regressions |
+| [x] | T003 | Verify test coverage exceeds 80% for new code | 1 | Verification | T002 | /workspaces/flow_squared/src/fs2/core/services/docs_service.py, /workspaces/flow_squared/src/fs2/mcp/server.py | Coverage report shows >80% for docs-related code | – | Per CF-08 |
+| [x] | T004 | Update README.md with Documentation Tools section | 2 | Doc | T003 | /workspaces/flow_squared/README.md | Section exists after "Available Tools" table with docs_list/docs_get examples | – | Per Documentation Strategy |
+| [x] | T005 | Create docs/how/write-new-content-guide.md | 2 | Doc | T004 | /workspaces/flow_squared/docs/how/write-new-content-guide.md | Guide covers in-app docs pattern, registry schema, build config | – | Per AC9 |
+| [x] | T006 | Update idioms.md with brief reference to guide | 1 | Doc | T005 | /workspaces/flow_squared/docs/rules-idioms-architecture/idioms.md | Section 10 exists with link to write-new-content-guide.md | – | Per AC9 |
+| [x] | T007 | Run lint and fix any issues | 1 | Quality | T006 | /workspaces/flow_squared/ | `just lint` passes | – | – |
 
 ---
 

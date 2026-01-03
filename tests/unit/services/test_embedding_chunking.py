@@ -711,10 +711,10 @@ class TestChunkLineOffsetTracking:
         Quality Contribution: Documents edge case for minified/long lines
         Acceptance Criteria: All character-split chunks report same start_line == end_line
         """
-        from fs2.core.services.embedding.embedding_service import EmbeddingService
-
         # Create counter that makes the long line exceed max_tokens
         from unittest.mock import Mock
+
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
 
         counter = Mock()
         # This counter makes each character worth 2 tokens (forcing splits)

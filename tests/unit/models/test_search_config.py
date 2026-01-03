@@ -94,8 +94,9 @@ class TestSearchConfigValidation:
         Quality Contribution: Prevents useless configurations
         Acceptance Criteria: ValueError raised
         """
-        from fs2.config.objects import SearchConfig
         from pydantic import ValidationError
+
+        from fs2.config.objects import SearchConfig
 
         with pytest.raises(ValidationError):
             SearchConfig(default_limit=0)
@@ -106,8 +107,9 @@ class TestSearchConfigValidation:
         Quality Contribution: Prevents invalid configurations
         Acceptance Criteria: ValueError raised
         """
-        from fs2.config.objects import SearchConfig
         from pydantic import ValidationError
+
+        from fs2.config.objects import SearchConfig
 
         with pytest.raises(ValidationError):
             SearchConfig(default_limit=-5)
@@ -118,8 +120,9 @@ class TestSearchConfigValidation:
         Quality Contribution: Enforces valid range
         Acceptance Criteria: ValueError raised
         """
-        from fs2.config.objects import SearchConfig
         from pydantic import ValidationError
+
+        from fs2.config.objects import SearchConfig
 
         with pytest.raises(ValidationError):
             SearchConfig(min_similarity=-0.1)
@@ -130,8 +133,9 @@ class TestSearchConfigValidation:
         Quality Contribution: Enforces valid range
         Acceptance Criteria: ValueError raised
         """
-        from fs2.config.objects import SearchConfig
         from pydantic import ValidationError
+
+        from fs2.config.objects import SearchConfig
 
         with pytest.raises(ValidationError):
             SearchConfig(min_similarity=1.5)
@@ -142,8 +146,9 @@ class TestSearchConfigValidation:
         Quality Contribution: Prevents infinite wait
         Acceptance Criteria: ValueError raised
         """
-        from fs2.config.objects import SearchConfig
         from pydantic import ValidationError
+
+        from fs2.config.objects import SearchConfig
 
         with pytest.raises(ValidationError):
             SearchConfig(regex_timeout=0.0)
@@ -154,8 +159,9 @@ class TestSearchConfigValidation:
         Quality Contribution: Prevents invalid configuration
         Acceptance Criteria: ValueError raised
         """
-        from fs2.config.objects import SearchConfig
         from pydantic import ValidationError
+
+        from fs2.config.objects import SearchConfig
 
         with pytest.raises(ValidationError):
             SearchConfig(regex_timeout=-1.0)

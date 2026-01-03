@@ -16,8 +16,7 @@ Per DYK-P3-02: AUTO mode routes to SEMANTIC by default, TEXT fallback if no embe
 import pytest
 
 from fs2.core.models.code_node import CodeNode
-from fs2.core.models.search import QuerySpec, SearchMode, SearchResult
-
+from fs2.core.models.search import QuerySpec, SearchMode
 
 # ============================================================================
 # Test Fixtures
@@ -422,8 +421,8 @@ class TestSearchServiceOrchestration:
         Quality Contribution: Actionable error message.
         Acceptance Criteria: SearchError with helpful message.
         """
-        from fs2.core.services.search.search_service import SearchService
         from fs2.core.services.search.exceptions import SearchError
+        from fs2.core.services.search.search_service import SearchService
 
         graph_store = FakeGraphStore([create_node("test:node")])
         service = SearchService(graph_store=graph_store)  # No embedding_adapter
@@ -457,8 +456,8 @@ class TestSearchServiceSemanticFallback:
         Quality Contribution: Semantic search for natural language.
         Acceptance Criteria: AUTO routes to SEMANTIC with embeddings.
         """
-        from fs2.core.services.search.search_service import SearchService
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.search_service import SearchService
 
         # Node WITH embedding
         graph_store = FakeGraphStore([
@@ -493,8 +492,8 @@ class TestSearchServiceSemanticFallback:
         Quality Contribution: Works even without embeddings.
         Acceptance Criteria: AUTO uses TEXT when nodes have no embeddings.
         """
-        from fs2.core.services.search.search_service import SearchService
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.search_service import SearchService
 
         # Nodes WITHOUT embeddings
         graph_store = FakeGraphStore([
@@ -522,9 +521,9 @@ class TestSearchServiceSemanticFallback:
         Quality Contribution: Actionable error message.
         Acceptance Criteria: SearchError with scan instructions.
         """
-        from fs2.core.services.search.search_service import SearchService
-        from fs2.core.services.search.exceptions import SearchError
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.exceptions import SearchError
+        from fs2.core.services.search.search_service import SearchService
 
         # Nodes WITHOUT embeddings
         graph_store = FakeGraphStore([
@@ -550,8 +549,8 @@ class TestSearchServiceSemanticFallback:
         Quality Contribution: End-to-end semantic validation.
         Acceptance Criteria: SEMANTIC mode finds similar nodes.
         """
-        from fs2.core.services.search.search_service import SearchService
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.search_service import SearchService
 
         # Create embedding that will match
         query_embedding = [1.0, 0.0, 0.0, 0.0]

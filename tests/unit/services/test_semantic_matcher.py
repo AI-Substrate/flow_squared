@@ -18,8 +18,7 @@ Per Discovery 05: Iterate ALL chunks in embedding arrays.
 import pytest
 
 from fs2.core.models.code_node import CodeNode
-from fs2.core.models.search import QuerySpec, SearchMode, SearchResult
-
+from fs2.core.models.search import QuerySpec, SearchMode
 
 # ============================================================================
 # Test Fixtures - Helper functions to create test nodes
@@ -139,8 +138,9 @@ class TestCosineSimilarity:
         Quality Contribution: Production-scale validation.
         Acceptance Criteria: Works with 1024 dimensions.
         """
-        from fs2.core.services.search.semantic_matcher import cosine_similarity
         import numpy as np
+
+        from fs2.core.services.search.semantic_matcher import cosine_similarity
 
         # Create normalized 1024-dim vectors
         np.random.seed(42)  # Reproducible
@@ -172,8 +172,8 @@ class TestChunkIteration:
         Quality Contribution: Basic chunk matching.
         Acceptance Criteria: First chunk matched returns result.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         # Query embedding (will match first chunk exactly)
         query_embedding = [1.0, 0.0, 0.0, 0.0]
@@ -206,8 +206,8 @@ class TestChunkIteration:
         Quality Contribution: Best semantic match wins.
         Acceptance Criteria: Highest chunk score becomes result score.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         # Query embedding
         query_embedding = [1.0, 0.0, 0.0, 0.0]
@@ -256,8 +256,8 @@ class TestSemanticMatcherBasicMatching:
         Quality Contribution: Validates fundamental behavior.
         Acceptance Criteria: Node with embedding returns result.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -288,8 +288,8 @@ class TestSemanticMatcherBasicMatching:
         Quality Contribution: Validates return type structure.
         Acceptance Criteria: All SearchResult fields populated.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -335,8 +335,8 @@ class TestSemanticMatcherBasicMatching:
         Quality Contribution: Graceful empty state.
         Acceptance Criteria: Empty input returns [].
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         adapter = FakeEmbeddingAdapter()
         adapter.set_response([1.0, 0.0])
@@ -371,8 +371,8 @@ class TestDualEmbeddingSearch:
         Quality Contribution: Content embedding search.
         Acceptance Criteria: Match found in embedding field.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -403,8 +403,8 @@ class TestDualEmbeddingSearch:
         Quality Contribution: smart_content embedding search.
         Acceptance Criteria: Match found in smart_content_embedding field.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -435,8 +435,8 @@ class TestDualEmbeddingSearch:
         Quality Contribution: AC06 compliance.
         Acceptance Criteria: Higher score wins regardless of field.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -470,8 +470,8 @@ class TestDualEmbeddingSearch:
         Quality Contribution: Fair comparison.
         Acceptance Criteria: embedding field wins when better.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -516,8 +516,8 @@ class TestMinSimilarityThreshold:
         Quality Contribution: Threshold filtering works.
         Acceptance Criteria: Score >= threshold is included.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -548,8 +548,8 @@ class TestMinSimilarityThreshold:
         Quality Contribution: Threshold filtering works.
         Acceptance Criteria: Score < threshold is excluded.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -579,8 +579,8 @@ class TestMinSimilarityThreshold:
         Quality Contribution: Confirms spec compliance.
         Acceptance Criteria: Default min_similarity=0.25.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -620,8 +620,8 @@ class TestMinSimilarityThreshold:
         Quality Contribution: User control works.
         Acceptance Criteria: Custom threshold filters correctly.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -671,8 +671,8 @@ class TestMissingEmbeddings:
         Quality Contribution: Robustness.
         Acceptance Criteria: Nodes without embeddings don't crash.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -712,8 +712,8 @@ class TestMissingEmbeddings:
         Quality Contribution: Production resilience.
         Acceptance Criteria: Partial coverage returns results from indexed nodes.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
@@ -750,8 +750,8 @@ class TestMissingEmbeddings:
         Quality Contribution: Graceful degradation.
         Acceptance Criteria: No crash, empty results.
         """
-        from fs2.core.services.search.semantic_matcher import SemanticMatcher
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+        from fs2.core.services.search.semantic_matcher import SemanticMatcher
 
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
