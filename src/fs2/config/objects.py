@@ -683,11 +683,15 @@ class SearchConfig(BaseModel):
     Controls search behavior for the fs2 search command.
     Per Phase 1 Core Models specification.
     Per DYK-P3-04: min_similarity lowered from 0.5 to 0.25 to capture weakly-related code.
+    Per plan-018: parent_penalty reduces parent node scores when children also match.
 
     Attributes:
         default_limit: Maximum number of search results (default: 20, must be >= 1).
         min_similarity: Minimum similarity score for semantic matches (default: 0.25, range 0.0-1.0).
         regex_timeout: Maximum time in seconds for regex operations (default: 2.0, must be > 0).
+        parent_penalty: Penalty factor for parent nodes when children match (default: 0.25, range 0.0-1.0).
+            0.0 = no penalty (parents keep full score), 1.0 = maximum penalty (parents score → 0).
+            Depth-weighted: parent score × (1 - penalty)^depth.
 
     YAML example:
         ```yaml
@@ -696,6 +700,7 @@ class SearchConfig(BaseModel):
           default_limit: 20
           min_similarity: 0.25
           regex_timeout: 2.0
+          parent_penalty: 0.25
         ```
     """
 
@@ -704,6 +709,7 @@ class SearchConfig(BaseModel):
     default_limit: int = 20
     min_similarity: float = 0.25
     regex_timeout: float = 2.0
+    parent_penalty: float = 0.25
 
     @field_validator("default_limit")
     @classmethod
@@ -727,6 +733,14 @@ class SearchConfig(BaseModel):
         """Validate regex_timeout is positive."""
         if v <= 0:
             raise ValueError("regex_timeout must be > 0")
+        return v
+
+    @field_validator("parent_penalty")
+    @classmethod
+    def validate_parent_penalty(cls, v: float) -> float:
+        """Validate parent_penalty is in 0.0-1.0 range."""
+        if v < 0.0 or v > 1.0:
+            raise ValueError("parent_penalty must be between 0.0 and 1.0")
         return v
 
 
