@@ -227,9 +227,7 @@ class RegexMatcher:
             SearchResult with all fields populated.
         """
         # Calculate line numbers (DYK-P2-02, DYK-P2-04)
-        match_start_line, match_end_line = self._extract_match_lines(
-            node, field_match
-        )
+        match_start_line, match_end_line = self._extract_match_lines(node, field_match)
 
         # Extract snippet (DYK-P2-05)
         snippet = self._extract_snippet(node, field_match)

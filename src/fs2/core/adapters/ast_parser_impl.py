@@ -225,39 +225,80 @@ FILENAME_TO_LANGUAGE: dict[str, str] = {
 # NOTE: matlab removed - has no extension mapping (.m conflict with Objective-C)
 CODE_LANGUAGES: set[str] = {
     # Systems programming
-    "c", "cpp", "rust", "go", "zig", "d", "nim",
+    "c",
+    "cpp",
+    "rust",
+    "go",
+    "zig",
+    "d",
+    "nim",
     # JVM
-    "java", "kotlin", "scala", "groovy",
+    "java",
+    "kotlin",
+    "scala",
+    "groovy",
     # .NET
-    "csharp", "fsharp",
+    "csharp",
+    "fsharp",
     # Web
-    "javascript", "typescript", "tsx", "php",
+    "javascript",
+    "typescript",
+    "tsx",
+    "php",
     # Scripting
-    "python", "ruby", "perl", "lua",
+    "python",
+    "ruby",
+    "perl",
+    "lua",
     # Functional
-    "haskell", "ocaml", "elixir", "erlang", "clojure", "scheme", "racket", "commonlisp",
+    "haskell",
+    "ocaml",
+    "elixir",
+    "erlang",
+    "clojure",
+    "scheme",
+    "racket",
+    "commonlisp",
     # Mobile
-    "swift", "dart", "objc",
+    "swift",
+    "dart",
+    "objc",
     # Scientific
-    "r", "julia", "fortran",
+    "r",
+    "julia",
+    "fortran",
     # GPU/Shaders
-    "cuda", "glsl", "hlsl", "wgsl",
+    "cuda",
+    "glsl",
+    "hlsl",
+    "wgsl",
     # Other
     "v",
     # Game engines
     "gdscript",
     # Web frameworks (component-based with script sections)
-    "vue", "svelte", "astro",
+    "vue",
+    "svelte",
+    "astro",
     # Hardware (modules/entities/functions)
-    "verilog", "vhdl",
+    "verilog",
+    "vhdl",
     # Blockchain (contracts/functions)
-    "solidity", "cairo",
+    "solidity",
+    "cairo",
     # Emerging languages
-    "odin", "gleam", "hare", "pony", "haxe",
+    "odin",
+    "gleam",
+    "hare",
+    "pony",
+    "haxe",
     # Functional (additional)
-    "elm", "purescript",
+    "elm",
+    "purescript",
     # Legacy (procedures/functions)
-    "cobol", "pascal", "ada",
+    "cobol",
+    "pascal",
+    "ada",
 }
 
 # Languages with extractable structure (includes CODE + structured content).
@@ -390,9 +431,7 @@ class TreeSitterParser(ASTParser):
                 f"Check file permissions. Error: {e}"
             ) from e
         except OSError as e:
-            raise ASTParserError(
-                f"Cannot read {file_path}. Error: {e}"
-            ) from e
+            raise ASTParserError(f"Cannot read {file_path}. Error: {e}") from e
 
         # Binary file detection per CF07 - check first 8KB for null bytes
         check_size = min(len(content), 8192)
@@ -426,7 +465,9 @@ class TreeSitterParser(ASTParser):
 
         # Parse content
         try:
-            tree = parser.parse(content.encode("utf-8") if isinstance(content, str) else content)
+            tree = parser.parse(
+                content.encode("utf-8") if isinstance(content, str) else content
+            )
         except Exception as e:
             raise ASTParserError(
                 f"Failed to parse {file_path} as {language}. Error: {e}"
@@ -443,7 +484,9 @@ class TreeSitterParser(ASTParser):
         nodes: list[CodeNode] = []
 
         # Determine content type at scan time
-        content_type = ContentType.CODE if language in CODE_LANGUAGES else ContentType.CONTENT
+        content_type = (
+            ContentType.CODE if language in CODE_LANGUAGES else ContentType.CONTENT
+        )
 
         # Add file node
         lines = content_str.split("\n")
@@ -497,7 +540,9 @@ class TreeSitterParser(ASTParser):
             rel_path = file_path
 
         # Determine content type (grammar unavailable, but still classify by language)
-        content_type = ContentType.CODE if language in CODE_LANGUAGES else ContentType.CONTENT
+        content_type = (
+            ContentType.CODE if language in CODE_LANGUAGES else ContentType.CONTENT
+        )
 
         lines = content.split("\n")
         return [
@@ -617,7 +662,9 @@ class TreeSitterParser(ASTParser):
             # Extract content
             start_byte = child.start_byte
             end_byte = child.end_byte
-            node_content = content[start_byte:end_byte] if start_byte < len(content) else ""
+            node_content = (
+                content[start_byte:end_byte] if start_byte < len(content) else ""
+            )
 
             # Extract signature (first line)
             signature = node_content.split("\n")[0] if node_content else ""
@@ -675,11 +722,18 @@ class TreeSitterParser(ASTParser):
         # First, try to get name via field_name (tree-sitter's child_by_field_name)
         name_node = node.child_by_field_name("name")
         if name_node is not None:
-            return name_node.text.decode("utf-8") if hasattr(name_node, "text") else None
+            return (
+                name_node.text.decode("utf-8") if hasattr(name_node, "text") else None
+            )
 
         # Try common name patterns - look for identifier-like children
         for child in node.children:
-            if child.type in ("identifier", "name", "type_identifier", "property_identifier"):
+            if child.type in (
+                "identifier",
+                "name",
+                "type_identifier",
+                "property_identifier",
+            ):
                 return child.text.decode("utf-8") if hasattr(child, "text") else None
 
         # For markdown headings, extract heading content

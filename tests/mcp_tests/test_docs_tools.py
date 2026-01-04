@@ -381,9 +381,7 @@ class TestDocsToolsProtocol:
         """
         import json
 
-        result = await docs_mcp_client.call_tool(
-            "docs_list", {"category": "how-to"}
-        )
+        result = await docs_mcp_client.call_tool("docs_list", {"category": "how-to"})
 
         response = json.loads(result.content[0].text)
 
@@ -399,9 +397,7 @@ class TestDocsToolsProtocol:
         """
         import json
 
-        result = await docs_mcp_client.call_tool(
-            "docs_get", {"id": "sample-doc"}
-        )
+        result = await docs_mcp_client.call_tool("docs_get", {"id": "sample-doc"})
 
         response = json.loads(result.content[0].text)
 
@@ -416,9 +412,7 @@ class TestDocsToolsProtocol:
         Quality Contribution: Validates None serialization over protocol
         Acceptance Criteria: Response is null in JSON
         """
-        result = await docs_mcp_client.call_tool(
-            "docs_get", {"id": "nonexistent-doc"}
-        )
+        result = await docs_mcp_client.call_tool("docs_get", {"id": "nonexistent-doc"})
 
         # FastMCP returns None via structured_content, not content array
         # When tool returns None, content is empty and structured_content has the result

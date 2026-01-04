@@ -6,8 +6,6 @@ Full TDD tests for the init command covering:
 - T015: Enhanced init tests (local + global, .git warning, .gitignore)
 """
 
-from pathlib import Path
-
 from typer.testing import CliRunner
 
 runner = CliRunner()
@@ -182,9 +180,7 @@ class TestMissingConfigError:
 class TestEnhancedInitLocalAndGlobal:
     """T015: Tests for enhanced init (local + global)."""
 
-    def test_given_init_when_run_then_creates_local_config(
-        self, tmp_path, monkeypatch
-    ):
+    def test_given_init_when_run_then_creates_local_config(self, tmp_path, monkeypatch):
         """
         Purpose: Verifies init creates local .fs2/config.yaml.
         Quality Contribution: Ensures local config works.
@@ -267,7 +263,10 @@ class TestEnhancedInitLocalAndGlobal:
         # Global should NOT be overwritten
         assert global_config.read_text() == original_content
         # Should mention skipped
-        assert "skipped" in result.stdout.lower() or "already exists" in result.stdout.lower()
+        assert (
+            "skipped" in result.stdout.lower()
+            or "already exists" in result.stdout.lower()
+        )
 
     def test_given_init_when_run_then_shows_cwd(self, tmp_path, monkeypatch):
         """

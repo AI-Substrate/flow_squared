@@ -46,7 +46,9 @@ _config: ConfigurationService | None = None
 _graph_store: GraphStore | None = None
 _embedding_adapter: EmbeddingAdapter | None = None
 _docs_service: DocsService | None = None
-_lock = threading.RLock()  # RLock allows reentrant acquisition (needed since get_graph_store calls get_config)
+_lock = (
+    threading.RLock()
+)  # RLock allows reentrant acquisition (needed since get_graph_store calls get_config)
 
 
 def get_config() -> ConfigurationService:
@@ -96,7 +98,9 @@ def get_graph_store() -> GraphStore:
         if _graph_store is None:
             from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
-            logger.debug("Creating GraphStore singleton with ConfigurationService injection")
+            logger.debug(
+                "Creating GraphStore singleton with ConfigurationService injection"
+            )
             _graph_store = NetworkXGraphStore(get_config())
     return _graph_store
 

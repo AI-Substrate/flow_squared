@@ -101,7 +101,9 @@ class RichConsoleAdapter(ConsoleAdapter):
         """Print a boxed panel."""
         border_style = "green" if success else "yellow"
         panel_title = f"[bold]{title}[/bold]" if title else None
-        self._console.print(Panel(content, title=panel_title, border_style=border_style))
+        self._console.print(
+            Panel(content, title=panel_title, border_style=border_style)
+        )
 
     # =========================================================================
     # Input

@@ -228,16 +228,17 @@ class TestOpenAICompatibleAdapterErrors:
         mock_error = Exception("Unauthorized")
         mock_error.status_code = 401
 
-        with patch.object(
-            adapter,
-            "_get_client",
-            return_value=MagicMock(
-                embeddings=MagicMock(create=AsyncMock(side_effect=mock_error))
+        with (
+            patch.object(
+                adapter,
+                "_get_client",
+                return_value=MagicMock(
+                    embeddings=MagicMock(create=AsyncMock(side_effect=mock_error))
+                ),
             ),
+            pytest.raises(EmbeddingAuthenticationError),
         ):
-            # Act / Assert
-            with pytest.raises(EmbeddingAuthenticationError):
-                await adapter.embed_text("test")
+            await adapter.embed_text("test")
 
     async def test_given_429_error_when_max_retries_exceeded_then_raises_rate_limit_error(
         self,
@@ -274,13 +275,14 @@ class TestOpenAICompatibleAdapterErrors:
         mock_error = Exception("Rate limited")
         mock_error.status_code = 429
 
-        with patch.object(
-            adapter,
-            "_get_client",
-            return_value=MagicMock(
-                embeddings=MagicMock(create=AsyncMock(side_effect=mock_error))
+        with (
+            patch.object(
+                adapter,
+                "_get_client",
+                return_value=MagicMock(
+                    embeddings=MagicMock(create=AsyncMock(side_effect=mock_error))
+                ),
             ),
+            pytest.raises(EmbeddingRateLimitError),
         ):
-            # Act / Assert
-            with pytest.raises(EmbeddingRateLimitError):
-                await adapter.embed_text("test")
+            await adapter.embed_text("test")

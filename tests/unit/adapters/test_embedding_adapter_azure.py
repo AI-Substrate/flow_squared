@@ -181,9 +181,7 @@ class TestAzureEmbeddingAdapterEmbedText:
         with patch.object(
             adapter,
             "_get_client",
-            return_value=MagicMock(
-                embeddings=MagicMock(create=mock_create)
-            ),
+            return_value=MagicMock(embeddings=MagicMock(create=mock_create)),
         ):
             # Act
             await adapter.embed_text("test content")
@@ -283,9 +281,7 @@ class TestAzureEmbeddingAdapterEmbedBatch:
         with patch.object(
             adapter,
             "_get_client",
-            return_value=MagicMock(
-                embeddings=MagicMock(create=mock_create)
-            ),
+            return_value=MagicMock(embeddings=MagicMock(create=mock_create)),
         ):
             # Act
             await adapter.embed_batch(["t1", "t2", "t3", "t4", "t5"])
@@ -327,16 +323,17 @@ class TestAzureEmbeddingAdapterAuthError:
         mock_error = Exception("Unauthorized")
         mock_error.status_code = 401
 
-        with patch.object(
-            adapter,
-            "_get_client",
-            return_value=MagicMock(
-                embeddings=MagicMock(create=AsyncMock(side_effect=mock_error))
+        with (
+            patch.object(
+                adapter,
+                "_get_client",
+                return_value=MagicMock(
+                    embeddings=MagicMock(create=AsyncMock(side_effect=mock_error))
+                ),
             ),
+            pytest.raises(EmbeddingAuthenticationError),
         ):
-            # Act / Assert
-            with pytest.raises(EmbeddingAuthenticationError):
-                await adapter.embed_text("test")
+            await adapter.embed_text("test")
 
 
 @pytest.mark.unit
@@ -470,16 +467,12 @@ class TestAzureEmbeddingAdapterRateLimit:
         mock_response = MagicMock()
         mock_response.data = [MagicMock(embedding=[0.1] * 1024)]
 
-        mock_create = AsyncMock(
-            side_effect=[mock_error, mock_response]
-        )
+        mock_create = AsyncMock(side_effect=[mock_error, mock_response])
 
         with patch.object(
             adapter,
             "_get_client",
-            return_value=MagicMock(
-                embeddings=MagicMock(create=mock_create)
-            ),
+            return_value=MagicMock(embeddings=MagicMock(create=mock_create)),
         ):
             # Act
             result = await adapter.embed_text("test")
@@ -501,8 +494,6 @@ class TestAzureEmbeddingAdapterBackoff:
 
         Task: T004
         """
-        import asyncio
-
         from fs2.config.objects import AzureEmbeddingConfig, EmbeddingConfig
         from fs2.config.service import ConfigurationService
         from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
@@ -525,7 +516,6 @@ class TestAzureEmbeddingAdapterBackoff:
 
         # Track sleep calls
         sleep_calls = []
-        original_sleep = asyncio.sleep
 
         async def mock_sleep(delay):
             sleep_calls.append(delay)
@@ -544,10 +534,9 @@ class TestAzureEmbeddingAdapterBackoff:
                 ),
             ),
             patch("asyncio.sleep", mock_sleep),
+            pytest.raises(EmbeddingRateLimitError),
         ):
-            # Act
-            with pytest.raises(EmbeddingRateLimitError):
-                await adapter.embed_text("test")
+            await adapter.embed_text("test")
 
         # Assert - no sleep exceeds max_delay (10s)
         for delay in sleep_calls:
@@ -592,13 +581,16 @@ class TestAzureEmbeddingAdapterDimensionsMismatch:
         mock_response = MagicMock()
         mock_response.data = [MagicMock(embedding=[0.1] * 3072)]  # 3072 != 1024
 
-        with patch.object(
-            adapter,
-            "_get_client",
-            return_value=MagicMock(
-                embeddings=MagicMock(create=AsyncMock(return_value=mock_response))
+        with (
+            patch.object(
+                adapter,
+                "_get_client",
+                return_value=MagicMock(
+                    embeddings=MagicMock(create=AsyncMock(return_value=mock_response))
+                ),
             ),
-        ), caplog.at_level(logging.WARNING):
+            caplog.at_level(logging.WARNING),
+        ):
             # Act
             result = await adapter.embed_text("test")
 

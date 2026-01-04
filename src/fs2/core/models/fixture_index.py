@@ -90,9 +90,7 @@ class FixtureIndex:
             node_count=count,
         )
 
-    def get_embedding(
-        self, content_hash: str
-    ) -> tuple[tuple[float, ...], ...] | None:
+    def get_embedding(self, content_hash: str) -> tuple[tuple[float, ...], ...] | None:
         """Get embedding by content hash.
 
         Args:
@@ -114,9 +112,7 @@ class FixtureIndex:
         """
         return self._by_smart_content_hash.get(content_hash)
 
-    def lookup_embedding(
-        self, content: str
-    ) -> tuple[tuple[float, ...], ...] | None:
+    def lookup_embedding(self, content: str) -> tuple[tuple[float, ...], ...] | None:
         """Convenience method: lookup embedding by raw content.
 
         Computes content_hash internally and looks up the embedding.

@@ -57,10 +57,12 @@ class FakeEmbeddingService:
         }
 
     async def process_batch(self, nodes, progress_callback=None):
-        self.calls.append({
-            "nodes": nodes,
-            "progress_callback": progress_callback,
-        })
+        self.calls.append(
+            {
+                "nodes": nodes,
+                "progress_callback": progress_callback,
+            }
+        )
         return self.result
 
 
@@ -186,13 +188,15 @@ class TestEmbeddingStageProcess:
             embedding_hash=node.content_hash,
         )
 
-        fake_service = FakeEmbeddingService({
-            "processed": 1,
-            "skipped": 0,
-            "errors": [],
-            "total": 1,
-            "results": {node.node_id: updated_node},
-        })
+        fake_service = FakeEmbeddingService(
+            {
+                "processed": 1,
+                "skipped": 0,
+                "errors": [],
+                "total": 1,
+                "results": {node.node_id: updated_node},
+            }
+        )
 
         context = PipelineContext(scan_config=ScanConfig())
         context.nodes = [node]
@@ -206,4 +210,7 @@ class TestEmbeddingStageProcess:
         assert result.metrics["embedding_enriched"] == 1
         assert result.metrics["embedding_preserved"] == 0
         assert result.metrics["embedding_errors"] == 0
-        assert fake_service.calls[0]["progress_callback"] is context.embedding_progress_callback
+        assert (
+            fake_service.calls[0]["progress_callback"]
+            is context.embedding_progress_callback
+        )

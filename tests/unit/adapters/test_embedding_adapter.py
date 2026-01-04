@@ -191,7 +191,7 @@ class TestEmbeddingAdapterMethodSignatures:
         # Assert
         text_param = params[1]  # [0] is self
         assert text_param.name == "text"
-        assert text_param.annotation == str
+        assert text_param.annotation is str
 
     def test_given_embed_batch_when_inspected_then_accepts_list_str(self):
         """

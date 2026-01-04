@@ -30,9 +30,9 @@ class TestFakeEmbeddingAdapterWithRealFixtures:
         """
         # Arrange - exact content from AuthToken.is_expired method
         content = (
-            'def is_expired(self) -> bool:\n'
+            "def is_expired(self) -> bool:\n"
             '        """Check if the token has expired."""\n'
-            '        return datetime.utcnow() > self.expires_at'
+            "        return datetime.utcnow() > self.expires_at"
         )
 
         # Act
@@ -68,8 +68,8 @@ class TestFakeEmbeddingAdapterWithRealFixtures:
         # Arrange - exact content from AuthenticationError.__init__
         content = (
             'def __init__(self, message: str, code: str = "AUTH_ERROR"):\n'
-            '        super().__init__(message)\n'
-            '        self.code = code'
+            "        super().__init__(message)\n"
+            "        self.code = code"
         )
 
         # Act
@@ -116,16 +116,16 @@ class TestFakeEmbeddingAdapterWithRealFixtures:
         """
         # Arrange - exact content from DefaultConfig function
         content = (
-            'func DefaultConfig() *Config {\n'
-            '\treturn &Config{\n'
+            "func DefaultConfig() *Config {\n"
+            "\treturn &Config{\n"
             '\t\tHost:            "0.0.0.0",\n'
-            '\t\tPort:            8080,\n'
-            '\t\tReadTimeout:     15 * time.Second,\n'
-            '\t\tWriteTimeout:    15 * time.Second,\n'
-            '\t\tShutdownTimeout: 30 * time.Second,\n'
-            '\t\tMaxBodySize:     10 << 20, // 10 MB\n'
-            '\t}\n'
-            '}'
+            "\t\tPort:            8080,\n"
+            "\t\tReadTimeout:     15 * time.Second,\n"
+            "\t\tWriteTimeout:    15 * time.Second,\n"
+            "\t\tShutdownTimeout: 30 * time.Second,\n"
+            "\t\tMaxBodySize:     10 << 20, // 10 MB\n"
+            "\t}\n"
+            "}"
         )
 
         # Act
@@ -164,9 +164,9 @@ class TestFixtureIndexWithRealGraph:
         """
         # Arrange - content from auth_handler.py
         content = (
-            'def is_expired(self) -> bool:\n'
+            "def is_expired(self) -> bool:\n"
             '        """Check if the token has expired."""\n'
-            '        return datetime.utcnow() > self.expires_at'
+            "        return datetime.utcnow() > self.expires_at"
         )
 
         # Act

@@ -181,9 +181,17 @@ class TestConsoleAdapterABC:
         ]
 
         assert set(abstract_methods) == {
-            "print", "print_line", "print_success", "print_error",
-            "print_warning", "print_progress", "print_info",
-            "stage_banner", "stage_banner_skipped", "panel", "input"
+            "print",
+            "print_line",
+            "print_success",
+            "print_error",
+            "print_warning",
+            "print_progress",
+            "print_info",
+            "stage_banner",
+            "stage_banner_skipped",
+            "panel",
+            "input",
         }
 
 

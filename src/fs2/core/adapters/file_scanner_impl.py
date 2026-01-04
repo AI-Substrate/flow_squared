@@ -144,9 +144,7 @@ class FileSystemScanner(FileScanner):
 
         return self._is_ignored(path)
 
-    def _walk_directory(
-        self, directory: Path, root: Path
-    ) -> list[ScanResult]:
+    def _walk_directory(self, directory: Path, root: Path) -> list[ScanResult]:
         """Recursively walk a directory, collecting non-ignored files.
 
         Args:
@@ -213,8 +211,7 @@ class FileSystemScanner(FileScanner):
 
             except PermissionError as e:
                 logger.warning(
-                    f"Permission denied accessing: {entry}. "
-                    f"Skipping. Error: {e}"
+                    f"Permission denied accessing: {entry}. Skipping. Error: {e}"
                 )
                 continue
 
@@ -232,7 +229,8 @@ class FileSystemScanner(FileScanner):
                 patterns = gitignore_path.read_text().splitlines()
                 # Filter empty lines and comments
                 patterns = [
-                    p.strip() for p in patterns
+                    p.strip()
+                    for p in patterns
                     if p.strip() and not p.strip().startswith("#")
                 ]
                 if patterns:

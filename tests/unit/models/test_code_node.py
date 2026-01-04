@@ -52,9 +52,7 @@ class TestCodeNodeStructure:
             start_byte=200,
             end_byte=350,
             content="def add(self, a, b):\n    return a + b",
-            content_hash=compute_content_hash(
-                "def add(self, a, b):\n    return a + b"
-            ),
+            content_hash=compute_content_hash("def add(self, a, b):\n    return a + b"),
             signature="def add(self, a, b):",
             language="python",
             is_named=True,

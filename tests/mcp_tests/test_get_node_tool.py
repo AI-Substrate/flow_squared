@@ -111,7 +111,15 @@ class TestGetNodeRetrieval:
         result = get_node(node_id="class:src/calculator.py:Calculator", detail="min")
 
         # Core fields that must always be present
-        core_fields = ["node_id", "name", "category", "content", "signature", "start_line", "end_line"]
+        core_fields = [
+            "node_id",
+            "name",
+            "category",
+            "content",
+            "signature",
+            "start_line",
+            "end_line",
+        ]
         for field in core_fields:
             assert field in result, f"Min detail must include {field}"
 
@@ -134,7 +142,15 @@ class TestGetNodeRetrieval:
         result = get_node(node_id="class:src/calculator.py:Calculator", detail="max")
 
         # Min fields must still be present
-        min_fields = ["node_id", "name", "category", "content", "signature", "start_line", "end_line"]
+        min_fields = [
+            "node_id",
+            "name",
+            "category",
+            "content",
+            "signature",
+            "start_line",
+            "end_line",
+        ]
         for field in min_fields:
             assert field in result, f"Max detail must include min field {field}"
 
@@ -161,7 +177,9 @@ class TestGetNodeRetrieval:
 
         # Check both min and max detail
         for detail in ["min", "max"]:
-            result = get_node(node_id="class:src/calculator.py:Calculator", detail=detail)
+            result = get_node(
+                node_id="class:src/calculator.py:Calculator", detail=detail
+            )
 
             # These fields must NEVER be included
             forbidden_fields = [
@@ -205,7 +223,9 @@ class TestGetNodeRetrieval:
 
         # Extended fields should NOT be present in default (min)
         assert "language" not in result, "Default should be min detail (no language)"
-        assert "qualified_name" not in result, "Default should be min detail (no qualified_name)"
+        assert "qualified_name" not in result, (
+            "Default should be min detail (no qualified_name)"
+        )
 
     def test_get_node_content_matches_source(
         self, tree_test_graph_store: tuple, tmp_path: Path
@@ -246,7 +266,9 @@ class TestGetNodeRetrieval:
 
         result = get_node(node_id="class:src/calculator.py:Calculator")
 
-        assert "saved_to" not in result, "saved_to should not be in result when not saving"
+        assert "saved_to" not in result, (
+            "saved_to should not be in result when not saving"
+        )
 
 
 class TestGetNodeNotFound:
@@ -529,7 +551,10 @@ class TestGetNodeSaveToFile:
         finally:
             os.chdir(original_cwd)
 
-        assert "path" in str(exc_info.value).lower() or "escape" in str(exc_info.value).lower()
+        assert (
+            "path" in str(exc_info.value).lower()
+            or "escape" in str(exc_info.value).lower()
+        )
 
     def test_get_node_save_rejects_absolute_path(
         self, tree_test_graph_store: tuple, tmp_path: Path

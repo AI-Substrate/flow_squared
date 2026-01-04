@@ -268,7 +268,9 @@ class TestSmartContentStageMergeLogic:
         assert len(merged_nodes) == 3
 
         # Find each node by node_id (which contains file_path)
-        result_unchanged = next(n for n in merged_nodes if n.node_id == "file:unchanged.py")
+        result_unchanged = next(
+            n for n in merged_nodes if n.node_id == "file:unchanged.py"
+        )
         result_changed = next(n for n in merged_nodes if n.node_id == "file:changed.py")
         result_new = next(n for n in merged_nodes if n.node_id == "file:brand_new.py")
 
@@ -336,17 +338,22 @@ class TestSmartContentStageProcess:
         """
         from fs2.core.services.stages.smart_content_stage import SmartContentStage
 
-        service, llm_adapter = _create_smart_content_service(response="Generated summary")
+        service, llm_adapter = _create_smart_content_service(
+            response="Generated summary"
+        )
 
         # Create context with nodes and service
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
+        node = _make_file_node(
+            "test.py",
+            "def hello():\n    '''A test function that does something.'''\n    return 'hello world'",
+        )
         context.nodes = [node]
         context.smart_content_service = service
 
         # Process
         stage = SmartContentStage()
-        result_context = stage.process(context)
+        stage.process(context)
 
         # Verify LLM was called (proves process_batch was invoked)
         assert len(llm_adapter.call_history) == 1
@@ -365,7 +372,10 @@ class TestSmartContentStageProcess:
         service, _ = _create_smart_content_service(response="This is the summary")
 
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
+        node = _make_file_node(
+            "test.py",
+            "def hello():\n    '''A test function that does something.'''\n    return 'hello world'",
+        )
         context.nodes = [node]
         context.smart_content_service = service
 
@@ -390,7 +400,10 @@ class TestSmartContentStageProcess:
         service, _ = _create_smart_content_service(response="Summary")
 
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
+        node = _make_file_node(
+            "test.py",
+            "def hello():\n    '''A test function that does something.'''\n    return 'hello world'",
+        )
         context.nodes = [node]
         context.smart_content_service = service
 
@@ -421,7 +434,10 @@ class TestSmartContentStageProcess:
         llm_adapter.set_error(LLMRateLimitError("Rate limit exceeded"))
 
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
+        node = _make_file_node(
+            "test.py",
+            "def hello():\n    '''A test function that does something.'''\n    return 'hello world'",
+        )
         context.nodes = [node]
         context.smart_content_service = service
 
@@ -460,7 +476,10 @@ class TestSmartContentStageSkip:
         from fs2.core.services.stages.smart_content_stage import SmartContentStage
 
         context = PipelineContext(scan_config=ScanConfig())
-        node = _make_file_node("test.py", "def hello():\n    '''A test function that does something.'''\n    return 'hello world'")
+        node = _make_file_node(
+            "test.py",
+            "def hello():\n    '''A test function that does something.'''\n    return 'hello world'",
+        )
         context.nodes = [node]
         context.smart_content_service = None  # No service!
 

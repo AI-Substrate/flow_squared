@@ -9,11 +9,11 @@ import pickle
 
 import pytest
 
+from fs2.core.models.code_node import CodeNode
 
-def make_file_node(file_path: str = "src/main.py", content: str = "# test") -> "CodeNode":
+
+def make_file_node(file_path: str = "src/main.py", content: str = "# test") -> CodeNode:
     """Helper to create a file CodeNode for tests."""
-    from fs2.core.models.code_node import CodeNode
-
     return CodeNode.create_file(
         file_path=file_path,
         language="python",
@@ -31,10 +31,8 @@ def make_class_node(
     name: str = "MyClass",
     qualified_name: str = "MyClass",
     content: str = "class MyClass: pass",
-) -> "CodeNode":
+) -> CodeNode:
     """Helper to create a class/type CodeNode for tests."""
-    from fs2.core.models.code_node import CodeNode
-
     return CodeNode.create_type(
         file_path=file_path,
         language="python",
@@ -57,10 +55,8 @@ def make_method_node(
     name: str = "my_method",
     qualified_name: str = "MyClass.my_method",
     content: str = "def my_method(self): pass",
-) -> "CodeNode":
+) -> CodeNode:
     """Helper to create a method/callable CodeNode for tests."""
-    from fs2.core.models.code_node import CodeNode
-
     return CodeNode.create_callable(
         file_path=file_path,
         language="python",
@@ -489,7 +485,10 @@ class TestNetworkXGraphStorePersistence:
         with pytest.raises(GraphStoreError) as exc_info:
             store.load(corrupted)
 
-        assert "corrupt" in str(exc_info.value).lower() or "unpickl" in str(exc_info.value).lower()
+        assert (
+            "corrupt" in str(exc_info.value).lower()
+            or "unpickl" in str(exc_info.value).lower()
+        )
 
     def test_restricted_unpickler_blocks_malicious_classes(self, tmp_path):
         """
@@ -513,8 +512,10 @@ class TestNetworkXGraphStorePersistence:
 
         class MaliciousReducer:
             """Pickle that would execute code if loaded unsafely."""
+
             def __reduce__(self):
                 import os
+
                 return (os.system, ("echo PWNED",))
 
         # Pickle the malicious object
@@ -529,7 +530,11 @@ class TestNetworkXGraphStorePersistence:
 
         # Verify it's a security-related error
         error_msg = str(exc_info.value).lower()
-        assert "forbidden" in error_msg or "not allowed" in error_msg or "restricted" in error_msg
+        assert (
+            "forbidden" in error_msg
+            or "not allowed" in error_msg
+            or "restricted" in error_msg
+        )
 
 
 @pytest.mark.unit

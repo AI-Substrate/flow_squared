@@ -117,7 +117,7 @@ class TestProcessBatch:
         assert len(result["results"]) == 2
 
         # Each node should have embedding populated
-        for node_id, node in result["results"].items():
+        for _node_id, node in result["results"].items():
             assert node.embedding is not None
             assert len(node.embedding) > 0
             # Embedding should be tuple of tuples (per DYK-4)
@@ -641,12 +641,14 @@ class TestChunkingBehavior:
         # With max_tokens=50, this should create 2+ chunks
         lines = []
         for i in range(5):
-            lines.extend([
-                f"def function_{i}():",
-                f"    '''Docstring for function {i}.'''",
-                f"    result = compute_{i}()",
-                "    return result",
-            ])
+            lines.extend(
+                [
+                    f"def function_{i}():",
+                    f"    '''Docstring for function {i}.'''",
+                    f"    result = compute_{i}()",
+                    "    return result",
+                ]
+            )
         long_content = "\n".join(lines)  # ~20 lines → ~100+ tokens
 
         node = CodeNode(
@@ -753,7 +755,9 @@ class TestChunkOverlapBehavior:
         return EmbeddingConfig(
             mode="fake",
             batch_size=100,
-            code=ChunkConfig(max_tokens=30, overlap_tokens=10),  # Small chunks with overlap
+            code=ChunkConfig(
+                max_tokens=30, overlap_tokens=10
+            ),  # Small chunks with overlap
         )
 
     @pytest.fixture
@@ -1002,7 +1006,9 @@ class TestMetadataExtraction:
         assert metadata["chunk_params"]["documentation"]["max_tokens"] == 800
         assert metadata["chunk_params"]["smart_content"]["max_tokens"] == 8000
 
-    def test_given_azure_mode_with_config_when_getting_metadata_then_returns_deployment_name(self):
+    def test_given_azure_mode_with_config_when_getting_metadata_then_returns_deployment_name(
+        self,
+    ):
         """
         Purpose: Verify Azure mode returns deployment name as model.
         Quality Contribution: Validates Azure-specific metadata path.
@@ -1288,12 +1294,16 @@ class TestChunkOffsetPopulation:
 
         # Create a token counter that returns ~10 tokens per line (to trigger chunking)
         token_counter = Mock()
-        token_counter.count_tokens = lambda text: len(text.split()) * 3  # ~3 tokens per word
+        token_counter.count_tokens = (
+            lambda text: len(text.split()) * 3
+        )  # ~3 tokens per word
 
         # Multi-line content that will produce multiple chunks with small max_tokens=20
         # Each line is ~6 words * 3 = ~18 tokens, so we need multiple lines per chunk
         # But with 20 max tokens and overlap, we should get multiple chunks
-        multi_line_content = "\n".join([f"line number {i} has some words here" for i in range(30)])
+        multi_line_content = "\n".join(
+            [f"line number {i} has some words here" for i in range(30)]
+        )
 
         node = CodeNode(
             node_id="file:multi_chunk.py",
@@ -1327,7 +1337,9 @@ class TestChunkOffsetPopulation:
 
         # Should have multiple chunks (content is ~30 lines * ~18 tokens = 540 tokens, max 20 tokens)
         assert updated_node.embedding is not None
-        assert len(updated_node.embedding) > 1, f"Expected multiple chunks, got {len(updated_node.embedding)}"
+        assert len(updated_node.embedding) > 1, (
+            f"Expected multiple chunks, got {len(updated_node.embedding)}"
+        )
 
         # Chunk offsets should match embedding count
         assert updated_node.embedding_chunk_offsets is not None

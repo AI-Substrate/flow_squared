@@ -72,7 +72,9 @@ class TestSearchIntegrationWithFixture:
             assert 0.0 <= r.score <= 1.0
 
     @pytest.mark.asyncio
-    async def test_regex_search_finds_nodes(self, search_service: SearchService) -> None:
+    async def test_regex_search_finds_nodes(
+        self, search_service: SearchService
+    ) -> None:
         """Proves regex search works with real fixture nodes.
 
         Purpose: End-to-end REGEX mode validation.
@@ -90,7 +92,9 @@ class TestSearchIntegrationWithFixture:
             assert 0.0 <= r.score <= 1.0
 
     @pytest.mark.asyncio
-    async def test_auto_mode_works_with_fixture(self, search_service: SearchService) -> None:
+    async def test_auto_mode_works_with_fixture(
+        self, search_service: SearchService
+    ) -> None:
         """Proves AUTO mode routing works with real fixture.
 
         Purpose: End-to-end AUTO mode validation.
@@ -207,7 +211,9 @@ class TestSearchIntegrationEdgeCases:
         assert isinstance(results, list)
 
     @pytest.mark.asyncio
-    async def test_very_long_pattern_handled(self, search_service: SearchService) -> None:
+    async def test_very_long_pattern_handled(
+        self, search_service: SearchService
+    ) -> None:
         """Proves long patterns don't crash.
 
         Purpose: Edge case handling.

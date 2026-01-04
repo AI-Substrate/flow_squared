@@ -2,4 +2,3 @@
 
 This package contains `.j2` templates loaded via `importlib.resources`.
 """
-

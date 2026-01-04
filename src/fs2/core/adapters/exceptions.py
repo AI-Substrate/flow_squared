@@ -153,9 +153,7 @@ class GraphNotFoundError(AdapterError):
             message: Optional custom message.
         """
         self.path: Path = path if isinstance(path, Path) else Path(path)
-        super().__init__(
-            message or f"Graph not found at {path}. Run 'fs2 scan' first."
-        )
+        super().__init__(message or f"Graph not found at {path}. Run 'fs2 scan' first.")
 
 
 # LLM Adapter Exception Hierarchy

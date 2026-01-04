@@ -100,7 +100,9 @@ class TestPipelineStageRuntimeCheckable:
         # Protocol should be runtime_checkable
         assert isinstance(stage, PipelineStage)
 
-    def test_given_non_conforming_class_when_isinstance_checked_then_returns_false(self):
+    def test_given_non_conforming_class_when_isinstance_checked_then_returns_false(
+        self,
+    ):
         """
         Purpose: Verifies non-conforming classes fail isinstance.
         Quality Contribution: Catches incorrect stage implementations.

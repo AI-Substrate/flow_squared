@@ -66,7 +66,11 @@ class TestEndToEndEmbeddingValidation:
     """
 
     def test_given_samples_directory_when_scanning_with_embeddings_then_all_files_embedded(
-        self, samples_path: Path, embedding_config: EmbeddingConfig, fixture_graph, test_graph_path: Path
+        self,
+        samples_path: Path,
+        embedding_config: EmbeddingConfig,
+        fixture_graph,
+        test_graph_path: Path,
     ):
         """
         Purpose: E2E validation of embedding pipeline on real fixture files.
@@ -123,7 +127,9 @@ class TestEndToEndEmbeddingValidation:
         summary = pipeline.run()
 
         # Assert - scan completed
-        assert summary.files_scanned >= 15, f"Expected at least 15 files, got {summary.files_scanned}"
+        assert summary.files_scanned >= 15, (
+            f"Expected at least 15 files, got {summary.files_scanned}"
+        )
         assert summary.nodes_created > 0, "Expected nodes to be created"
 
         # Assert - embedding metrics
@@ -145,9 +151,15 @@ class TestEndToEndEmbeddingValidation:
         # Assert - nodes have embeddings
         nodes = list(store.get_all_nodes())
         nodes_with_content = [n for n in nodes if n.content and n.content.strip()]
-        nodes_with_embeddings = [n for n in nodes_with_content if n.embedding is not None]
+        nodes_with_embeddings = [
+            n for n in nodes_with_content if n.embedding is not None
+        ]
 
-        embedding_rate = len(nodes_with_embeddings) / len(nodes_with_content) if nodes_with_content else 0
+        embedding_rate = (
+            len(nodes_with_embeddings) / len(nodes_with_content)
+            if nodes_with_content
+            else 0
+        )
         assert embedding_rate == 1.0, (
             f"Expected 100% embedding rate, got {embedding_rate:.1%} "
             f"({len(nodes_with_embeddings)}/{len(nodes_with_content)})"
@@ -162,13 +174,19 @@ class TestEndToEndEmbeddingValidation:
         print(f"Embedding rate: {embedding_rate:.1%}")
         print(f"Embedding model: {embedding_metadata['embedding_model']}")
         print(f"Embedding dimensions: {embedding_metadata['embedding_dimensions']}")
-        print(f"Smart content enriched: {summary.metrics.get('smart_content_enriched', 0)}")
+        print(
+            f"Smart content enriched: {summary.metrics.get('smart_content_enriched', 0)}"
+        )
         print(f"Embedding enriched: {summary.metrics.get('embedding_enriched', 0)}")
         print(f"Embedding preserved: {summary.metrics.get('embedding_preserved', 0)}")
         print("========================================\n")
 
     def test_given_samples_when_scanning_then_embedding_format_correct(
-        self, samples_path: Path, embedding_config: EmbeddingConfig, fixture_graph, test_graph_path: Path
+        self,
+        samples_path: Path,
+        embedding_config: EmbeddingConfig,
+        fixture_graph,
+        test_graph_path: Path,
     ):
         """
         Purpose: Verify embeddings have correct tuple format.
@@ -211,7 +229,11 @@ class TestEndToEndEmbeddingValidation:
 
         for node in nodes_with_embeddings[:10]:  # Check first 10
             # Per DYK-1: tuple[tuple[float, ...], ...]
-            assert isinstance(node.embedding, tuple), f"Expected tuple, got {type(node.embedding)}"
+            assert isinstance(node.embedding, tuple), (
+                f"Expected tuple, got {type(node.embedding)}"
+            )
             assert len(node.embedding) >= 1, "Expected at least one chunk"
             assert isinstance(node.embedding[0], tuple), "Expected inner tuple"
-            assert len(node.embedding[0]) == 1024, f"Expected 1024 dims, got {len(node.embedding[0])}"
+            assert len(node.embedding[0]) == 1024, (
+                f"Expected 1024 dims, got {len(node.embedding[0])}"
+            )

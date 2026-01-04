@@ -53,11 +53,19 @@ class TestSearchHelp:
         result = runner.invoke(app, ["search", "--help"])
 
         assert result.exit_code == 0
-        assert "pattern" in result.stdout.lower(), f"Expected 'pattern' in help: {result.stdout}"
+        assert "pattern" in result.stdout.lower(), (
+            f"Expected 'pattern' in help: {result.stdout}"
+        )
         assert "--mode" in result.stdout, f"Expected '--mode' in help: {result.stdout}"
-        assert "--limit" in result.stdout, f"Expected '--limit' in help: {result.stdout}"
-        assert "--offset" in result.stdout, f"Expected '--offset' in help: {result.stdout}"
-        assert "--detail" in result.stdout, f"Expected '--detail' in help: {result.stdout}"
+        assert "--limit" in result.stdout, (
+            f"Expected '--limit' in help: {result.stdout}"
+        )
+        assert "--offset" in result.stdout, (
+            f"Expected '--offset' in help: {result.stdout}"
+        )
+        assert "--detail" in result.stdout, (
+            f"Expected '--detail' in help: {result.stdout}"
+        )
 
     def test_given_help_flag_then_shows_mode_choices(self):
         """
@@ -215,7 +223,9 @@ class TestSearchMinDetail:
         assert len(results) > 0, "Expected at least one result"
 
         first = results[0]
-        assert "content" not in first, f"'content' should not be in min detail: {first.keys()}"
+        assert "content" not in first, (
+            f"'content' should not be in min detail: {first.keys()}"
+        )
 
     def test_given_default_detail_when_search_then_uses_min(
         self, scanned_project, monkeypatch
@@ -365,7 +375,9 @@ class TestSearchArguments:
         if len(page1) == 2 and len(page2) > 0:
             page1_ids = {r["node_id"] for r in page1}
             page2_ids = {r["node_id"] for r in page2}
-            assert page1_ids.isdisjoint(page2_ids), "Pages should have different results"
+            assert page1_ids.isdisjoint(page2_ids), (
+                "Pages should have different results"
+            )
 
     def test_given_mode_text_when_search_then_uses_text_mode(
         self, scanned_project, monkeypatch
@@ -677,9 +689,9 @@ class TestSearchIncludeExcludeOptions:
         results = data["results"]
         # No results should match exclude pattern
         for r in results:
-            assert (
-                "test" not in r["node_id"].lower()
-            ), f"Expected no 'test' in {r['node_id']}"
+            assert "test" not in r["node_id"].lower(), (
+                f"Expected no 'test' in {r['node_id']}"
+            )
 
     def test_given_multiple_include_flags_when_search_then_or_logic(
         self, scanned_project, monkeypatch
@@ -736,7 +748,16 @@ class TestSearchIncludeExcludeOptions:
 
         result = runner.invoke(
             app,
-            ["search", "a", "--exclude", "test", "--exclude", "fixture", "--limit", "20"],
+            [
+                "search",
+                "a",
+                "--exclude",
+                "test",
+                "--exclude",
+                "fixture",
+                "--limit",
+                "20",
+            ],
         )
 
         assert result.exit_code == 0
@@ -745,9 +766,9 @@ class TestSearchIncludeExcludeOptions:
         # No result should match any exclude pattern
         for r in results:
             node_id = r["node_id"].lower()
-            assert (
-                "test" not in node_id and "fixture" not in node_id
-            ), f"Expected no test/fixture in {node_id}"
+            assert "test" not in node_id and "fixture" not in node_id, (
+                f"Expected no test/fixture in {node_id}"
+            )
 
     def test_given_include_and_exclude_when_search_then_include_first(
         self, scanned_project, monkeypatch
@@ -961,7 +982,9 @@ class TestSearchGlobPatterns:
 
         # scanned_fixtures_graph already sets chdir and NO_COLOR
 
-        result = runner.invoke(app, ["search", ".", "--include", "*.py", "--limit", "50"])
+        result = runner.invoke(
+            app, ["search", ".", "--include", "*.py", "--limit", "50"]
+        )
 
         assert result.exit_code == 0
         output = json.loads(result.stdout)
@@ -983,7 +1006,9 @@ class TestSearchGlobPatterns:
         """
         from fs2.cli.main import app
 
-        result = runner.invoke(app, ["search", ".", "--include", "*.cs", "--limit", "50"])
+        result = runner.invoke(
+            app, ["search", ".", "--include", "*.cs", "--limit", "50"]
+        )
 
         assert result.exit_code == 0
         output = json.loads(result.stdout)
@@ -1005,7 +1030,9 @@ class TestSearchGlobPatterns:
         """
         from fs2.cli.main import app
 
-        result = runner.invoke(app, ["search", ".", "--include", "*.md", "--limit", "50"])
+        result = runner.invoke(
+            app, ["search", ".", "--include", "*.md", "--limit", "50"]
+        )
 
         assert result.exit_code == 0
         output = json.loads(result.stdout)
@@ -1027,7 +1054,9 @@ class TestSearchGlobPatterns:
         """
         from fs2.cli.main import app
 
-        result = runner.invoke(app, ["search", ".", "--include", ".cs", "--limit", "50"])
+        result = runner.invoke(
+            app, ["search", ".", "--include", ".cs", "--limit", "50"]
+        )
 
         assert result.exit_code == 0
         output = json.loads(result.stdout)
@@ -1049,7 +1078,9 @@ class TestSearchGlobPatterns:
         """
         from fs2.cli.main import app
 
-        result = runner.invoke(app, ["search", ".", "--include", ".ts", "--limit", "50"])
+        result = runner.invoke(
+            app, ["search", ".", "--include", ".ts", "--limit", "50"]
+        )
 
         assert result.exit_code == 0
         output = json.loads(result.stdout)
@@ -1194,14 +1225,12 @@ class TestSearchFileOutput:
 
         output_file = tmp_path / "results.json"
         result = runner.invoke(
-            app, ["search", "calculator", "--file", str(output_file)],
+            app,
+            ["search", "calculator", "--file", str(output_file)],
             catch_exceptions=False,
         )
 
         assert result.exit_code == 0
-        # Confirmation should appear somewhere in the output (stdout is empty, so it's stderr)
-        # Rich Console(stderr=True) output appears in result.output
-        combined_output = result.output or result.stdout or ""
         # Note: When stdout is empty and confirmation is on stderr, result.output may still be empty
         # in some CliRunner configurations. The key test is that stdout is empty and file is created.
         # If using mix_stderr=False, stderr would be in result.stderr
@@ -1223,9 +1252,13 @@ class TestSearchFileOutput:
         monkeypatch.chdir(tmp_path)
         monkeypatch.setenv("NO_COLOR", "1")
 
-        result = runner.invoke(app, ["search", "calculator", "--file", "../escape.json"])
+        result = runner.invoke(
+            app, ["search", "calculator", "--file", "../escape.json"]
+        )
 
-        assert result.exit_code == 1, f"Expected exit 1 for path escape: {result.output}"
+        assert result.exit_code == 1, (
+            f"Expected exit 1 for path escape: {result.output}"
+        )
 
     def test_given_absolute_path_outside_cwd_when_file_flag_then_exits_with_error(
         self, scanned_project, tmp_path, monkeypatch
@@ -1242,9 +1275,13 @@ class TestSearchFileOutput:
         monkeypatch.chdir(tmp_path)
         monkeypatch.setenv("NO_COLOR", "1")
 
-        result = runner.invoke(app, ["search", "calculator", "--file", "/tmp/escape.json"])
+        result = runner.invoke(
+            app, ["search", "calculator", "--file", "/tmp/escape.json"]
+        )
 
-        assert result.exit_code == 1, f"Expected exit 1 for absolute path: {result.output}"
+        assert result.exit_code == 1, (
+            f"Expected exit 1 for absolute path: {result.output}"
+        )
 
     def test_given_empty_results_when_file_flag_then_still_saves_envelope(
         self, scanned_project, tmp_path, monkeypatch

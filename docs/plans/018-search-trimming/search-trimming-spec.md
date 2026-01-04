@@ -33,9 +33,10 @@ Based on comprehensive codebase research (55+ findings across 7 dimensions):
 
 1. **Complete parent removal**: We penalize, not filter—parents remain visible at lower rank
 2. **Changing matcher scoring logic**: Penalization happens AFTER matchers score, not within them
-3. **Multi-level penalty scaling**: All parents penalized equally (no "grandparent penalized more" logic)
-4. **Performance optimization**: Accept O(depth × results) cost for correctness; optimize later if needed
-5. **New relationship types**: This spec covers parent-child only; call graphs, inheritance etc. are future work
+3. **Performance optimization**: Accept O(depth × results) cost for correctness; optimize later if needed
+4. **New relationship types**: This spec covers parent-child only; call graphs, inheritance etc. are future work
+
+**Note**: Multi-level (depth-weighted) penalty IS a goal. Per DYK session 2026-01-03: grandparents penalized more than parents to guarantee proper ordering at all hierarchy levels.
 
 ## Complexity
 
@@ -86,10 +87,11 @@ Based on comprehensive codebase research (55+ findings across 7 dimensions):
 **When** results are sorted after penalization
 **Then** child node appears before parent node in final results
 
-### AC03: Multi-Level Hierarchy Handled
+### AC03: Multi-Level Hierarchy with Depth-Weighted Penalty
 **Given** search matches a method, its containing class, AND the containing file
-**When** parent penalization is applied
-**Then** both the class and file are penalized (method's grandparent is also a parent of a result)
+**When** parent penalization is applied with factor 0.25
+**Then** class is penalized once (score × 0.75) and file is penalized twice (score × 0.75²)
+**And** ordering is guaranteed: method > class > file (per DYK-01 decision)
 
 ### AC04: Score Bounds Respected
 **Given** any combination of initial scores and penalty factors

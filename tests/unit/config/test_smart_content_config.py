@@ -144,4 +144,3 @@ scan:
         config = service.require(SmartContentConfig)
 
         assert config.max_workers == 25
-

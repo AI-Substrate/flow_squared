@@ -158,13 +158,17 @@ class ScanPipeline:
 
         # Default stages if not provided
         # Order: Discovery → Parsing → SmartContent → Embedding → Storage
-        self._stages = stages if stages is not None else [
-            DiscoveryStage(),
-            ParsingStage(),
-            SmartContentStage(),
-            EmbeddingStage(),
-            StorageStage(),
-        ]
+        self._stages = (
+            stages
+            if stages is not None
+            else [
+                DiscoveryStage(),
+                ParsingStage(),
+                SmartContentStage(),
+                EmbeddingStage(),
+                StorageStage(),
+            ]
+        )
 
     def run(self) -> ScanSummary:
         """Execute the pipeline and return summary.
@@ -219,7 +223,9 @@ class ScanPipeline:
             metrics=context.metrics,
         )
 
-    def _load_prior_nodes(self, context: PipelineContext) -> dict[str, "CodeNode"] | None:
+    def _load_prior_nodes(
+        self, context: PipelineContext
+    ) -> dict[str, "CodeNode"] | None:
         """Load prior graph state into a dict for O(1) lookup.
 
         Per Subtask 001 (Graph Loading for Smart Content Preservation):

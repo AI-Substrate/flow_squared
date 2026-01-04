@@ -120,8 +120,7 @@ class FakeASTParser(ASTParser):
 
         if file_path in self.simulate_error_for:
             raise ASTParserError(
-                f"Simulated parse error for {file_path}. "
-                "This is a test double error."
+                f"Simulated parse error for {file_path}. This is a test double error."
             )
 
         return self._results_by_path.get(file_path, [])

@@ -99,9 +99,7 @@ def graph_setup(tmp_path):
 class TestTreeServiceInit:
     """T008: Tests for TreeService initialization."""
 
-    def test_given_config_and_store_when_created_then_service_exists(
-        self, graph_setup
-    ):
+    def test_given_config_and_store_when_created_then_service_exists(self, graph_setup):
         """
         Purpose: Verifies service can be created with DI pattern.
         Quality Contribution: Ensures proper dependency injection.
@@ -201,9 +199,7 @@ class TestTreeServiceFiltering:
         assert len(result) == 1
         assert "calculator" in result[0].node.node_id
 
-    def test_given_glob_pattern_when_build_tree_then_filters_nodes(
-        self, graph_setup
-    ):
+    def test_given_glob_pattern_when_build_tree_then_filters_nodes(self, graph_setup):
         """
         Purpose: Verifies glob pattern matching.
         Quality Contribution: Advanced pattern support.
@@ -221,9 +217,7 @@ class TestTreeServiceFiltering:
 
         assert len(result) == 2
 
-    def test_given_no_matches_when_build_tree_then_returns_empty(
-        self, graph_setup
-    ):
+    def test_given_no_matches_when_build_tree_then_returns_empty(self, graph_setup):
         """
         Purpose: Verifies empty result for no matches.
         Quality Contribution: Correct handling of no matches.
@@ -274,9 +268,7 @@ class TestTreeServiceRootBucket:
 class TestTreeServiceDepth:
     """T008: Tests for depth limiting."""
 
-    def test_given_max_depth_when_build_tree_then_limits_expansion(
-        self, graph_setup
-    ):
+    def test_given_max_depth_when_build_tree_then_limits_expansion(self, graph_setup):
         """
         Purpose: Verifies depth limiting works.
         Quality Contribution: Performance control.
@@ -301,7 +293,9 @@ class TestTreeServiceDepth:
         )
         store.set_nodes([file_node, class_node, method_node])
         store.add_edge("file:src/calc.py", "type:src/calc.py:Calculator")
-        store.add_edge("type:src/calc.py:Calculator", "callable:src/calc.py:Calculator.add")
+        store.add_edge(
+            "type:src/calc.py:Calculator", "callable:src/calc.py:Calculator.add"
+        )
 
         service = TreeService(config=config, graph_store=store)
         result = service.build_tree(pattern="file:src/calc.py", max_depth=1)
@@ -311,9 +305,7 @@ class TestTreeServiceDepth:
         assert len(result[0].children) == 1  # Calculator class
         assert result[0].children[0].children == ()  # No method (depth limited)
 
-    def test_given_zero_depth_when_build_tree_then_unlimited(
-        self, graph_setup
-    ):
+    def test_given_zero_depth_when_build_tree_then_unlimited(self, graph_setup):
         """
         Purpose: Verifies max_depth=0 is unlimited.
         Quality Contribution: Default behavior correct.
@@ -333,7 +325,9 @@ class TestTreeServiceDepth:
         )
         store.set_nodes([file_node, class_node, method_node])
         store.add_edge("file:src/calc.py", "type:src/calc.py:Calculator")
-        store.add_edge("type:src/calc.py:Calculator", "callable:src/calc.py:Calculator.add")
+        store.add_edge(
+            "type:src/calc.py:Calculator", "callable:src/calc.py:Calculator.add"
+        )
 
         service = TreeService(config=config, graph_store=store)
         result = service.build_tree(pattern="file:src/calc.py", max_depth=0)
@@ -348,9 +342,7 @@ class TestTreeServiceDepth:
 class TestTreeServiceTreeNode:
     """T008: Tests for TreeNode structure."""
 
-    def test_given_nodes_when_build_tree_then_returns_tree_nodes(
-        self, graph_setup
-    ):
+    def test_given_nodes_when_build_tree_then_returns_tree_nodes(self, graph_setup):
         """
         Purpose: Verifies return type is TreeNode.
         Quality Contribution: Correct return type.
@@ -374,9 +366,7 @@ class TestTreeServiceTreeNode:
 class TestTreeServiceErrors:
     """T008: Tests for error handling."""
 
-    def test_given_missing_graph_when_build_tree_then_raises_not_found(
-        self, tmp_path
-    ):
+    def test_given_missing_graph_when_build_tree_then_raises_not_found(self, tmp_path):
         """
         Purpose: Verifies GraphNotFoundError raised for missing graph.
         Quality Contribution: Clear error for common issue.

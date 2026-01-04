@@ -56,7 +56,10 @@ def _create_test_service(*, max_workers: int = 50, response: str = "Test summary
     return service, llm_adapter, config
 
 
-def _create_test_node(name: str, content: str = "def {name}():\n    \"\"\"Test function for {name}.\"\"\"\n    return 42  # Implementation"):
+def _create_test_node(
+    name: str,
+    content: str = 'def {name}():\n    """Test function for {name}."""\n    return 42  # Implementation',
+):
     """Create a CodeNode for testing.
 
     Default content is >50 chars to exceed _MIN_CONTENT_LENGTH threshold.
@@ -300,11 +303,15 @@ async def test_given_100_items_10_workers_then_work_distributed_fairly():
     assert result["processed"] == 100
 
     # Verify all 10 workers participated
-    assert len(call_workers) == 10, f"Expected 10 workers, got {len(call_workers)}: {call_workers}"
+    assert len(call_workers) == 10, (
+        f"Expected 10 workers, got {len(call_workers)}: {call_workers}"
+    )
 
     # Verify fair distribution: each worker processes at least 5 items (50% of fair share)
     min_count = min(call_workers.values())
-    assert min_count >= 5, f"Worker starvation detected: min={min_count}, distribution={call_workers}"
+    assert min_count >= 5, (
+        f"Worker starvation detected: min={min_count}, distribution={call_workers}"
+    )
 
 
 # ===========================================================================
@@ -494,12 +501,16 @@ async def test_given_250_nodes_when_processing_then_progress_logged_at_50_100_15
 
     # Look for progress logs
     progress_logs = [
-        r for r in caplog.records if "progress" in r.message.lower() or "processed" in r.message.lower()
+        r
+        for r in caplog.records
+        if "progress" in r.message.lower() or "processed" in r.message.lower()
     ]
 
     # Should have at least 4 progress logs (at 50, 100, 150, 200)
     # Plus start/end logs
-    assert len(progress_logs) >= 4, f"Expected >= 4 progress logs, got {len(progress_logs)}"
+    assert len(progress_logs) >= 4, (
+        f"Expected >= 4 progress logs, got {len(progress_logs)}"
+    )
 
 
 # ===========================================================================
@@ -633,7 +644,9 @@ async def test_given_3_nodes_and_max_workers_50_then_only_3_workers_spawned():
     # Should complete quickly (3 parallel workers, not 50 idle ones)
     assert result["processed"] == 3
     # With 0.05s delay each, 3 parallel workers should finish in ~0.05s, not 0.15s
-    assert elapsed < 0.2, f"Took too long: {elapsed:.2f}s (expected ~0.05s with capping)"
+    assert elapsed < 0.2, (
+        f"Took too long: {elapsed:.2f}s (expected ~0.05s with capping)"
+    )
 
 
 # ===========================================================================

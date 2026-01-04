@@ -20,8 +20,6 @@ from fs2.cli.main import app
 runner = CliRunner()
 
 
-
-
 class TestMCPCommandEntry:
     """Tests for MCP command registration and help.
 
@@ -38,7 +36,9 @@ class TestMCPCommandEntry:
         """
         result = runner.invoke(app, ["mcp", "--help"])
 
-        assert result.exit_code == 0, f"Expected exit code 0, got {result.exit_code}\nOutput: {result.output}"
+        assert result.exit_code == 0, (
+            f"Expected exit code 0, got {result.exit_code}\nOutput: {result.output}"
+        )
         # Check for MCP-related content in help
         assert "mcp" in result.output.lower() or "server" in result.output.lower(), (
             f"Expected 'mcp' or 'server' in help output\nOutput: {result.output}"
@@ -61,7 +61,9 @@ class TestMCPCommandEntry:
             or "protocol" in help_lower
             or "agent" in help_lower
         )
-        assert has_relevant_content, f"Help should describe MCP functionality\nOutput: {result.output}"
+        assert has_relevant_content, (
+            f"Help should describe MCP functionality\nOutput: {result.output}"
+        )
 
 
 class TestProtocolCompliance:

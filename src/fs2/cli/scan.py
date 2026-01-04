@@ -217,9 +217,7 @@ def scan(
             if skip_summary:
                 skip_parts = [
                     f"{count} {ext}"
-                    for ext, count in sorted(
-                        skip_summary.items(), key=lambda x: -x[1]
-                    )
+                    for ext, count in sorted(skip_summary.items(), key=lambda x: -x[1])
                 ]
                 console.print_info(f"Skipped: {', '.join(skip_parts)}")
             else:
@@ -232,9 +230,13 @@ def scan(
             ast_parser=ast_parser,
             graph_store=graph_store,
             smart_content_service=smart_content_service,
-            smart_content_progress_callback=smart_content_progress if smart_content_service else None,
+            smart_content_progress_callback=smart_content_progress
+            if smart_content_service
+            else None,
             embedding_service=embedding_service,
-            embedding_progress_callback=embedding_progress if embedding_service else None,
+            embedding_progress_callback=embedding_progress
+            if embedding_service
+            else None,
             parsing_progress_callback=parsing_progress,
             parsing_complete_callback=parsing_complete,
             graph_path=graph_path,  # Per Subtask 001: Custom output path

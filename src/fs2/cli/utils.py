@@ -8,6 +8,7 @@ Per Insight #2: Wrap file writes in try/except, delete partial file on failure.
 Per Insight #3: Always use encoding="utf-8" per JSON spec RFC 8259.
 """
 
+import contextlib
 from pathlib import Path
 
 import typer
@@ -71,10 +72,8 @@ def safe_write_file(path: Path, content: str, console: Console) -> None:
     except OSError as e:
         # Cleanup partial file on error (Insight #2)
         if path.exists():
-            try:
+            with contextlib.suppress(OSError):
                 path.unlink()
-            except OSError:
-                pass  # Best effort cleanup
 
         console.print(f"[red]Error:[/red] Failed to write file: {e}")
         raise typer.Exit(code=1) from None

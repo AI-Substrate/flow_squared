@@ -181,13 +181,17 @@ class CodeNode:
 
     # === AI-Generated Content ===
     smart_content: str | None = None
-    smart_content_hash: str | None = None  # content_hash when smart_content was generated
+    smart_content_hash: str | None = (
+        None  # content_hash when smart_content was generated
+    )
 
     # === Embedding Fields (per DYK-1 and DYK-2) ===
     # Type: tuple[tuple[float, ...], ...] | None - chunk-level storage
     embedding: tuple[tuple[float, ...], ...] | None = None
     smart_content_embedding: tuple[tuple[float, ...], ...] | None = None
-    embedding_hash: str | None = None  # content_hash when embedding was generated (for staleness detection)
+    embedding_hash: str | None = (
+        None  # content_hash when embedding was generated (for staleness detection)
+    )
 
     # === Chunk Offset Tracking (Phase 0) ===
     # Type: tuple[tuple[int, int], ...] | None - (start_line, end_line) per chunk

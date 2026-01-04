@@ -86,7 +86,9 @@ class SearchService:
         self._semantic_matcher: SemanticMatcher | None = None
 
         if embedding_adapter is not None:
-            self._semantic_matcher = SemanticMatcher(embedding_adapter=embedding_adapter)
+            self._semantic_matcher = SemanticMatcher(
+                embedding_adapter=embedding_adapter
+            )
 
     async def search(self, spec: QuerySpec) -> list[SearchResult]:
         """Search nodes and return scored results.
@@ -146,8 +148,7 @@ class SearchService:
             else:
                 # Check if any nodes have embeddings
                 nodes_with_embeddings = [
-                    n for n in nodes
-                    if n.embedding or n.smart_content_embedding
+                    n for n in nodes if n.embedding or n.smart_content_embedding
                 ]
 
                 if not nodes_with_embeddings:
@@ -188,14 +189,14 @@ class SearchService:
         # Per fix 2025-12-26: Filters applied BEFORE sorting and pagination
         if spec.include:
             results = [
-                r for r in results
-                if any(re.search(p, r.node_id) for p in spec.include)
+                r for r in results if any(re.search(p, r.node_id) for p in spec.include)
             ]
 
         # Apply exclude filter (remove matching - OR logic across patterns)
         if spec.exclude:
             results = [
-                r for r in results
+                r
+                for r in results
                 if not any(re.search(p, r.node_id) for p in spec.exclude)
             ]
 

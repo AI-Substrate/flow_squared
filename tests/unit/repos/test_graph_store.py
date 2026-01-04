@@ -194,8 +194,7 @@ class TestGraphStoreGetMetadataContract:
 
         # Add a node and save
         node = CodeNode.create_file(
-            "test.py", "python", "module",
-            0, 100, 1, 10, "# test"
+            "test.py", "python", "module", 0, 100, 1, 10, "# test"
         )
         store.add_node(node)
         graph_path = tmp_path / "test_graph.pickle"
@@ -232,7 +231,9 @@ class TestGraphStoreGetMetadataContract:
         with pytest.raises(GraphStoreError, match="not loaded"):
             store.get_metadata()
 
-    def test_given_loaded_graph_when_get_metadata_then_node_count_matches(self, tmp_path):
+    def test_given_loaded_graph_when_get_metadata_then_node_count_matches(
+        self, tmp_path
+    ):
         """
         Purpose: Verifies node_count in metadata is accurate.
         Quality Contribution: Ensures correct statistics.
@@ -251,8 +252,7 @@ class TestGraphStoreGetMetadataContract:
         # Add 3 nodes
         for i in range(3):
             node = CodeNode.create_file(
-                f"test{i}.py", "python", "module",
-                0, 100, 1, 10, f"# test {i}"
+                f"test{i}.py", "python", "module", 0, 100, 1, 10, f"# test {i}"
             )
             store.add_node(node)
 

@@ -105,7 +105,9 @@ class QuerySpec:
                 try:
                     re.compile(p)
                 except re.error as e:
-                    raise ValueError(f"Invalid regex in include pattern '{p}': {e}") from None
+                    raise ValueError(
+                        f"Invalid regex in include pattern '{p}': {e}"
+                    ) from None
 
         # Validate exclude patterns are valid regex
         if self.exclude:
@@ -113,4 +115,6 @@ class QuerySpec:
                 try:
                     re.compile(p)
                 except re.error as e:
-                    raise ValueError(f"Invalid regex in exclude pattern '{p}': {e}") from None
+                    raise ValueError(
+                        f"Invalid regex in exclude pattern '{p}': {e}"
+                    ) from None

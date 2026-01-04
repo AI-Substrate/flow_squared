@@ -3,9 +3,9 @@
 **Mode**: Simple
 **Plan Version**: 1.0.0
 **Created**: 2026-01-03
-**Spec**: [./search-trimming-spec.md](./search-trimming-spec.md)
-**Research**: [./research-dossier.md](./research-dossier.md)
-**Status**: READY
+**Spec**: [search-trimming-spec.md](/workspaces/flow_squared/docs/plans/018-search-trimming/search-trimming-spec.md)
+**Research**: [research-dossier.md](/workspaces/flow_squared/docs/plans/018-search-trimming/research-dossier.md)
+**Status**: VALIDATED
 
 ---
 
@@ -30,7 +30,12 @@
 
 ## Critical Research Findings
 
-*Per research-dossier.md (55+ findings synthesized):*
+*Per [research-dossier.md](/workspaces/flow_squared/docs/plans/018-search-trimming/research-dossier.md) (55+ findings synthesized):*
+
+**Prior Learning References**:
+- **PL-04**: Use graph-based parent traversal via `get_parent()`, not `parent_node_id` field directly
+- **PL-11**: Penalization insertion point in search pipeline (after matchers, before sort)
+- **PL-15**: Conservative defaults to avoid hiding relevant results
 
 | # | Impact | Finding | Action |
 |---|--------|---------|--------|
@@ -52,20 +57,39 @@
 **Objective**: Add hierarchy-aware score penalization to search results, enabled by default (0.25), configurable via SearchConfig.
 
 **Testing Approach**: Full TDD
-**Mock Usage**: Fakes only (FakeGraphStore with parent-child edges)
+**Mock Usage**: Fakes only (import `FakeGraphStore` from `fs2.core.repos.graph_store_fake`)
+
+### Test Commands
+
+```bash
+# Unit tests for search service
+pytest tests/unit/services/test_search_service.py -v -k "parent"
+
+# Config tests for env var override
+pytest tests/unit/config/test_config.py -v -k "parent_penalty"
+
+# Integration tests
+pytest tests/integration/test_search_integration.py -v
+
+# Full test suite
+uv run pytest
+
+# Linting
+uv run ruff check src/fs2/
+```
 
 ### Tasks
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|-------|
 | [ ] | T001 | Add `parent_penalty` field to SearchConfig | 1 | Config | -- | `/workspaces/flow_squared/src/fs2/config/objects.py` | Field exists with default 0.25, validated 0.0-1.0 | AC06, AC07 |
-| [ ] | T002 | Write TDD tests for parent penalization (RED) | 2 | Test | T001 | `/workspaces/flow_squared/tests/unit/services/test_search_service.py` | Tests exist, fail initially; cover AC01-AC05, AC09-AC10 | 3-level hierarchy fixture |
-| [ ] | T003 | Extend GraphStoreProtocol with `get_parent()` | 1 | Core | -- | `/workspaces/flow_squared/src/fs2/core/services/search/search_service.py` | Protocol includes `get_parent(node_id) -> CodeNode \| None` | Finding 07 |
-| [ ] | T004 | Implement `_find_ancestors_in_results()` helper | 2 | Core | T003 | `/workspaces/flow_squared/src/fs2/core/services/search/search_service.py` | Walks graph via `get_parent()`, returns ancestor node_ids in result set | Finding 02, PL-04 |
-| [ ] | T005 | Implement `_apply_parent_penalty()` method | 2 | Core | T004 | `/workspaces/flow_squared/src/fs2/core/services/search/search_service.py` | Penalizes parents, skips score=1.0, clamps to [0,1] | AC01, AC04, AC05 |
-| [ ] | T006 | Integrate penalization into `search()` method | 2 | Core | T005, T001 | `/workspaces/flow_squared/src/fs2/core/services/search/search_service.py` | Called after matchers, before sort; uses config | Finding 08 |
+| [ ] | T002 | Write TDD tests for parent penalization (RED) | 2 | Test | -- | `/workspaces/flow_squared/tests/unit/services/test_search_service.py` | Tests exist, fail initially; cover AC01-AC05, AC09-AC10 | 3-level hierarchy fixture; use hardcoded penalty values |
+| [ ] | T003 | Extend local GraphStoreProtocol with `get_parent()` | 1 | Core | -- | `/workspaces/flow_squared/src/fs2/core/services/search/search_service.py` | Local Protocol includes `get_parent(node_id) -> CodeNode \| None` signature | Finding 07; GraphStore ABC already has method |
+| [ ] | T004 | Implement `_find_ancestors_in_results()` helper | 2 | Core | T003 | `/workspaces/flow_squared/src/fs2/core/services/search/search_service.py` | Walks graph via `get_parent()`, returns dict[node_id, depth] for ancestors in result set | Finding 02, PL-04; depth needed for DYK-01 |
+| [ ] | T005 | Implement `_apply_parent_penalty()` method | 2 | Core | T004 | `/workspaces/flow_squared/src/fs2/core/services/search/search_service.py` | Depth-weighted: `score × (1-penalty)^depth`; skips score=1.0, clamps to [0,1] | AC01, AC03, AC04, AC05; DYK-01 |
+| [ ] | T006 | Integrate penalization into `search()` method | 2 | Core | T005, T001 | `/workspaces/flow_squared/src/fs2/core/services/search/search_service.py` | Add `config: ConfigurationService` param; `config.require(SearchConfig)`; penalize after matchers, before sort | Finding 08; DYK-02 (DI pattern) |
 | [ ] | T007 | Verify all TDD tests pass (GREEN) | 1 | Test | T006 | `/workspaces/flow_squared/tests/unit/services/test_search_service.py` | All AC01-AC10 tests pass | |
-| [ ] | T008 | Write integration test with real graph hierarchy | 2 | Test | T007 | `/workspaces/flow_squared/tests/integration/test_search_integration.py` | Method > class > file ordering verified | AC02, AC03 |
+| [ ] | T008 | Write integration test with real graph hierarchy | 2 | Test | T007 | `/workspaces/flow_squared/tests/integration/test_search_integration.py` | Method > class > file ordering verified | AC02, AC03; create file if not exists |
 | [ ] | T009 | Test env var override `FS2_SEARCH__PARENT_PENALTY` | 1 | Test | T001 | `/workspaces/flow_squared/tests/unit/config/test_config.py` | Env var overrides config file value | AC08 |
 | [ ] | T010 | Verify semantic search mode works with penalization | 1 | Test | T007 | `/workspaces/flow_squared/tests/unit/services/test_search_service.py` | Semantic results also penalized correctly | AC10 |
 
@@ -147,6 +171,7 @@ class TestParentPenalization:
         Quality Contribution: Preserves user intent for exact searches
         Acceptance Criteria: Score 1.0 remains 1.0 even with child in results
         """
+        service = SearchService(graph_store=parent_penalty_graph_store)
         # Search for exact class name
         results = await service.search(QuerySpec(pattern="AuthService", mode=SearchMode.TEXT))
 
@@ -162,6 +187,7 @@ class TestParentPenalization:
         Purpose: Proves penalty can be disabled via config (AC09)
         Quality Contribution: Allows opt-out for users who want original behavior
         """
+        service = SearchService(graph_store=parent_penalty_graph_store, parent_penalty=0.0)
         # Configure penalty = 0.0
         results = await service.search(QuerySpec(pattern="auth", mode=SearchMode.TEXT))
 
@@ -202,5 +228,4 @@ class TestParentPenalization:
 ---
 
 **Next steps:**
-- **Ready to implement**: `/plan-6-implement-phase --plan "docs/plans/018-search-trimming/search-trimming-plan.md"`
-- **Optional validation**: `/plan-4-complete-the-plan` (recommended for final check)
+- **Ready to implement**: `/plan-6-implement-phase --plan "/workspaces/flow_squared/docs/plans/018-search-trimming/search-trimming-plan.md"`

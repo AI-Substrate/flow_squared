@@ -23,7 +23,6 @@ Worked Example:
 """
 
 
-
 class TestPythonHandler:
     """Tests for PythonHandler - Python-specific container types."""
 

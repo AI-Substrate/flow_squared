@@ -229,9 +229,7 @@ class SmartContentService:
             "signature": node.signature or "",
         }
 
-    async def _generate_with_error_handling(
-        self, node: CodeNode, prompt: str
-    ) -> str:
+    async def _generate_with_error_handling(self, node: CodeNode, prompt: str) -> str:
         """Call LLM with error handling per CD07."""
         try:
             # Get max_tokens for output from config
@@ -450,7 +448,12 @@ class SmartContentService:
 
                     # Progress callback every N items (user request: every 10)
                     if stats["processed"] % _PROGRESS_INTERVAL == 0:
-                        remaining = stats["total"] - stats["processed"] - stats["skipped"] - len(stats["errors"])
+                        remaining = (
+                            stats["total"]
+                            - stats["processed"]
+                            - stats["skipped"]
+                            - len(stats["errors"])
+                        )
                         logger.info(
                             "Progress: %d/%d processed, %d remaining",
                             stats["processed"],

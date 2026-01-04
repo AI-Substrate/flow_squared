@@ -143,9 +143,7 @@ class TestCodeNodeEmbeddingReplace:
         # Arrange (fixtures provide sample_node and single_chunk_embedding)
 
         # Act
-        updated = replace(
-            sample_node, smart_content_embedding=single_chunk_embedding
-        )
+        updated = replace(sample_node, smart_content_embedding=single_chunk_embedding)
 
         # Assert
         assert sample_node.smart_content_embedding is None
@@ -308,9 +306,7 @@ class TestCodeNodeEmbeddingIndependence:
         # Arrange (fixtures provide sample_node and single_chunk_embedding)
 
         # Act
-        updated = replace(
-            sample_node, smart_content_embedding=single_chunk_embedding
-        )
+        updated = replace(sample_node, smart_content_embedding=single_chunk_embedding)
 
         # Assert
         assert updated.embedding is None
@@ -464,9 +460,7 @@ class TestCodeNodeChunkOffsets:
     Per DYK-05: Only raw content has chunk offsets (smart_content uses node's full range).
     """
 
-    def test_given_node_when_created_then_chunk_offsets_default_none(
-        self, sample_node
-    ):
+    def test_given_node_when_created_then_chunk_offsets_default_none(self, sample_node):
         """
         Purpose: Proves backward compatibility - default is None
         Quality Contribution: Prevents breaking changes
@@ -474,9 +468,7 @@ class TestCodeNodeChunkOffsets:
         """
         assert sample_node.embedding_chunk_offsets is None
 
-    def test_given_chunk_offsets_when_set_then_stored_correctly(
-        self, sample_node
-    ):
+    def test_given_chunk_offsets_when_set_then_stored_correctly(self, sample_node):
         """
         Purpose: Proves CodeNode can store chunk offset metadata
         Quality Contribution: Enables semantic search detail mode
@@ -488,9 +480,7 @@ class TestCodeNodeChunkOffsets:
         assert updated.embedding_chunk_offsets == offsets
         assert len(updated.embedding_chunk_offsets) == 4
 
-    def test_given_chunk_offsets_when_set_then_are_tuples(
-        self, sample_node
-    ):
+    def test_given_chunk_offsets_when_set_then_are_tuples(self, sample_node):
         """
         Purpose: Proves chunk offsets use tuple type (immutable)
         Quality Contribution: Matches embedding field patterns
@@ -501,8 +491,7 @@ class TestCodeNodeChunkOffsets:
 
         assert isinstance(updated.embedding_chunk_offsets, tuple)
         assert all(
-            isinstance(offset, tuple)
-            for offset in updated.embedding_chunk_offsets
+            isinstance(offset, tuple) for offset in updated.embedding_chunk_offsets
         )
 
     def test_given_node_with_offsets_when_pickle_roundtrip_then_preserved(
@@ -541,9 +530,7 @@ class TestCodeNodeChunkOffsets:
 
         assert len(updated.embedding) == len(updated.embedding_chunk_offsets)
 
-    def test_given_empty_offsets_when_set_then_is_empty_tuple(
-        self, sample_node
-    ):
+    def test_given_empty_offsets_when_set_then_is_empty_tuple(self, sample_node):
         """
         Purpose: Proves empty content produces empty offsets
         Quality Contribution: Consistent handling of edge cases

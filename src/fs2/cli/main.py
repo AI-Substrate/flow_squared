@@ -19,7 +19,7 @@ from typing import Annotated
 
 import typer
 
-from fs2.cli.doctor import doctor
+from fs2.cli.doctor import doctor_app
 from fs2.cli.get_node import get_node
 from fs2.cli.guard import require_init
 from fs2.cli.init import init
@@ -86,7 +86,7 @@ app.command(name="mcp")(require_init(mcp))
 
 # Commands that always work (not guarded)
 app.command(name="init")(init)
-app.command(name="doctor")(doctor)
+app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
 app.command(name="install")(install)
 app.command(name="upgrade")(upgrade)
 

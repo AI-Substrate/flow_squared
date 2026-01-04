@@ -83,11 +83,13 @@ def config_service_for(test_graph_path: Path):
     Includes GraphConfig pointing to temp directory to avoid corrupting
     the project's real .fs2/graph.pickle during test runs.
     """
+
     def _create(scan_paths: list[str]) -> FakeConfigurationService:
         return FakeConfigurationService(
             ScanConfig(scan_paths=scan_paths, respect_gitignore=True),
             GraphConfig(graph_path=str(test_graph_path)),
         )
+
     return _create
 
 
@@ -181,11 +183,15 @@ class TestHierarchyAC5:
             graph_path=test_graph_path,
         )
 
-        summary = pipeline.run()
+        pipeline.run()
 
         # Verify hierarchy exists
         # Find the Calculator class node
-        class_nodes = [n for n in store.get_all_nodes() if n.category == "type" and n.name == "Calculator"]
+        class_nodes = [
+            n
+            for n in store.get_all_nodes()
+            if n.category == "type" and n.name == "Calculator"
+        ]
         assert len(class_nodes) == 1
 
         class_node = class_nodes[0]
@@ -401,7 +407,7 @@ class TestGitignoreIntegration:
             graph_path=test_graph_path,
         )
 
-        summary = pipeline.run()
+        pipeline.run()
 
         # Should only have Python files, not log or cache
         file_nodes = [n for n in store.get_all_nodes() if n.category == "file"]
@@ -455,8 +461,12 @@ class TestSmartContentIntegration:
         # Create isolated project
         src = tmp_path / "src"
         src.mkdir()
-        (src / "calc.py").write_text("def add(a, b):\n    '''Add two numbers together and return the result.'''\n    return a + b")
-        (src / "utils.py").write_text("def helper():\n    '''A helper function that performs utility operations.'''\n    pass")
+        (src / "calc.py").write_text(
+            "def add(a, b):\n    '''Add two numbers together and return the result.'''\n    return a + b"
+        )
+        (src / "utils.py").write_text(
+            "def helper():\n    '''A helper function that performs utility operations.'''\n    pass"
+        )
 
         # Create config with temp graph path
         graph_path = tmp_path / "test_graph.pickle"
@@ -500,10 +510,12 @@ class TestSmartContentIntegration:
         # Verify success and metrics
         assert summary.success is True
         assert summary.files_scanned == 2
-        assert summary.metrics.get("smart_content_enriched", 0) > 0, \
+        assert summary.metrics.get("smart_content_enriched", 0) > 0, (
             "Expected smart_content_enriched > 0"
-        assert summary.metrics.get("smart_content_errors", 0) == 0, \
+        )
+        assert summary.metrics.get("smart_content_errors", 0) == 0, (
             "Expected smart_content_errors == 0"
+        )
 
         # Verify LLM was actually called
         assert len(llm_adapter.call_history) > 0, "Expected LLM to be called"
@@ -532,7 +544,9 @@ class TestSmartContentIntegration:
         # Create isolated project
         src = tmp_path / "src"
         src.mkdir()
-        (src / "stable.py").write_text("def stable():\n    '''A stable function that does not change between scans.'''\n    return True")
+        (src / "stable.py").write_text(
+            "def stable():\n    '''A stable function that does not change between scans.'''\n    return True"
+        )
 
         graph_path = tmp_path / "test_graph.pickle"
 
@@ -566,7 +580,7 @@ class TestSmartContentIntegration:
             graph_path=graph_path,
         )
 
-        summary1 = pipeline1.run()
+        pipeline1.run()
         first_call_count = len(llm_adapter.call_history)
 
         # Graph already saved by StorageStage
@@ -592,11 +606,13 @@ class TestSmartContentIntegration:
         second_call_count = len(llm_adapter.call_history)
 
         # Verify preservation metrics
-        assert summary2.metrics.get("smart_content_preserved", 0) > 0, \
+        assert summary2.metrics.get("smart_content_preserved", 0) > 0, (
             "Expected preservation on second scan"
+        )
         # Fewer LLM calls on second scan
-        assert second_call_count < first_call_count, \
+        assert second_call_count < first_call_count, (
             f"Expected fewer LLM calls on second scan ({second_call_count} vs {first_call_count})"
+        )
 
     def test_given_no_smart_service_when_scanning_then_zero_metrics(
         self, tmp_path: Path

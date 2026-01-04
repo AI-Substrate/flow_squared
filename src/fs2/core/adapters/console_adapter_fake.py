@@ -111,9 +111,7 @@ class FakeConsoleAdapter(ConsoleAdapter):
 
     def stage_banner(self, title: str) -> None:
         """Capture stage banner."""
-        self._messages.append(
-            FakeConsoleMessage(method="stage_banner", content=title)
-        )
+        self._messages.append(FakeConsoleMessage(method="stage_banner", content=title))
 
     def stage_banner_skipped(self, title: str) -> None:
         """Capture skipped stage banner."""

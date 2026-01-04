@@ -27,4 +27,3 @@ class TestSmartContentExceptions:
 
         assert issubclass(TemplateError, SmartContentError)
         assert issubclass(SmartContentProcessingError, SmartContentError)
-

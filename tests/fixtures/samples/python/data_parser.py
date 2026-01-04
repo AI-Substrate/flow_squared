@@ -9,9 +9,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generic, TypeVar
-
-T = TypeVar("T")
+from typing import Any
 
 
 @dataclass
@@ -25,7 +23,7 @@ class ParseError:
 
 
 @dataclass
-class ParseResult(Generic[T]):
+class ParseResult[T]:
     """Result of a parsing operation."""
 
     data: T | None
@@ -38,7 +36,7 @@ class ParseResult(Generic[T]):
         return len(self.errors) == 0 and self.data is not None
 
 
-class DataParser(ABC, Generic[T]):
+class DataParser[T](ABC):
     """Abstract base class for data parsers.
 
     Defines the interface for parsing various data formats
@@ -224,7 +222,7 @@ class CSVParser(DataParser[list[dict[str, str]]]):
                             )
                         )
                         continue
-                    rows.append(dict(zip(headers, row)))
+                    rows.append(dict(zip(headers, row, strict=False)))
                 else:
                     rows.append({str(i): v for i, v in enumerate(row)})
         except csv.Error as e:
@@ -262,6 +260,6 @@ class CSVParser(DataParser[list[dict[str, str]]]):
                 if self.skip_empty_rows and not any(row):
                     continue
                 if headers:
-                    yield dict(zip(headers, row))
+                    yield dict(zip(headers, row, strict=False))
                 else:
                     yield {str(i): v for i, v in enumerate(row)}

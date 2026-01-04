@@ -194,9 +194,7 @@ class TestTreeMissingGraph:
 
         result = runner.invoke(app, ["tree"])
 
-        assert result.exit_code == 1, (
-            f"Expected exit 1, got {result.exit_code}"
-        )
+        assert result.exit_code == 1, f"Expected exit 1, got {result.exit_code}"
         # Note: Error message goes to stderr per CLI convention (Console(stderr=True))
 
     def test_given_no_graph_when_tree_invoked_then_shows_helpful_message(
@@ -1177,7 +1175,7 @@ class TestTreeJsonOutput:
         assert result.exit_code == 0, f"Failed with: {result.stdout}"
         # Should be parseable as JSON
         try:
-            data = json.loads(result.stdout)
+            json.loads(result.stdout)
         except json.JSONDecodeError as e:
             pytest.fail(f"Output is not valid JSON: {e}\nOutput: {result.stdout}")
 
@@ -1204,7 +1202,9 @@ class TestTreeJsonOutput:
         data = json.loads(result.stdout)
         # Must have "tree" key at top level
         assert "tree" in data, f"Expected 'tree' key in {data.keys()}"
-        assert isinstance(data["tree"], list), f"Expected list, got {type(data['tree'])}"
+        assert isinstance(data["tree"], list), (
+            f"Expected list, got {type(data['tree'])}"
+        )
 
     def test_given_json_flag_when_tree_then_nodes_have_required_fields(
         self, scanned_project
@@ -1224,7 +1224,14 @@ class TestTreeJsonOutput:
 
         assert result.exit_code == 0
         data = json.loads(result.stdout)
-        required_fields = {"node_id", "name", "category", "start_line", "end_line", "children"}
+        required_fields = {
+            "node_id",
+            "name",
+            "category",
+            "start_line",
+            "end_line",
+            "children",
+        }
 
         def check_node_fields(node: dict, path: str = "root"):
             """Recursively check all nodes have required fields."""
@@ -1256,7 +1263,9 @@ class TestTreeJsonOutput:
         # Check there's no extra lines before or after the JSON
         lines = result.stdout.strip().split("\n")
         # First line should start with { and last should end with }
-        assert lines[0].strip().startswith("{"), f"First line not JSON start: {lines[0]}"
+        assert lines[0].strip().startswith("{"), (
+            f"First line not JSON start: {lines[0]}"
+        )
         assert lines[-1].strip().endswith("}"), f"Last line not JSON end: {lines[-1]}"
 
     def test_given_json_and_detail_max_when_tree_then_includes_extra_fields(
@@ -1292,7 +1301,9 @@ class TestTreeJsonOutput:
             "Expected at least one node with 'signature' field in max detail mode"
         )
 
-    def test_given_json_and_pattern_when_tree_then_filters_results(self, scanned_project):
+    def test_given_json_and_pattern_when_tree_then_filters_results(
+        self, scanned_project
+    ):
         """
         Purpose: Verifies --json respects pattern filtering.
         Quality Contribution: JSON output works with all other options.
@@ -1415,7 +1426,9 @@ class TestTreeFileOutput:
 
         assert result.exit_code == 0
         # stdout should be empty (confirmation goes to stderr)
-        assert result.stdout.strip() == "", f"Expected empty stdout, got: {result.stdout}"
+        assert result.stdout.strip() == "", (
+            f"Expected empty stdout, got: {result.stdout}"
+        )
 
     def test_given_file_flag_when_tree_then_shows_confirmation_on_stderr(
         self, scanned_project

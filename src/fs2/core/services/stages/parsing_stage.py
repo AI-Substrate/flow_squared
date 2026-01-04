@@ -60,7 +60,12 @@ class ParsingStage:
 
         for i, scan_result in enumerate(context.scan_results):
             # Progress callback every 100 files for large scans
-            if progress_callback and total > 100 and i > 0 and i % progress_interval == 0:
+            if (
+                progress_callback
+                and total > 100
+                and i > 0
+                and i % progress_interval == 0
+            ):
                 progress_callback(i, total)
 
             try:

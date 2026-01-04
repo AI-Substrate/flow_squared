@@ -233,9 +233,11 @@ class TestSearchServiceOrchestration:
         """
         from fs2.core.services.search.search_service import SearchService
 
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:AuthService"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:AuthService"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         results = await service.search(
@@ -256,10 +258,12 @@ class TestSearchServiceOrchestration:
         """
         from fs2.core.services.search.search_service import SearchService
 
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:process_data"),
-            create_node("callable:test.py:validate_data"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:process_data"),
+                create_node("callable:test.py:validate_data"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         results = await service.search(
@@ -279,13 +283,15 @@ class TestSearchServiceOrchestration:
         """
         from fs2.core.services.search.search_service import SearchService
 
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:func1"),
-            create_node("callable:test.py:func2"),
-            create_node("callable:test.py:func3"),
-            create_node("callable:test.py:func4"),
-            create_node("callable:test.py:func5"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:func1"),
+                create_node("callable:test.py:func2"),
+                create_node("callable:test.py:func3"),
+                create_node("callable:test.py:func4"),
+                create_node("callable:test.py:func5"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         results = await service.search(
@@ -304,15 +310,17 @@ class TestSearchServiceOrchestration:
         """
         from fs2.core.services.search.search_service import SearchService
 
-        graph_store = FakeGraphStore([
-            # This one has pattern only in content (score 0.5)
-            create_node(
-                "callable:test.py:process",
-                content="uses AuthService internally",
-            ),
-            # This one has pattern in node_id (score 0.8)
-            create_node("callable:test.py:AuthService"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                # This one has pattern only in content (score 0.5)
+                create_node(
+                    "callable:test.py:process",
+                    content="uses AuthService internally",
+                ),
+                # This one has pattern in node_id (score 0.8)
+                create_node("callable:test.py:AuthService"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         results = await service.search(
@@ -334,9 +342,11 @@ class TestSearchServiceOrchestration:
         """
         from fs2.core.services.search.search_service import SearchService
 
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:process_data"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:process_data"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         # Regex pattern with AUTO mode - should route to REGEX
@@ -358,9 +368,11 @@ class TestSearchServiceOrchestration:
         from fs2.core.services.search.search_service import SearchService
 
         # Nodes WITHOUT embeddings
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:AuthService"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:AuthService"),
+            ]
+        )
         # No embedding_adapter provided
         service = SearchService(graph_store=graph_store)
 
@@ -402,9 +414,11 @@ class TestSearchServiceOrchestration:
         """
         from fs2.core.services.search.search_service import SearchService
 
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:func"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:func"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         results = await service.search(
@@ -428,9 +442,7 @@ class TestSearchServiceOrchestration:
         service = SearchService(graph_store=graph_store)  # No embedding_adapter
 
         with pytest.raises(SearchError) as exc_info:
-            await service.search(
-                QuerySpec(pattern="concept", mode=SearchMode.SEMANTIC)
-            )
+            await service.search(QuerySpec(pattern="concept", mode=SearchMode.SEMANTIC))
 
         assert "SEMANTIC" in str(exc_info.value)
         assert "embedding adapter" in str(exc_info.value).lower()
@@ -460,12 +472,14 @@ class TestSearchServiceSemanticFallback:
         from fs2.core.services.search.search_service import SearchService
 
         # Node WITH embedding
-        graph_store = FakeGraphStore([
-            create_node(
-                "callable:test.py:AuthService",
-                embedding=((1.0, 0.0, 0.0, 0.0),),
-            ),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node(
+                    "callable:test.py:AuthService",
+                    embedding=((1.0, 0.0, 0.0, 0.0),),
+                ),
+            ]
+        )
 
         # Set up adapter to return matching embedding
         adapter = FakeEmbeddingAdapter()
@@ -496,9 +510,11 @@ class TestSearchServiceSemanticFallback:
         from fs2.core.services.search.search_service import SearchService
 
         # Nodes WITHOUT embeddings
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:AuthService"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:AuthService"),
+            ]
+        )
 
         adapter = FakeEmbeddingAdapter()
         service = SearchService(graph_store=graph_store, embedding_adapter=adapter)
@@ -526,17 +542,17 @@ class TestSearchServiceSemanticFallback:
         from fs2.core.services.search.search_service import SearchService
 
         # Nodes WITHOUT embeddings
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:func"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:func"),
+            ]
+        )
 
         adapter = FakeEmbeddingAdapter()
         service = SearchService(graph_store=graph_store, embedding_adapter=adapter)
 
         with pytest.raises(SearchError) as exc_info:
-            await service.search(
-                QuerySpec(pattern="concept", mode=SearchMode.SEMANTIC)
-            )
+            await service.search(QuerySpec(pattern="concept", mode=SearchMode.SEMANTIC))
 
         assert "embeddings" in str(exc_info.value).lower()
         assert "scan" in str(exc_info.value).lower()
@@ -556,12 +572,14 @@ class TestSearchServiceSemanticFallback:
         query_embedding = [1.0, 0.0, 0.0, 0.0]
 
         # Node with similar embedding
-        graph_store = FakeGraphStore([
-            create_node(
-                "callable:test.py:AuthService",
-                embedding=((0.95, 0.1, 0.0, 0.0),),
-            ),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node(
+                    "callable:test.py:AuthService",
+                    embedding=((0.95, 0.1, 0.0, 0.0),),
+                ),
+            ]
+        )
 
         adapter = FakeEmbeddingAdapter()
         adapter.set_response(query_embedding)
@@ -600,13 +618,15 @@ class TestSearchServiceOffsetSlicing:
         from fs2.core.services.search.search_service import SearchService
 
         # Create 5 nodes that all match "func"
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:func1"),
-            create_node("callable:test.py:func2"),
-            create_node("callable:test.py:func3"),
-            create_node("callable:test.py:func4"),
-            create_node("callable:test.py:func5"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:func1"),
+                create_node("callable:test.py:func2"),
+                create_node("callable:test.py:func3"),
+                create_node("callable:test.py:func4"),
+                create_node("callable:test.py:func5"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         # Get first page (no offset)
@@ -638,13 +658,15 @@ class TestSearchServiceOffsetSlicing:
         """
         from fs2.core.services.search.search_service import SearchService
 
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:func1"),
-            create_node("callable:test.py:func2"),
-            create_node("callable:test.py:func3"),
-            create_node("callable:test.py:func4"),
-            create_node("callable:test.py:func5"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:func1"),
+                create_node("callable:test.py:func2"),
+                create_node("callable:test.py:func3"),
+                create_node("callable:test.py:func4"),
+                create_node("callable:test.py:func5"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         # Page 1: offset=0, limit=2 -> results[0:2]
@@ -683,10 +705,12 @@ class TestSearchServiceOffsetSlicing:
         """
         from fs2.core.services.search.search_service import SearchService
 
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:func1"),
-            create_node("callable:test.py:func2"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:func1"),
+                create_node("callable:test.py:func2"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         # Only 2 results, but offset is 10
@@ -706,11 +730,13 @@ class TestSearchServiceOffsetSlicing:
         """
         from fs2.core.services.search.search_service import SearchService
 
-        graph_store = FakeGraphStore([
-            create_node("callable:test.py:func1"),
-            create_node("callable:test.py:func2"),
-            create_node("callable:test.py:func3"),
-        ])
+        graph_store = FakeGraphStore(
+            [
+                create_node("callable:test.py:func1"),
+                create_node("callable:test.py:func2"),
+                create_node("callable:test.py:func3"),
+            ]
+        )
         service = SearchService(graph_store=graph_store)
 
         # With explicit offset=0

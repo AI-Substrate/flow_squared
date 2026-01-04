@@ -192,9 +192,7 @@ class TestFileSystemScannerBasicTraversal:
         test_file.write_text(content)
         expected_size = test_file.stat().st_size
 
-        config = FakeConfigurationService(
-            ScanConfig(scan_paths=[str(tmp_path)])
-        )
+        config = FakeConfigurationService(ScanConfig(scan_paths=[str(tmp_path)]))
         scanner = FileSystemScanner(config)
 
         # Act
@@ -313,7 +311,9 @@ class TestFileSystemScannerGitignore:
         assert "debug.log" not in file_names  # Excluded by root (expected)
         assert "important.log" not in file_names  # ALSO excluded! (Critical Finding 04)
 
-    def test_file_system_scanner_respects_gitignore_false_skips_patterns(self, tmp_path):
+    def test_file_system_scanner_respects_gitignore_false_skips_patterns(
+        self, tmp_path
+    ):
         """
         Purpose: Verifies respect_gitignore=False disables gitignore handling.
         Quality Contribution: Ensures config option works correctly.
@@ -570,9 +570,7 @@ class TestFileSystemScannerEdgeCases:
         empty_dir = tmp_path / "empty"
         empty_dir.mkdir()
 
-        config = FakeConfigurationService(
-            ScanConfig(scan_paths=[str(empty_dir)])
-        )
+        config = FakeConfigurationService(ScanConfig(scan_paths=[str(empty_dir)]))
         scanner = FileSystemScanner(config)
 
         # Act
@@ -597,9 +595,7 @@ class TestFileSystemScannerEdgeCases:
         (tmp_path / "subdir").mkdir()
         (tmp_path / "file.py").write_text("# file")
 
-        config = FakeConfigurationService(
-            ScanConfig(scan_paths=[str(tmp_path)])
-        )
+        config = FakeConfigurationService(ScanConfig(scan_paths=[str(tmp_path)]))
         scanner = FileSystemScanner(config)
 
         # Act
@@ -660,9 +656,7 @@ class TestFileSystemScannerErrorHandling:
         os.chmod(no_read, 0o000)  # Remove all permissions
 
         try:
-            config = FakeConfigurationService(
-                ScanConfig(scan_paths=[str(tmp_path)])
-            )
+            config = FakeConfigurationService(ScanConfig(scan_paths=[str(tmp_path)]))
             scanner = FileSystemScanner(config)
 
             # Act
@@ -699,9 +693,7 @@ class TestFileSystemScannerErrorHandling:
         os.chmod(restricted, 0o000)  # Can't list directory contents
 
         try:
-            config = FakeConfigurationService(
-                ScanConfig(scan_paths=[str(tmp_path)])
-            )
+            config = FakeConfigurationService(ScanConfig(scan_paths=[str(tmp_path)]))
             scanner = FileSystemScanner(config)
 
             # Act - should NOT raise, just skip the restricted subtree
@@ -740,9 +732,7 @@ class TestFileSystemScannerErrorHandling:
         (tmp_path / "dir3" / "file3.py").write_text("# file3")
 
         try:
-            config = FakeConfigurationService(
-                ScanConfig(scan_paths=[str(tmp_path)])
-            )
+            config = FakeConfigurationService(ScanConfig(scan_paths=[str(tmp_path)]))
             scanner = FileSystemScanner(config)
 
             # Act
@@ -800,9 +790,7 @@ class TestFileSystemScannerErrorHandling:
 
         # Arrange - create scanner but DON'T call scan()
         (tmp_path / "test.py").write_text("# test")
-        config = FakeConfigurationService(
-            ScanConfig(scan_paths=[str(tmp_path)])
-        )
+        config = FakeConfigurationService(ScanConfig(scan_paths=[str(tmp_path)]))
         scanner = FileSystemScanner(config)
 
         # Act & Assert - should_ignore() without scan() raises

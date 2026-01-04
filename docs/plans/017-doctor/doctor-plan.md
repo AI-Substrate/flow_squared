@@ -143,7 +143,10 @@
 
 ## Change Footnotes Ledger
 
-[^1]: [To be added during implementation via plan-6a]
+[^1]: Subtask 001 - fs2 doctor llm subcommand implementation
+  - `file:src/fs2/cli/doctor.py` - Added doctor_app Typer command group, _test_llm_provider(), _test_embedding_provider(), _run_llm_tests(), doctor_llm() command
+  - `file:src/fs2/cli/main.py` - Changed doctor registration from app.command() to app.add_typer()
+  - `file:tests/unit/cli/test_doctor_llm.py` - New test file with 3 CLI tests for doctor llm subcommand
 
 ---
 
@@ -153,7 +156,7 @@ Mid-implementation detours requiring structured tracking.
 
 | ID | Created | Phase | Parent Task | Reason | Status | Dossier |
 |----|---------|-------|-------------|--------|--------|---------|
-| 001-subtask-doctor-llm-provider-test | 2026-01-03 | Phase 1: Implementation | T014 | Original doctor validates config structure but not connectivity. Users need pre-flight check that credentials actually work before running expensive scan operations. | [ ] Pending | [Link](tasks/phase-1-implementation/001-subtask-doctor-llm-provider-test.md) |
+| 001-subtask-doctor-llm-provider-test | 2026-01-03 | Phase 1: Implementation | T014 | Original doctor validates config structure but not connectivity. Users need pre-flight check that credentials actually work before running expensive scan operations. | [x] Complete | [Link](tasks/phase-1-implementation/001-subtask-doctor-llm-provider-test.md) |
 
 ---
 

@@ -56,4 +56,3 @@ class TestHashUtils:
         expected = hashlib.sha256(text.encode("utf-8")).hexdigest()
 
         assert compute_content_hash(text) == expected
-

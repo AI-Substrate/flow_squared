@@ -12,10 +12,6 @@ Full TDD tests for the doctor command covering:
 - T024: Provider-specific validation
 """
 
-import os
-from pathlib import Path
-
-import pytest
 from typer.testing import CliRunner
 
 runner = CliRunner()
@@ -260,9 +256,7 @@ class TestMergeChain:
 
         assert len(overrides) >= 1
         # Find the override for max_file_size_kb
-        override_found = any(
-            "max_file_size_kb" in o["path"] for o in overrides
-        )
+        override_found = any("max_file_size_kb" in o["path"] for o in overrides)
         assert override_found
 
     def test_given_no_overrides_when_compute_then_returns_empty(
@@ -295,7 +289,9 @@ class TestMergeChain:
         overrides = detect_overrides()
 
         # No overrides for existing keys
-        max_file_size_overrides = [o for o in overrides if "max_file_size_kb" in o.get("path", "")]
+        max_file_size_overrides = [
+            o for o in overrides if "max_file_size_kb" in o.get("path", "")
+        ]
         assert len(max_file_size_overrides) == 0
 
     def test_given_nested_override_when_compute_then_includes_full_path(
@@ -491,7 +487,9 @@ class TestPlaceholderValidation:
         placeholders = validate_placeholders()
 
         my_api_key = next((p for p in placeholders if p["name"] == "MY_API_KEY"), None)
-        my_endpoint = next((p for p in placeholders if p["name"] == "MY_ENDPOINT"), None)
+        my_endpoint = next(
+            (p for p in placeholders if p["name"] == "MY_ENDPOINT"), None
+        )
 
         assert my_api_key is not None
         assert my_api_key["resolved"] is True
@@ -519,7 +517,9 @@ class TestPlaceholderValidation:
 
         placeholders = validate_placeholders()
 
-        missing = next((p for p in placeholders if p["name"] == "MISSING_API_KEY"), None)
+        missing = next(
+            (p for p in placeholders if p["name"] == "MISSING_API_KEY"), None
+        )
 
         assert missing is not None
         assert missing["resolved"] is False
@@ -607,9 +607,7 @@ class TestSecretDetection:
         # Should detect long literal
         assert len(secrets) >= 1
 
-    def test_given_placeholder_when_check_then_no_warning(
-        self, tmp_path, monkeypatch
-    ):
+    def test_given_placeholder_when_check_then_no_warning(self, tmp_path, monkeypatch):
         """
         Purpose: Verifies placeholders don't trigger false warnings.
         Quality Contribution: No noise for properly configured secrets.
@@ -661,9 +659,7 @@ class TestEdgeCases:
 
         suggestions = get_suggestions()
 
-        init_suggestion = next(
-            (s for s in suggestions if "init" in s.lower()), None
-        )
+        init_suggestion = next((s for s in suggestions if "init" in s.lower()), None)
         assert init_suggestion is not None
 
     def test_given_central_only_when_doctor_then_warns_no_local(
@@ -697,9 +693,7 @@ class TestEdgeCases:
         )
         assert local_warning is not None
 
-    def test_given_healthy_config_when_doctor_then_exit_0(
-        self, tmp_path, monkeypatch
-    ):
+    def test_given_healthy_config_when_doctor_then_exit_0(self, tmp_path, monkeypatch):
         """
         Purpose: Verifies exit code 0 when healthy.
         Quality Contribution: Clear success signal.
@@ -720,9 +714,7 @@ class TestEdgeCases:
 
         assert result.exit_code == 0
 
-    def test_given_issues_when_doctor_then_exit_1(
-        self, tmp_path, monkeypatch
-    ):
+    def test_given_issues_when_doctor_then_exit_1(self, tmp_path, monkeypatch):
         """
         Purpose: Verifies exit code 1 when issues found.
         Quality Contribution: Clear failure signal for CI.
@@ -776,9 +768,7 @@ class TestYAMLValidation:
 
         errors = validate_configs()
 
-        yaml_error = next(
-            (e for e in errors if e["type"] == "yaml_syntax"), None
-        )
+        yaml_error = next((e for e in errors if e["type"] == "yaml_syntax"), None)
         assert yaml_error is not None
 
     def test_given_yaml_error_when_doctor_then_shows_line_number(
@@ -796,15 +786,15 @@ class TestYAMLValidation:
         fs2_dir = project_dir / ".fs2"
         fs2_dir.mkdir()
         # Invalid YAML on line 3
-        (fs2_dir / "config.yaml").write_text("scan:\n  scan_paths:\n    - bad: yaml: here")
+        (fs2_dir / "config.yaml").write_text(
+            "scan:\n  scan_paths:\n    - bad: yaml: here"
+        )
 
         monkeypatch.chdir(project_dir)
 
         errors = validate_configs()
 
-        yaml_error = next(
-            (e for e in errors if e["type"] == "yaml_syntax"), None
-        )
+        yaml_error = next((e for e in errors if e["type"] == "yaml_syntax"), None)
         assert yaml_error is not None
         assert "line" in yaml_error or "line_number" in yaml_error
 
@@ -864,9 +854,7 @@ class TestYAMLValidation:
 class TestPydanticValidation:
     """T023: Tests for pydantic schema validation."""
 
-    def test_given_wrong_type_when_doctor_then_shows_error(
-        self, tmp_path, monkeypatch
-    ):
+    def test_given_wrong_type_when_doctor_then_shows_error(self, tmp_path, monkeypatch):
         """
         Purpose: Verifies type errors are caught.
         Quality Contribution: Clear error for type mismatches.
@@ -916,7 +904,9 @@ class TestPydanticValidation:
             (e for e in errors if e["type"] == "schema_validation"), None
         )
         assert schema_error is not None
-        assert "timeout" in schema_error.get("field", "") or "timeout" in schema_error.get("message", "")
+        assert "timeout" in schema_error.get(
+            "field", ""
+        ) or "timeout" in schema_error.get("message", "")
 
     def test_given_nested_invalid_value_when_doctor_then_shows_full_path(
         self, tmp_path, monkeypatch
@@ -933,7 +923,9 @@ class TestPydanticValidation:
         fs2_dir = project_dir / ".fs2"
         fs2_dir.mkdir()
         # dimensions should be positive
-        (fs2_dir / "config.yaml").write_text("embedding:\n  mode: azure\n  dimensions: -1")
+        (fs2_dir / "config.yaml").write_text(
+            "embedding:\n  mode: azure\n  dimensions: -1"
+        )
 
         monkeypatch.chdir(project_dir)
 
@@ -1005,7 +997,13 @@ class TestProviderValidation:
         errors = validate_provider_requirements()
 
         endpoint_error = next(
-            (e for e in errors if "base_url" in e.get("field", "") or "endpoint" in e.get("message", "").lower()), None
+            (
+                e
+                for e in errors
+                if "base_url" in e.get("field", "")
+                or "endpoint" in e.get("message", "").lower()
+            ),
+            None,
         )
         assert endpoint_error is not None
 
@@ -1038,7 +1036,13 @@ class TestProviderValidation:
         errors = validate_provider_requirements()
 
         deployment_error = next(
-            (e for e in errors if "deployment" in e.get("field", "").lower() or "deployment" in e.get("message", "").lower()), None
+            (
+                e
+                for e in errors
+                if "deployment" in e.get("field", "").lower()
+                or "deployment" in e.get("message", "").lower()
+            ),
+            None,
         )
         assert deployment_error is not None
 
@@ -1070,7 +1074,13 @@ class TestProviderValidation:
         errors = validate_provider_requirements()
 
         endpoint_error = next(
-            (e for e in errors if "endpoint" in e.get("field", "").lower() or "endpoint" in e.get("message", "").lower()), None
+            (
+                e
+                for e in errors
+                if "endpoint" in e.get("field", "").lower()
+                or "endpoint" in e.get("message", "").lower()
+            ),
+            None,
         )
         assert endpoint_error is not None
 
@@ -1101,7 +1111,9 @@ class TestProviderValidation:
         status = check_provider_status()
 
         assert status["llm"]["configured"] is False
-        assert status["llm"].get("misconfigured") is True or "missing" in str(status["llm"].get("issues", []))
+        assert status["llm"].get("misconfigured") is True or "missing" in str(
+            status["llm"].get("issues", [])
+        )
 
     def test_given_provider_error_when_doctor_then_shows_docs_link(
         self, tmp_path, monkeypatch
@@ -1131,7 +1143,9 @@ class TestProviderValidation:
 
         assert len(errors) >= 1
         # Should have docs link in at least one error
-        has_docs_link = any("docs_url" in e or "github" in str(e).lower() for e in errors)
+        has_docs_link = any(
+            "docs_url" in e or "github" in str(e).lower() for e in errors
+        )
         assert has_docs_link
 
     def test_given_complete_azure_config_when_doctor_then_no_provider_error(

@@ -107,7 +107,10 @@ class TestEmbeddingPipelineEnabled:
     """
 
     def test_given_embedding_service_when_scanning_then_nodes_have_embeddings(
-        self, simple_python_project: Path, embedding_config: EmbeddingConfig, test_graph_path: Path
+        self,
+        simple_python_project: Path,
+        embedding_config: EmbeddingConfig,
+        test_graph_path: Path,
     ):
         """
         Purpose: Verifies pipeline generates embeddings for all nodes.
@@ -169,12 +172,17 @@ class TestEmbeddingPipelineEnabled:
         # Verify nodes have embeddings
         nodes = list(store.get_all_nodes())
         nodes_with_content = [n for n in nodes if n.content and n.content.strip()]
-        nodes_with_embeddings = [n for n in nodes_with_content if n.embedding is not None]
+        nodes_with_embeddings = [
+            n for n in nodes_with_content if n.embedding is not None
+        ]
 
         assert len(nodes_with_embeddings) > 0, "Expected some nodes to have embeddings"
 
     def test_given_embedding_service_when_scanning_then_embeddings_are_tuple_of_tuples(
-        self, simple_python_project: Path, embedding_config: EmbeddingConfig, test_graph_path: Path
+        self,
+        simple_python_project: Path,
+        embedding_config: EmbeddingConfig,
+        test_graph_path: Path,
     ):
         """
         Purpose: Verifies embeddings stored in correct format.
@@ -215,7 +223,7 @@ class TestEmbeddingPipelineEnabled:
         )
 
         # Act
-        summary = pipeline.run()
+        pipeline.run()
 
         # Assert
         nodes = list(store.get_all_nodes())
@@ -288,7 +296,7 @@ class TestEmbeddingMetadataPersistence:
         )
 
         # Act
-        summary = pipeline.run()
+        pipeline.run()
         store.save(graph_path)
 
         # Load into new store to verify persistence
@@ -448,7 +456,10 @@ class TestEmbeddingWithSmartContent:
     """
 
     def test_given_smart_content_when_embedding_then_both_fields_populated(
-        self, simple_python_project: Path, embedding_config: EmbeddingConfig, test_graph_path: Path
+        self,
+        simple_python_project: Path,
+        embedding_config: EmbeddingConfig,
+        test_graph_path: Path,
     ):
         """
         Purpose: Verifies nodes with smart_content get both embeddings.
@@ -523,7 +534,8 @@ class TestEmbeddingWithSmartContent:
         if nodes_with_smart_content:
             # At least some nodes should have both embeddings
             nodes_with_both = [
-                n for n in nodes_with_smart_content
+                n
+                for n in nodes_with_smart_content
                 if n.embedding and n.smart_content_embedding
             ]
             assert len(nodes_with_both) > 0, (
@@ -558,9 +570,9 @@ class TestEmbeddingWithFixtureGraph:
         """
         # Arrange - content from tests/fixtures/samples/python/auth_handler.py
         content = (
-            'def is_expired(self) -> bool:\n'
+            "def is_expired(self) -> bool:\n"
             '        """Check if the token has expired."""\n'
-            '        return datetime.utcnow() > self.expires_at'
+            "        return datetime.utcnow() > self.expires_at"
         )
 
         # Act

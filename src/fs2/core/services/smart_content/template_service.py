@@ -105,8 +105,15 @@ class TemplateService:
         try:
             template = self._env.get_template(template_name)
             return template.render(dict(context))
-        except (TemplateNotFound, TemplateSyntaxError, UndefinedError, JinjaTemplateError) as e:
-            raise TemplateError(f"Template render failed for '{template_name}': {e}") from e
+        except (
+            TemplateNotFound,
+            TemplateSyntaxError,
+            UndefinedError,
+            JinjaTemplateError,
+        ) as e:
+            raise TemplateError(
+                f"Template render failed for '{template_name}': {e}"
+            ) from e
 
     def render_for_category(self, category: str, context: Mapping[str, Any]) -> str:
         selection = self.select_for_category(category)

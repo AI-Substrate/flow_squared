@@ -27,7 +27,9 @@ import pytest
 # Skip entire module if Azure credentials not configured
 AZURE_ENDPOINT = os.environ.get("FS2_AZURE__OPENAI__ENDPOINT")
 AZURE_KEY = os.environ.get("FS2_AZURE__OPENAI__KEY")
-AZURE_EMBEDDING_DEPLOYMENT = os.environ.get("FS2_AZURE__OPENAI__EMBEDDING_DEPLOYMENT_NAME")
+AZURE_EMBEDDING_DEPLOYMENT = os.environ.get(
+    "FS2_AZURE__OPENAI__EMBEDDING_DEPLOYMENT_NAME"
+)
 
 REQUIRES_API = pytest.mark.skipif(
     not all([AZURE_ENDPOINT, AZURE_KEY, AZURE_EMBEDDING_DEPLOYMENT]),
@@ -70,7 +72,9 @@ class TestMCPRealEmbeddings:
         assert len(embedding) > 0, "Expected embedding vector to have dimensions"
 
     @pytest.mark.asyncio
-    async def test_fixture_embedding_adapter_returns_real_embeddings(self, fixture_graph):
+    async def test_fixture_embedding_adapter_returns_real_embeddings(
+        self, fixture_graph
+    ):
         """
         Purpose: Validates fixture embedding adapter returns real embeddings.
         Quality Contribution: Ensures fixture embeddings are usable.

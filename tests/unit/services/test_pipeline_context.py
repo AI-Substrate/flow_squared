@@ -117,7 +117,9 @@ class TestPipelineContextFields:
 class TestPipelineContextMutability:
     """Tests for PipelineContext mutable behavior."""
 
-    def test_given_pipeline_context_when_appending_scan_results_then_modifies_list(self):
+    def test_given_pipeline_context_when_appending_scan_results_then_modifies_list(
+        self,
+    ):
         """
         Purpose: Verifies scan_results is mutable.
         Quality Contribution: Stages can append results.
@@ -269,7 +271,9 @@ class TestPipelineContextPriorNodes:
     Enables hash-based skip logic (AC5/AC6) by loading prior graph state.
     """
 
-    def test_given_pipeline_context_when_created_then_prior_nodes_defaults_to_none(self):
+    def test_given_pipeline_context_when_created_then_prior_nodes_defaults_to_none(
+        self,
+    ):
         """
         Purpose: Verifies prior_nodes defaults to None (first scan case).
         Quality Contribution: First scans work without prior graph.
@@ -314,7 +318,9 @@ class TestPipelineContextPriorNodes:
         assert node.node_id in ctx.prior_nodes
         assert ctx.prior_nodes[node.node_id] == node
 
-    def test_given_pipeline_context_with_prior_nodes_when_looking_up_then_o1_access(self):
+    def test_given_pipeline_context_with_prior_nodes_when_looking_up_then_o1_access(
+        self,
+    ):
         """
         Purpose: Verifies dict enables O(1) node lookup by node_id.
         Quality Contribution: Efficient merge in SmartContentStage.
@@ -363,7 +369,9 @@ class TestPipelineContextPriorNodes:
 class TestPipelineContextEmbeddingFields:
     """Tests for embedding service fields on PipelineContext."""
 
-    def test_given_pipeline_context_when_created_then_embedding_fields_default_none(self):
+    def test_given_pipeline_context_when_created_then_embedding_fields_default_none(
+        self,
+    ):
         """
         Purpose: Verifies embedding fields default to None.
         Quality Contribution: Enables --no-embeddings to skip service.
@@ -379,7 +387,9 @@ class TestPipelineContextEmbeddingFields:
         assert ctx.embedding_service is None
         assert ctx.embedding_progress_callback is None
 
-    def test_given_pipeline_context_when_setting_embedding_fields_then_stores_values(self):
+    def test_given_pipeline_context_when_setting_embedding_fields_then_stores_values(
+        self,
+    ):
         """
         Purpose: Verifies embedding fields accept assignments.
         Quality Contribution: Enables ScanPipeline to inject EmbeddingService.
@@ -391,7 +401,10 @@ class TestPipelineContextEmbeddingFields:
         from fs2.core.services.pipeline_context import PipelineContext
 
         ctx = PipelineContext(scan_config=ScanConfig())
-        callback = lambda processed, total, skipped: None
+
+        def callback(processed, total, skipped):
+            return None
+
         service = object()
 
         ctx.embedding_service = service

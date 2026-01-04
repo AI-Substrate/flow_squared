@@ -96,7 +96,11 @@ class TestPatternMatching:
             (".cs", "file:src/Foo.css", False),  # .cs should NOT match .css
             (".py", "file:src/test.py", True),
             (".ts", "file:src/index.ts", True),
-            (".ts", "file:src/typescript/foo.py", False),  # .ts shouldn't match "typescript"
+            (
+                ".ts",
+                "file:src/typescript/foo.py",
+                False,
+            ),  # .ts shouldn't match "typescript"
             # Symbol nodes (extension before :)
             (".cs", "type:src/Foo.cs:FooClass", True),
             (".py", "callable:src/test.py:TestClass.method", True),

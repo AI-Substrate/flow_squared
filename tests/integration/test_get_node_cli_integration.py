@@ -54,7 +54,11 @@ class TestGetNodeIntegration:
         """
         # Get a known class from the fixtures (Calculator in simple_class.py)
         result = runner.invoke(
-            app, ["get-node", "type:tests/fixtures/ast_samples/python/simple_class.py:Calculator"]
+            app,
+            [
+                "get-node",
+                "type:tests/fixtures/ast_samples/python/simple_class.py:Calculator",
+            ],
         )
 
         assert result.exit_code == 0, f"Expected exit 0: {result.stdout}"
@@ -75,7 +79,11 @@ class TestGetNodeIntegration:
         """
         # Get a known callable from the fixtures (Calculator.add method)
         result = runner.invoke(
-            app, ["get-node", "callable:tests/fixtures/ast_samples/python/simple_class.py:Calculator.add"]
+            app,
+            [
+                "get-node",
+                "callable:tests/fixtures/ast_samples/python/simple_class.py:Calculator.add",
+            ],
         )
 
         assert result.exit_code == 0, f"Expected exit 0: {result.stdout}"
@@ -97,7 +105,12 @@ class TestGetNodeIntegration:
 
         result = runner.invoke(
             app,
-            ["get-node", "file:tests/fixtures/ast_samples/python/simple_class.py", "--file", str(output_file)],
+            [
+                "get-node",
+                "file:tests/fixtures/ast_samples/python/simple_class.py",
+                "--file",
+                str(output_file),
+            ],
         )
 
         assert result.exit_code == 0, f"Expected exit 0: {result.stdout}"

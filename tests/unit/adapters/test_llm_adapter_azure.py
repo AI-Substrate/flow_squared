@@ -97,7 +97,10 @@ def test_azure_adapter_rejects_empty_base_url():
     with pytest.raises(LLMAdapterError) as exc_info:
         AzureOpenAIAdapter(mock_config)
 
-    assert "base_url" in str(exc_info.value).lower() or "endpoint" in str(exc_info.value).lower()
+    assert (
+        "base_url" in str(exc_info.value).lower()
+        or "endpoint" in str(exc_info.value).lower()
+    )
 
 
 @pytest.mark.unit
@@ -154,9 +157,13 @@ async def test_azure_adapter_content_filter_returns_was_filtered():
     mock_error.status_code = 400
 
     with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(side_effect=mock_error)))
-        )
+        adapter,
+        "_get_client",
+        return_value=MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(side_effect=mock_error))
+            )
+        ),
     ):
         response = await adapter.generate("test prompt")
 
@@ -191,9 +198,13 @@ async def test_azure_adapter_content_filter_case_insensitive():
     mock_error.status_code = 400
 
     with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(side_effect=mock_error)))
-        )
+        adapter,
+        "_get_client",
+        return_value=MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(side_effect=mock_error))
+            )
+        ),
     ):
         response = await adapter.generate("test prompt")
 
@@ -227,9 +238,13 @@ async def test_azure_adapter_content_filtering_in_message():
     mock_error.status_code = 400
 
     with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(side_effect=mock_error)))
-        )
+        adapter,
+        "_get_client",
+        return_value=MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(side_effect=mock_error))
+            )
+        ),
     ):
         response = await adapter.generate("test prompt")
 
@@ -262,9 +277,13 @@ async def test_azure_adapter_content_filter_no_exception():
     mock_error.status_code = 400
 
     with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(side_effect=mock_error)))
-        )
+        adapter,
+        "_get_client",
+        return_value=MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(side_effect=mock_error))
+            )
+        ),
     ):
         # Should NOT raise - returns response instead
         response = await adapter.generate("test prompt")
@@ -303,9 +322,13 @@ async def test_azure_adapter_successful_generate():
     mock_response.model = "gpt-4"
 
     with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(return_value=mock_response)))
-        )
+        adapter,
+        "_get_client",
+        return_value=MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(return_value=mock_response))
+            )
+        ),
     ):
         response = await adapter.generate("Say hello")
 

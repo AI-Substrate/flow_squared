@@ -215,7 +215,10 @@ Provide a summary."""
         response = await adapter.generate(prompt)
 
         # Assert - Returns smart_content from fixture
-        assert response.content == "A function that adds two numbers and returns the result."
+        assert (
+            response.content
+            == "A function that adds two numbers and returns the result."
+        )
 
     async def test_given_fixture_index_when_generate_with_unknown_code_then_returns_placeholder(
         self, fixture_index

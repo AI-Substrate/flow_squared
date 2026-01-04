@@ -5,18 +5,16 @@ before allowing guarded commands to run.
 """
 
 import functools
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, TypeVar
 
 import typer
 from rich.console import Console
 
-F = TypeVar("F", bound=Callable)
-
 console = Console()
 
 
-def require_init(func: F) -> F:
+def require_init[F: Callable](func: F) -> F:
     """Decorator that requires .fs2/config.yaml to exist before running.
 
     If config doesn't exist:
@@ -30,6 +28,7 @@ def require_init(func: F) -> F:
 
     Note: This must be applied BEFORE @app.command() so that --help still works.
     """
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         cwd = Path.cwd()
@@ -37,9 +36,7 @@ def require_init(func: F) -> F:
 
         # Check if config exists
         if not config_file.exists():
-            console.print(
-                f"[bold red]Error:[/bold red] No fs2 configuration found.\n"
-            )
+            console.print("[bold red]Error:[/bold red] No fs2 configuration found.\n")
             console.print(f"[bold]Current directory:[/bold] {cwd}\n")
 
             # Check for .git

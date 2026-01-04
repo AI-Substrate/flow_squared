@@ -143,7 +143,9 @@ class EmbeddingService:
                 raise ValueError("EmbeddingConfig.azure must be set for azure mode")
             embedding_adapter = AzureEmbeddingAdapter(config)
         elif embedding_config.mode == "fake":
-            embedding_adapter = FakeEmbeddingAdapter(dimensions=embedding_config.dimensions)
+            embedding_adapter = FakeEmbeddingAdapter(
+                dimensions=embedding_config.dimensions
+            )
         elif embedding_config.mode == "openai_compatible":
             raise ValueError(
                 "openai_compatible embeddings require explicit api_key/base_url/model"
@@ -181,10 +183,7 @@ class EmbeddingService:
             Empty list if content is empty.
         """
         # Select content to chunk
-        if is_smart_content:
-            content = node.smart_content or ""
-        else:
-            content = node.content
+        content = node.smart_content or "" if is_smart_content else node.content
 
         # Handle empty content
         if not content or not content.strip():
@@ -354,9 +353,7 @@ class EmbeddingService:
 
         return chunks
 
-    def _get_overlap_lines(
-        self, lines: list[str], overlap_tokens: int
-    ) -> list[str]:
+    def _get_overlap_lines(self, lines: list[str], overlap_tokens: int) -> list[str]:
         """Get trailing lines that sum to approximately overlap_tokens."""
         assert self._token_counter is not None
 
@@ -473,9 +470,8 @@ class EmbeddingService:
         has_content = node.content and node.content.strip()
 
         # Check raw content embedding (only if content exists)
-        if has_content:
-            if node.embedding is None or len(node.embedding) == 0:
-                return False
+        if has_content and (node.embedding is None or len(node.embedding) == 0):
+            return False
 
         # Check embedding_hash exists (legacy nodes without hash should be re-embedded)
         if node.embedding_hash is None:
@@ -486,13 +482,15 @@ class EmbeddingService:
             return False
 
         # Check smart_content embedding (if smart_content exists)
-        if node.smart_content is not None:
-            # Has smart_content text - must also have smart_content_embedding
-            if node.smart_content_embedding is None or len(node.smart_content_embedding) == 0:
-                return False
-
+        # Has smart_content text - must also have smart_content_embedding
         # All required embeddings present and fresh
-        return True
+        return not (
+            node.smart_content is not None
+            and (
+                node.smart_content_embedding is None
+                or len(node.smart_content_embedding) == 0
+            )
+        )
 
     def _collect_batches(self, chunks: list[ChunkItem]) -> list[list[ChunkItem]]:
         """Split ChunkItems into fixed-size batches for API calls.
@@ -595,7 +593,9 @@ class EmbeddingService:
             # Chunk smart_content if present (skip placeholder content)
             # Per fix 2025-12-26: Don't embed placeholder smart_content like
             # "[Empty content - no summary generated...]" - they pollute search results
-            if node.smart_content and not node.smart_content.startswith("[Empty content"):
+            if node.smart_content and not node.smart_content.startswith(
+                "[Empty content"
+            ):
                 smart_chunks = self._chunk_content(node, is_smart_content=True)
                 all_chunks.extend(smart_chunks)
 

@@ -125,7 +125,8 @@ def tree(
     file: Annotated[
         Path | None,
         typer.Option(
-            "--file", "-f",
+            "--file",
+            "-f",
             help="Write JSON to file instead of stdout (requires --json, path validated for security).",
         ),
     ] = None,
@@ -167,7 +168,9 @@ def tree(
             # Override GraphConfig in config service
             config.set(GraphConfig(graph_path=ctx.obj.graph_file))
             if verbose:
-                stderr_console.print(f"[dim]DEBUG: Using graph file: {ctx.obj.graph_file}[/dim]")
+                stderr_console.print(
+                    f"[dim]DEBUG: Using graph file: {ctx.obj.graph_file}[/dim]"
+                )
 
         graph_store = NetworkXGraphStore(config)
 

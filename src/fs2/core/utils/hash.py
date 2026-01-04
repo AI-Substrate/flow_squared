@@ -18,4 +18,3 @@ def compute_content_hash(content: str) -> str:
         SHA-256 hexdigest of UTF-8 encoded content.
     """
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
-

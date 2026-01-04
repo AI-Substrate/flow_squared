@@ -32,7 +32,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-
 @pytest.fixture(autouse=True)
 def reset_mcp_dependencies():
     """Reset MCP service singletons after each test.
@@ -145,40 +144,44 @@ def fake_graph_store(fake_config: FakeConfigurationService) -> FakeGraphStore:
     """
     store = FakeGraphStore(fake_config)
     # Add some test nodes for use in tests
-    store.set_nodes([
-        make_code_node(
-            node_id="file:src/calculator.py",
-            category="file",
-            name="calculator.py",
-            content="# Calculator module",
-            start_line=1,
-            end_line=50,
-        ),
-        make_code_node(
-            node_id="class:src/calculator.py:Calculator",
-            category="class",
-            name="Calculator",
-            content="class Calculator:\n    pass",
-            start_line=5,
-            end_line=45,
-            parent_node_id="file:src/calculator.py",
-        ),
-        make_code_node(
-            node_id="callable:src/calculator.py:Calculator.add",
-            category="callable",
-            name="add",
-            content="def add(self, a, b):\n    return a + b",
-            start_line=10,
-            end_line=15,
-            signature="def add(self, a: int, b: int) -> int",
-            parent_node_id="class:src/calculator.py:Calculator",
-        ),
-    ])
+    store.set_nodes(
+        [
+            make_code_node(
+                node_id="file:src/calculator.py",
+                category="file",
+                name="calculator.py",
+                content="# Calculator module",
+                start_line=1,
+                end_line=50,
+            ),
+            make_code_node(
+                node_id="class:src/calculator.py:Calculator",
+                category="class",
+                name="Calculator",
+                content="class Calculator:\n    pass",
+                start_line=5,
+                end_line=45,
+                parent_node_id="file:src/calculator.py",
+            ),
+            make_code_node(
+                node_id="callable:src/calculator.py:Calculator.add",
+                category="callable",
+                name="add",
+                content="def add(self, a, b):\n    return a + b",
+                start_line=10,
+                end_line=15,
+                signature="def add(self, a: int, b: int) -> int",
+                parent_node_id="class:src/calculator.py:Calculator",
+            ),
+        ]
+    )
     return store
 
 
 @pytest.fixture
-def tree_test_graph_store(tmp_path: Path) -> tuple[FakeGraphStore, FakeConfigurationService]:
+def tree_test_graph_store(
+    tmp_path: Path,
+) -> tuple[FakeGraphStore, FakeConfigurationService]:
     """Create FakeGraphStore with temp file for TreeService compatibility.
 
     CRITICAL: TreeService._ensure_loaded() checks Path.exists() before calling
@@ -206,45 +209,52 @@ def tree_test_graph_store(tmp_path: Path) -> tuple[FakeGraphStore, FakeConfigura
 
     store = FakeGraphStore(config)
     # Pre-load test nodes (FakeGraphStore stores in-memory, ignores file)
-    store.set_nodes([
-        make_code_node(
-            node_id="file:src/calculator.py",
-            category="file",
-            name="calculator.py",
-            content="# Calculator module",
-            start_line=1,
-            end_line=50,
-        ),
-        make_code_node(
-            node_id="class:src/calculator.py:Calculator",
-            category="class",
-            name="Calculator",
-            content="class Calculator:\n    pass",
-            start_line=5,
-            end_line=45,
-            parent_node_id="file:src/calculator.py",
-        ),
-        make_code_node(
-            node_id="callable:src/calculator.py:Calculator.add",
-            category="callable",
-            name="add",
-            content="def add(self, a, b):\n    return a + b",
-            start_line=10,
-            end_line=15,
-            signature="def add(self, a: int, b: int) -> int",
-            parent_node_id="class:src/calculator.py:Calculator",
-        ),
-    ])
+    store.set_nodes(
+        [
+            make_code_node(
+                node_id="file:src/calculator.py",
+                category="file",
+                name="calculator.py",
+                content="# Calculator module",
+                start_line=1,
+                end_line=50,
+            ),
+            make_code_node(
+                node_id="class:src/calculator.py:Calculator",
+                category="class",
+                name="Calculator",
+                content="class Calculator:\n    pass",
+                start_line=5,
+                end_line=45,
+                parent_node_id="file:src/calculator.py",
+            ),
+            make_code_node(
+                node_id="callable:src/calculator.py:Calculator.add",
+                category="callable",
+                name="add",
+                content="def add(self, a, b):\n    return a + b",
+                start_line=10,
+                end_line=15,
+                signature="def add(self, a: int, b: int) -> int",
+                parent_node_id="class:src/calculator.py:Calculator",
+            ),
+        ]
+    )
 
     # Set up parent→child edges for tree traversal
     store.add_edge("file:src/calculator.py", "class:src/calculator.py:Calculator")
-    store.add_edge("class:src/calculator.py:Calculator", "callable:src/calculator.py:Calculator.add")
+    store.add_edge(
+        "class:src/calculator.py:Calculator",
+        "callable:src/calculator.py:Calculator.add",
+    )
 
     return store, config
 
 
 @pytest.fixture
-async def mcp_client(tree_test_graph_store: tuple[FakeGraphStore, FakeConfigurationService]):
+async def mcp_client(
+    tree_test_graph_store: tuple[FakeGraphStore, FakeConfigurationService],
+):
     """Async MCP client connected to server with injected fakes.
 
     CRITICAL: This fixture enables testing via actual MCP protocol,
@@ -327,7 +337,9 @@ def sample_node() -> CodeNode:
 
 
 @pytest.fixture
-def search_test_graph_store(tmp_path: Path) -> tuple[FakeGraphStore, FakeConfigurationService]:
+def search_test_graph_store(
+    tmp_path: Path,
+) -> tuple[FakeGraphStore, FakeConfigurationService]:
     """FakeGraphStore with nodes for search tests.
 
     Creates a graph with varied content for testing search modes:

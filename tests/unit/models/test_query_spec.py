@@ -221,7 +221,12 @@ class TestQuerySpecModeEnum:
         """
         from fs2.core.models.search import QuerySpec, SearchMode
 
-        modes = [SearchMode.TEXT, SearchMode.REGEX, SearchMode.SEMANTIC, SearchMode.AUTO]
+        modes = [
+            SearchMode.TEXT,
+            SearchMode.REGEX,
+            SearchMode.SEMANTIC,
+            SearchMode.AUTO,
+        ]
         for mode in modes:
             spec = QuerySpec(pattern="test", mode=mode)
             assert spec.mode == mode

@@ -385,7 +385,9 @@ class TestRegexMatcherLineExtraction:
 
         # Node starts at line 140, match on line 3 within node = file line 142
         content = "line 1\nline 2\nTARGET match here\nline 4"
-        nodes = [create_multiline_node("callable:test.py:func", content, start_line=140)]
+        nodes = [
+            create_multiline_node("callable:test.py:func", content, start_line=140)
+        ]
 
         results = await matcher.match(
             QuerySpec(pattern="TARGET", mode=SearchMode.REGEX),
@@ -436,7 +438,9 @@ class TestRegexMatcherLineExtraction:
 
         matcher = RegexMatcher(timeout=2.0)
         content = "line 1\nMATCH here\nline 3"
-        nodes = [create_multiline_node("callable:test.py:func", content, start_line=100)]
+        nodes = [
+            create_multiline_node("callable:test.py:func", content, start_line=100)
+        ]
 
         results = await matcher.match(
             QuerySpec(pattern="MATCH", mode=SearchMode.REGEX),

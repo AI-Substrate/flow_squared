@@ -39,7 +39,9 @@ class TestTokenCounterAdapterContract:
         from fs2.config.service import FakeConfigurationService
         from fs2.core.adapters.token_counter_adapter import TokenCounterAdapter
 
-        config = FakeConfigurationService(LLMConfig(provider="fake", model="gpt-4o-mini"))
+        config = FakeConfigurationService(
+            LLMConfig(provider="fake", model="gpt-4o-mini")
+        )
 
         with pytest.raises(TypeError):
             TokenCounterAdapter(config)  # type: ignore[abstract]
@@ -63,7 +65,9 @@ class TestFakeTokenCounterAdapter:
             FakeTokenCounterAdapter,
         )
 
-        config = FakeConfigurationService(LLMConfig(provider="fake", model="gpt-4o-mini"))
+        config = FakeConfigurationService(
+            LLMConfig(provider="fake", model="gpt-4o-mini")
+        )
         counter = FakeTokenCounterAdapter(config)
 
         counter.count_tokens("hello world")
@@ -86,12 +90,16 @@ class TestFakeTokenCounterAdapter:
             FakeTokenCounterAdapter,
         )
 
-        config = FakeConfigurationService(LLMConfig(provider="fake", model="gpt-4o-mini"))
+        config = FakeConfigurationService(
+            LLMConfig(provider="fake", model="gpt-4o-mini")
+        )
         counter = FakeTokenCounterAdapter(config)
 
         assert counter.count_tokens("any text") == 0
 
-    def test_given_default_count_configured_when_counting_then_returns_configured_value(self):
+    def test_given_default_count_configured_when_counting_then_returns_configured_value(
+        self,
+    ):
         """
         Purpose: Proves fake can be configured to return a fixed token count.
         Quality Contribution: Enables precise truncation tests without tiktoken.
@@ -105,7 +113,9 @@ class TestFakeTokenCounterAdapter:
             FakeTokenCounterAdapter,
         )
 
-        config = FakeConfigurationService(LLMConfig(provider="fake", model="gpt-4o-mini"))
+        config = FakeConfigurationService(
+            LLMConfig(provider="fake", model="gpt-4o-mini")
+        )
         counter = FakeTokenCounterAdapter(config)
 
         counter.set_default_count(123)
@@ -126,7 +136,9 @@ class TestFakeTokenCounterAdapter:
             FakeTokenCounterAdapter,
         )
 
-        config = FakeConfigurationService(LLMConfig(provider="fake", model="gpt-4o-mini"))
+        config = FakeConfigurationService(
+            LLMConfig(provider="fake", model="gpt-4o-mini")
+        )
         counter = FakeTokenCounterAdapter(config)
 
         counter.set_default_count(10)
@@ -140,7 +152,9 @@ class TestFakeTokenCounterAdapter:
 class TestTokenCounterErrorTranslation:
     """T004: Tests for TokenCounterError existence and exception translation."""
 
-    def test_given_adapter_exceptions_when_importing_then_token_counter_error_exists(self):
+    def test_given_adapter_exceptions_when_importing_then_token_counter_error_exists(
+        self,
+    ):
         """
         Purpose: Proves token counting failures have a domain exception at the adapter boundary.
         Quality Contribution: Prevents SDK/library exceptions from leaking into services.
@@ -185,7 +199,9 @@ class TestTokenCounterErrorTranslation:
         # Prevent network calls in tests by replacing tiktoken with a fake module.
         monkeypatch.setitem(__import__("sys").modules, "tiktoken", FakeTiktokenModule)
 
-        config = FakeConfigurationService(LLMConfig(provider="fake", model="gpt-4o-mini"))
+        config = FakeConfigurationService(
+            LLMConfig(provider="fake", model="gpt-4o-mini")
+        )
         counter = TiktokenTokenCounterAdapter(config)
 
         with pytest.raises(TokenCounterError) as exc_info:
@@ -221,7 +237,9 @@ class TestTokenCounterErrorTranslation:
 
         monkeypatch.setitem(__import__("sys").modules, "tiktoken", FakeTiktokenModule)
 
-        config = FakeConfigurationService(LLMConfig(provider="fake", model="gpt-4o-mini"))
+        config = FakeConfigurationService(
+            LLMConfig(provider="fake", model="gpt-4o-mini")
+        )
         counter = TiktokenTokenCounterAdapter(config)
 
         assert counter.count_tokens("a") == 3

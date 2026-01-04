@@ -32,7 +32,10 @@ class TestErrorTranslation:
         result = translate_error(exc)
 
         assert result["type"] == "GraphNotFoundError"
-        assert "not found" in result["message"].lower() or "graph" in result["message"].lower()
+        assert (
+            "not found" in result["message"].lower()
+            or "graph" in result["message"].lower()
+        )
         assert result["action"] is not None
         assert "scan" in result["action"].lower()
 
@@ -44,7 +47,10 @@ class TestErrorTranslation:
         result = translate_error(exc)
 
         assert result["type"] == "GraphStoreError"
-        assert "corrupted" in result["message"].lower() or "failed" in result["message"].lower()
+        assert (
+            "corrupted" in result["message"].lower()
+            or "failed" in result["message"].lower()
+        )
 
     def test_value_error_translation(self):
         """ValueError translates with regex context."""
@@ -54,7 +60,10 @@ class TestErrorTranslation:
         result = translate_error(exc)
 
         assert result["type"] == "ValueError"
-        assert "regex" in result["message"].lower() or "pattern" in result["message"].lower()
+        assert (
+            "regex" in result["message"].lower()
+            or "pattern" in result["message"].lower()
+        )
 
     def test_unknown_error_translation(self):
         """Unknown exceptions get generic translation."""
@@ -104,7 +113,10 @@ class TestErrorMessages:
         result = translate_error(exc)
 
         # Original message should be in the translated message
-        assert original_message in result["message"] or "specific" in result["message"].lower()
+        assert (
+            original_message in result["message"]
+            or "specific" in result["message"].lower()
+        )
 
 
 class TestErrorLogging:
@@ -137,7 +149,9 @@ class TestErrorLogging:
         translate_error(exc)
 
         captured = capfd.readouterr()
-        assert "Graph not found" in captured.err or "MCP error translation" in captured.err
+        assert (
+            "Graph not found" in captured.err or "MCP error translation" in captured.err
+        )
 
     def test_translate_error_logs_all_exception_types(self, capfd):
         """All exception types are logged, not just domain exceptions.

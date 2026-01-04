@@ -269,11 +269,11 @@ class TestExitCodes:
 
         result = runner.invoke(app, ["scan"])
 
-        assert result.exit_code == 1, f"Expected exit 1, got {result.exit_code}: {result.stdout}"
+        assert result.exit_code == 1, (
+            f"Expected exit 1, got {result.exit_code}: {result.stdout}"
+        )
 
-    def test_given_all_files_fail_when_scan_then_exit_two(
-        self, tmp_path, monkeypatch
-    ):
+    def test_given_all_files_fail_when_scan_then_exit_two(self, tmp_path, monkeypatch):
         """
         Purpose: Verifies exit code 2 for total failure.
         Quality Contribution: Ensures CI/CD can detect total scan failures.
@@ -308,7 +308,9 @@ class TestExitCodes:
             result = runner.invoke(app, ["scan"])
 
             # Should exit with code 2 for total failure
-            assert result.exit_code == 2, f"Expected exit 2 for total failure, got {result.exit_code}: {result.stdout}"
+            assert result.exit_code == 2, (
+                f"Expected exit 2 for total failure, got {result.exit_code}: {result.stdout}"
+            )
         finally:
             # Restore permissions for cleanup
             unreadable_file.chmod(0o644)

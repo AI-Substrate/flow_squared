@@ -725,9 +725,13 @@ class TestMissingEmbeddings:
         # Mix of nodes with and without embeddings
         nodes = [
             create_node_with_embedding("callable:test.py:a", embedding=None),
-            create_node_with_embedding("callable:test.py:b", embedding=((1.0, 0.0, 0.0, 0.0),)),
+            create_node_with_embedding(
+                "callable:test.py:b", embedding=((1.0, 0.0, 0.0, 0.0),)
+            ),
             create_node_with_embedding("callable:test.py:c", embedding=None),
-            create_node_with_embedding("callable:test.py:d", embedding=((0.9, 0.1, 0.0, 0.0),)),
+            create_node_with_embedding(
+                "callable:test.py:d", embedding=((0.9, 0.1, 0.0, 0.0),)
+            ),
             create_node_with_embedding("callable:test.py:e", embedding=None),
         ]
 

@@ -95,7 +95,9 @@ class TestExtractFilePath:
 
     def test_given_nested_path_when_extract_then_returns_full_path(self):
         """Verify nested paths are preserved."""
-        node_id = "callable:src/core/services/stages/parsing_stage.py:ParsingStage.process"
+        node_id = (
+            "callable:src/core/services/stages/parsing_stage.py:ParsingStage.process"
+        )
         result = GraphUtilitiesService.extract_file_path(node_id)
         assert result == "src/core/services/stages/parsing_stage.py"
 

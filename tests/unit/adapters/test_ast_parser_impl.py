@@ -11,7 +11,6 @@ Per CF11: Node ID uniqueness with position-based anonymous IDs.
 Per CF13: Language detection ambiguity (.h -> cpp default).
 """
 
-
 import pytest
 
 # =============================================================================
@@ -541,7 +540,7 @@ class TestTreeSitterParserPythonHierarchy:
         parser = TreeSitterParser(config)
 
         # Create deeply nested code
-        deep_code = '''
+        deep_code = """
 class Level1:
     class Level2:
         class Level3:
@@ -549,7 +548,7 @@ class Level1:
                 class Level5:
                     def deep_method(self):
                         pass
-'''
+"""
         py_file = tmp_path / "deep.py"
         py_file.write_text(deep_code)
 
@@ -580,8 +579,7 @@ class Level1:
         nodes = parser.parse(py_file)
 
         add_method = next(
-            (n for n in nodes if n.name == "add" and n.category == "callable"),
-            None
+            (n for n in nodes if n.name == "add" and n.category == "callable"), None
         )
         assert add_method is not None
         assert "Calculator" in add_method.qualified_name
@@ -948,7 +946,10 @@ class TestTreeSitterParserNodeFormat:
 
         callable_node = next(n for n in nodes if n.category == "callable")
         assert callable_node.node_id.startswith("callable:")
-        assert "Calculator" in callable_node.node_id or callable_node.name in callable_node.node_id
+        assert (
+            "Calculator" in callable_node.node_id
+            or callable_node.name in callable_node.node_id
+        )
 
     def test_node_content_is_complete(self, ast_samples_path):
         """
@@ -993,7 +994,9 @@ class TestTreeSitterParserNodeFormat:
 
         for node in nodes:
             assert node.start_line >= 1, f"start_line should be >= 1: {node}"
-            assert node.end_line >= node.start_line, f"end_line should be >= start_line: {node}"
+            assert node.end_line >= node.start_line, (
+                f"end_line should be >= start_line: {node}"
+            )
 
 
 class TestTreeSitterParserSkipTracking:

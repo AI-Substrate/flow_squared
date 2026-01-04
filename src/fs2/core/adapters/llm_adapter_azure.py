@@ -153,7 +153,9 @@ class AzureOpenAIAdapter(LLMAdapter):
 
         # Use config defaults if not specified
         effective_max_tokens = max_tokens or self._llm_config.max_tokens
-        effective_temperature = temperature if temperature is not None else self._llm_config.temperature
+        effective_temperature = (
+            temperature if temperature is not None else self._llm_config.temperature
+        )
         deployment = self._llm_config.azure_deployment_name
 
         # Retry loop with exponential backoff

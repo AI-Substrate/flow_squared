@@ -32,9 +32,7 @@ if TYPE_CHECKING:
 class TestSearchToolTextMode:
     """TDD tests for search text mode (T001)."""
 
-    async def test_search_text_returns_envelope(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_text_returns_envelope(self, search_test_graph_store) -> None:
         """Search returns envelope with meta and results keys."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -105,9 +103,7 @@ class TestSearchToolTextMode:
         # smart_content contains "credentials"
         assert len(result["results"]) >= 1
 
-    async def test_search_text_case_insensitive(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_text_case_insensitive(self, search_test_graph_store) -> None:
         """Text mode is case insensitive."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -151,9 +147,7 @@ class TestSearchToolTextMode:
 class TestSearchToolRegexMode:
     """TDD tests for search regex mode (T002)."""
 
-    async def test_search_regex_pattern_matching(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_regex_pattern_matching(self, search_test_graph_store) -> None:
         """Regex mode matches patterns with regex syntax."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -187,11 +181,12 @@ class TestSearchToolRegexMode:
         with pytest.raises(ToolError) as exc_info:
             await search(pattern="[invalid", mode="regex")
 
-        assert "regex" in str(exc_info.value).lower() or "pattern" in str(exc_info.value).lower()
+        assert (
+            "regex" in str(exc_info.value).lower()
+            or "pattern" in str(exc_info.value).lower()
+        )
 
-    async def test_search_regex_groups_work(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_regex_groups_work(self, search_test_graph_store) -> None:
         """Regex mode supports capture groups."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -207,9 +202,7 @@ class TestSearchToolRegexMode:
         # Should match nodes with "auth" or "calc"
         assert "results" in result
 
-    async def test_search_regex_special_chars(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_regex_special_chars(self, search_test_graph_store) -> None:
         """Regex mode handles special characters."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -296,7 +289,10 @@ class TestSearchToolSemanticMode:
             await search(pattern="auth", mode="semantic")
 
         # Error should mention embeddings or semantic
-        assert "embedding" in str(exc_info.value).lower() or "semantic" in str(exc_info.value).lower()
+        assert (
+            "embedding" in str(exc_info.value).lower()
+            or "semantic" in str(exc_info.value).lower()
+        )
 
     async def test_search_semantic_auto_fallback_to_text(
         self, search_test_graph_store
@@ -377,16 +373,16 @@ class TestSearchToolFilters:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = await search(pattern=".", mode="text", include=["src"], exclude=["test"])
+        result = await search(
+            pattern=".", mode="text", include=["src"], exclude=["test"]
+        )
 
         # Results should contain "src" but not "test"
         for r in result["results"]:
             assert "src" in r["node_id"]
             assert "test" not in r["node_id"]
 
-    async def test_search_include_or_logic(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_include_or_logic(self, search_test_graph_store) -> None:
         """Include filter uses OR logic across patterns."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -421,7 +417,10 @@ class TestSearchToolFilters:
         with pytest.raises(ToolError) as exc_info:
             await search(pattern="auth", mode="text", include=["[invalid"])
 
-        assert "regex" in str(exc_info.value).lower() or "pattern" in str(exc_info.value).lower()
+        assert (
+            "regex" in str(exc_info.value).lower()
+            or "pattern" in str(exc_info.value).lower()
+        )
 
 
 # =============================================================================
@@ -477,9 +476,7 @@ class TestSearchToolGlobPatterns:
         for r in result["results"]:
             assert ".py" in r["node_id"], f"Expected .py in {r['node_id']}"
 
-    async def test_search_glob_exclude_works(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_glob_exclude_works(self, search_test_graph_store) -> None:
         """Glob pattern in exclude filter works."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -497,9 +494,7 @@ class TestSearchToolGlobPatterns:
         for r in result["results"]:
             assert ".py" not in r["node_id"], f"Unexpected .py in {r['node_id']}"
 
-    async def test_search_regex_still_works(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_regex_still_works(self, search_test_graph_store) -> None:
         """Regex patterns still work (backward compatibility)."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -543,9 +538,7 @@ class TestSearchToolPagination:
 
         assert len(result["results"]) <= 2
 
-    async def test_search_offset_skips_results(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_offset_skips_results(self, search_test_graph_store) -> None:
         """Offset parameter skips results."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -564,11 +557,12 @@ class TestSearchToolPagination:
 
         # If there are results, offset should skip one
         if len(result_all["results"]) > 1:
-            assert result_offset["results"][0]["node_id"] == result_all["results"][1]["node_id"]
+            assert (
+                result_offset["results"][0]["node_id"]
+                == result_all["results"][1]["node_id"]
+            )
 
-    async def test_search_limit_offset_combined(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_limit_offset_combined(self, search_test_graph_store) -> None:
         """Limit and offset work together for pagination."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -588,9 +582,7 @@ class TestSearchToolPagination:
         assert result["meta"]["pagination"]["limit"] == 2
         assert result["meta"]["pagination"]["offset"] == 1
 
-    async def test_search_default_limit_is_5(
-        self, search_test_graph_store
-    ) -> None:
+    async def test_search_default_limit_is_5(self, search_test_graph_store) -> None:
         """Default limit is 5."""
         from fs2.mcp import dependencies
         from fs2.mcp.server import search
@@ -696,7 +688,10 @@ class TestSearchToolCore:
         with pytest.raises(ToolError) as exc_info:
             await search(pattern="", mode="text")
 
-        assert "empty" in str(exc_info.value).lower() or "pattern" in str(exc_info.value).lower()
+        assert (
+            "empty" in str(exc_info.value).lower()
+            or "pattern" in str(exc_info.value).lower()
+        )
 
     async def test_search_returns_scores_in_range(
         self, search_test_graph_store
@@ -729,7 +724,9 @@ class TestSearchToolMCPProtocol:
     async def test_search_callable_via_mcp_client(self, search_mcp_client) -> None:
         """Search tool is callable via MCP client."""
 
-        result = await search_mcp_client.call_tool("search", {"pattern": "auth", "mode": "text"})
+        result = await search_mcp_client.call_tool(
+            "search", {"pattern": "auth", "mode": "text"}
+        )
 
         # Should return parseable JSON
         data = json.loads(result.content[0].text)
@@ -740,7 +737,9 @@ class TestSearchToolMCPProtocol:
     async def test_search_async_execution_works(self, search_mcp_client) -> None:
         """Async execution works correctly."""
 
-        result = await search_mcp_client.call_tool("search", {"pattern": "def", "mode": "regex"})
+        result = await search_mcp_client.call_tool(
+            "search", {"pattern": "def", "mode": "regex"}
+        )
 
         data = json.loads(result.content[0].text)
         assert "results" in data
@@ -785,7 +784,9 @@ class TestSearchToolMCPProtocol:
 
         # Invalid regex pattern should raise ToolError
         with pytest.raises(ToolError) as exc_info:
-            await search_mcp_client.call_tool("search", {"pattern": "test", "mode": "regex", "include": ["[invalid"]})
+            await search_mcp_client.call_tool(
+                "search", {"pattern": "test", "mode": "regex", "include": ["[invalid"]}
+            )
 
         # Error message should mention regex or pattern
         error_msg = str(exc_info.value).lower()
@@ -892,7 +893,9 @@ class TestSearchSaveToFile:
         original_cwd = os.getcwd()
         try:
             os.chdir(tmp_path)
-            result = await search(pattern="auth", mode="text", save_to_file="results.json")
+            result = await search(
+                pattern="auth", mode="text", save_to_file="results.json"
+            )
         finally:
             os.chdir(original_cwd)
 
@@ -930,7 +933,10 @@ class TestSearchSaveToFile:
         finally:
             os.chdir(original_cwd)
 
-        assert "escape" in str(exc_info.value).lower() or "path" in str(exc_info.value).lower()
+        assert (
+            "escape" in str(exc_info.value).lower()
+            or "path" in str(exc_info.value).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_given_absolute_path_outside_cwd_when_save_to_file_then_raises_tool_error(
@@ -959,7 +965,9 @@ class TestSearchSaveToFile:
         try:
             os.chdir(tmp_path)
             with pytest.raises(ToolError):
-                await search(pattern="auth", mode="text", save_to_file="/tmp/outside.json")
+                await search(
+                    pattern="auth", mode="text", save_to_file="/tmp/outside.json"
+                )
         finally:
             os.chdir(original_cwd)
 
@@ -989,7 +997,9 @@ class TestSearchSaveToFile:
         try:
             os.chdir(tmp_path)
             await search(
-                pattern="NONEXISTENT_PATTERN_XYZ123", mode="text", save_to_file="results.json"
+                pattern="NONEXISTENT_PATTERN_XYZ123",
+                mode="text",
+                save_to_file="results.json",
             )
         finally:
             os.chdir(original_cwd)

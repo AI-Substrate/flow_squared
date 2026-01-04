@@ -299,7 +299,9 @@ class TestEmbeddingConfigRetry:
         with pytest.raises(ValidationError, match="base_delay"):
             EmbeddingConfig(base_delay=-1)
 
-    def test_given_max_delay_less_than_base_when_constructed_then_validation_error(self):
+    def test_given_max_delay_less_than_base_when_constructed_then_validation_error(
+        self,
+    ):
         """
         Purpose: Proves max_delay must be >= base_delay.
         Quality Contribution: Ensures valid exponential backoff ceiling.

@@ -35,6 +35,9 @@ dev = [
 [tool.ruff]
 line-length = 88
 target-version = "py312"
+exclude = [
+    "tests/fixtures/ast_samples/python/syntax_error.py",  # Intentional syntax errors for parser testing
+]
 
 [tool.ruff.lint]
 select = [

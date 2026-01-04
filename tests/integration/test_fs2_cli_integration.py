@@ -104,9 +104,7 @@ class TestCLIHelpOutput:
 class TestCLIWithRealProject:
     """Integration tests with actual code structure."""
 
-    def test_given_python_project_when_scanned_then_extracts_hierarchy(
-        self, tmp_path
-    ):
+    def test_given_python_project_when_scanned_then_extracts_hierarchy(self, tmp_path):
         """
         Purpose: Verifies AC5 - File -> Class -> Method hierarchy.
         Quality Contribution: Ensures core parsing works end-to-end.

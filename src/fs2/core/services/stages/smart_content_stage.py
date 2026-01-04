@@ -102,7 +102,9 @@ class SmartContentStage:
         service = context.smart_content_service
         if service is None:
             # No service = --no-smart-content flag or no LLM config
-            logger.debug("SmartContentStage: No service, skipping smart content generation")
+            logger.debug(
+                "SmartContentStage: No service, skipping smart content generation"
+            )
             context.metrics["smart_content_enriched"] = 0
             context.metrics["smart_content_preserved"] = preserved_count
             context.metrics["smart_content_errors"] = 0

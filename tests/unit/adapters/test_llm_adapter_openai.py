@@ -155,9 +155,13 @@ async def test_openai_adapter_retries_on_429():
         return mock_response
 
     with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(side_effect=mock_create)))
-        )
+        adapter,
+        "_get_client",
+        return_value=MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(side_effect=mock_create))
+            )
+        ),
     ):
         response = await adapter.generate("test prompt")
 
@@ -189,13 +193,19 @@ async def test_openai_adapter_translates_401_to_auth_error():
     mock_error = Exception("Unauthorized")
     mock_error.status_code = 401
 
-    with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(side_effect=mock_error)))
-        )
+    with (
+        patch.object(
+            adapter,
+            "_get_client",
+            return_value=MagicMock(
+                chat=MagicMock(
+                    completions=MagicMock(create=AsyncMock(side_effect=mock_error))
+                )
+            ),
+        ),
+        pytest.raises(LLMAuthenticationError),
     ):
-        with pytest.raises(LLMAuthenticationError):
-            await adapter.generate("test prompt")
+        await adapter.generate("test prompt")
 
 
 @pytest.mark.unit
@@ -223,13 +233,19 @@ async def test_openai_adapter_translates_429_to_rate_limit_error_after_max_retri
     mock_error = Exception("Rate limited")
     mock_error.status_code = 429
 
-    with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(side_effect=mock_error)))
-        )
+    with (
+        patch.object(
+            adapter,
+            "_get_client",
+            return_value=MagicMock(
+                chat=MagicMock(
+                    completions=MagicMock(create=AsyncMock(side_effect=mock_error))
+                )
+            ),
+        ),
+        pytest.raises(LLMRateLimitError),
     ):
-        with pytest.raises(LLMRateLimitError):
-            await adapter.generate("test prompt")
+        await adapter.generate("test prompt")
 
 
 @pytest.mark.unit
@@ -255,13 +271,19 @@ async def test_openai_adapter_handles_missing_status_code():
     # Error without status_code (e.g., connection error)
     mock_error = Exception("Connection failed")
 
-    with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(side_effect=mock_error)))
-        )
+    with (
+        patch.object(
+            adapter,
+            "_get_client",
+            return_value=MagicMock(
+                chat=MagicMock(
+                    completions=MagicMock(create=AsyncMock(side_effect=mock_error))
+                )
+            ),
+        ),
+        pytest.raises(LLMAdapterError),
     ):
-        with pytest.raises(LLMAdapterError):
-            await adapter.generate("test prompt")
+        await adapter.generate("test prompt")
 
 
 @pytest.mark.unit
@@ -294,9 +316,13 @@ async def test_openai_adapter_successful_generate():
     mock_response.model = "gpt-4"
 
     with patch.object(
-        adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(return_value=mock_response)))
-        )
+        adapter,
+        "_get_client",
+        return_value=MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(return_value=mock_response))
+            )
+        ),
     ):
         response = await adapter.generate("Say hello")
 

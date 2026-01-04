@@ -37,17 +37,19 @@ FORMAT_VERSION = "1.0"
 
 # Whitelist of allowed classes for unpickling
 # Only CodeNode, networkx types, and stdlib types allowed
-ALLOWED_MODULES = frozenset({
-    "builtins",
-    "collections",
-    "datetime",
-    "pathlib",
-    "networkx",
-    "networkx.classes.digraph",
-    "networkx.classes.reportviews",
-    "fs2.core.models.code_node",
-    "fs2.core.models.content_type",
-})
+ALLOWED_MODULES = frozenset(
+    {
+        "builtins",
+        "collections",
+        "datetime",
+        "pathlib",
+        "networkx",
+        "networkx.classes.digraph",
+        "networkx.classes.reportviews",
+        "fs2.core.models.code_node",
+        "fs2.core.models.content_type",
+    }
+)
 
 
 class RestrictedUnpickler(pickle.Unpickler):
@@ -165,8 +167,7 @@ class NetworkXGraphStore(GraphStore):
             )
         if child_id not in self._graph:
             raise GraphStoreError(
-                f"Child node not found: {child_id}. "
-                f"Add the node before creating edges."
+                f"Child node not found: {child_id}. Add the node before creating edges."
             )
 
         self._graph.add_edge(parent_id, child_id)
@@ -267,7 +268,9 @@ class NetworkXGraphStore(GraphStore):
 
             # Save as (metadata, graph) tuple
             with open(path, "wb") as f:
-                pickle.dump((metadata, self._graph), f, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(
+                    (metadata, self._graph), f, protocol=pickle.HIGHEST_PROTOCOL
+                )
 
             logger.info(
                 "Graph saved to %s (%d nodes, %d edges)",
@@ -307,8 +310,7 @@ class NetworkXGraphStore(GraphStore):
         """
         if not path.exists():
             raise GraphStoreError(
-                f"Graph file not found: {path}. "
-                f"Run 'fs2 scan' to create the graph."
+                f"Graph file not found: {path}. Run 'fs2 scan' to create the graph."
             )
 
         try:
@@ -357,13 +359,10 @@ class NetworkXGraphStore(GraphStore):
             raise
         except pickle.UnpicklingError as e:
             raise GraphStoreError(
-                f"Failed to unpickle graph file: {path}. "
-                f"File appears corrupted: {e}"
+                f"Failed to unpickle graph file: {path}. File appears corrupted: {e}"
             ) from e
         except Exception as e:
-            raise GraphStoreError(
-                f"Failed to load graph from {path}: {e}"
-            ) from e
+            raise GraphStoreError(f"Failed to load graph from {path}: {e}") from e
 
     def clear(self) -> None:
         """Remove all nodes and edges from the graph.

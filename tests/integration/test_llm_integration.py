@@ -35,15 +35,21 @@ async def test_full_flow_service_to_sdk_mocked():
 
     # Mock successful response
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock(message=MagicMock(content="Integration test response!"))]
+    mock_response.choices = [
+        MagicMock(message=MagicMock(content="Integration test response!"))
+    ]
     mock_response.choices[0].finish_reason = "stop"
     mock_response.usage = MagicMock(total_tokens=25)
     mock_response.model = "gpt-4"
 
     with patch.object(
-        service._adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(return_value=mock_response)))
-        )
+        service._adapter,
+        "_get_client",
+        return_value=MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(return_value=mock_response))
+            )
+        ),
     ):
         response = await service.generate("Test prompt for integration")
 
@@ -82,9 +88,13 @@ async def test_full_flow_azure_content_filter():
     mock_error.status_code = 400
 
     with patch.object(
-        service._adapter, "_get_client", return_value=MagicMock(
-            chat=MagicMock(completions=MagicMock(create=AsyncMock(side_effect=mock_error)))
-        )
+        service._adapter,
+        "_get_client",
+        return_value=MagicMock(
+            chat=MagicMock(
+                completions=MagicMock(create=AsyncMock(side_effect=mock_error))
+            )
+        ),
     ):
         response = await service.generate("Filtered content")
 

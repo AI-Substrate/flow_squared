@@ -58,9 +58,7 @@ class TestLanguageHandlerABC:
         # Check that language is defined as abstract
         assert hasattr(LanguageHandler, "language")
         # It should be a property
-        assert isinstance(
-            inspect.getattr_static(LanguageHandler, "language"), property
-        )
+        assert isinstance(inspect.getattr_static(LanguageHandler, "language"), property)
 
     def test_language_handler_has_container_types_property(self) -> None:
         """
@@ -106,11 +104,14 @@ class TestDefaultHandler:
         containers = handler.container_types
 
         # Must include common structural wrappers
-        expected = {"module_body", "compound_statement", "declaration_list",
-                    "statement_block", "body"}
-        assert expected <= containers, (
-            f"Missing containers: {expected - containers}"
-        )
+        expected = {
+            "module_body",
+            "compound_statement",
+            "declaration_list",
+            "statement_block",
+            "body",
+        }
+        assert expected <= containers, f"Missing containers: {expected - containers}"
 
     def test_default_handler_container_types_is_set(self) -> None:
         """
@@ -214,13 +215,11 @@ class TestParserHandlerIntegration:
         # Parser should have access to handlers
         # (We can't easily test private methods, so we test behavior)
         # Parse a simple Python file and verify no "block" nodes extracted
-        python_code = '''
+        python_code = """
 def hello():
     print("Hello")
-'''
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False
-        ) as f:
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
             f.write(python_code)
             temp_path = Path(f.name)
 
@@ -255,7 +254,7 @@ def hello():
         )
         parser = TreeSitterParser(config)
 
-        python_code = '''
+        python_code = """
 def my_function():
     x = 1
     return x
@@ -263,10 +262,8 @@ def my_function():
 class MyClass:
     def my_method(self):
         pass
-'''
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False
-        ) as f:
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
             f.write(python_code)
             temp_path = Path(f.name)
 
@@ -275,8 +272,11 @@ class MyClass:
 
             # Count how many nodes have each node_id
             from collections import Counter
+
             node_id_counts = Counter(n.node_id for n in nodes)
-            duplicates = [(nid, count) for nid, count in node_id_counts.items() if count > 1]
+            duplicates = [
+                (nid, count) for nid, count in node_id_counts.items() if count > 1
+            ]
 
             assert not duplicates, (
                 f"Found duplicate node_ids: {duplicates}. "

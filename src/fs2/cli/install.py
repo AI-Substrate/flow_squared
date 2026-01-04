@@ -172,9 +172,7 @@ def _run_upgrade() -> int:
             version_str = f"v{pkg_version}"
             if commit_short:
                 version_str += f" ({commit_short})"
-            console.print(
-                f"[green]>[/green] fs2 {version_str} is already up to date"
-            )
+            console.print(f"[green]>[/green] fs2 {version_str} is already up to date")
         else:
             pkg_version, commit_short, _ = _get_version_info()
             version_str = f"v{pkg_version}"

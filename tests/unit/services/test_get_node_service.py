@@ -82,9 +82,7 @@ def make_code_node(
 class TestGetNodeServiceInit:
     """T002: Tests for GetNodeService initialization."""
 
-    def test_given_config_and_store_when_created_then_service_exists(
-        self, tmp_path
-    ):
+    def test_given_config_and_store_when_created_then_service_exists(self, tmp_path):
         """
         Purpose: Verifies service can be created with DI pattern.
         Quality Contribution: Ensures proper dependency injection.
@@ -127,9 +125,7 @@ class TestGetNodeServiceInit:
 class TestGetNodeServiceLazyLoading:
     """T002: Tests for lazy loading behavior."""
 
-    def test_given_new_service_when_get_node_called_then_loads_graph(
-        self, tmp_path
-    ):
+    def test_given_new_service_when_get_node_called_then_loads_graph(self, tmp_path):
         """
         Purpose: Verifies lazy loading triggers on first access.
         Quality Contribution: Ensures graph loaded before access.
@@ -155,9 +151,7 @@ class TestGetNodeServiceLazyLoading:
         assert len(load_calls) == 1
         assert load_calls[0]["args"][0] == graph_path
 
-    def test_given_already_loaded_when_get_node_called_then_no_reload(
-        self, tmp_path
-    ):
+    def test_given_already_loaded_when_get_node_called_then_no_reload(self, tmp_path):
         """
         Purpose: Verifies graph is not re-loaded on subsequent calls.
         Quality Contribution: Prevents redundant I/O.
@@ -188,9 +182,7 @@ class TestGetNodeServiceLazyLoading:
 class TestGetNodeServiceRetrieval:
     """T002: Tests for node retrieval."""
 
-    def test_given_existing_node_when_get_node_called_then_returns_node(
-        self, tmp_path
-    ):
+    def test_given_existing_node_when_get_node_called_then_returns_node(self, tmp_path):
         """
         Purpose: Verifies node retrieval returns correct node.
         Quality Contribution: Core functionality test.

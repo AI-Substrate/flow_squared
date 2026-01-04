@@ -19,4 +19,3 @@ class TemplateError(SmartContentError):
 
 class SmartContentProcessingError(SmartContentError):
     """Processing a node (or batch) for smart content failed."""
-

@@ -199,7 +199,9 @@ class EmbeddingStage:
 
         mismatches = []
         for key in ("embedding_model", "embedding_dimensions", "chunk_params"):
-            if key in prior_metadata and prior_metadata.get(key) != current_metadata.get(key):
+            if key in prior_metadata and prior_metadata.get(
+                key
+            ) != current_metadata.get(key):
                 mismatches.append(
                     f"{key} (graph={prior_metadata.get(key)}, current={current_metadata.get(key)})"
                 )

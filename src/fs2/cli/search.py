@@ -50,35 +50,37 @@ def search(
     ctx: typer.Context,
     pattern: Annotated[
         str,
-        typer.Argument(
-            help="Search pattern (text, regex, or semantic query)"
-        ),
+        typer.Argument(help="Search pattern (text, regex, or semantic query)"),
     ],
     mode: Annotated[
         str,
         typer.Option(
-            "--mode", "-m",
+            "--mode",
+            "-m",
             help="Search mode: auto, text, regex, semantic (default: auto)",
         ),
     ] = "auto",
     limit: Annotated[
         int,
         typer.Option(
-            "--limit", "-l",
+            "--limit",
+            "-l",
             help="Maximum number of results (default: 5)",
         ),
     ] = 5,
     offset: Annotated[
         int,
         typer.Option(
-            "--offset", "-o",
+            "--offset",
+            "-o",
             help="Skip first N results for pagination (default: 0)",
         ),
     ] = 0,
     detail: Annotated[
         str,
         typer.Option(
-            "--detail", "-d",
+            "--detail",
+            "-d",
             help="Detail level: min (9 fields) or max (13 fields) (default: min)",
         ),
     ] = "min",
@@ -99,7 +101,8 @@ def search(
     file: Annotated[
         Path | None,
         typer.Option(
-            "--file", "-f",
+            "--file",
+            "-f",
             help="Write JSON to file instead of stdout (path validated for security).",
         ),
     ] = None,
@@ -141,23 +144,18 @@ def search(
     detail_lower = detail.lower()
     if detail_lower not in ("min", "max"):
         console.print(
-            f"[red]Error:[/red] Invalid detail level '{detail}'. "
-            f"Valid levels: min, max"
+            f"[red]Error:[/red] Invalid detail level '{detail}'. Valid levels: min, max"
         )
         raise typer.Exit(code=1)
 
     # Validate limit
     if limit < 1:
-        console.print(
-            f"[red]Error:[/red] Limit must be >= 1, got {limit}"
-        )
+        console.print(f"[red]Error:[/red] Limit must be >= 1, got {limit}")
         raise typer.Exit(code=1)
 
     # Validate offset
     if offset < 0:
-        console.print(
-            f"[red]Error:[/red] Offset must be >= 0, got {offset}"
-        )
+        console.print(f"[red]Error:[/red] Offset must be >= 0, got {offset}")
         raise typer.Exit(code=1)
 
     # Convert glob patterns to regex, then to tuples for QuerySpec
@@ -186,6 +184,7 @@ def search(
 
         # === Load Graph (lazy loading) ===
         from pathlib import Path
+
         graph_path = Path(graph_config.graph_path)
         if not graph_path.exists():
             raise GraphNotFoundError(graph_path)
@@ -240,7 +239,9 @@ def search(
             raise typer.Exit(code=1) from None
 
         # Track filtered count (filters already applied by service)
-        filtered_count = len(results) if (include_patterns or exclude_patterns) else None
+        filtered_count = (
+            len(results) if (include_patterns or exclude_patterns) else None
+        )
 
         # Apply pagination locally (service returned all filtered results)
         total_after_filter = len(results)
@@ -298,5 +299,3 @@ def search(
             "  Run [bold]fs2 init[/bold] first to create .fs2/config.yaml"
         )
         raise typer.Exit(code=1) from None
-
-

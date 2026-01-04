@@ -11,4 +11,5 @@ class Outer:
 
         return closure_func
 
-    processor = lambda self, x: x * 2
+    def processor(self, x):
+        return x * 2

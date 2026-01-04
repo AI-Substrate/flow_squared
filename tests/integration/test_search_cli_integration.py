@@ -39,7 +39,9 @@ class TestSearchIntegration:
         assert "meta" in envelope, "Expected envelope with 'meta' key"
         assert "results" in envelope, "Expected envelope with 'results' key"
         # Should find Calculator class in ast_samples
-        assert len(envelope["results"]) > 0, "Expected at least one result for 'Calculator'"
+        assert len(envelope["results"]) > 0, (
+            "Expected at least one result for 'Calculator'"
+        )
 
     def test_given_real_graph_when_search_then_results_have_node_id(
         self, scanned_fixtures_graph
@@ -76,7 +78,9 @@ class TestSearchIntegration:
 
         assert result.exit_code == 0
         envelope = json.loads(result.stdout)
-        assert len(envelope["results"]) <= 3, f"Expected at most 3 results, got {len(envelope['results'])}"
+        assert len(envelope["results"]) <= 3, (
+            f"Expected at most 3 results, got {len(envelope['results'])}"
+        )
 
     def test_given_real_graph_when_search_with_offset_then_paginates(
         self, scanned_fixtures_graph
@@ -147,7 +151,9 @@ class TestSearchIntegration:
         assert len(results) > 0
 
         first = results[0]
-        assert "content" not in first, f"Min detail should exclude content: {first.keys()}"
+        assert "content" not in first, (
+            f"Min detail should exclude content: {first.keys()}"
+        )
         assert len(first) == 9, f"Expected 9 fields in min detail, got {len(first)}"
 
     def test_given_real_graph_when_search_regex_mode_then_finds_pattern(
@@ -182,5 +188,7 @@ class TestSearchIntegration:
 
         assert result.exit_code == 0
         envelope = json.loads(result.stdout)
-        assert envelope["results"] == [], f"Expected empty results, got {envelope['results']}"
+        assert envelope["results"] == [], (
+            f"Expected empty results, got {envelope['results']}"
+        )
         assert envelope["meta"]["total"] == 0

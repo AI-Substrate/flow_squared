@@ -58,6 +58,4 @@ def test_llm_adapter_has_provider_name_property():
     # Check that provider_name is defined
     assert hasattr(LLMAdapter, "provider_name")
     # It should be an abstract property
-    assert isinstance(
-        inspect.getattr_static(LLMAdapter, "provider_name"), property
-    )
+    assert isinstance(inspect.getattr_static(LLMAdapter, "provider_name"), property)

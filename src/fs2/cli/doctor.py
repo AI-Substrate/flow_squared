@@ -7,12 +7,17 @@ Diagnostic command that displays configuration health status including:
 - Placeholder resolution validation
 - Literal secret detection
 - YAML and schema validation
+
+Subcommands:
+- fs2 doctor: Check configuration health (default)
+- fs2 doctor llm: Test LLM and embedding provider connectivity
 """
 
+import asyncio
 import os
 import re
 from pathlib import Path
-from typing import Any, Annotated
+from typing import Any
 
 import typer
 import yaml
@@ -20,17 +25,26 @@ from dotenv import dotenv_values
 from pydantic import ValidationError
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
 
+from fs2.config.exceptions import MissingConfigurationError
+from fs2.config.loaders import deep_merge, load_yaml_config
 from fs2.config.paths import get_project_config_dir, get_user_config_dir
-from fs2.config.loaders import load_yaml_config, deep_merge
 
 console = Console()
+
+# Create Typer app for doctor command group
+doctor_app = typer.Typer(
+    name="doctor",
+    help="Diagnose fs2 configuration and provider connectivity",
+    no_args_is_help=False,  # Allow running without subcommand
+)
 
 # GitHub documentation URLs
 GITHUB_BASE = "https://github.com/AI-Substrate/flow_squared/blob/main"
 LLM_DOCS_URL = f"{GITHUB_BASE}/docs/how/user/configuration-guide.md#llm-configuration"
-EMBEDDING_DOCS_URL = f"{GITHUB_BASE}/docs/how/user/configuration-guide.md#embedding-configuration"
+EMBEDDING_DOCS_URL = (
+    f"{GITHUB_BASE}/docs/how/user/configuration-guide.md#embedding-configuration"
+)
 CONFIG_DOCS_URL = f"{GITHUB_BASE}/docs/how/user/configuration-guide.md"
 
 # Placeholder pattern: ${VAR_NAME}
@@ -39,6 +53,12 @@ PLACEHOLDER_PATTERN = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
 # Secret detection patterns
 SK_PREFIX_PATTERN = re.compile(r"^sk-")
 LONG_SECRET_MIN_LENGTH = 64
+
+# Health check prompts (substantial to ensure valid responses)
+LLM_HEALTH_CHECK_PROMPT = (
+    "This is a health check from fs2. Please respond with exactly: HEALTH_CHECK_OK"
+)
+EMBEDDING_HEALTH_CHECK_TEXT = "fs2 health check: This text is used to verify embedding generation is working correctly."
 
 
 def discover_config_files() -> dict[str, dict[str, Any]]:
@@ -90,12 +110,14 @@ def _load_config_safely(path: Path) -> tuple[dict[str, Any] | None, list[dict]]:
         with open(path, encoding="utf-8") as f:
             content = f.read()
     except UnicodeDecodeError as e:
-        errors.append({
-            "type": "yaml_syntax",
-            "file": str(path),
-            "message": f"Encoding error: {e}",
-            "line": 1,
-        })
+        errors.append(
+            {
+                "type": "yaml_syntax",
+                "file": str(path),
+                "message": f"Encoding error: {e}",
+                "line": 1,
+            }
+        )
         return None, errors
 
     try:
@@ -104,13 +126,15 @@ def _load_config_safely(path: Path) -> tuple[dict[str, Any] | None, list[dict]]:
     except yaml.YAMLError as e:
         line = getattr(e, "problem_mark", None)
         line_num = line.line + 1 if line else 1
-        errors.append({
-            "type": "yaml_syntax",
-            "file": str(path),
-            "message": str(e),
-            "line": line_num,
-            "line_number": line_num,
-        })
+        errors.append(
+            {
+                "type": "yaml_syntax",
+                "file": str(path),
+                "message": str(e),
+                "line": line_num,
+                "line_number": line_num,
+            }
+        )
         return None, errors
 
 
@@ -161,14 +185,18 @@ def _find_overrides(
 
             if isinstance(base_value, dict) and isinstance(overlay_value, dict):
                 # Recurse into nested dicts
-                overrides.extend(_find_overrides(base_value, overlay_value, current_path))
+                overrides.extend(
+                    _find_overrides(base_value, overlay_value, current_path)
+                )
             elif base_value != overlay_value:
                 # Leaf value override
-                overrides.append({
-                    "path": current_path,
-                    "base_value": base_value,
-                    "override_value": overlay_value,
-                })
+                overrides.append(
+                    {
+                        "path": current_path,
+                        "base_value": base_value,
+                        "override_value": overlay_value,
+                    }
+                )
 
     return overrides
 
@@ -258,7 +286,9 @@ def check_provider_status() -> dict[str, dict[str, Any]]:
     final_config = chain["final"]
 
     llm_configured, llm_misconfigured, llm_issues = _validate_llm_config(final_config)
-    emb_configured, emb_misconfigured, emb_issues = _validate_embedding_config(final_config)
+    emb_configured, emb_misconfigured, emb_issues = _validate_embedding_config(
+        final_config
+    )
 
     return {
         "llm": {
@@ -288,10 +318,12 @@ def _find_placeholders_in_value(value: Any, path: str = "") -> list[dict[str, st
 
     if isinstance(value, str):
         for match in PLACEHOLDER_PATTERN.finditer(value):
-            placeholders.append({
-                "name": match.group(1),
-                "path": path,
-            })
+            placeholders.append(
+                {
+                    "name": match.group(1),
+                    "path": path,
+                }
+            )
     elif isinstance(value, dict):
         for k, v in value.items():
             current_path = f"{path}.{k}" if path else k
@@ -318,9 +350,9 @@ def _load_all_env_values() -> dict[str, str]:
     project_config_dir = get_project_config_dir()
 
     env_files = [
-        user_config_dir / "secrets.env",      # lowest priority
+        user_config_dir / "secrets.env",  # lowest priority
         project_config_dir / "secrets.env",
-        Path.cwd() / ".env",                  # highest priority
+        Path.cwd() / ".env",  # highest priority
     ]
 
     for env_file in env_files:
@@ -356,11 +388,13 @@ def validate_placeholders() -> list[dict[str, Any]]:
     for p in placeholders:
         if p["name"] not in seen:
             seen.add(p["name"])
-            result.append({
-                "name": p["name"],
-                "path": p["path"],
-                "resolved": p["name"] in all_env_values,
-            })
+            result.append(
+                {
+                    "name": p["name"],
+                    "path": p["path"],
+                    "resolved": p["name"] in all_env_values,
+                }
+            )
 
     return result
 
@@ -381,19 +415,26 @@ def _find_secrets_in_value(
     if isinstance(value, str):
         # Check for sk-* prefix (OpenAI API key format)
         if SK_PREFIX_PATTERN.match(value):
-            secrets.append({
-                "path": path,
-                "pattern": "sk-*",
-                "reason": "OpenAI API key format detected",
-            })
+            secrets.append(
+                {
+                    "path": path,
+                    "pattern": "sk-*",
+                    "reason": "OpenAI API key format detected",
+                }
+            )
         # Check for long strings in secret fields (but not placeholders)
-        elif is_secret_field and len(value) >= LONG_SECRET_MIN_LENGTH:
-            if not PLACEHOLDER_PATTERN.search(value):
-                secrets.append({
+        elif (
+            is_secret_field
+            and len(value) >= LONG_SECRET_MIN_LENGTH
+            and not PLACEHOLDER_PATTERN.search(value)
+        ):
+            secrets.append(
+                {
                     "path": path,
                     "pattern": f">{LONG_SECRET_MIN_LENGTH} chars",
                     "reason": "Long literal in secret field",
-                })
+                }
+            )
     elif isinstance(value, dict):
         for k, v in value.items():
             current_path = f"{path}.{k}" if path else k
@@ -436,7 +477,9 @@ def get_suggestions() -> list[str]:
     placeholders = validate_placeholders()
     unresolved = [p for p in placeholders if not p["resolved"]]
     for p in unresolved:
-        suggestions.append(f"Set {p['name']} environment variable to enable {p['path']}")
+        suggestions.append(
+            f"Set {p['name']} environment variable to enable {p['path']}"
+        )
 
     return suggestions
 
@@ -507,7 +550,7 @@ def _validate_schema(config: dict[str, Any], file_path: str) -> list[dict[str, A
     errors = []
 
     # Import config models
-    from fs2.config.objects import ScanConfig, LLMConfig, EmbeddingConfig
+    from fs2.config.objects import EmbeddingConfig, LLMConfig, ScanConfig
 
     # Validate scan config
     if "scan" in config:
@@ -516,13 +559,15 @@ def _validate_schema(config: dict[str, Any], file_path: str) -> list[dict[str, A
         except ValidationError as e:
             for err in e.errors():
                 field_path = ".".join(str(x) for x in err["loc"])
-                errors.append({
-                    "type": "schema_validation",
-                    "file": file_path,
-                    "field": f"scan.{field_path}",
-                    "message": err["msg"],
-                    "expected_type": err.get("type", "unknown"),
-                })
+                errors.append(
+                    {
+                        "type": "schema_validation",
+                        "file": file_path,
+                        "field": f"scan.{field_path}",
+                        "message": err["msg"],
+                        "expected_type": err.get("type", "unknown"),
+                    }
+                )
 
     # Validate LLM config
     if "llm" in config:
@@ -531,13 +576,15 @@ def _validate_schema(config: dict[str, Any], file_path: str) -> list[dict[str, A
         except ValidationError as e:
             for err in e.errors():
                 field_path = ".".join(str(x) for x in err["loc"])
-                errors.append({
-                    "type": "schema_validation",
-                    "file": file_path,
-                    "field": f"llm.{field_path}",
-                    "message": err["msg"],
-                    "expected_type": err.get("type", "unknown"),
-                })
+                errors.append(
+                    {
+                        "type": "schema_validation",
+                        "file": file_path,
+                        "field": f"llm.{field_path}",
+                        "message": err["msg"],
+                        "expected_type": err.get("type", "unknown"),
+                    }
+                )
 
     # Validate embedding config
     if "embedding" in config:
@@ -546,13 +593,15 @@ def _validate_schema(config: dict[str, Any], file_path: str) -> list[dict[str, A
         except ValidationError as e:
             for err in e.errors():
                 field_path = ".".join(str(x) for x in err["loc"])
-                errors.append({
-                    "type": "schema_validation",
-                    "file": file_path,
-                    "field": f"embedding.{field_path}",
-                    "message": err["msg"],
-                    "expected_type": err.get("type", "unknown"),
-                })
+                errors.append(
+                    {
+                        "type": "schema_validation",
+                        "file": file_path,
+                        "field": f"embedding.{field_path}",
+                        "message": err["msg"],
+                        "expected_type": err.get("type", "unknown"),
+                    }
+                )
 
     return errors
 
@@ -573,26 +622,32 @@ def validate_provider_requirements() -> list[dict[str, Any]]:
     provider = llm.get("provider")
     if provider == "azure":
         if not llm.get("base_url"):
-            errors.append({
-                "type": "provider_requirement",
-                "field": "llm.base_url",
-                "message": "base_url (endpoint) is required for Azure OpenAI",
-                "docs_url": LLM_DOCS_URL,
-            })
+            errors.append(
+                {
+                    "type": "provider_requirement",
+                    "field": "llm.base_url",
+                    "message": "base_url (endpoint) is required for Azure OpenAI",
+                    "docs_url": LLM_DOCS_URL,
+                }
+            )
         if not llm.get("azure_deployment_name"):
-            errors.append({
-                "type": "provider_requirement",
-                "field": "llm.azure_deployment_name",
-                "message": "azure_deployment_name is required for Azure OpenAI",
-                "docs_url": LLM_DOCS_URL,
-            })
+            errors.append(
+                {
+                    "type": "provider_requirement",
+                    "field": "llm.azure_deployment_name",
+                    "message": "azure_deployment_name is required for Azure OpenAI",
+                    "docs_url": LLM_DOCS_URL,
+                }
+            )
         if not llm.get("azure_api_version"):
-            errors.append({
-                "type": "provider_requirement",
-                "field": "llm.azure_api_version",
-                "message": "azure_api_version is required for Azure OpenAI",
-                "docs_url": LLM_DOCS_URL,
-            })
+            errors.append(
+                {
+                    "type": "provider_requirement",
+                    "field": "llm.azure_api_version",
+                    "message": "azure_api_version is required for Azure OpenAI",
+                    "docs_url": LLM_DOCS_URL,
+                }
+            )
 
     # Embedding provider validation
     embedding = final_config.get("embedding", {})
@@ -600,19 +655,23 @@ def validate_provider_requirements() -> list[dict[str, Any]]:
     if mode == "azure":
         azure = embedding.get("azure", {})
         if not azure.get("endpoint"):
-            errors.append({
-                "type": "provider_requirement",
-                "field": "embedding.azure.endpoint",
-                "message": "azure.endpoint is required for Azure embeddings",
-                "docs_url": EMBEDDING_DOCS_URL,
-            })
+            errors.append(
+                {
+                    "type": "provider_requirement",
+                    "field": "embedding.azure.endpoint",
+                    "message": "azure.endpoint is required for Azure embeddings",
+                    "docs_url": EMBEDDING_DOCS_URL,
+                }
+            )
         if not azure.get("api_key"):
-            errors.append({
-                "type": "provider_requirement",
-                "field": "embedding.azure.api_key",
-                "message": "azure.api_key is required for Azure embeddings",
-                "docs_url": EMBEDDING_DOCS_URL,
-            })
+            errors.append(
+                {
+                    "type": "provider_requirement",
+                    "field": "embedding.azure.api_key",
+                    "message": "azure.api_key is required for Azure embeddings",
+                    "docs_url": EMBEDDING_DOCS_URL,
+                }
+            )
 
     return errors
 
@@ -636,10 +695,7 @@ def _has_critical_issues() -> bool:
 
     # Provider requirement errors when provider is specified but incomplete
     provider_errors = validate_provider_requirements()
-    if provider_errors:
-        return True
-
-    return False
+    return bool(provider_errors)
 
 
 def _render_output() -> None:
@@ -647,11 +703,13 @@ def _render_output() -> None:
     cwd = Path.cwd()
 
     # Header panel
-    console.print(Panel(
-        f"[bold]Current Directory:[/bold] {cwd}",
-        title="fs2 Configuration Health Check",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            f"[bold]Current Directory:[/bold] {cwd}",
+            title="fs2 Configuration Health Check",
+            border_style="blue",
+        )
+    )
     console.print()
 
     # Config files section with hierarchy
@@ -671,13 +729,17 @@ def _render_output() -> None:
 
     # Display in priority order (highest first)
     if fs2_env_vars:
-        console.print(f"    1. [green]✓[/green] Environment (FS2_*) - {len(fs2_env_vars)} set")
+        console.print(
+            f"    1. [green]✓[/green] Environment (FS2_*) - {len(fs2_env_vars)} set"
+        )
         for var_name, var_value in sorted(fs2_env_vars.items()):
             # Mask values that look like secrets
             if "KEY" in var_name or "SECRET" in var_name or "PASSWORD" in var_name:
                 display_value = "****"
             else:
-                display_value = var_value if len(var_value) <= 40 else var_value[:37] + "..."
+                display_value = (
+                    var_value if len(var_value) <= 40 else var_value[:37] + "..."
+                )
             console.print(f"       [dim]{var_name}={display_value}[/dim]")
     else:
         console.print("    1. [dim]✗ Environment (FS2_*) - none set[/dim]")
@@ -733,7 +795,9 @@ def _render_output() -> None:
         console.print("[bold]🔐 Secrets & Placeholders:[/bold]")
         for p in placeholders:
             status = "[green]✓[/green]" if p["resolved"] else "[red]✗[/red] NOT FOUND"
-            console.print(f"  {status} ${{{p['name']}}} → {'resolved' if p['resolved'] else 'NOT FOUND'}")
+            console.print(
+                f"  {status} ${{{p['name']}}} → {'resolved' if p['resolved'] else 'NOT FOUND'}"
+            )
         console.print()
 
     # Warnings section
@@ -744,7 +808,9 @@ def _render_output() -> None:
         for w in warnings:
             console.print(f"  • {w}")
         for s in secrets:
-            console.print(f"  • [red]Literal secret detected[/red] at '{s['path']}' ({s['reason']})")
+            console.print(
+                f"  • [red]Literal secret detected[/red] at '{s['path']}' ({s['reason']})"
+            )
         console.print()
 
     # Validation errors section
@@ -755,7 +821,9 @@ def _render_output() -> None:
         console.print("[bold]❌ Validation Errors:[/bold]")
         for e in all_errors:
             if e["type"] == "yaml_syntax":
-                console.print(f"  • YAML error in {e['file']} line {e.get('line', '?')}: {e['message']}")
+                console.print(
+                    f"  • YAML error in {e['file']} line {e.get('line', '?')}: {e['message']}"
+                )
             elif e["type"] == "schema_validation":
                 console.print(f"  • Schema error: {e['field']} - {e['message']}")
             elif e["type"] == "provider_requirement":
@@ -771,7 +839,8 @@ def _render_output() -> None:
             console.print(f"  • {s}")
 
 
-def doctor() -> None:
+@doctor_app.callback(invoke_without_command=True)
+def doctor(ctx: typer.Context) -> None:
     """Check fs2 configuration health.
 
     Displays configuration status including:
@@ -785,8 +854,172 @@ def doctor() -> None:
     Example:
         $ fs2 doctor
         [Shows configuration health status]
-    """
-    _render_output()
 
-    if _has_critical_issues():
+    \b
+    Subcommands:
+        llm   Test LLM and embedding provider connectivity
+    """
+    # Only run if no subcommand was invoked
+    if ctx.invoked_subcommand is None:
+        _render_output()
+
+        if _has_critical_issues():
+            raise typer.Exit(1)
+
+
+async def _test_llm_provider() -> tuple[bool, str, str | None]:
+    """Test LLM provider connectivity.
+
+    Returns:
+        Tuple of (success, provider_name, error_message or response_preview)
+    """
+    from fs2.config.service import FS2ConfigurationService
+    from fs2.core.adapters.exceptions import (
+        LLMAdapterError,
+        LLMAuthenticationError,
+        LLMRateLimitError,
+    )
+    from fs2.core.services.llm_service import LLMService
+
+    try:
+        config = FS2ConfigurationService()
+        service = LLMService.create(config)
+
+        # Get provider name from config
+        from fs2.config.objects import LLMConfig
+
+        llm_config = config.get(LLMConfig)
+        provider_name = llm_config.provider if llm_config else "unknown"
+
+        # Make health check call
+        response = await service.generate(LLM_HEALTH_CHECK_PROMPT)
+
+        # Check for content filter
+        if response.was_filtered:
+            return True, provider_name, "Connected (content filtered)"
+
+        # Truncate response for display
+        preview = response.content[:50] if response.content else "(empty)"
+        return True, provider_name, preview
+
+    except MissingConfigurationError:
+        return False, "not configured", None
+    except LLMAuthenticationError as e:
+        return False, "auth failed", str(e)
+    except LLMRateLimitError as e:
+        return False, "rate limited", str(e)
+    except LLMAdapterError as e:
+        return False, "error", str(e)
+    except Exception as e:
+        return False, "error", str(e)
+
+
+async def _test_embedding_provider() -> tuple[bool, str, str | None]:
+    """Test embedding provider connectivity.
+
+    Returns:
+        Tuple of (success, provider_name, error_message or dimensions)
+    """
+    from fs2.config.service import FS2ConfigurationService
+    from fs2.core.adapters.exceptions import (
+        EmbeddingAdapterError,
+        EmbeddingAuthenticationError,
+        EmbeddingRateLimitError,
+    )
+    from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+    try:
+        config = FS2ConfigurationService()
+        service = EmbeddingService.create(config)
+
+        # Get mode name from config
+        from fs2.config.objects import EmbeddingConfig
+
+        emb_config = config.get(EmbeddingConfig)
+        mode_name = emb_config.mode if emb_config else "unknown"
+
+        # Make health check call - access _adapter directly for simple health check
+        embeddings = await service._adapter.embed_batch([EMBEDDING_HEALTH_CHECK_TEXT])
+
+        # Report dimensions
+        if embeddings and len(embeddings) > 0:
+            dimensions = len(embeddings[0])
+            return True, mode_name, f"Dimensions: {dimensions}"
+        else:
+            return False, mode_name, "Empty embedding returned"
+
+    except MissingConfigurationError:
+        return False, "not configured", None
+    except EmbeddingAuthenticationError as e:
+        return False, "auth failed", str(e)
+    except EmbeddingRateLimitError as e:
+        return False, "rate limited", str(e)
+    except EmbeddingAdapterError as e:
+        return False, "error", str(e)
+    except Exception as e:
+        return False, "error", str(e)
+
+
+async def _run_llm_tests() -> bool:
+    """Run all LLM provider tests and return overall success."""
+    has_failure = False
+
+    # Test LLM
+    console.print("[bold]🔌 LLM Provider Test[/bold]")
+    llm_success, llm_provider, llm_detail = await _test_llm_provider()
+
+    if llm_provider == "not configured":
+        console.print("  [yellow]![/yellow] LLM: Not configured (skipped)")
+    elif llm_success:
+        console.print(f"  [green]✓[/green] LLM ({llm_provider}): Connected")
+        if llm_detail:
+            console.print(f"    Response: {llm_detail}")
+    else:
+        console.print(f"  [red]✗[/red] LLM: {llm_provider}")
+        if llm_detail:
+            console.print(f"    {llm_detail}")
+        has_failure = True
+
+    console.print()
+
+    # Test Embeddings
+    console.print("[bold]🔌 Embedding Provider Test[/bold]")
+    emb_success, emb_mode, emb_detail = await _test_embedding_provider()
+
+    if emb_mode == "not configured":
+        console.print("  [yellow]![/yellow] Embeddings: Not configured (skipped)")
+    elif emb_success:
+        console.print(f"  [green]✓[/green] Embeddings ({emb_mode}): Connected")
+        if emb_detail:
+            console.print(f"    {emb_detail}")
+    else:
+        console.print(f"  [red]✗[/red] Embeddings: {emb_mode}")
+        if emb_detail:
+            console.print(f"    {emb_detail}")
+        has_failure = True
+
+    return not has_failure
+
+
+@doctor_app.command(name="llm")
+def doctor_llm() -> None:
+    """Test LLM and embedding provider connectivity.
+
+    Makes actual API calls to verify that LLM and embedding providers
+    are configured correctly and credentials work.
+
+    Use this as a pre-flight check before running expensive operations
+    like `fs2 scan --embed`.
+
+    \b
+    Example:
+        $ fs2 doctor llm
+        🔌 LLM Provider Test
+          ✓ LLM (azure): Connected
+        🔌 Embedding Provider Test
+          ✓ Embeddings (azure): Connected
+    """
+    success = asyncio.run(_run_llm_tests())
+
+    if not success:
         raise typer.Exit(1)

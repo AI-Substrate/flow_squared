@@ -66,9 +66,15 @@ class TestBatchCollection:
     def test_chunk_items_preserved_in_batches(self, config_batch_16):
         """ChunkItem instances are not modified during batching."""
         chunks = [
-            ChunkItem(node_id="node:0", chunk_index=0, text="hello", is_smart_content=False),
-            ChunkItem(node_id="node:0", chunk_index=1, text="world", is_smart_content=False),
-            ChunkItem(node_id="node:1", chunk_index=0, text="smart", is_smart_content=True),
+            ChunkItem(
+                node_id="node:0", chunk_index=0, text="hello", is_smart_content=False
+            ),
+            ChunkItem(
+                node_id="node:0", chunk_index=1, text="world", is_smart_content=False
+            ),
+            ChunkItem(
+                node_id="node:1", chunk_index=0, text="smart", is_smart_content=True
+            ),
         ]
 
         service = EmbeddingService(
@@ -134,10 +140,18 @@ class TestBatchCollection:
     def test_mixed_smart_content_chunks_in_batches(self, config_batch_10):
         """Both regular and smart_content ChunkItems can be in same batch."""
         chunks = [
-            ChunkItem(node_id="node:0", chunk_index=0, text="regular", is_smart_content=False),
-            ChunkItem(node_id="node:0", chunk_index=0, text="smart", is_smart_content=True),
-            ChunkItem(node_id="node:1", chunk_index=0, text="regular2", is_smart_content=False),
-            ChunkItem(node_id="node:1", chunk_index=0, text="smart2", is_smart_content=True),
+            ChunkItem(
+                node_id="node:0", chunk_index=0, text="regular", is_smart_content=False
+            ),
+            ChunkItem(
+                node_id="node:0", chunk_index=0, text="smart", is_smart_content=True
+            ),
+            ChunkItem(
+                node_id="node:1", chunk_index=0, text="regular2", is_smart_content=False
+            ),
+            ChunkItem(
+                node_id="node:1", chunk_index=0, text="smart2", is_smart_content=True
+            ),
         ]
 
         service = EmbeddingService(
@@ -244,11 +258,7 @@ class TestBatchCollectionReturnType:
 
         assert isinstance(batches, list)
         assert all(isinstance(batch, list) for batch in batches)
-        assert all(
-            isinstance(item, ChunkItem)
-            for batch in batches
-            for item in batch
-        )
+        assert all(isinstance(item, ChunkItem) for batch in batches for item in batch)
 
     def test_batches_can_be_iterated(self, config):
         """Batches can be iterated for processing."""

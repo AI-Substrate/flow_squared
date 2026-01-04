@@ -161,9 +161,7 @@ class TestTiktokenModelFallback:
 
         monkeypatch.setitem(__import__("sys").modules, "tiktoken", FakeTiktokenModule)
 
-        config = FakeConfigurationService(
-            LLMConfig(provider="fake", model="bad-model")
-        )
+        config = FakeConfigurationService(LLMConfig(provider="fake", model="bad-model"))
 
         with pytest.raises(TokenCounterError) as exc_info:
             TiktokenTokenCounterAdapter(config)

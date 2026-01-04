@@ -200,7 +200,9 @@ class TestContentChunking:
         chunks = service._chunk_content(code_node, is_smart_content=False)
 
         for i, chunk in enumerate(chunks):
-            assert chunk.chunk_index == i, f"Chunk {i} has wrong index {chunk.chunk_index}"
+            assert chunk.chunk_index == i, (
+                f"Chunk {i} has wrong index {chunk.chunk_index}"
+            )
 
     def test_empty_content_returns_empty_list(self, default_config):
         """Empty content returns empty chunk list."""
@@ -308,7 +310,8 @@ class TestDualEmbeddingChunking:
             end_column=0,
             start_byte=0,
             end_byte=200,
-            content="def process(data):\n    # Long implementation\n" + "    pass\n" * 50,
+            content="def process(data):\n    # Long implementation\n"
+            + "    pass\n" * 50,
             content_hash="proc123",
             signature="def process(data):",
             language="python",
@@ -330,7 +333,9 @@ class TestDualEmbeddingChunking:
             token_counter=None,
         )
 
-        raw_chunks = service._chunk_content(node_with_smart_content, is_smart_content=False)
+        raw_chunks = service._chunk_content(
+            node_with_smart_content, is_smart_content=False
+        )
 
         for chunk in raw_chunks:
             assert chunk.is_smart_content is False
@@ -348,12 +353,16 @@ class TestDualEmbeddingChunking:
         )
 
         # Chunk the smart_content field
-        smart_chunks = service._chunk_content(node_with_smart_content, is_smart_content=True)
+        smart_chunks = service._chunk_content(
+            node_with_smart_content, is_smart_content=True
+        )
 
         for chunk in smart_chunks:
             assert chunk.is_smart_content is True
 
-    def test_smart_content_uses_larger_chunk_size(self, config, node_with_smart_content):
+    def test_smart_content_uses_larger_chunk_size(
+        self, config, node_with_smart_content
+    ):
         """Smart content chunks use 8000 token limit vs 400 for code."""
         from fs2.core.services.embedding.embedding_service import EmbeddingService
 
@@ -363,8 +372,12 @@ class TestDualEmbeddingChunking:
             token_counter=None,
         )
 
-        raw_chunks = service._chunk_content(node_with_smart_content, is_smart_content=False)
-        smart_chunks = service._chunk_content(node_with_smart_content, is_smart_content=True)
+        raw_chunks = service._chunk_content(
+            node_with_smart_content, is_smart_content=False
+        )
+        smart_chunks = service._chunk_content(
+            node_with_smart_content, is_smart_content=True
+        )
 
         # Smart content (short description) should be 1 chunk
         # Raw content (longer code) may be multiple chunks
@@ -670,7 +683,7 @@ class TestChunkLineOffsetTracking:
             # Next chunk starts at or before previous chunk ends (overlap) or immediately after
             assert start_line_j <= end_line_i + 1, (
                 f"Gap between chunk {i} end_line={end_line_i} "
-                f"and chunk {i+1} start_line={start_line_j}"
+                f"and chunk {i + 1} start_line={start_line_j}"
             )
 
     def test_overlap_lines_appear_in_multiple_chunks(
@@ -732,8 +745,10 @@ class TestChunkLineOffsetTracking:
         result = service._chunk_by_tokens(long_line, max_tokens=50, overlap_tokens=0)
 
         # Should produce multiple chunks all with same line range
-        assert len(result) > 1, "Long line should produce multiple character-split chunks"
-        for text, start_line, end_line in result:
+        assert len(result) > 1, (
+            "Long line should produce multiple character-split chunks"
+        )
+        for _text, start_line, end_line in result:
             assert start_line == end_line == 1, (
                 f"Character-split chunks should all have same line (1). "
                 f"Got start_line={start_line}, end_line={end_line}"

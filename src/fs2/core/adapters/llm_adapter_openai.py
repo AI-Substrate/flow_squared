@@ -123,7 +123,9 @@ class OpenAIAdapter(LLMAdapter):
 
         # Use config defaults if not specified
         effective_max_tokens = max_tokens or self._llm_config.max_tokens
-        effective_temperature = temperature if temperature is not None else self._llm_config.temperature
+        effective_temperature = (
+            temperature if temperature is not None else self._llm_config.temperature
+        )
         model = self._llm_config.model or "gpt-4"
 
         # Retry loop with exponential backoff

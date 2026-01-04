@@ -57,7 +57,9 @@ def _make_node(file_path: str = "a.py", content: str = "# test") -> CodeNode:
 class TestGraphMetadataPersistence:
     """Tests for embedding metadata persistence in graph store."""
 
-    def test_given_embedding_metadata_when_saved_then_loaded_metadata_includes_fields(self, tmp_path):
+    def test_given_embedding_metadata_when_saved_then_loaded_metadata_includes_fields(
+        self, tmp_path
+    ):
         """
         Purpose: Verifies embedding metadata is persisted with graph data.
         Quality Contribution: Enables model validation on subsequent scans.
@@ -94,7 +96,9 @@ class TestGraphMetadataPersistence:
 class TestGraphMetadataValidation:
     """Tests for embedding metadata mismatch detection."""
 
-    def test_given_mismatched_metadata_when_embedding_stage_runs_then_records_error(self):
+    def test_given_mismatched_metadata_when_embedding_stage_runs_then_records_error(
+        self,
+    ):
         """
         Purpose: Verifies mismatch between prior graph and current config is detected.
         Quality Contribution: Prevents silently mixing embeddings from different models.
@@ -104,11 +108,13 @@ class TestGraphMetadataValidation:
 
         config = FakeConfigurationService(ScanConfig())
         store = FakeGraphStore(config)
-        store.set_metadata({
-            "embedding_model": "old-model",
-            "embedding_dimensions": 1024,
-            "chunk_params": {"code": {"max_tokens": 400, "overlap_tokens": 50}},
-        })
+        store.set_metadata(
+            {
+                "embedding_model": "old-model",
+                "embedding_dimensions": 1024,
+                "chunk_params": {"code": {"max_tokens": 400, "overlap_tokens": 50}},
+            }
+        )
 
         current_metadata = {
             "embedding_model": "new-model",

@@ -96,11 +96,13 @@ class FakeGraphStore(GraphStore):
         Args:
             node: CodeNode to add.
         """
-        self._call_history.append({
-            "method": "add_node",
-            "args": (node,),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "add_node",
+                "args": (node,),
+                "kwargs": {},
+            }
+        )
         self._nodes[node.node_id] = node
 
     def add_edge(self, parent_id: str, child_id: str) -> None:
@@ -113,11 +115,13 @@ class FakeGraphStore(GraphStore):
         Raises:
             GraphStoreError: If simulating error or nodes don't exist.
         """
-        self._call_history.append({
-            "method": "add_edge",
-            "args": (parent_id, child_id),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "add_edge",
+                "args": (parent_id, child_id),
+                "kwargs": {},
+            }
+        )
 
         if "add_edge" in self.simulate_error_for:
             raise GraphStoreError("Simulated add_edge error")
@@ -136,11 +140,13 @@ class FakeGraphStore(GraphStore):
         Returns:
             CodeNode if found, None otherwise.
         """
-        self._call_history.append({
-            "method": "get_node",
-            "args": (node_id,),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "get_node",
+                "args": (node_id,),
+                "kwargs": {},
+            }
+        )
         return self._nodes.get(node_id)
 
     def get_children(self, node_id: str) -> list[CodeNode]:
@@ -152,11 +158,13 @@ class FakeGraphStore(GraphStore):
         Returns:
             List of child CodeNodes (may be empty).
         """
-        self._call_history.append({
-            "method": "get_children",
-            "args": (node_id,),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "get_children",
+                "args": (node_id,),
+                "kwargs": {},
+            }
+        )
         child_ids = self._edges.get(node_id, set())
         return [self._nodes[cid] for cid in child_ids if cid in self._nodes]
 
@@ -169,11 +177,13 @@ class FakeGraphStore(GraphStore):
         Returns:
             Parent CodeNode if exists, None if node has no parent.
         """
-        self._call_history.append({
-            "method": "get_parent",
-            "args": (node_id,),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "get_parent",
+                "args": (node_id,),
+                "kwargs": {},
+            }
+        )
         parent_id = self._reverse_edges.get(node_id)
         if parent_id:
             return self._nodes.get(parent_id)
@@ -185,11 +195,13 @@ class FakeGraphStore(GraphStore):
         Returns:
             List of all CodeNodes (may be empty).
         """
-        self._call_history.append({
-            "method": "get_all_nodes",
-            "args": (),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "get_all_nodes",
+                "args": (),
+                "kwargs": {},
+            }
+        )
         return list(self._nodes.values())
 
     def save(self, path: Path) -> None:
@@ -201,11 +213,13 @@ class FakeGraphStore(GraphStore):
         Raises:
             GraphStoreError: If simulating error.
         """
-        self._call_history.append({
-            "method": "save",
-            "args": (path,),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "save",
+                "args": (path,),
+                "kwargs": {},
+            }
+        )
 
         if "save" in self.simulate_error_for:
             raise GraphStoreError("Simulated save error")
@@ -219,22 +233,26 @@ class FakeGraphStore(GraphStore):
         Raises:
             GraphStoreError: If simulating error.
         """
-        self._call_history.append({
-            "method": "load",
-            "args": (path,),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "load",
+                "args": (path,),
+                "kwargs": {},
+            }
+        )
 
         if "load" in self.simulate_error_for:
             raise GraphStoreError("Simulated load error")
 
     def clear(self) -> None:
         """Remove all nodes and edges from the in-memory graph."""
-        self._call_history.append({
-            "method": "clear",
-            "args": (),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "clear",
+                "args": (),
+                "kwargs": {},
+            }
+        )
         self._nodes.clear()
         self._edges.clear()
         self._reverse_edges.clear()
@@ -258,15 +276,16 @@ class FakeGraphStore(GraphStore):
         Raises:
             GraphStoreError: If metadata not configured.
         """
-        self._call_history.append({
-            "method": "get_metadata",
-            "args": (),
-            "kwargs": {},
-        })
+        self._call_history.append(
+            {
+                "method": "get_metadata",
+                "args": (),
+                "kwargs": {},
+            }
+        )
 
         if self._metadata is None:
             raise GraphStoreError(
-                "Graph metadata not loaded. "
-                "Call load() or set_metadata() first."
+                "Graph metadata not loaded. Call load() or set_metadata() first."
             )
         return self._metadata

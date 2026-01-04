@@ -89,9 +89,7 @@ def validate_chunk_offsets(graph_path: Path) -> ValidationResult:
 
                 start, end = offset
                 if not isinstance(start, int) or not isinstance(end, int):
-                    result.invalid_offset_format.append(
-                        f"{node_id}[{i}]: not integers"
-                    )
+                    result.invalid_offset_format.append(f"{node_id}[{i}]: not integers")
                     continue
 
                 # Validate line range
@@ -138,7 +136,9 @@ def print_validation_report(result: ValidationResult) -> bool:
     print(f"Nodes with offsets:       {result.nodes_with_offsets:>8}")
     print(f"Nodes with both:          {result.nodes_with_both:>8}")
     print(f"Multi-chunk nodes:        {result.multi_chunk_nodes:>8}")
-    print(f"Nodes with overlap:       {result.overlapping_chunks:>8}  (DYK-03: expected)")
+    print(
+        f"Nodes with overlap:       {result.overlapping_chunks:>8}  (DYK-03: expected)"
+    )
 
     # Check for issues
     issues_found = False

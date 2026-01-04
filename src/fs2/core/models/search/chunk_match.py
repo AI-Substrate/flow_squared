@@ -78,12 +78,8 @@ class ChunkMatch:
 
         # Validate chunk_index is non-negative
         if self.chunk_index < 0:
-            raise ValueError(
-                f"chunk_index must be >= 0, got {self.chunk_index}"
-            )
+            raise ValueError(f"chunk_index must be >= 0, got {self.chunk_index}")
 
         # Validate score is in 0.0-1.0 range
         if not 0.0 <= self.score <= 1.0:
-            raise ValueError(
-                f"score must be between 0.0 and 1.0, got {self.score}"
-            )
+            raise ValueError(f"score must be between 0.0 and 1.0, got {self.score}")

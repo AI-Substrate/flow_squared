@@ -119,7 +119,9 @@ def translate_error(exc: Exception) -> dict[str, Any]:
         action = "Run 'fs2 scan' to create the graph."
 
     elif isinstance(exc, GraphStoreError):
-        action = "The graph file may be corrupted. Try running 'fs2 scan' to regenerate it."
+        action = (
+            "The graph file may be corrupted. Try running 'fs2 scan' to regenerate it."
+        )
 
     elif isinstance(exc, ValueError):
         # Often regex or pattern errors
@@ -272,7 +274,9 @@ def tree(
 
         return tree_list
     except GraphNotFoundError:
-        raise ToolError("Graph not found. Run 'fs2 scan' to create the graph.") from None
+        raise ToolError(
+            "Graph not found. Run 'fs2 scan' to create the graph."
+        ) from None
     except GraphStoreError as e:
         raise ToolError(f"Graph error: {e}. The graph file may be corrupted.") from None
     except Exception as e:
@@ -437,7 +441,9 @@ def get_node(
         return result
 
     except GraphNotFoundError:
-        raise ToolError("Graph not found. Run 'fs2 scan' to create the graph.") from None
+        raise ToolError(
+            "Graph not found. Run 'fs2 scan' to create the graph."
+        ) from None
     except GraphStoreError as e:
         raise ToolError(f"Graph error: {e}. The graph file may be corrupted.") from None
     except ToolError:
@@ -620,7 +626,9 @@ async def search(
             search_mode = SearchMode[mode_upper]
         except KeyError:
             valid_modes = ", ".join(m.value for m in SearchMode)
-            raise ToolError(f"Invalid mode '{mode}'. Must be one of: {valid_modes}") from None
+            raise ToolError(
+                f"Invalid mode '{mode}'. Must be one of: {valid_modes}"
+            ) from None
 
         # Convert glob patterns to regex, then to tuples for QuerySpec
         # normalize_filter_pattern() auto-detects globs like *.py and .cs
@@ -702,6 +710,7 @@ async def search(
 
             # Create parent directories if needed (AC10)
             from pathlib import Path
+
             output_path = Path(absolute_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -743,7 +752,9 @@ async def search(
         ) from None
 
     except GraphNotFoundError:
-        raise ToolError("Graph not found. Run 'fs2 scan' to create the graph.") from None
+        raise ToolError(
+            "Graph not found. Run 'fs2 scan' to create the graph."
+        ) from None
 
     except GraphStoreError as e:
         raise ToolError(f"Graph error: {e}. The graph file may be corrupted.") from None

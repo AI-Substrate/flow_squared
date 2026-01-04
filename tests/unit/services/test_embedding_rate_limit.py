@@ -101,8 +101,6 @@ class TestRateLimitBackoff:
         call_count = 0
 
         # Override embed_batch to fail first call then succeed
-        original_embed_batch = adapter.embed_batch
-
         async def failing_then_success(texts):
             nonlocal call_count
             call_count += 1

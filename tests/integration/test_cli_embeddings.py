@@ -7,7 +7,9 @@ import sys
 class TestCLIEmbeddingsFlag:
     """Tests for --no-embeddings flag behavior."""
 
-    def test_given_no_embeddings_flag_when_scan_then_skips_embedding_stage(self, tmp_path):
+    def test_given_no_embeddings_flag_when_scan_then_skips_embedding_stage(
+        self, tmp_path
+    ):
         """
         Purpose: Verifies --no-embeddings skips embedding setup.
         Quality Contribution: Ensures embeddings are opt-out via CLI.

@@ -60,7 +60,9 @@ class TestGetNodeHelp:
             "node_id" in result.stdout.lower() or "node-id" in result.stdout.lower()
         ), f"Expected 'node_id' in help output: {result.stdout}"
         # Should show --file option
-        assert "--file" in result.stdout, f"Expected '--file' in help output: {result.stdout}"
+        assert "--file" in result.stdout, (
+            f"Expected '--file' in help output: {result.stdout}"
+        )
 
 
 # T002, T003, T004: Success and clean output tests
@@ -88,7 +90,9 @@ class TestGetNodeSuccess:
         # Use a known node_id from the scanned project - file node
         result = runner.invoke(app, ["get-node", "file:src/calculator.py"])
 
-        assert result.exit_code == 0, f"Expected exit 0, got {result.exit_code}: {result.stdout}"
+        assert result.exit_code == 0, (
+            f"Expected exit 0, got {result.exit_code}: {result.stdout}"
+        )
         data = json.loads(result.stdout)
 
         # Check essential fields (resilient to CodeNode changes - per Insight #2)
@@ -190,7 +194,9 @@ class TestGetNodeFileOutput:
             app, ["get-node", "file:src/calculator.py", "--file", str(output_file)]
         )
 
-        assert result.exit_code == 0, f"Expected exit 0, got {result.exit_code}: {result.stdout}"
+        assert result.exit_code == 0, (
+            f"Expected exit 0, got {result.exit_code}: {result.stdout}"
+        )
         assert output_file.exists(), "Output file should be created"
 
         # Verify file contains valid JSON

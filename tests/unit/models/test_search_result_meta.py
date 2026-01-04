@@ -363,7 +363,9 @@ class TestFolderExtraction:
         folder = extract_folder("content:CHANGELOG.md")
         assert folder == "(root)"
 
-    def test_given_nested_path_when_extract_folder_then_returns_only_first_segment(self):
+    def test_given_nested_path_when_extract_folder_then_returns_only_first_segment(
+        self,
+    ):
         """
         Purpose: Proves deeply nested paths return only first segment.
         Quality Contribution: Consistent folder grouping.

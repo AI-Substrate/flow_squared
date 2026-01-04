@@ -118,7 +118,9 @@ class TestDocumentEntry:
         error_str = str(exc_info.value)
         assert "id" in error_str.lower()
 
-    def test_given_id_with_underscore_when_constructing_then_raises_validation_error(self):
+    def test_given_id_with_underscore_when_constructing_then_raises_validation_error(
+        self,
+    ):
         """
         Purpose: Proves underscores in ID are rejected (only hyphens allowed)
         Quality Contribution: Enforces ID pattern

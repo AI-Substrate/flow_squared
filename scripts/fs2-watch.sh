@@ -145,13 +145,18 @@ run_watchexec() {
     success "Watching for changes... (Ctrl+C to stop)"
     echo ""
 
+    # Note: --restart kills running scan on new changes (always get latest)
+    # --debounce waits for activity to settle before triggering
+    # Using longer debounce (2s) to batch rapid file changes
     exec watchexec "${cmd_args[@]}" \
-        --restart \
-        --debounce 500ms \
-        --ignore ".fs2/" \
-        --ignore "*.pickle" \
-        --ignore "__pycache__" \
-        --ignore ".git" \
+        --debounce 2s \
+        --ignore ".fs2/**" \
+        --ignore "**/*.pickle" \
+        --ignore "**/__pycache__/**" \
+        --ignore ".git/**" \
+        --ignore "**/*.pyc" \
+        --ignore ".uv_cache/**" \
+        --no-vcs-ignore \
         -- fs2 scan "${SCAN_ARGS[@]}"
 }
 

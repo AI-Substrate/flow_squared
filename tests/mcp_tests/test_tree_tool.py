@@ -411,7 +411,9 @@ class TestTreeToolDepthLimiting:
         if file_nodes:
             file_node = file_nodes[0]
             # Class node is child of file, at depth 1
-            class_children = [c for c in file_node.get("children", []) if c["category"] == "class"]
+            class_children = [
+                c for c in file_node.get("children", []) if c["category"] == "class"
+            ]
             if class_children:
                 class_node = class_children[0]
                 # Class has method children, but they're hidden at max_depth=1
@@ -467,7 +469,10 @@ class TestTreeToolDepthLimiting:
                 # Children at depth 2 should be visible
                 for child in root["children"]:
                     # Grandchildren should be hidden
-                    assert child.get("children", []) == [] or child.get("hidden_children_count", 0) >= 0
+                    assert (
+                        child.get("children", []) == []
+                        or child.get("hidden_children_count", 0) >= 0
+                    )
 
 
 class TestTreeToolDetailLevels:
@@ -541,7 +546,9 @@ class TestTreeToolDetailLevels:
 
         all_nodes = _flatten_tree(result)
         for node in all_nodes:
-            assert "signature" not in node, f"signature should not be in min detail: {node}"
+            assert "signature" not in node, (
+                f"signature should not be in min detail: {node}"
+            )
 
     def test_tree_max_detail_includes_signature(
         self, tree_test_graph_store: tuple, tmp_path: Path
@@ -565,7 +572,9 @@ class TestTreeToolDetailLevels:
         all_nodes = _flatten_tree(result)
         callables = [n for n in all_nodes if n.get("category") == "callable"]
         if callables:
-            assert "signature" in callables[0], "signature should be in max detail for callables"
+            assert "signature" in callables[0], (
+                "signature should be in max detail for callables"
+            )
 
     def test_tree_default_detail_is_min(
         self, tree_test_graph_store: tuple, tmp_path: Path
@@ -588,7 +597,9 @@ class TestTreeToolDetailLevels:
 
         all_nodes = _flatten_tree(result)
         for node in all_nodes:
-            assert "signature" not in node, "default should be min detail (no signature)"
+            assert "signature" not in node, (
+                "default should be min detail (no signature)"
+            )
 
 
 class TestMCPProtocolIntegration:
@@ -670,7 +681,9 @@ class TestMCPProtocolIntegration:
         # Children at depth 1 should have no children (hidden)
         for root in parsed:
             for child in root.get("children", []):
-                assert child.get("children", []) == [], "max_depth should limit expansion"
+                assert child.get("children", []) == [], (
+                    "max_depth should limit expansion"
+                )
 
     @pytest.mark.asyncio
     async def test_tree_tool_with_detail_parameter(self, mcp_client):
@@ -687,7 +700,9 @@ class TestMCPProtocolIntegration:
         callables = [n for n in all_nodes if n.get("category") == "callable"]
         if callables:
             # Max detail should include signature
-            assert "signature" in callables[0], "max detail should include signature over MCP"
+            assert "signature" in callables[0], (
+                "max detail should include signature over MCP"
+            )
 
     @pytest.mark.asyncio
     async def test_tree_tool_listed_in_available_tools(self, mcp_client):
@@ -759,7 +774,7 @@ class TestTreeSaveToFile:
         os.chdir(tmp_path)
         try:
             output_file = "tree_output.json"
-            result = tree(pattern=".", save_to_file=output_file)
+            tree(pattern=".", save_to_file=output_file)
 
             # File should exist
             output_path = tmp_path / output_file
@@ -792,7 +807,7 @@ class TestTreeSaveToFile:
         os.chdir(tmp_path)
         try:
             output_file = "tree_json.json"
-            result = tree(pattern=".", save_to_file=output_file)
+            tree(pattern=".", save_to_file=output_file)
 
             output_path = tmp_path / output_file
             content = output_path.read_text(encoding="utf-8")
@@ -829,9 +844,13 @@ class TestTreeSaveToFile:
             result = tree(pattern=".", save_to_file=output_file)
 
             # Result should be a dict with saved_to field
-            assert isinstance(result, dict), "Result should be dict when save_to_file is used"
+            assert isinstance(result, dict), (
+                "Result should be dict when save_to_file is used"
+            )
             assert "saved_to" in result, "Result should have 'saved_to' key"
-            assert output_file in result["saved_to"], "saved_to should contain file path"
+            assert output_file in result["saved_to"], (
+                "saved_to should contain file path"
+            )
         finally:
             os.chdir(original_cwd)
 
@@ -863,7 +882,10 @@ class TestTreeSaveToFile:
             with pytest.raises(ToolError) as exc_info:
                 tree(pattern=".", save_to_file="../escape.json")
 
-            assert "escape" in str(exc_info.value).lower() or "directory" in str(exc_info.value).lower()
+            assert (
+                "escape" in str(exc_info.value).lower()
+                or "directory" in str(exc_info.value).lower()
+            )
         finally:
             os.chdir(original_cwd)
 
@@ -925,7 +947,7 @@ class TestTreeSaveToFile:
         os.chdir(tmp_path)
         try:
             output_file = "tree_empty.json"
-            result = tree(pattern="nonexistent_xyz_123", save_to_file=output_file)
+            tree(pattern="nonexistent_xyz_123", save_to_file=output_file)
 
             output_path = tmp_path / output_file
             assert output_path.exists()
@@ -961,7 +983,7 @@ class TestTreeSaveToFile:
         os.chdir(tmp_path)
         try:
             output_file = "output/nested/tree_result.json"
-            result = tree(pattern=".", save_to_file=output_file)
+            tree(pattern=".", save_to_file=output_file)
 
             output_path = tmp_path / output_file
             assert output_path.exists(), f"Nested file not created: {output_path}"
