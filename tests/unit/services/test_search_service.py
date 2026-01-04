@@ -901,9 +901,7 @@ class TestParentPenalization:
             config=config,
         )
 
-        results = await service.search(
-            QuerySpec(pattern="auth", mode=SearchMode.TEXT)
-        )
+        results = await service.search(QuerySpec(pattern="auth", mode=SearchMode.TEXT))
 
         # Find each node's result
         method_result = next(r for r in results if "authenticate" in r.node_id)
@@ -933,7 +931,9 @@ class TestParentPenalization:
         assert results[2].node_id == file_result.node_id
 
     @pytest.mark.asyncio
-    async def test_child_ranks_higher_than_parent_ac02(self, parent_penalty_graph_store):
+    async def test_child_ranks_higher_than_parent_ac02(
+        self, parent_penalty_graph_store
+    ):
         """Proves child node appears before parent in sorted results (AC02).
 
         Purpose: Ranking behavior after penalization.
@@ -950,9 +950,7 @@ class TestParentPenalization:
             config=config,
         )
 
-        results = await service.search(
-            QuerySpec(pattern="auth", mode=SearchMode.TEXT)
-        )
+        results = await service.search(QuerySpec(pattern="auth", mode=SearchMode.TEXT))
 
         # Get result order
         result_ids = [r.node_id for r in results]
@@ -966,7 +964,9 @@ class TestParentPenalization:
             for i, nid in enumerate(result_ids)
             if "AuthService" in nid and "callable" not in nid
         )
-        file_idx = next(i for i, nid in enumerate(result_ids) if nid.startswith("file:"))
+        file_idx = next(
+            i for i, nid in enumerate(result_ids) if nid.startswith("file:")
+        )
 
         assert method_idx < class_idx, "Method should rank higher than class"
         assert class_idx < file_idx, "Class should rank higher than file"
@@ -995,9 +995,7 @@ class TestParentPenalization:
             config=config,
         )
 
-        results = await service.search(
-            QuerySpec(pattern="auth", mode=SearchMode.TEXT)
-        )
+        results = await service.search(QuerySpec(pattern="auth", mode=SearchMode.TEXT))
 
         class_result = next(
             r
@@ -1035,9 +1033,7 @@ class TestParentPenalization:
             config=config,
         )
 
-        results = await service.search(
-            QuerySpec(pattern="auth", mode=SearchMode.TEXT)
-        )
+        results = await service.search(QuerySpec(pattern="auth", mode=SearchMode.TEXT))
 
         for result in results:
             assert 0.0 <= result.score <= 1.0, (
@@ -1064,9 +1060,7 @@ class TestParentPenalization:
 
         # Search for exact class node_id - should get score 1.0
         results = await service.search(
-            QuerySpec(
-                pattern="class:src/auth.py:AuthService", mode=SearchMode.TEXT
-            )
+            QuerySpec(pattern="class:src/auth.py:AuthService", mode=SearchMode.TEXT)
         )
 
         # Find the class result
@@ -1099,9 +1093,7 @@ class TestParentPenalization:
             config=config,
         )
 
-        results = await service.search(
-            QuerySpec(pattern="auth", mode=SearchMode.TEXT)
-        )
+        results = await service.search(QuerySpec(pattern="auth", mode=SearchMode.TEXT))
 
         # Find method and class results
         method_result = next(r for r in results if "authenticate" in r.node_id)
@@ -1133,9 +1125,7 @@ class TestParentPenalization:
             config=config,
         )
 
-        results = await service.search(
-            QuerySpec(pattern="auth", mode=SearchMode.TEXT)
-        )
+        results = await service.search(QuerySpec(pattern="auth", mode=SearchMode.TEXT))
 
         # All scores should be unmodified (0.5 for content match)
         # Note: This checks that they're all the same, not necessarily 0.5
@@ -1176,9 +1166,7 @@ class TestParentPenalization:
         )
 
         # Find method and class results
-        method_result = next(
-            (r for r in results if "authenticate" in r.node_id), None
-        )
+        method_result = next((r for r in results if "authenticate" in r.node_id), None)
         class_result = next(
             (
                 r

@@ -363,7 +363,9 @@ class SearchService:
                 depth = parents_to_penalize[result.node_id]
                 # Per DYK-01: Depth-weighted penalty
                 retention = (1.0 - penalty) ** depth
-                new_score = max(0.0, min(1.0, result.score * retention))  # Clamp per AC04
+                new_score = max(
+                    0.0, min(1.0, result.score * retention)
+                )  # Clamp per AC04
                 result = dataclasses.replace(result, score=new_score)
             penalized.append(result)
 
