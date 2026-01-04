@@ -677,7 +677,10 @@ async def search(
             adapter = create_embedding_adapter_from_config(config)
 
         # Create service with optional embedding adapter
-        service = SearchService(graph_store=store, embedding_adapter=adapter)
+        # Per plan-018: Pass config for parent_penalty setting
+        service = SearchService(
+            graph_store=store, embedding_adapter=adapter, config=config
+        )
 
         # Execute search
         results = await service.search(spec)

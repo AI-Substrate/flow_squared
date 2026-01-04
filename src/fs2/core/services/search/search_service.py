@@ -266,8 +266,6 @@ class SearchService:
     def _get_parent_penalty(self) -> float:
         """Get parent penalty factor from config.
 
-        Per plan-018/DYK-02: Uses ConfigurationService + require() pattern.
-
         Returns:
             Penalty factor (0.0-1.0). Defaults to 0.25 if no config provided.
         """
@@ -276,7 +274,9 @@ class SearchService:
 
         from fs2.config.objects import SearchConfig
 
-        search_config = self._config.require(SearchConfig)
+        search_config = self._config.get(SearchConfig)
+        if search_config is None:
+            return 0.25  # Default per AC06
         return search_config.parent_penalty
 
     def _find_ancestors_in_results(

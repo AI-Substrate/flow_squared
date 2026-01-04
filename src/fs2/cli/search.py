@@ -198,9 +198,11 @@ def search(
         embedding_adapter = create_embedding_adapter_from_config(config)
 
         # Create SearchService with dependency injection
+        # Per plan-018: Pass config for parent_penalty setting
         service = SearchService(
             graph_store=graph_store,
             embedding_adapter=embedding_adapter,
+            config=config,
         )
 
         # Build QuerySpec - get all filtered results (no pagination yet)
