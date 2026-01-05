@@ -275,10 +275,11 @@ class TestTreeServiceDepth:
 
         Task: T008
 
-        Depth semantics:
-        - max_depth=0: unlimited
-        - max_depth=1: root at depth 0 gets children, children at depth 1 get no children
-        - max_depth=2: root→children→grandchildren, no further
+        Depth semantics (count of levels shown):
+        - max_depth=0: unlimited (show all levels)
+        - max_depth=1: root only (1 level)
+        - max_depth=2: root + children (2 levels)
+        - max_depth=3: root + children + grandchildren (3 levels)
         """
         config, store, _ = graph_setup
         file_node = make_file_node("src/calc.py")
@@ -298,12 +299,13 @@ class TestTreeServiceDepth:
         )
 
         service = TreeService(config=config, graph_store=store)
-        result = service.build_tree(pattern="file:src/calc.py", max_depth=1)
+        result = service.build_tree(pattern="file:src/calc.py", max_depth=2)
 
-        # max_depth=1: root (file) has children (class), but class has no children (method hidden)
+        # max_depth=2: root (file) + children (class), but grandchildren (method) hidden
         assert len(result) == 1
-        assert len(result[0].children) == 1  # Calculator class
-        assert result[0].children[0].children == ()  # No method (depth limited)
+        assert len(result[0].children) == 1  # Calculator class visible
+        assert result[0].children[0].children == ()  # Method hidden (depth limited)
+        assert result[0].children[0].hidden_children_count == 1  # Method count shown
 
     def test_given_zero_depth_when_build_tree_then_unlimited(self, graph_setup):
         """
@@ -336,6 +338,41 @@ class TestTreeServiceDepth:
         assert len(result) == 1
         assert len(result[0].children) == 1  # Calculator class
         assert len(result[0].children[0].children) == 1  # add method
+
+    def test_given_depth_one_when_build_tree_then_root_only(self, graph_setup):
+        """
+        Purpose: Verifies max_depth=1 shows root only (no children expanded).
+        Quality Contribution: Enables agent overview without context explosion.
+
+        Task: T008
+
+        This is the key use case: agents need to see just file names first,
+        then drill down with filters. depth=1 must mean "root only".
+        """
+        config, store, _ = graph_setup
+        file_node = make_file_node("src/calc.py")
+        class_node = make_class_node(
+            "src/calc.py", "Calculator", parent_node_id="file:src/calc.py"
+        )
+        method_node = make_method_node(
+            "src/calc.py",
+            "Calculator",
+            "add",
+            parent_node_id="type:src/calc.py:Calculator",
+        )
+        store.set_nodes([file_node, class_node, method_node])
+        store.add_edge("file:src/calc.py", "type:src/calc.py:Calculator")
+        store.add_edge(
+            "type:src/calc.py:Calculator", "callable:src/calc.py:Calculator.add"
+        )
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern="file:src/calc.py", max_depth=1)
+
+        # max_depth=1: root only, children hidden with count
+        assert len(result) == 1
+        assert result[0].children == ()  # No children expanded
+        assert result[0].hidden_children_count == 1  # Calculator class is hidden
 
 
 @pytest.mark.unit

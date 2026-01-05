@@ -257,8 +257,8 @@ class TreeService:
         # Get children from graph store (needed for both paths)
         children = self._graph_store.get_children(node.node_id)
 
-        # Check depth limit
-        if max_depth > 0 and current_depth >= max_depth:
+        # Check depth limit (max_depth=1 means root only, max_depth=2 means root+children)
+        if max_depth > 0 and current_depth + 1 >= max_depth:
             # At depth limit - return node without children but with hidden count
             return TreeNode(
                 node=node,
