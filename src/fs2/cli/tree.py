@@ -335,18 +335,16 @@ def _add_tree_node_to_rich_tree(
         if node.category == "file":
             stats["file_count"] += 1
 
-    # Build label
+    # Build label - use full node_id for copy-paste workflow (T012/T013)
     icon = CATEGORY_ICONS.get(node.category, "○")
-    name = node.name or node.qualified_name
 
     if detail == "max":
-        # Include node_id and signature
+        # Include signature
         sig = f" {node.signature}" if node.signature else ""
-        label = f"{icon} {name} [{node.start_line}-{node.end_line}]{sig}"
-        label += f"\n    [dim]{node.node_id}[/dim]"
+        label = f"{icon} {node.node_id} [{node.start_line}-{node.end_line}]{sig}"
     else:
-        # Minimal: icon, name, line range
-        label = f"{icon} {name} [{node.start_line}-{node.end_line}]"
+        # Show full node_id for agent copy-paste
+        label = f"{icon} {node.node_id} [{node.start_line}-{node.end_line}]"
 
     branch = parent_tree.add(label)
 

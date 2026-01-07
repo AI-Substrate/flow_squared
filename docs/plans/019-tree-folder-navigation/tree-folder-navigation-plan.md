@@ -65,8 +65,8 @@
 | [ ] | T009 | Refactor `_display_tree()` to use folder hierarchy | 3 | Core | T005,T007 | /workspaces/flow_squared/src/fs2/cli/tree.py | Replace flat grouping with hierarchical folder tree | DEFERRED to Phase 2 |
 | [ ] | T010 | Write tests for folder item counts display | 2 | Test | T009 | /workspaces/flow_squared/tests/unit/cli/test_tree_cli.py | Tests: folders show `(N files)` count | DEFERRED to Phase 2 |
 | [ ] | T011 | Implement folder item counts in display | 2 | Core | T010 | /workspaces/flow_squared/src/fs2/cli/tree.py | Show `📁 src/ (89 files)` format | DEFERRED to Phase 2 |
-| [ ] | T012 | Write tests for full node_id display | 2 | Test | T009 | /workspaces/flow_squared/tests/unit/cli/test_tree_cli.py | Tests: files show `file:path/to/file.py [1-50]` | DEFERRED to Phase 2 |
-| [ ] | T013 | Ensure node_ids displayed for all real nodes | 2 | Core | T012 | /workspaces/flow_squared/src/fs2/cli/tree.py | Files, classes, callables show full node_id | DEFERRED to Phase 2 |
+| [x] | T012 | Write tests for full node_id display | 2 | Test | T009 | /workspaces/flow_squared/tests/mcp_tests/test_tree_tool.py | Tests: files show `file:path/to/file.py [1-50]` | [^6] TestTreeTextOutputNodeId (3 tests) |
+| [x] | T013 | Ensure node_ids displayed for all real nodes | 2 | Core | T012 | /workspaces/flow_squared/src/fs2/cli/tree.py, /workspaces/flow_squared/src/fs2/mcp/server.py | Files, classes, callables show full node_id | [^6] Both CLI and MCP updated |
 | [ ] | T014 | Write MCP tree tool tests for folder mode | 2 | Test | T007 | /workspaces/flow_squared/tests/mcp_tests/test_tree_tool.py | Tests: folder patterns work via MCP, JSON output correct | DEFERRED to Phase 2 |
 | [x] | T015 | Update MCP tree() docstring with folder workflow | 2 | Docs | T009 | /workspaces/flow_squared/src/fs2/mcp/server.py | Docstring explains: use `/` for folders, drill-down workflow | [^4] Lines 206-271 |
 | [ ] | T016 | Update `_tree_node_to_dict()` for folder nodes in MCP | 2 | Core | T015 | /workspaces/flow_squared/src/fs2/mcp/server.py | Handle folder nodes (virtual) in JSON conversion if needed | DEFERRED to Phase 2 |
@@ -82,7 +82,7 @@
 - [ ] **AC3**: `tree file:src/fs2/cli/tree.py --depth 1` shows symbols with full node_ids
 - [ ] **AC4**: `tree class:...:TreeService --depth 1` shows methods with full node_ids
 - [ ] **AC5**: `tree src/fs2/ --depth 2` shows folders AND their contents
-- [ ] **AC6**: Every real node displays full node_id (copy-paste workflow works)
+- [x] **AC6**: Every real node displays full node_id (copy-paste workflow works) ✓ T012/T013
 - [ ] **AC7**: MCP tree tool docstring explains drill-down workflow
 - [ ] **AC8**: Root-level files appear alongside top-level folders at depth 1
 - [ ] **AC9**: Empty folders (no files) not shown
@@ -117,6 +117,12 @@
 [^5]: T019 - Validation
   - All 1666 tests pass, 20 skipped
   - No regressions from folder navigation changes
+
+[^6]: T012, T013 - Full node_id display in text output
+  - `function:src/fs2/mcp/server.py:_render_tree_as_text` - Uses node_id instead of name in text output
+  - `function:src/fs2/cli/tree.py:_add_tree_node_to_rich_tree` - Uses node.node_id in label
+  - `type:tests/mcp_tests/test_tree_tool.py:TestTreeTextOutputNodeId` - 3 tests for full node_id display
+  - All 1674 tests pass after implementation
 
 ---
 

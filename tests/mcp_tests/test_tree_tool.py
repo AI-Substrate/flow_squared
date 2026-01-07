@@ -799,6 +799,92 @@ class TestMCPProtocolIntegration:
 # =============================================================================
 
 
+class TestTreeTextOutputNodeId:
+    """T012: Tests for full node_id display in text output.
+
+    Text output must show full node_id (not just name) so agents can copy-paste
+    node_ids directly for use with get_node() without switching to JSON format.
+
+    Per T012/T013:
+    - Files show: 📄 file:src/calc.py [1-50]
+    - Classes show: 📦 class:src/calc.py:Calculator [5-45]
+    - Methods show: ƒ callable:src/calc.py:Calculator.add [10-20]
+    - Folders keep: 📁 src/fs2/ (node_id IS the path with slash)
+    """
+
+    def test_text_output_shows_full_node_id_for_files(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """
+        Purpose: Proves file nodes show full node_id in text output
+        Quality Contribution: Agents can copy node_id from text for get_node()
+        Acceptance Criteria: Text contains "file:src/calculator.py"
+        """
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = tree(pattern=".", format="text")
+        content = result["content"]
+
+        # Text should contain full node_id for file nodes
+        assert "file:src/calculator.py" in content, (
+            f"Text should show full node_id for files. Got:\n{content}"
+        )
+
+    def test_text_output_shows_full_node_id_for_classes(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """
+        Purpose: Proves class nodes show full node_id in text output
+        Quality Contribution: Agents can copy node_id from text for get_node()
+        Acceptance Criteria: Text contains "class:src/calculator.py:Calculator"
+        """
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = tree(pattern=".", format="text")
+        content = result["content"]
+
+        # Text should contain full node_id for class nodes
+        assert "class:src/calculator.py:Calculator" in content, (
+            f"Text should show full node_id for classes. Got:\n{content}"
+        )
+
+    def test_text_output_shows_full_node_id_for_callables(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """
+        Purpose: Proves callable nodes show full node_id in text output
+        Quality Contribution: Agents can copy node_id from text for get_node()
+        Acceptance Criteria: Text contains "callable:src/calculator.py:Calculator.add"
+        """
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = tree(pattern=".", format="text")
+        content = result["content"]
+
+        # Text should contain full node_id for callable nodes
+        assert "callable:src/calculator.py:Calculator.add" in content, (
+            f"Text should show full node_id for callables. Got:\n{content}"
+        )
+
+
 class TestTreeFormatParameter:
     """Tests for tree format parameter (text vs json).
 

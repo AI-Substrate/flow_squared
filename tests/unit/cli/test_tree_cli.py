@@ -819,15 +819,15 @@ class TestDetailMax:
             f"Expected signature inline with callable/type icon: {stdout}"
         )
 
-    def test_given_detail_max_when_tree_then_node_id_on_second_line(
+    def test_given_detail_max_when_tree_then_node_id_in_main_label(
         self, scanned_project
     ):
         """
-        Purpose: Verifies AC5 - node_id appears on second line (indented).
-        Quality Contribution: Visual separation between main info and node ID.
-        Acceptance Criteria: Node ID appears after main label, indented.
+        Purpose: Verifies node_id appears in the main label line.
+        Quality Contribution: Agents can copy-paste node_id from text output.
+        Acceptance Criteria: Node ID appears in main line (per T012/T013).
 
-        Task: T003
+        Task: T003, T012/T013
         """
         from fs2.cli.main import app
 
@@ -835,27 +835,12 @@ class TestDetailMax:
 
         assert result.exit_code == 0
         stdout = result.stdout
-        # The format is:
-        # icon name [lines] signature
-        #     node_id
-        # So node_id should appear on a line starting with whitespace
-        lines = stdout.split("\n")
-        found_indented_node_id = False
-        for line in lines:
-            stripped = line.strip()
-            # Node IDs start with category:
-            if (
-                stripped.startswith("file:")
-                or stripped.startswith("type:")
-                or stripped.startswith("callable:")
-            ):
-                # Check it's indented from start of line
-                if line.startswith(" ") or line.startswith("\t") or "│" in line:
-                    found_indented_node_id = True
-                    break
-
-        assert found_indented_node_id, (
-            f"Expected indented node ID line in max detail: {stdout}"
+        # Per T012/T013: full node_id is in the main label line
+        # Format: icon node_id [lines] signature
+        # e.g., 📄 file:src/calculator.py [1-8]
+        assert "file:" in stdout, f"Expected file: node_id in output: {stdout}"
+        assert "type:" in stdout or "callable:" in stdout, (
+            f"Expected type: or callable: node_id in output: {stdout}"
         )
 
     def test_given_detail_max_when_no_signature_then_no_sig_displayed(

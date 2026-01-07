@@ -161,13 +161,19 @@ def _render_tree_as_text(
     indent: str = "",
     is_last_list: list[bool] | None = None,
 ) -> str:
-    """Render tree nodes as compact plain text.
+    """Render tree nodes as compact plain text with full node_ids.
+
+    Per T012/T013: Shows full node_id (not just name) so agents can copy-paste
+    node_ids directly for use with get_node() without switching to JSON format.
 
     Produces output like:
-        📄 tree.py [1-364] (4 children)
-        ├── ƒ _tree_node_to_dict [51-99]
-        ├── ƒ tree [102-240]
-        └── ƒ _display_tree [243-309]
+        📄 file:src/tree.py [1-364] (4 children)
+        ├── ƒ callable:src/tree.py:_tree_node_to_dict [51-99]
+        ├── ƒ callable:src/tree.py:tree [102-240]
+        └── ƒ callable:src/tree.py:_display_tree [243-309]
+
+    Note: Folder nodes (category="folder") use their node_id as-is since
+    the node_id IS the path with trailing slash (e.g., "src/fs2/").
 
     Args:
         tree_dicts: List of tree node dicts from _tree_node_to_dict().
@@ -195,14 +201,14 @@ def _render_tree_as_text(
                 else:
                     prefix += "    " if was_last else "│   "
 
-        # Format node line
+        # Format node line - use full node_id for copy-paste workflow (T012/T013)
         icon = CATEGORY_ICONS.get(node.get("category", "other"), "○")
-        name = node.get("name", "unknown")
+        node_id = node.get("node_id", "unknown")
         start = node.get("start_line", 0)
         end = node.get("end_line", 0)
         hidden = node.get("hidden_children_count", 0)
 
-        line = f"{prefix}{icon} {name} [{start}-{end}]"
+        line = f"{prefix}{icon} {node_id} [{start}-{end}]"
         if hidden > 0:
             line += f" ({hidden} children)"
 

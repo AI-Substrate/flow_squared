@@ -208,8 +208,8 @@ flowchart TD
 | [ ] | T009 | Refactor `_display_tree()` to use folder hierarchy | 3 | Core | T005, T007 (P1) | /workspaces/flow_squared/src/fs2/cli/tree.py | Replace lines 259-302 flat grouping with hierarchical tree | – | Per Finding #01; **DD4** (folders first) |
 | [ ] | T010 | Write tests for folder item counts display | 2 | Test | T009 | /workspaces/flow_squared/tests/unit/cli/test_tree_cli.py | Tests: folders show `(N files)` or `(N files, M total)` | – | Per spec Q6 |
 | [ ] | T011 | Implement folder item counts in display | 2 | Core | T010 | /workspaces/flow_squared/src/fs2/cli/tree.py | Show `📁 src/ (89 files)` format | – | Per spec Q6 |
-| [ ] | T012 | Write tests for full node_id display | 2 | Test | T009 | /workspaces/flow_squared/tests/unit/cli/test_tree_cli.py | Tests: files show `file:path/to/file.py [1-50]` format | – | For AC6 copy-paste workflow |
-| [ ] | T013 | Ensure node_ids displayed for all real nodes | 2 | Core | T012 | /workspaces/flow_squared/src/fs2/cli/tree.py | Files, classes, callables show full node_id in label | – | For AC6 |
+| [x] | T012 | Write tests for full node_id display | 2 | Test | T009 | /workspaces/flow_squared/tests/mcp_tests/test_tree_tool.py | Tests: files show `file:path/to/file.py [1-50]` format | – | For AC6 copy-paste workflow · [^6] |
+| [x] | T013 | Ensure node_ids displayed for all real nodes | 2 | Core | T012 | /workspaces/flow_squared/src/fs2/cli/tree.py, /workspaces/flow_squared/src/fs2/mcp/server.py | Files, classes, callables show full node_id in label | – | For AC6 · [^6] |
 | [ ] | T014 | Write MCP tree tool tests for folder mode | 2 | Test | T005 | /workspaces/flow_squared/tests/mcp_tests/test_tree_tool.py | Tests: folder patterns work via MCP, JSON includes folder nodes | – | TestFolderModeMcp class |
 | [ ] | T016 | Update `_tree_node_to_dict()` for folder nodes in CLI and MCP | 2 | Core | T009 | /workspaces/flow_squared/src/fs2/cli/tree.py, /workspaces/flow_squared/src/fs2/mcp/server.py | Both versions handle category="folder" consistently | – | **DD1, DD3**: Update BOTH per Finding #06 |
 | [ ] | T017 | Update docs/how/user/cli.md with folder examples | 2 | Docs | T009 | /workspaces/flow_squared/docs/how/user/cli.md | Add section: "Folder Navigation" with drill-down workflow | – | Per spec Doc Strategy |
@@ -520,6 +520,7 @@ _Populated by plan-6 during implementation. DO NOT create footnote tags during p
 | Footnote | Task(s) | Summary | FlowSpace Node IDs |
 |----------|---------|---------|-------------------|
 | [^P2-1] | T005 | Virtual folder hierarchy computation | `function:src/fs2/core/services/tree_service.py:_create_folder_node`, `method:src/fs2/core/services/tree_service.py:TreeService._compute_folder_hierarchy`, `method:src/fs2/core/services/tree_service.py:TreeService._build_folder_tree_nodes`, `method:src/fs2/core/services/tree_service.py:TreeService._count_folder_items` |
+| [^6] | T012, T013 | Full node_id display in text output | `function:src/fs2/mcp/server.py:_render_tree_as_text`, `function:src/fs2/cli/tree.py:_add_tree_node_to_rich_tree`, `type:tests/mcp_tests/test_tree_tool.py:TestTreeTextOutputNodeId` |
 
 ---
 
