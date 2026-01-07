@@ -6,6 +6,12 @@ Per High Discovery 04: TreeService is SYNC; tool must be sync.
 
 TDD Approach: Tests written BEFORE implementation (T001-T004).
 These tests will FAIL until the tree tool is implemented in T005.
+
+NOTE: tree() now returns dict with format-specific content:
+- format="text" (default): {"format": "text", "content": "...", "count": N}
+- format="json": {"format": "json", "tree": [...], "count": N}
+
+Tests that need raw node list should use format="json" and access result["tree"].
 """
 
 from __future__ import annotations
@@ -34,6 +40,24 @@ def parse_tool_response(result) -> dict | list:
         Parsed JSON as dict or list.
     """
     return json.loads(result.content[0].text)
+
+
+def get_tree_nodes(result: dict) -> list[dict]:
+    """Extract tree nodes list from tree() result.
+
+    Helper to handle format="json" responses which return
+    {"format": "json", "tree": [...], "count": N}.
+
+    Args:
+        result: Result from tree() call.
+
+    Returns:
+        List of tree node dicts.
+    """
+    if isinstance(result, dict) and "tree" in result:
+        return result["tree"]
+    # Fallback for legacy format (shouldn't happen)
+    return result if isinstance(result, list) else []
 
 
 def _flatten_tree(nodes: list[dict]) -> list[dict]:
@@ -70,8 +94,8 @@ class TestTreeToolBasicFunctionality:
         Purpose: Proves tree tool returns correct structure
         Quality Contribution: Ensures agents receive expected format
         Acceptance Criteria:
-        - Returns list of nodes
-        - Each node has node_id, name, category, children
+        - Returns dict with format and content
+        - format="json" returns tree list with node_id, name, category, children
         """
         from fs2.mcp import dependencies
         from fs2.mcp.server import tree
@@ -81,13 +105,19 @@ class TestTreeToolBasicFunctionality:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".")
+        result = tree(pattern=".", format="json")
 
-        assert isinstance(result, list), "tree() should return a list"
-        assert len(result) > 0, "tree() should return non-empty list"
+        assert isinstance(result, dict), "tree() should return a dict"
+        assert "format" in result, "result should have format key"
+        assert result["format"] == "json", "format should be json"
+        assert "tree" in result, "result should have tree key"
+
+        nodes = result["tree"]
+        assert isinstance(nodes, list), "tree should be a list"
+        assert len(nodes) > 0, "tree should be non-empty"
 
         # Check each root node has required fields
-        for node in result:
+        for node in nodes:
             assert "node_id" in node, "Each node must have node_id"
             assert "name" in node, "Each node must have name"
             assert "category" in node, "Each node must have category"
@@ -110,12 +140,13 @@ class TestTreeToolBasicFunctionality:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".")
+        result = tree(pattern=".", format="json")
+        nodes = get_tree_nodes(result)
 
         # Should have at least the file node from fixture
-        assert len(result) >= 1
+        assert len(nodes) >= 1
         # Root should be file nodes (shallowest level)
-        file_nodes = [n for n in result if n["category"] == "file"]
+        file_nodes = [n for n in nodes if n["category"] == "file"]
         assert len(file_nodes) >= 1, "Should return at least one file node"
 
     def test_tree_returns_valid_json_structure(
@@ -161,10 +192,11 @@ class TestTreeToolBasicFunctionality:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".")
+        result = tree(pattern=".", format="json")
+        nodes = get_tree_nodes(result)
 
         # Flatten tree and check all nodes
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         assert len(all_nodes) >= 1
 
         for node in all_nodes:
@@ -212,9 +244,10 @@ class TestTreeToolBasicFunctionality:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".")
+        result = tree(pattern=".", format="json")
+        nodes = get_tree_nodes(result)
 
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         for node in all_nodes:
             assert "start_line" in node, f"Missing start_line in: {node}"
             assert "end_line" in node, f"Missing end_line in: {node}"
@@ -246,10 +279,11 @@ class TestTreeToolPatternFiltering:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern="Calculator")
+        result = tree(pattern="Calculator", format="json")
+        nodes = get_tree_nodes(result)
 
         # All returned nodes should contain "Calculator" in node_id
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         assert len(all_nodes) > 0, "Should find nodes matching 'Calculator'"
         for node in all_nodes:
             assert "Calculator" in node["node_id"], f"Node should match pattern: {node}"
@@ -270,11 +304,12 @@ class TestTreeToolPatternFiltering:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern="class:src/calculator.py:Calculator")
+        result = tree(pattern="class:src/calculator.py:Calculator", format="json")
+        nodes = get_tree_nodes(result)
 
         # Should return exactly one root with that node_id
-        assert len(result) == 1, "Exact match should return single root"
-        assert result[0]["node_id"] == "class:src/calculator.py:Calculator"
+        assert len(nodes) == 1, "Exact match should return single root"
+        assert nodes[0]["node_id"] == "class:src/calculator.py:Calculator"
 
     def test_tree_filters_by_glob_pattern(
         self, tree_test_graph_store: tuple, tmp_path: Path
@@ -293,10 +328,11 @@ class TestTreeToolPatternFiltering:
         dependencies.set_graph_store(store)
 
         # Glob pattern: * matches any string
-        result = tree(pattern="*.py")
+        result = tree(pattern="*.py", format="json")
+        nodes = get_tree_nodes(result)
 
         # Should match file nodes ending in .py
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         assert len(all_nodes) > 0, "Should find nodes matching '*.py'"
         # At least one node should match the glob pattern in node_id
         matching = [n for n in all_nodes if ".py" in n["node_id"]]
@@ -318,9 +354,10 @@ class TestTreeToolPatternFiltering:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern="NonexistentClassName")
+        result = tree(pattern="NonexistentClassName", format="json")
+        nodes = get_tree_nodes(result)
 
-        assert result == [], "No match should return empty list"
+        assert nodes == [], "No match should return empty list"
 
     def test_tree_filters_preserves_hierarchy(
         self, tree_test_graph_store: tuple, tmp_path: Path
@@ -339,11 +376,12 @@ class TestTreeToolPatternFiltering:
         dependencies.set_graph_store(store)
 
         # Pattern matches file which has class as child
-        result = tree(pattern="file:src/calculator.py")
+        result = tree(pattern="file:src/calculator.py", format="json")
+        nodes = get_tree_nodes(result)
 
         # Should have file as root with children
-        assert len(result) == 1
-        file_node = result[0]
+        assert len(nodes) == 1
+        file_node = nodes[0]
         assert file_node["category"] == "file"
         # File should have class as child
         assert len(file_node["children"]) >= 1
@@ -375,10 +413,11 @@ class TestTreeToolDepthLimiting:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".", max_depth=1)
+        result = tree(pattern=".", max_depth=1, format="json")
+        nodes = get_tree_nodes(result)
 
         # Root nodes should have their immediate children visible
-        for root in result:
+        for root in nodes:
             # Children at depth 1 should be empty (hidden)
             for child in root.get("children", []):
                 assert child.get("children", []) == [], (
@@ -404,10 +443,11 @@ class TestTreeToolDepthLimiting:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".", max_depth=1)
+        result = tree(pattern=".", max_depth=1, format="json")
+        nodes = get_tree_nodes(result)
 
         # Find class node at depth 1 (child of file node)
-        file_nodes = [n for n in result if n["category"] == "file"]
+        file_nodes = [n for n in nodes if n["category"] == "file"]
         if file_nodes:
             file_node = file_nodes[0]
             # Class node is child of file, at depth 1
@@ -437,10 +477,11 @@ class TestTreeToolDepthLimiting:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".", max_depth=0)
+        result = tree(pattern=".", max_depth=0, format="json")
+        nodes = get_tree_nodes(result)
 
         # Should have nested children
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         # Should include file, class, and method (3 levels)
         categories = {n["category"] for n in all_nodes}
         assert "file" in categories or len(all_nodes) >= 1
@@ -461,10 +502,11 @@ class TestTreeToolDepthLimiting:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".", max_depth=2)
+        result = tree(pattern=".", max_depth=2, format="json")
+        nodes = get_tree_nodes(result)
 
         # Root nodes should have children (depth 2 allows one level)
-        for root in result:
+        for root in nodes:
             if root.get("children"):
                 # Children at depth 2 should be visible
                 for child in root["children"]:
@@ -498,9 +540,10 @@ class TestTreeToolDetailLevels:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".", detail="min")
+        result = tree(pattern=".", detail="min", format="json")
+        nodes = get_tree_nodes(result)
 
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         for node in all_nodes:
             assert "node_id" in node, f"node_id missing in min detail: {node}"
 
@@ -520,9 +563,10 @@ class TestTreeToolDetailLevels:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".", detail="max")
+        result = tree(pattern=".", detail="max", format="json")
+        nodes = get_tree_nodes(result)
 
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         for node in all_nodes:
             assert "node_id" in node, f"node_id missing in max detail: {node}"
 
@@ -542,9 +586,10 @@ class TestTreeToolDetailLevels:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern=".", detail="min")
+        result = tree(pattern=".", detail="min", format="json")
+        nodes = get_tree_nodes(result)
 
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         for node in all_nodes:
             assert "signature" not in node, (
                 f"signature should not be in min detail: {node}"
@@ -566,10 +611,11 @@ class TestTreeToolDetailLevels:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = tree(pattern="add", detail="max")
+        result = tree(pattern="add", detail="max", format="json")
+        nodes = get_tree_nodes(result)
 
         # Find the callable node
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         callables = [n for n in all_nodes if n.get("category") == "callable"]
         if callables:
             assert "signature" in callables[0], (
@@ -582,7 +628,7 @@ class TestTreeToolDetailLevels:
         """
         Purpose: Proves default detail level is min
         Quality Contribution: Compact output by default
-        Acceptance Criteria: No signature in default output
+        Acceptance Criteria: No signature in default output (when using json format)
         """
         from fs2.mcp import dependencies
         from fs2.mcp.server import tree
@@ -592,10 +638,11 @@ class TestTreeToolDetailLevels:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        # Call without detail parameter
-        result = tree(pattern=".")
+        # Call without detail parameter but with json format to check structure
+        result = tree(pattern=".", format="json")
+        nodes = get_tree_nodes(result)
 
-        all_nodes = _flatten_tree(result)
+        all_nodes = _flatten_tree(nodes)
         for node in all_nodes:
             assert "signature" not in node, (
                 "default should be min detail (no signature)"
@@ -630,12 +677,14 @@ class TestMCPProtocolIntegration:
         Quality Contribution: Ensures agents receive valid data format
         Acceptance Criteria: json.loads() succeeds on response text
         """
-        result = await mcp_client.call_tool("tree", {"pattern": "."})
+        result = await mcp_client.call_tool("tree", {"pattern": ".", "format": "json"})
         parsed = parse_tool_response(result)
 
-        # Should be a list of nodes
-        assert isinstance(parsed, list)
-        assert len(parsed) > 0
+        # Should be a dict with format and tree keys
+        assert isinstance(parsed, dict)
+        assert "format" in parsed
+        assert "tree" in parsed
+        assert len(parsed["tree"]) > 0
 
     @pytest.mark.asyncio
     async def test_tree_tool_response_has_expected_structure(self, mcp_client):
@@ -644,10 +693,11 @@ class TestMCPProtocolIntegration:
         Quality Contribution: Ensures consistent API contract
         Acceptance Criteria: Each node has node_id, name, category, children
         """
-        result = await mcp_client.call_tool("tree", {"pattern": "."})
+        result = await mcp_client.call_tool("tree", {"pattern": ".", "format": "json"})
         parsed = parse_tool_response(result)
+        nodes = parsed.get("tree", [])
 
-        for node in parsed:
+        for node in nodes:
             assert "node_id" in node, "MCP response must include node_id"
             assert "name" in node, "MCP response must include name"
             assert "category" in node, "MCP response must include category"
@@ -660,11 +710,14 @@ class TestMCPProtocolIntegration:
         Quality Contribution: Ensures filtering works over protocol
         Acceptance Criteria: Pattern "Calculator" returns matching nodes
         """
-        result = await mcp_client.call_tool("tree", {"pattern": "Calculator"})
+        result = await mcp_client.call_tool(
+            "tree", {"pattern": "Calculator", "format": "json"}
+        )
         parsed = parse_tool_response(result)
+        nodes = parsed.get("tree", [])
 
         # Should find nodes containing "Calculator"
-        all_nodes = _flatten_tree(parsed)
+        all_nodes = _flatten_tree(nodes)
         for node in all_nodes:
             assert "Calculator" in node["node_id"]
 
@@ -675,11 +728,14 @@ class TestMCPProtocolIntegration:
         Quality Contribution: Ensures depth limiting works over protocol
         Acceptance Criteria: max_depth=1 limits children expansion
         """
-        result = await mcp_client.call_tool("tree", {"pattern": ".", "max_depth": 1})
+        result = await mcp_client.call_tool(
+            "tree", {"pattern": ".", "max_depth": 1, "format": "json"}
+        )
         parsed = parse_tool_response(result)
+        nodes = parsed.get("tree", [])
 
         # Children at depth 1 should have no children (hidden)
-        for root in parsed:
+        for root in nodes:
             for child in root.get("children", []):
                 assert child.get("children", []) == [], (
                     "max_depth should limit expansion"
@@ -692,11 +748,14 @@ class TestMCPProtocolIntegration:
         Quality Contribution: Ensures detail levels work over protocol
         Acceptance Criteria: detail="max" includes signature
         """
-        result = await mcp_client.call_tool("tree", {"pattern": "add", "detail": "max"})
+        result = await mcp_client.call_tool(
+            "tree", {"pattern": "add", "detail": "max", "format": "json"}
+        )
         parsed = parse_tool_response(result)
+        nodes = parsed.get("tree", [])
 
         # Find callable nodes
-        all_nodes = _flatten_tree(parsed)
+        all_nodes = _flatten_tree(nodes)
         callables = [n for n in all_nodes if n.get("category") == "callable"]
         if callables:
             # Max detail should include signature
@@ -733,6 +792,139 @@ class TestMCPProtocolIntegration:
             # Per AC8: readOnlyHint=False because save_to_file writes to filesystem
             assert tree_tool.annotations.readOnlyHint is False
             assert tree_tool.annotations.destructiveHint is False
+
+
+# =============================================================================
+# Format Parameter Tests
+# =============================================================================
+
+
+class TestTreeFormatParameter:
+    """Tests for tree format parameter (text vs json).
+
+    Default is "text" for compact, agent-friendly output.
+    JSON format is available for scripting/jq but more verbose.
+    """
+
+    def test_tree_default_format_is_text(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """
+        Purpose: Proves default format is text for context efficiency
+        Quality Contribution: Agents get compact output by default
+        Acceptance Criteria: Default returns format="text" with content string
+        """
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        # Call without format parameter
+        result = tree(pattern=".")
+
+        assert isinstance(result, dict)
+        assert result["format"] == "text"
+        assert "content" in result
+        assert isinstance(result["content"], str)
+        assert "count" in result
+
+    def test_tree_text_format_contains_icons(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """
+        Purpose: Proves text format includes visual icons
+        Quality Contribution: Human-readable output for agents
+        Acceptance Criteria: Output contains category icons
+        """
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = tree(pattern=".", format="text")
+
+        content = result["content"]
+        # Should contain at least one icon
+        assert any(icon in content for icon in ["📄", "📦", "ƒ"])
+
+    def test_tree_json_format_returns_tree_list(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """
+        Purpose: Proves json format returns structured data
+        Quality Contribution: Enables scripting/jq workflows
+        Acceptance Criteria: format="json" returns tree list
+        """
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = tree(pattern=".", format="json")
+
+        assert isinstance(result, dict)
+        assert result["format"] == "json"
+        assert "tree" in result
+        assert isinstance(result["tree"], list)
+        assert "count" in result
+
+    def test_tree_text_format_more_compact_than_json(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """
+        Purpose: Proves text format saves tokens vs json
+        Quality Contribution: Context efficiency for LLMs
+        Acceptance Criteria: Text output is shorter than JSON
+        """
+        import json
+
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        text_result = tree(pattern=".", format="text")
+        json_result = tree(pattern=".", format="json")
+
+        text_size = len(text_result["content"])
+        json_size = len(json.dumps(json_result["tree"]))
+
+        assert text_size < json_size, (
+            f"Text ({text_size}) should be more compact than JSON ({json_size})"
+        )
+
+    def test_tree_count_consistent_across_formats(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """
+        Purpose: Proves count field is consistent
+        Quality Contribution: Reliable metadata
+        Acceptance Criteria: Same count in text and json formats
+        """
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        text_result = tree(pattern=".", format="text")
+        json_result = tree(pattern=".", format="json")
+
+        assert text_result["count"] == json_result["count"]
 
 
 # =============================================================================

@@ -53,6 +53,38 @@ def make_class_node(
     )
 
 
+def make_folder_node(folder_path: str) -> CodeNode:
+    """Create a synthetic folder CodeNode for tests.
+
+    Per DD1, DD5: Folders use category="folder", start_line=0, end_line=0,
+    and node_id is the path with trailing slash.
+    """
+    # Ensure trailing slash for consistency
+    path = folder_path if folder_path.endswith("/") else folder_path + "/"
+    # Extract folder name from path (last component before trailing slash)
+    name = path.rstrip("/").split("/")[-1] if "/" in path.rstrip("/") else path.rstrip("/")
+
+    return CodeNode(
+        node_id=path,
+        category="folder",
+        ts_kind="folder",
+        name=name,
+        qualified_name=name,
+        start_line=0,
+        end_line=0,
+        start_column=0,
+        end_column=0,
+        start_byte=0,
+        end_byte=0,
+        content="",
+        content_hash="",
+        signature=None,
+        language="",
+        is_named=True,
+        field_name=None,
+    )
+
+
 def make_method_node(
     file_path: str,
     class_name: str,
@@ -437,3 +469,441 @@ class TestTreeServiceErrors:
 
         with pytest.raises(GraphStoreError):
             service.build_tree()
+
+
+@pytest.mark.unit
+class TestInputModeDetection:
+    """T002: Tests for input mode detection (folder/node_id/pattern).
+
+    Per P9: Business logic for input mode detection is in TreeService.
+    Detection order: `:` (node_id) → `/` (folder) → otherwise (pattern).
+    """
+
+    def test_given_folder_pattern_with_trailing_slash_when_detect_mode_then_returns_folder(
+        self,
+    ):
+        """
+        Purpose: Verifies folder patterns (containing `/`) are detected.
+        Quality Contribution: Core folder navigation mode detection.
+
+        Task: T002
+        """
+        from fs2.core.services.tree_service import TreeService
+
+        # Trailing slash indicates folder mode
+        assert TreeService._detect_input_mode("src/") == "folder"
+        assert TreeService._detect_input_mode("src/fs2/") == "folder"
+        assert TreeService._detect_input_mode("src/fs2/cli/") == "folder"
+        assert TreeService._detect_input_mode("tests/unit/") == "folder"
+
+    def test_given_folder_pattern_without_trailing_slash_when_detect_mode_then_returns_folder(
+        self,
+    ):
+        """
+        Purpose: Verifies folder patterns with internal `/` but no trailing slash are folder mode.
+        Quality Contribution: Handle `src/fs2` as folder mode (contains `/`).
+
+        Task: T002
+        """
+        from fs2.core.services.tree_service import TreeService
+
+        # Internal slash but no trailing - still folder mode per spec
+        assert TreeService._detect_input_mode("src/fs2") == "folder"
+        assert TreeService._detect_input_mode("tests/unit") == "folder"
+
+    def test_given_node_id_with_colon_when_detect_mode_then_returns_node_id(self):
+        """
+        Purpose: Verifies node_id patterns (containing `:`) are detected.
+        Quality Contribution: Enables drill-down via node_id.
+
+        Task: T002
+
+        CRITICAL: Detection order is `:` first, then `/`.
+        This ensures `file:src/main.py` is detected as node_id, not folder.
+        """
+        from fs2.core.services.tree_service import TreeService
+
+        # Node IDs have colon prefix
+        assert TreeService._detect_input_mode("file:src/main.py") == "node_id"
+        assert TreeService._detect_input_mode("type:src/calc.py:Calculator") == "node_id"
+        assert (
+            TreeService._detect_input_mode("callable:src/calc.py:Calculator.add")
+            == "node_id"
+        )
+
+    def test_given_node_id_with_both_colon_and_slash_when_detect_mode_then_returns_node_id(
+        self,
+    ):
+        """
+        Purpose: Verifies colon is checked BEFORE slash (critical for node_ids).
+        Quality Contribution: Prevents misclassification of node_ids containing `/`.
+
+        Task: T002
+
+        This is the key test for the detection order bug identified in didyouknow session.
+        """
+        from fs2.core.services.tree_service import TreeService
+
+        # These contain BOTH `:` and `/` - must be node_id, not folder
+        assert TreeService._detect_input_mode("file:src/fs2/main.py") == "node_id"
+        assert (
+            TreeService._detect_input_mode("callable:src/fs2/cli/tree.py:_display_tree")
+            == "node_id"
+        )
+
+    def test_given_simple_pattern_when_detect_mode_then_returns_pattern(self):
+        """
+        Purpose: Verifies patterns without `:` or `/` return pattern mode.
+        Quality Contribution: Maintains existing pattern matching behavior.
+
+        Task: T002
+        """
+        from fs2.core.services.tree_service import TreeService
+
+        # No `:` or `/` - pattern mode
+        assert TreeService._detect_input_mode("Calculator") == "pattern"
+        assert TreeService._detect_input_mode("test_") == "pattern"
+        assert TreeService._detect_input_mode("*calc*") == "pattern"
+        assert TreeService._detect_input_mode(".") == "pattern"
+        assert TreeService._detect_input_mode("README") == "pattern"
+
+    def test_given_dot_pattern_when_detect_mode_then_returns_pattern(self):
+        """
+        Purpose: Verifies the special `.` (all nodes) pattern returns pattern mode.
+        Quality Contribution: Ensures backward compatibility with existing usage.
+
+        Task: T002
+        """
+        from fs2.core.services.tree_service import TreeService
+
+        assert TreeService._detect_input_mode(".") == "pattern"
+
+    def test_given_glob_pattern_when_detect_mode_then_returns_pattern(self):
+        """
+        Purpose: Verifies glob patterns without `/` return pattern mode.
+        Quality Contribution: Glob patterns work as before.
+
+        Task: T002
+        """
+        from fs2.core.services.tree_service import TreeService
+
+        # Globs without `/` are pattern mode
+        assert TreeService._detect_input_mode("*.py") == "pattern"
+        assert TreeService._detect_input_mode("test_*") == "pattern"
+        assert TreeService._detect_input_mode("*Service*") == "pattern"
+
+
+@pytest.mark.unit
+class TestFolderHierarchyComputation:
+    """T004/T005: Tests for folder hierarchy computation from file paths.
+
+    Per P9: Business logic for folder hierarchy is in TreeService.
+    Folders are virtual (computed from file paths), not persisted in graph.
+
+    Per DD1, DD5: Folders use synthetic CodeNode with:
+    - category="folder"
+    - start_line=0, end_line=0
+    - node_id is path with trailing slash (e.g., "src/fs2/cli/")
+    - name is the folder name (e.g., "cli")
+
+    Per DD2: Tests are strengthened BEFORE implementation to follow TDD.
+    Per DD4: Folders appear first, then files (both sorted alphabetically).
+    """
+
+    def test_given_files_in_one_folder_when_depth_one_then_returns_folder_node(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies single folder is returned as synthetic folder node.
+        Quality Contribution: Basic folder grouping works with correct node structure.
+
+        Task: T005 (strengthened from T004)
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/main.py")
+        file2 = make_file_node("src/utils.py")
+        store.set_nodes([file1, file2])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern=".", max_depth=1)
+
+        # Per DD1: Should have synthetic folder node
+        assert len(result) == 1, f"Expected 1 folder, got {len(result)}: {[tn.node.node_id for tn in result]}"
+
+        folder = result[0]
+        # Per DD1: category="folder"
+        assert folder.node.category == "folder", f"Expected folder category, got {folder.node.category}"
+        # Per DD5: node_id is path with trailing slash
+        assert folder.node.node_id == "src/", f"Expected node_id 'src/', got {folder.node.node_id}"
+        # name is just the folder name
+        assert folder.node.name == "src", f"Expected name 'src', got {folder.node.name}"
+        # Per DD1: synthetic nodes have start_line=0, end_line=0
+        assert folder.node.start_line == 0
+        assert folder.node.end_line == 0
+        # At depth=1, folder children are hidden, count shows items inside
+        assert folder.hidden_children_count == 2, f"Expected 2 hidden files, got {folder.hidden_children_count}"
+
+    def test_given_files_in_multiple_top_level_folders_when_depth_one_then_returns_all_folders(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies multiple top-level folders are detected.
+        Quality Contribution: Core folder enumeration works.
+
+        Task: T005 (strengthened from T004)
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/main.py")
+        file2 = make_file_node("tests/test_main.py")
+        file3 = make_file_node("docs/readme.md")
+        store.set_nodes([file1, file2, file3])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern=".", max_depth=1)
+
+        # Should have 3 folder nodes
+        assert len(result) == 3, f"Expected 3 folders, got {len(result)}: {[tn.node.node_id for tn in result]}"
+
+        # All should be folders
+        for folder in result:
+            assert folder.node.category == "folder", f"Expected folder, got {folder.node.category}"
+
+        # Per DD4: Folders sorted alphabetically
+        node_ids = [tn.node.node_id for tn in result]
+        assert node_ids == ["docs/", "src/", "tests/"], f"Expected alphabetical order, got {node_ids}"
+
+    def test_given_nested_folders_when_depth_one_then_returns_only_top_level_folder(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies nested folder structure is flattened at depth=1.
+        Quality Contribution: Hierarchical navigation respects depth limiting.
+
+        Task: T005 (strengthened from T004)
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/fs2/cli/tree.py")
+        file2 = make_file_node("src/fs2/core/service.py")
+        file3 = make_file_node("src/fs2/__init__.py")
+        store.set_nodes([file1, file2, file3])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern=".", max_depth=1)
+
+        # At depth=1, only see top-level "src/" folder
+        assert len(result) == 1, f"Expected 1 top-level folder, got {len(result)}"
+        assert result[0].node.node_id == "src/"
+        # All 3 files are nested inside src/
+        assert result[0].hidden_children_count == 3, f"Expected 3 hidden items, got {result[0].hidden_children_count}"
+
+    def test_given_root_level_files_when_depth_one_then_includes_both_folders_and_files(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies root-level files appear alongside folders (AC8).
+        Quality Contribution: Ensures progressive disclosure handles mixed content.
+
+        Task: T005 (strengthened from T004)
+        """
+        config, store, _ = graph_setup
+        root_file = make_file_node("pyproject.toml")
+        folder_file = make_file_node("src/main.py")
+        store.set_nodes([root_file, folder_file])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern=".", max_depth=1)
+
+        # Per DD4: folders first, then files (both alphabetically)
+        assert len(result) == 2, f"Expected 2 items, got {len(result)}"
+
+        # First item should be src/ folder
+        assert result[0].node.category == "folder"
+        assert result[0].node.node_id == "src/"
+
+        # Second item should be root file
+        assert result[1].node.category == "file"
+        assert result[1].node.node_id == "file:pyproject.toml"
+
+    def test_given_nested_structure_when_depth_two_then_shows_immediate_children(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies depth=2 shows folders + immediate children.
+        Quality Contribution: Drill-down pattern works.
+
+        Task: T005 (strengthened from T004)
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/fs2/cli/tree.py")
+        file2 = make_file_node("src/fs2/core/service.py")
+        store.set_nodes([file1, file2])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern=".", max_depth=2)
+
+        # At depth=2: src/ (depth 1) -> fs2/ (depth 2)
+        assert len(result) == 1, f"Expected 1 top-level folder"
+        src_folder = result[0]
+        assert src_folder.node.node_id == "src/"
+
+        # src/ should have fs2/ as child
+        assert len(src_folder.children) == 1, f"Expected 1 child of src/"
+        fs2_folder = src_folder.children[0]
+        assert fs2_folder.node.node_id == "src/fs2/"
+        assert fs2_folder.node.category == "folder"
+
+        # At depth 2, fs2/'s children (cli/, core/) are hidden
+        assert fs2_folder.hidden_children_count == 2, f"Expected 2 hidden children (cli/, core/)"
+
+    def test_given_folder_with_file_and_subfolder_when_depth_two_then_shows_mixed_children(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies depth=2 shows mix of files and subfolders.
+        Quality Contribution: Validates DD4 (folders first, then files).
+
+        Task: T005 (new test for comprehensive coverage)
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/__init__.py")  # Direct file in src/
+        file2 = make_file_node("src/cli/main.py")   # File in subfolder
+        store.set_nodes([file1, file2])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern=".", max_depth=2)
+
+        # At depth=2: src/ contains cli/ (folder) and __init__.py (file)
+        assert len(result) == 1
+        src_folder = result[0]
+        assert src_folder.node.node_id == "src/"
+
+        # Per DD4: folders first, then files
+        assert len(src_folder.children) == 2, f"Expected cli/ folder and __init__.py file"
+        assert src_folder.children[0].node.category == "folder"
+        assert src_folder.children[0].node.node_id == "src/cli/"
+        assert src_folder.children[1].node.category == "file"
+        assert src_folder.children[1].node.node_id == "file:src/__init__.py"
+
+
+@pytest.mark.unit
+class TestFolderFiltering:
+    """T006: Tests for folder filtering (path prefix mode).
+
+    When pattern contains `/`, files are filtered by path prefix.
+    """
+
+    def test_given_folder_pattern_when_build_tree_then_filters_by_prefix(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies folder patterns filter files by path prefix.
+        Quality Contribution: Core folder navigation works.
+
+        Task: T006
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/fs2/main.py")
+        file2 = make_file_node("src/fs2/utils.py")
+        file3 = make_file_node("tests/test_main.py")
+        store.set_nodes([file1, file2, file3])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern="src/fs2/", max_depth=0)
+
+        # Should only include files under src/fs2/
+        node_ids = [tn.node.node_id for tn in result]
+        assert "file:src/fs2/main.py" in node_ids
+        assert "file:src/fs2/utils.py" in node_ids
+        assert "file:tests/test_main.py" not in node_ids
+
+    def test_given_folder_pattern_without_trailing_slash_when_build_tree_then_filters_by_prefix(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies folder patterns work without trailing slash.
+        Quality Contribution: Flexible folder navigation.
+
+        Task: T006
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/fs2/main.py")
+        file2 = make_file_node("tests/test_main.py")
+        store.set_nodes([file1, file2])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern="src/fs2", max_depth=0)
+
+        # Should include files under src/fs2
+        node_ids = [tn.node.node_id for tn in result]
+        assert "file:src/fs2/main.py" in node_ids
+        assert "file:tests/test_main.py" not in node_ids
+
+    def test_given_nested_folder_pattern_when_build_tree_then_filters_deeply_nested(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies deeply nested folder patterns work.
+        Quality Contribution: Full path drill-down works.
+
+        Task: T006
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/fs2/cli/tree.py")
+        file2 = make_file_node("src/fs2/core/service.py")
+        file3 = make_file_node("src/fs2/__init__.py")
+        store.set_nodes([file1, file2, file3])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern="src/fs2/cli/", max_depth=0)
+
+        # Should only include files under src/fs2/cli/
+        node_ids = [tn.node.node_id for tn in result]
+        assert "file:src/fs2/cli/tree.py" in node_ids
+        assert "file:src/fs2/core/service.py" not in node_ids
+        assert "file:src/fs2/__init__.py" not in node_ids
+
+    def test_given_nonexistent_folder_when_build_tree_then_returns_empty(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies nonexistent folder patterns return empty result.
+        Quality Contribution: Handles empty folder case gracefully.
+
+        Task: T006
+
+        Note: The "Folder not found" message will be handled at CLI layer.
+        TreeService just returns empty list.
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/main.py")
+        store.set_nodes([file1])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern="nonexistent/", max_depth=0)
+
+        # Should return empty list for nonexistent folder
+        assert result == []
+
+    def test_given_folder_pattern_when_build_tree_then_includes_nested_files(
+        self, graph_setup
+    ):
+        """
+        Purpose: Verifies folder patterns include all nested files.
+        Quality Contribution: Recursive folder contents work.
+
+        Task: T006
+        """
+        config, store, _ = graph_setup
+        file1 = make_file_node("src/fs2/__init__.py")
+        file2 = make_file_node("src/fs2/cli/tree.py")
+        file3 = make_file_node("src/fs2/core/services/tree_service.py")
+        store.set_nodes([file1, file2, file3])
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern="src/fs2/", max_depth=0)
+
+        # Should include ALL files under src/fs2/ at any depth
+        node_ids = [tn.node.node_id for tn in result]
+        assert "file:src/fs2/__init__.py" in node_ids
+        assert "file:src/fs2/cli/tree.py" in node_ids
+        assert "file:src/fs2/core/services/tree_service.py" in node_ids

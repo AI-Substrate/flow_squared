@@ -216,8 +216,9 @@ fs2 tree src/core
 # Filter by class name
 fs2 tree Calculator
 
-# Limit depth
-fs2 tree --depth 2
+# Limit depth (shows folder hierarchy)
+fs2 tree --depth 1   # Top-level folders only
+fs2 tree --depth 2   # Folders + immediate contents
 
 # Full details
 fs2 tree --detail max
@@ -231,6 +232,43 @@ fs2 tree --json --file tree.json
 # Combined: filter, JSON, file
 fs2 tree Calculator --json --file calc.json
 ```
+
+**Folder Navigation (Progressive Disclosure):**
+
+When using `--depth` with `tree .`, the output shows a hierarchical folder structure:
+
+```bash
+# Show only top-level folders with item counts
+$ fs2 tree --depth 1
+├── 📁 docs [0-0]
+│   └── [253 children hidden by depth limit]
+├── 📁 scripts [0-0]
+│   └── [59 children hidden by depth limit]
+├── 📁 src [0-0]
+│   └── [722 children hidden by depth limit]
+└── 📁 tests [0-0]
+    └── [3064 children hidden by depth limit]
+
+# Drill down: show folders + their immediate contents
+$ fs2 tree --depth 2
+├── 📁 src [0-0]
+│   └── 📁 fs2 [0-0]
+│       └── [722 children hidden]
+...
+
+# Filter to specific folder path
+$ fs2 tree src/fs2/cli/
+└── 📁 src/fs2/cli/
+    ├── 📄 __init__.py [1-2]
+    ├── 📄 tree.py [1-364]
+    │   ├── ƒ tree [102-240]
+    │   └── ...
+```
+
+Folder nodes have:
+- `category: "folder"` (synthetic, not in graph)
+- `node_id` with trailing slash (e.g., `src/fs2/cli/`)
+- `hidden_children_count` shows nested files (not folders)
 
 ---
 

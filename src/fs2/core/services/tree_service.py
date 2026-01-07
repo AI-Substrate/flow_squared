@@ -28,16 +28,55 @@ from __future__ import annotations
 
 import fnmatch
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from fs2.config.objects import GraphConfig
 from fs2.core.adapters.exceptions import GraphNotFoundError
 from fs2.core.models.code_node import CodeNode
 from fs2.core.models.tree_node import TreeNode
+from fs2.core.utils.hash import compute_content_hash
 
 if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
     from fs2.core.repos.graph_store import GraphStore
+
+
+def _create_folder_node(folder_path: str) -> CodeNode:
+    """Create a synthetic folder CodeNode.
+
+    Per DD1, DD5: Folders use category="folder", start_line=0, end_line=0,
+    and node_id is the path with trailing slash.
+
+    Args:
+        folder_path: Folder path (with or without trailing slash).
+
+    Returns:
+        Synthetic CodeNode for the folder.
+    """
+    # Ensure trailing slash for consistency
+    path = folder_path if folder_path.endswith("/") else folder_path + "/"
+    # Extract folder name from path
+    name = path.rstrip("/").split("/")[-1] if "/" in path.rstrip("/") else path.rstrip("/")
+
+    return CodeNode(
+        node_id=path,
+        category="folder",
+        ts_kind="folder",
+        name=name,
+        qualified_name=name,
+        start_line=0,
+        end_line=0,
+        start_column=0,
+        end_column=0,
+        start_byte=0,
+        end_byte=0,
+        content="",
+        content_hash=compute_content_hash(""),
+        signature=None,
+        language="",
+        is_named=True,
+        field_name=None,
+    )
 
 
 class TreeService:
@@ -112,6 +151,9 @@ class TreeService:
         This is the main entry point - CLI calls this single method.
         Orchestrates filtering, root bucketing, and child expansion.
 
+        When pattern="." and max_depth > 0, computes virtual folder hierarchy
+        for progressive disclosure (see _compute_folder_hierarchy).
+
         Args:
             pattern: Filter pattern (exact, glob, or substring).
                     "." means match all nodes.
@@ -143,6 +185,11 @@ class TreeService:
         if not matched:
             return []
 
+        # Per Phase 2: For "." pattern with depth limit, compute folder hierarchy
+        # This enables progressive disclosure: depth=1 shows folders, depth=2 shows contents
+        if pattern == "." and max_depth > 0:
+            return self._compute_folder_hierarchy(matched, max_depth)
+
         # Build root bucket (remove children when ancestor matched)
         roots = self._build_root_bucket(matched)
 
@@ -154,13 +201,67 @@ class TreeService:
 
     # === PRIVATE METHODS (internal orchestration) ===
 
-    def _filter_nodes(self, nodes: list[CodeNode], pattern: str) -> list[CodeNode]:
-        """Filter nodes by pattern using unified node_id matching.
+    @staticmethod
+    def _detect_input_mode(
+        pattern: str,
+    ) -> Literal["folder", "node_id", "pattern"]:
+        """Detect input mode from pattern syntax.
 
-        Matching priority:
-        1. Exact match on node_id → short-circuit
-        2. Glob pattern (contains *?[]) → fnmatch on node_id
-        3. Substring match → partial match on node_id
+        Per T003: Detection order is CRITICAL - check `:` before `/`.
+        This ensures `file:src/main.py` is detected as node_id, not folder.
+
+        Detection logic:
+        1. Contains `:` → node_id (e.g., "file:src/main.py", "type:...:Calculator")
+        2. Contains `/` → folder (e.g., "src/", "src/fs2/")
+        3. Otherwise → pattern (e.g., "Calculator", "*.py", ".")
+
+        Args:
+            pattern: User input pattern string.
+
+        Returns:
+            "node_id" | "folder" | "pattern"
+        """
+        # 1. Check for colon FIRST (node_id mode)
+        if ":" in pattern:
+            return "node_id"
+
+        # 2. Check for slash (folder mode)
+        if "/" in pattern:
+            return "folder"
+
+        # 3. Default to pattern mode
+        return "pattern"
+
+    @staticmethod
+    def _extract_file_path(node_id: str) -> str:
+        """Extract file path from node_id.
+
+        Node ID format: {category}:{file_path} or {category}:{file_path}:{qualified_name}
+        Examples:
+        - "file:src/main.py" → "src/main.py"
+        - "type:src/calc.py:Calculator" → "src/calc.py"
+        - "callable:src/calc.py:Calculator.add" → "src/calc.py"
+
+        Args:
+            node_id: Full node ID string.
+
+        Returns:
+            File path portion of the node ID.
+        """
+        parts = node_id.split(":")
+        if len(parts) >= 2:
+            # For file nodes: file:path → path
+            # For other nodes: category:path:name → path
+            return parts[1]
+        return ""
+
+    def _filter_nodes(self, nodes: list[CodeNode], pattern: str) -> list[CodeNode]:
+        """Filter nodes by pattern using mode-aware matching.
+
+        Per T007: Uses _detect_input_mode() to determine matching strategy:
+        - node_id mode: exact match on node_id
+        - folder mode: filter files by path prefix
+        - pattern mode: existing matching priority (exact → glob → substring)
 
         Args:
             nodes: List of all CodeNodes.
@@ -169,6 +270,25 @@ class TreeService:
         Returns:
             List of matching CodeNodes.
         """
+        mode = self._detect_input_mode(pattern)
+
+        # Handle folder mode: filter files by path prefix
+        if mode == "folder":
+            # Normalize folder pattern (ensure trailing slash for exact prefix matching)
+            folder_prefix = pattern if pattern.endswith("/") else pattern + "/"
+            # Match files whose path starts with the folder prefix
+            # Extract file_path from node_id format: {category}:{file_path} or {category}:{file_path}:{name}
+            return [
+                n
+                for n in nodes
+                if self._extract_file_path(n.node_id).startswith(folder_prefix)
+            ]
+
+        # Handle node_id mode: exact match
+        if mode == "node_id":
+            return [n for n in nodes if n.node_id == pattern]
+
+        # Handle pattern mode: existing matching priority
         # 1. Exact match - short-circuit
         exact_matches = [n for n in nodes if n.node_id == pattern]
         if exact_matches:
@@ -273,3 +393,149 @@ class TreeService:
         )
 
         return TreeNode(node=node, children=child_tree_nodes)
+
+    def _compute_folder_hierarchy(
+        self,
+        file_nodes: list[CodeNode],
+        max_depth: int,
+    ) -> list[TreeNode]:
+        """Compute virtual folder hierarchy from file nodes.
+
+        Per Phase 2: Creates synthetic folder nodes to enable progressive disclosure.
+        At depth=1, only top-level folders are shown. At depth=2, folders + immediate
+        contents are shown, etc.
+
+        Per DD1: Folders use synthetic CodeNode with category="folder".
+        Per DD4: Folders appear first, then files (both sorted alphabetically).
+        Per DD5: Folder node_id uses path with trailing slash (e.g., "src/fs2/").
+
+        Args:
+            file_nodes: List of file CodeNodes to compute folders from.
+            max_depth: Maximum depth to expand (1 = top-level only).
+
+        Returns:
+            List of TreeNodes representing the folder hierarchy.
+        """
+        if not file_nodes:
+            return []
+
+        # Build a nested dict structure: path -> {files: [], folders: {}}
+        # This represents the folder hierarchy
+        root: dict = {"files": [], "folders": {}}
+
+        for node in file_nodes:
+            # Extract file path from node_id (e.g., "file:src/main.py" -> "src/main.py")
+            file_path = self._extract_file_path(node.node_id)
+            if not file_path:
+                # Root-level file without path prefix
+                root["files"].append(node)
+                continue
+
+            # Split path into components
+            parts = file_path.split("/")
+            if len(parts) == 1:
+                # Root-level file (no folder)
+                root["files"].append(node)
+            else:
+                # Navigate/create folder structure
+                current = root
+                for folder in parts[:-1]:  # All but the filename
+                    if folder not in current["folders"]:
+                        current["folders"][folder] = {"files": [], "folders": {}}
+                    current = current["folders"][folder]
+                # Add file to its parent folder
+                current["files"].append(node)
+
+        # Convert to TreeNodes with depth limiting
+        return self._build_folder_tree_nodes(root, max_depth, 0, "")
+
+    def _build_folder_tree_nodes(
+        self,
+        folder_dict: dict,
+        max_depth: int,
+        current_depth: int,
+        path_prefix: str,
+    ) -> list[TreeNode]:
+        """Recursively build TreeNodes from folder dict structure.
+
+        Per DD4: Sorts folders first, then files (both alphabetically).
+
+        Args:
+            folder_dict: Dict with "files" and "folders" keys.
+            max_depth: Maximum depth to expand.
+            current_depth: Current depth in hierarchy.
+            path_prefix: Path prefix for constructing folder node_ids.
+
+        Returns:
+            List of TreeNodes for the current level.
+        """
+        result: list[TreeNode] = []
+
+        # Process folders first (DD4: folders before files)
+        for folder_name in sorted(folder_dict["folders"].keys()):
+            folder_contents = folder_dict["folders"][folder_name]
+            folder_path = f"{path_prefix}{folder_name}/"
+
+            # Count total items in this folder (recursive)
+            total_items = self._count_folder_items(folder_contents)
+
+            # Create synthetic folder node
+            folder_node = _create_folder_node(folder_path)
+
+            # Check depth limit
+            if current_depth + 1 >= max_depth:
+                # At depth limit - folder with hidden children count
+                result.append(TreeNode(
+                    node=folder_node,
+                    children=(),
+                    hidden_children_count=total_items,
+                ))
+            else:
+                # Expand children
+                children = self._build_folder_tree_nodes(
+                    folder_contents,
+                    max_depth,
+                    current_depth + 1,
+                    folder_path,
+                )
+                # Count any items that would be hidden at deeper levels
+                immediate_items = len(folder_contents["files"]) + len(folder_contents["folders"])
+                hidden_count = total_items - immediate_items if current_depth + 2 >= max_depth else 0
+                result.append(TreeNode(
+                    node=folder_node,
+                    children=tuple(children),
+                    hidden_children_count=hidden_count,
+                ))
+
+        # Process files second (DD4: files after folders)
+        for file_node in sorted(folder_dict["files"], key=lambda n: n.name or ""):
+            # Check depth limit for files
+            if current_depth + 1 >= max_depth:
+                # At depth limit - files without their symbol children
+                children_count = len(self._graph_store.get_children(file_node.node_id))
+                result.append(TreeNode(
+                    node=file_node,
+                    children=(),
+                    hidden_children_count=children_count,
+                ))
+            else:
+                # Expand file's symbol children
+                result.append(self._build_tree_node(file_node, max_depth, current_depth + 1))
+
+        return result
+
+    def _count_folder_items(self, folder_dict: dict) -> int:
+        """Count total files recursively in a folder.
+
+        Per spec: Folder counts show files only (e.g., `📁 src/ (89 files)`).
+
+        Args:
+            folder_dict: Dict with "files" and "folders" keys.
+
+        Returns:
+            Total count of all nested files (not including subfolders themselves).
+        """
+        count = len(folder_dict["files"])
+        for subfolder in folder_dict["folders"].values():
+            count += self._count_folder_items(subfolder)
+        return count

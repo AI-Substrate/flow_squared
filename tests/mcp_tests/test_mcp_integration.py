@@ -64,16 +64,23 @@ class TestMCPSubprocessIntegration:
         )
 
         async with Client(transport) as client:
-            result = await client.call_tool("tree", {"pattern": "."})
+            # Per Phase 2 format change: use format="json" to get structured data
+            result = await client.call_tool("tree", {"pattern": ".", "format": "json"})
 
             # Parse the JSON response
             data = json.loads(result.content[0].text)
 
-            assert isinstance(data, list)
-            assert len(data) > 0, "Expected at least one node in tree"
+            # New format returns {"format": "json", "tree": [...], "count": N}
+            assert isinstance(data, dict)
+            assert data.get("format") == "json"
+            assert "tree" in data
+
+            tree_list = data["tree"]
+            assert isinstance(tree_list, list)
+            assert len(tree_list) > 0, "Expected at least one node in tree"
 
             # Verify node structure
-            first_node = data[0]
+            first_node = tree_list[0]
             assert "node_id" in first_node
             assert "category" in first_node
 
@@ -149,9 +156,12 @@ class TestMCPSubprocessIntegration:
         )
 
         async with Client(transport) as client:
-            # First get a node_id from tree
-            tree_result = await client.call_tool("tree", {"pattern": "."})
-            tree_data = json.loads(tree_result.content[0].text)
+            # First get a node_id from tree (use format="json" for structured data)
+            tree_result = await client.call_tool("tree", {"pattern": ".", "format": "json"})
+            tree_response = json.loads(tree_result.content[0].text)
+
+            # New format: {"format": "json", "tree": [...], "count": N}
+            tree_data = tree_response.get("tree", [])
 
             if len(tree_data) == 0:
                 pytest.skip("No nodes in fixture graph")

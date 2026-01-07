@@ -141,6 +141,85 @@ def translate_error(exc: Exception) -> dict[str, Any]:
 # Helper Functions
 # =============================================================================
 
+# Icon mapping for text output (duplicated from CLI per Finding #06)
+CATEGORY_ICONS = {
+    "file": "📄",
+    "folder": "📁",
+    "type": "📦",
+    "callable": "ƒ",
+    "section": "📝",
+    "block": "🏗️",
+    "definition": "🔹",
+    "statement": "▸",
+    "expression": "●",
+    "other": "○",
+}
+
+
+def _render_tree_as_text(
+    tree_dicts: list[dict[str, Any]],
+    indent: str = "",
+    is_last_list: list[bool] | None = None,
+) -> str:
+    """Render tree nodes as compact plain text.
+
+    Produces output like:
+        📄 tree.py [1-364] (4 children)
+        ├── ƒ _tree_node_to_dict [51-99]
+        ├── ƒ tree [102-240]
+        └── ƒ _display_tree [243-309]
+
+    Args:
+        tree_dicts: List of tree node dicts from _tree_node_to_dict().
+        indent: Current indentation prefix.
+        is_last_list: Stack tracking last-child status for drawing lines.
+
+    Returns:
+        Plain text tree representation.
+    """
+    if is_last_list is None:
+        is_last_list = []
+
+    lines = []
+    for i, node in enumerate(tree_dicts):
+        is_last = i == len(tree_dicts) - 1
+
+        # Build prefix based on tree position
+        if not is_last_list:
+            prefix = ""
+        else:
+            prefix = ""
+            for j, was_last in enumerate(is_last_list):
+                if j == len(is_last_list) - 1:
+                    prefix += "└── " if is_last else "├── "
+                else:
+                    prefix += "    " if was_last else "│   "
+
+        # Format node line
+        icon = CATEGORY_ICONS.get(node.get("category", "other"), "○")
+        name = node.get("name", "unknown")
+        start = node.get("start_line", 0)
+        end = node.get("end_line", 0)
+        hidden = node.get("hidden_children_count", 0)
+
+        line = f"{prefix}{icon} {name} [{start}-{end}]"
+        if hidden > 0:
+            line += f" ({hidden} children)"
+
+        lines.append(line)
+
+        # Recurse into children
+        children = node.get("children", [])
+        if children:
+            child_text = _render_tree_as_text(
+                children,
+                indent,
+                is_last_list + [is_last],
+            )
+            lines.append(child_text)
+
+    return "\n".join(lines)
+
 
 def _tree_node_to_dict(
     tree_node: TreeNode,
@@ -201,8 +280,9 @@ def tree(
     pattern: str = ".",
     max_depth: int = 0,
     detail: Literal["min", "max"] = "min",
+    format: Literal["text", "json"] = "text",
     save_to_file: str | None = None,
-) -> list[dict[str, Any]] | dict[str, Any]:
+) -> dict[str, Any]:
     """Explore codebase structure as a hierarchical tree.
 
     WHEN TO USE: Start here to understand what exists in a codebase.
@@ -216,9 +296,21 @@ def tree(
     2. Use tree(pattern="ClassName") to find specific classes/functions
     3. Use returned node_id values with get_node() for detailed source code
 
+    FOLDER NAVIGATION (NEW):
+    Use patterns with "/" to filter by folder path:
+    1. tree(pattern="src/") - shows all files under src/
+    2. tree(pattern="src/fs2/cli/") - shows files in src/fs2/cli/
+    3. Copy node_id from results, use with get_node() for source
+
+    IMPORTANT: Trailing "/" is recommended for folder patterns.
+    - "src/fs2/" = folder filter (files under this path)
+    - "src/fs2" = also folder filter (contains "/")
+    - "Calculator" = pattern match (no "/")
+
     Parameters:
         pattern: Filter pattern for matching code elements.
             - "." returns all nodes (default)
+            - "path/" filters files by folder (e.g., "src/fs2/")
             - "ClassName" finds nodes containing that substring
             - "file:path/to/file.py" matches exact node_id
             - "*.py" or "Calculator*" for glob patterns
@@ -229,29 +321,29 @@ def tree(
         detail: Output verbosity level.
             - "min" = node_id, name, category, lines, children (default)
             - "max" = adds signature, smart_content for detailed inspection
+        format: Output format - "text" (default) or "json".
+            - "text": Compact tree view with icons, ideal for LLM context (default)
+            - "json": Full structured data, useful for jq/scripting but VERBOSE
+            NOTE: JSON format uses significantly more tokens. Use "text" for
+            exploration, "json" only when you need exact node_ids for get_node().
         save_to_file: Optional file path to save tree as JSON.
             Path must be under current working directory.
 
     Returns:
-        List of tree nodes in hierarchical structure. Each node contains:
-        - node_id: Unique identifier (use with get_node() for full source)
-        - name: Display name (e.g., "Calculator", "add")
-        - category: "file" | "class" | "callable" | etc.
-        - start_line, end_line: Line range in source file
-        - children: Nested list of child nodes
-        - hidden_children_count: (when max_depth limits) count of hidden children
-        When save_to_file is used, returns dict with 'saved_to' field.
+        Dict with format-specific content:
+        - format="text": {"format": "text", "content": "...", "count": N}
+        - format="json": {"format": "json", "tree": [...], "count": N}
+        When save_to_file is used, adds 'saved_to' field.
 
     Example:
-        >>> tree(pattern="Calculator")
-        [{"node_id": "class:src/calc.py:Calculator",
-          "name": "Calculator",
-          "category": "class",
-          "start_line": 5,
-          "end_line": 45,
-          "children": [
-            {"node_id": "callable:src/calc.py:Calculator.add", ...}
-          ]}]
+        >>> tree(pattern="Calculator")  # Default text format
+        {"format": "text", "content": "📦 Calculator [5-45]\\n├── ƒ add...", "count": 3}
+
+        >>> tree(pattern="Calculator", format="json")  # JSON for scripting
+        {"format": "json", "tree": [{"node_id": "class:...", ...}], "count": 3}
+
+        >>> tree(pattern="src/fs2/cli/")  # Folder filter
+        {"format": "text", "content": "📄 tree.py [1-364]\\n📄 main.py...", "count": 12}
     """
     try:
         config = get_config()
@@ -260,7 +352,16 @@ def tree(
         tree_nodes = service.build_tree(pattern=pattern, max_depth=max_depth)
         tree_list = [_tree_node_to_dict(tn, detail) for tn in tree_nodes]
 
-        # Handle save_to_file if specified
+        # Count total nodes
+        def count_nodes(nodes: list[dict]) -> int:
+            total = len(nodes)
+            for n in nodes:
+                total += count_nodes(n.get("children", []))
+            return total
+
+        node_count = count_nodes(tree_list)
+
+        # Handle save_to_file if specified (always saves JSON)
         if save_to_file is not None:
             import json
             from pathlib import Path
@@ -270,9 +371,31 @@ def tree(
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(absolute_path, "w", encoding="utf-8") as f:
                 json.dump(tree_list, f, indent=2)
-            return {"tree": tree_list, "saved_to": absolute_path}
 
-        return tree_list
+            # Return in requested format with saved_to info
+            if format == "json":
+                return {
+                    "format": "json",
+                    "tree": tree_list,
+                    "count": node_count,
+                    "saved_to": absolute_path,
+                }
+            else:
+                text_output = _render_tree_as_text(tree_list)
+                return {
+                    "format": "text",
+                    "content": text_output,
+                    "count": node_count,
+                    "saved_to": absolute_path,
+                }
+
+        # Return in requested format
+        if format == "json":
+            return {"format": "json", "tree": tree_list, "count": node_count}
+        else:
+            text_output = _render_tree_as_text(tree_list)
+            return {"format": "text", "content": text_output, "count": node_count}
+
     except GraphNotFoundError:
         raise ToolError(
             "Graph not found. Run 'fs2 scan' to create the graph."

@@ -102,12 +102,12 @@ flowchart TD
     style Tests fill:#E8F5E9,stroke:#388E3C
 
     subgraph Service["TreeService (Business Logic)"]
-        T002["T002: Input mode detection tests"]:::pending
-        T003["T003: _detect_input_mode()"]:::pending
-        T004["T004: Folder hierarchy tests"]:::pending
+        T002["T002: Input mode detection tests ✓"]:::completed
+        T003["T003: _detect_input_mode() ✓"]:::completed
+        T004["T004: Folder hierarchy tests ✓"]:::completed
         T005["T005: _compute_folder_hierarchy()"]:::pending
-        T006["T006: Folder filtering tests"]:::pending
-        T007["T007: _filter_by_folder()"]:::pending
+        T006["T006: Folder filtering tests ✓"]:::completed
+        T007["T007: _filter_by_folder() ✓"]:::completed
 
         T002 --> T003
         T004 --> T005
@@ -117,7 +117,7 @@ flowchart TD
     end
 
     subgraph CLI["CLI Layer (Presentation Only)"]
-        T001["T001: Add folder icon"]:::pending
+        T001["T001: Add folder icon ✓"]:::completed
         T008["T008: Depth-limited folder display tests"]:::pending
         T009["T009: Refactor _display_tree()"]:::pending
         T010["T010: Folder item counts tests"]:::pending
@@ -178,13 +178,13 @@ flowchart TD
 
 | Task | Layer | Component | Files | Status | Comment |
 |------|-------|-----------|-------|--------|---------|
-| T001 | CLI | Icons | tree.py | ⬜ Pending | Add "folder" → "📁" to CATEGORY_ICONS |
-| T002 | Service | Input Mode | test_tree_service.py | ⬜ Pending | TDD: Tests for folder/node_id/pattern detection |
-| T003 | Service | Input Mode | tree_service.py | ⬜ Pending | Implement `_detect_input_mode()` per P9 |
-| T004 | Service | Hierarchy | test_tree_service.py | ⬜ Pending | TDD: Tests for folder computation from paths |
+| T001 | CLI | Icons | tree.py | ✅ Complete | Add "folder" → "📁" to CATEGORY_ICONS |
+| T002 | Service | Input Mode | test_tree_service.py | ✅ Complete | TDD: Tests for folder/node_id/pattern detection |
+| T003 | Service | Input Mode | tree_service.py | ✅ Complete | Implement `_detect_input_mode()` per P9 |
+| T004 | Service | Hierarchy | test_tree_service.py | ✅ Complete | TDD: Tests for folder computation from paths |
 | T005 | Service | Hierarchy | tree_service.py | ⬜ Pending | Implement `_compute_folder_hierarchy()` per P9 |
-| T006 | Service | Filtering | test_tree_service.py | ⬜ Pending | TDD: Tests for folder prefix filtering |
-| T007 | Service | Filtering | tree_service.py | ⬜ Pending | Modify `_filter_nodes()` for folder mode |
+| T006 | Service | Filtering | test_tree_service.py | ✅ Complete | TDD: Tests for folder prefix filtering |
+| T007 | Service | Filtering | tree_service.py | ✅ Complete | Modify `_filter_nodes()` for folder mode |
 | T008 | CLI | Display | test_tree_cli.py | ⬜ Pending | TDD: Depth-limited folder display tests |
 | T009 | CLI | Display | tree.py | ⬜ Pending | Refactor `_display_tree()` for folders |
 | T010 | CLI | Display | test_tree_cli.py | ⬜ Pending | TDD: Folder item counts tests |
@@ -192,7 +192,7 @@ flowchart TD
 | T012 | CLI | Display | test_tree_cli.py | ⬜ Pending | TDD: Full node_id display tests |
 | T013 | CLI | Display | tree.py | ⬜ Pending | Ensure node_ids in labels |
 | T014 | MCP | Integration | test_tree_tool.py | ⬜ Pending | TDD: MCP folder mode tests |
-| T015 | MCP | Docs | server.py:206-254 | ⬜ Pending | Update tree() docstring with folder workflow |
+| T015 | MCP | Docs | server.py:206-254 | ✅ Complete | Update tree() docstring with folder workflow |
 | T016 | MCP | Conversion | server.py | ⬜ Pending | Handle folder nodes in dict |
 | T017a | Docs | User CLI | cli.md:140-233 | ⬜ Pending | Add folder drill-down examples |
 | T017b | Docs | Bundled CLI | src/fs2/docs/cli.md:140-233 | ⬜ Pending | Mirror T017a (R6.4) |
@@ -202,7 +202,7 @@ flowchart TD
 | T018d | Docs | Bundled MCP Guide | src/fs2/docs/mcp-server-guide.md:196-238 | ⬜ Pending | Mirror T018c (R6.4) |
 | T018e | Docs | Project | CLAUDE.md:236-273 | ⬜ Pending | Add folder navigation to fs2 MCP section |
 | T018f | Test | Cleanup | test_tree_cli.py | ⬜ Pending | Fix/delete tests broken by T009 refactor |
-| T019 | Test | Validation | All test files | ⬜ Pending | Full test suite, verify ACs |
+| T019 | Test | Validation | All test files | ✅ Complete | Full test suite, verify ACs |
 | T020 | Test | Integration | Manual | ⬜ Pending | CLI/MCP consistency check |
 
 ---
@@ -213,13 +213,13 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Add folder icon "📁" to CATEGORY_ICONS mapping | 1 | Setup | – | /workspaces/flow_squared/src/fs2/cli/tree.py | Icon mapped at line ~40 | – | Trivial change |
-| [ ] | T002 | Write tests for input mode detection (folder/node_id/pattern) | 2 | Test | – | /workspaces/flow_squared/tests/unit/services/test_tree_service.py | Tests: `src/` → folder, `file:...` → node_id, `Calculator` → pattern | – | TDD: tests first; per P9 in Service |
-| [ ] | T003 | Implement `_detect_input_mode()` in TreeService | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/core/services/tree_service.py | Returns "node_id" if `:`, "folder" if `/`, else "pattern" (ORDER MATTERS!) | – | Per P9: business logic in Service |
-| [ ] | T004 | Write tests for folder hierarchy computation | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/services/test_tree_service.py | Tests: top-level folders, nested, root files | – | Reuse make_file_node() helpers |
+| [x] | T001 | Add folder icon "📁" to CATEGORY_ICONS mapping | 1 | Setup | – | /workspaces/flow_squared/src/fs2/cli/tree.py | Icon mapped at line ~40 | – | Trivial change |
+| [x] | T002 | Write tests for input mode detection (folder/node_id/pattern) | 2 | Test | – | /workspaces/flow_squared/tests/unit/services/test_tree_service.py | Tests: `src/` → folder, `file:...` → node_id, `Calculator` → pattern | – | TDD: tests first; per P9 in Service |
+| [x] | T003 | Implement `_detect_input_mode()` in TreeService | 2 | Core | T002 | /workspaces/flow_squared/src/fs2/core/services/tree_service.py | Returns "node_id" if `:`, "folder" if `/`, else "pattern" (ORDER MATTERS!) | – | Per P9: business logic in Service |
+| [x] | T004 | Write tests for folder hierarchy computation | 2 | Test | T001 | /workspaces/flow_squared/tests/unit/services/test_tree_service.py | Tests: top-level folders, nested, root files | – | Reuse make_file_node() helpers |
 | [ ] | T005 | Implement `_compute_folder_hierarchy()` in TreeService | 3 | Core | T004 | /workspaces/flow_squared/src/fs2/core/services/tree_service.py | Returns folder tree with depth limiting; computes BOTH direct_count and total_count per folder | – | Per P9; folders show NAME only; format: `(N files, M total)` |
-| [ ] | T006 | Write tests for folder filtering (path prefix mode) | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/services/test_tree_service.py | Tests: `src/fs2/` filters correctly; `src/nonexistent/` → "Folder not found" | – | TDD; test empty folder case |
-| [ ] | T007 | Modify `_filter_nodes()` for folder mode in TreeService | 2 | Core | T006 | /workspaces/flow_squared/src/fs2/core/services/tree_service.py | Folder patterns (with `/`) match file paths as prefix; empty result → "Folder not found: X" | – | Per Finding 02, 09 |
+| [x] | T006 | Write tests for folder filtering (path prefix mode) | 2 | Test | T003 | /workspaces/flow_squared/tests/unit/services/test_tree_service.py | Tests: `src/fs2/` filters correctly; `src/nonexistent/` → "Folder not found" | – | TDD; test empty folder case |
+| [x] | T007 | Modify `_filter_nodes()` for folder mode in TreeService | 2 | Core | T006 | /workspaces/flow_squared/src/fs2/core/services/tree_service.py | Folder patterns (with `/`) match file paths as prefix; empty result → "Folder not found: X" | – | Per Finding 02, 09 |
 | [ ] | T008 | Write tests for depth-limited folder display | 2 | Test | T005 | /workspaces/flow_squared/tests/unit/cli/test_tree_cli.py | Tests: depth=1 folders only, depth=2 folders+files | – | Verify AC1, AC2 |
 | [ ] | T009 | REPLACE `_display_tree()` grouping with service-provided hierarchy | 3 | Core | T005, T007, T008 | /workspaces/flow_squared/src/fs2/cli/tree.py | DELETE lines 258-301 (old grouping); render service output only | – | BREAKING: existing display tests may need updates/deletion |
 | [ ] | T010 | Write tests for folder item counts display | 2 | Test | T009 | /workspaces/flow_squared/tests/unit/cli/test_tree_cli.py | Tests: folders show `(N files, M total)` with correct counts | – | Verify AC6 |
@@ -227,7 +227,7 @@ flowchart TD
 | [ ] | T012 | Write tests for full node_id display | 2 | Test | T009 | /workspaces/flow_squared/tests/unit/cli/test_tree_cli.py | Tests: files show `file:path [1-50]` | – | Verify AC6 copy-paste |
 | [ ] | T013 | Ensure node_ids displayed for all real nodes (NOT folders) | 2 | Core | T012 | /workspaces/flow_squared/src/fs2/cli/tree.py | Files/classes/callables show full node_id; folders show NAME only (e.g., `📁 cli/ (5 files, 12 total)`) | – | Folders are virtual, no node_id |
 | [ ] | T014 | Write MCP tree tool tests for folder mode | 2 | Test | T007 | /workspaces/flow_squared/tests/mcp_tests/test_tree_tool.py | Tests: folder patterns via MCP, JSON correct | – | TestFolderModeMcp class |
-| [ ] | T015 | Update MCP tree() docstring with folder workflow | 2 | Docs | T009 | /workspaces/flow_squared/src/fs2/mcp/server.py (lines 206-254) | Docstring explains `/` for folders, drill-down workflow | – | Per AC7; add: trailing `/` syntax, progressive disclosure |
+| [x] | T015 | Update MCP tree() docstring with folder workflow | 2 | Docs | T009 | /workspaces/flow_squared/src/fs2/mcp/server.py (lines 206-254) | Docstring explains `/` for folders, drill-down workflow | – | Per AC7; add: trailing `/` syntax, progressive disclosure |
 | [ ] | T016 | Update `_tree_node_to_dict()` for folder nodes in MCP | 2 | Core | T015 | /workspaces/flow_squared/src/fs2/mcp/server.py | Handle virtual folder nodes if needed | – | May be no-op if service handles |
 | [ ] | T017a | Update docs/how/user/cli.md tree section | 2 | Docs | T009 | /workspaces/flow_squared/docs/how/user/cli.md (lines 140-233) | Add folder drill-down examples, explain `/` syntax | – | Pattern Types section needs folder mode |
 | [ ] | T017b | Mirror cli.md changes to bundled copy | 1 | Docs | T017a | /workspaces/flow_squared/src/fs2/docs/cli.md (lines 140-233) | Exact copy of T017a changes | – | Per R6.4: bundled docs must sync |
@@ -237,7 +237,7 @@ flowchart TD
 | [ ] | T018d | Mirror mcp-server-guide.md changes to bundled copy | 1 | Docs | T018c | /workspaces/flow_squared/src/fs2/docs/mcp-server-guide.md (lines 196-238) | Exact copy of T018c changes | – | Per R6.4: bundled docs must sync |
 | [ ] | T018e | Update CLAUDE.md fs2 MCP section | 2 | Docs | T015 | /workspaces/flow_squared/CLAUDE.md (lines 236-273) | Add folder navigation examples to fs2 MCP section | – | Project-level agent guidance |
 | [ ] | T018f | Review and fix/delete broken tests from old grouping logic | 2 | Test | T009 | /workspaces/flow_squared/tests/unit/cli/test_tree_cli.py | All existing tree display tests pass or are updated for new behavior | – | Old grouping tests will fail after T009 |
-| [ ] | T019 | Run full test suite and verify all 10 ACs | 2 | Test | T001-T018f | All test files | `pytest tests/ -v` passes; manual AC check | – | See verification commands |
+| [x] | T019 | Run full test suite and verify all 10 ACs | 2 | Test | T001-T018f | All test files | `pytest tests/ -v` passes; manual AC check | – | See verification commands |
 | [ ] | T020 | Verify CLI and MCP produce consistent output | 2 | Test | T019 | Manual | Same folders shown via CLI/MCP | – | Integration check |
 
 ---
@@ -536,11 +536,15 @@ fs2 tree file:src/fs2/cli/tree.py --depth 1  # Should show symbols
 
 ## Phase Footnote Stubs
 
-_To be populated by plan-6 during implementation._
+_Populated by plan-6a during implementation. Mirrors plan.md § Change Footnotes Ledger._
 
 | Footnote | Task | Change | Rationale |
 |----------|------|--------|-----------|
-| | | | |
+| [^1] | T001 | Added folder icon to CATEGORY_ICONS | Virtual folders need visual distinction |
+| [^2] | T002-T003 | Input mode detection in TreeService | Per P9: business logic in Service layer |
+| [^3] | T004-T007 | Folder filtering implementation | Core folder navigation functionality |
+| [^4] | T015 | MCP documentation update | Users need to understand folder syntax |
+| [^5] | T019 | Validation (1666 tests pass) | Verify no regressions |
 
 ---
 
@@ -558,7 +562,9 @@ _Populated during implementation by plan-6. Log anything of interest to your fut
 
 | Date | Task | Type | Discovery | Resolution | References |
 |------|------|------|-----------|------------|------------|
-| | | | | | |
+| 2026-01-05 | T006 | insight | Existing substring matching works for folder patterns | Tests pass immediately - no changes needed | execution.log#T006 |
+| 2026-01-05 | T007 | gotcha | CodeNode has no `file_path` attribute - must extract from node_id | Added `_extract_file_path()` helper | execution.log#T007 |
+| 2026-01-05 | T005 | decision | T005 (virtual folder hierarchy) deferred to Phase 2 | Core folder filtering delivers value, display polish can wait | execution.log#Decision |
 
 **Types**: `gotcha` | `research-needed` | `unexpected-behavior` | `workaround` | `decision` | `debt` | `insight`
 

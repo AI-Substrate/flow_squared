@@ -36,6 +36,7 @@ logger = logging.getLogger("fs2.cli.tree")
 # Icon mapping per category (Discovery 13) - PRESENTATION CONCERN stays in CLI
 CATEGORY_ICONS = {
     "file": "📄",
+    "folder": "📁",  # T001: Virtual folder icon for hierarchical navigation
     "type": "📦",
     "callable": "ƒ",
     "section": "📝",

@@ -901,13 +901,14 @@ class TestDepthLimiting:
     Discovery 11: Format: [N children hidden by depth limit]
     """
 
-    def test_given_depth_one_when_tree_then_shows_files_only(self, scanned_project):
+    def test_given_depth_one_when_tree_then_shows_top_level_folders(self, scanned_project):
         """
-        Purpose: Verifies depth=1 shows only root level.
+        Purpose: Verifies depth=1 shows only top-level folders (Phase 2 behavior).
         Quality Contribution: Users can get overview without detail.
-        Acceptance Criteria: Only file-level nodes visible, children hidden.
+        Acceptance Criteria: Only top-level folder nodes visible, contents hidden.
 
-        Task: T006
+        Task: T006 (updated for Phase 2 folder hierarchy)
+        Per AC1: `tree --depth 1` shows only top-level folders.
         """
         from fs2.cli.main import app
 
@@ -915,22 +916,23 @@ class TestDepthLimiting:
 
         assert result.exit_code == 0
         stdout = result.stdout
-        # Should see file icons but not nested methods
-        assert "📄" in stdout, f"Expected file icons: {stdout}"
-        # With depth 1, we only see root nodes (files in this case)
-        # Classes and methods should be hidden
+        # Per Phase 2: Should see folder icons at depth=1
+        assert "📁" in stdout, f"Expected folder icons at depth=1: {stdout}"
+        # With depth 1, we only see root-level folders
+        # Files and classes should be hidden
         # The hidden indicator should appear
         assert "hidden" in stdout.lower(), (
             f"Expected hidden indicator for depth=1: {stdout}"
         )
 
-    def test_given_depth_two_when_tree_then_shows_two_levels(self, scanned_project):
+    def test_given_depth_two_when_tree_then_shows_folders_and_files(self, scanned_project):
         """
-        Purpose: Verifies depth=2 shows files and immediate children.
+        Purpose: Verifies depth=2 shows folders and their immediate contents.
         Quality Contribution: Balance between overview and detail.
-        Acceptance Criteria: Files + classes visible, methods hidden.
+        Acceptance Criteria: Folders + files visible, file contents hidden.
 
-        Task: T006
+        Task: T006 (updated for Phase 2 folder hierarchy)
+        Per AC5: `tree --depth 2` shows folders AND their immediate contents.
         """
         from fs2.cli.main import app
 
@@ -938,12 +940,10 @@ class TestDepthLimiting:
 
         assert result.exit_code == 0
         stdout = result.stdout
-        # Should see files (📄) and classes (📦)
-        assert "📄" in stdout, f"Expected file icons: {stdout}"
-        # Classes should be visible at depth 2
-        assert "Calculator" in stdout or "📦" in stdout, (
-            f"Expected classes at depth 2: {stdout}"
-        )
+        # Per Phase 2: Should see folders (📁) and files (📄)
+        assert "📁" in stdout, f"Expected folder icons at depth=2: {stdout}"
+        # Files should be visible at depth 2 (inside folders)
+        assert "📄" in stdout, f"Expected file icons at depth=2: {stdout}"
 
     def test_given_depth_zero_when_tree_then_shows_all(self, scanned_project):
         """
