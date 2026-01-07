@@ -179,11 +179,13 @@ fs2 tree [PATTERN] [OPTIONS]
 **Rich Tree (default):**
 ```
 📁 src/
-  📄 main.py [1-120]
-    ƒ main [10-50]
-    📦 Calculator [52-100]
-      ƒ add [55-60]
+  📄 file:src/main.py [1-120]
+    ƒ callable:src/main.py:main [10-50]
+    📦 type:src/main.py:Calculator [52-100]
+      ƒ callable:src/main.py:Calculator.add [55-60]
 ```
+
+Note: Text output shows full node_ids for easy copy-paste to `get_node()`.
 
 **JSON (`--json`):**
 ```json
@@ -259,9 +261,9 @@ $ fs2 tree --depth 2
 # Filter to specific folder path
 $ fs2 tree src/fs2/cli/
 └── 📁 src/fs2/cli/
-    ├── 📄 __init__.py [1-2]
-    ├── 📄 tree.py [1-364]
-    │   ├── ƒ tree [102-240]
+    ├── 📄 file:src/fs2/cli/__init__.py [1-2]
+    ├── 📄 file:src/fs2/cli/tree.py [1-364]
+    │   ├── ƒ callable:src/fs2/cli/tree.py:tree [102-240]
     │   └── ...
 ```
 
