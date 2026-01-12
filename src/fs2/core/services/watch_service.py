@@ -18,9 +18,13 @@ Per DYK-5: KISS - log errors and continue (per AC10).
 """
 
 import asyncio
+import contextlib
+import logging
 from typing import TYPE_CHECKING, Protocol
 
 from fs2.config.objects import ScanConfig, WatchConfig
+
+logger = logging.getLogger(__name__)
 from fs2.core.adapters.file_watcher_adapter import FileWatcherAdapter
 
 if TYPE_CHECKING:
@@ -129,6 +133,11 @@ class WatchService:
         self._scan_in_progress = False
         self._scan_queued = False
 
+        logger.debug(
+            "WatchService initialized with %d watch paths",
+            len(self._watch_config.watch_paths or []),
+        )
+
     async def run(self) -> None:
         """Run the watch loop.
 
@@ -158,6 +167,12 @@ class WatchService:
         except asyncio.CancelledError:
             # Graceful cancellation
             pass
+        except Exception:
+            # Cancel watch_task if initial scan raises (FIX-004: prevent task leak)
+            watch_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await watch_task
+            raise
         finally:
             # Ensure watcher is stopped
             self._file_watcher.stop()
@@ -176,9 +191,11 @@ class WatchService:
 
                 if self._scan_in_progress:
                     # Queue-one: just set flag, don't accumulate
+                    logger.debug("Scan in progress, queueing next scan (queue-one)")
                     self._scan_queued = True
                 else:
                     # Start scan immediately with triggering files
+                    logger.debug("No scan in progress, triggering immediate scan")
                     await self._run_scan(triggered_by=changes)
 
                     # Check if scan was queued during execution
@@ -206,12 +223,16 @@ class WatchService:
         Per AC10/DYK-5: Logs errors but continues (KISS).
         """
         self._scan_in_progress = True
+        logger.debug("Starting scan, triggered_by=%s", triggered_by)
         try:
             # Build command args
             args = ["scan"] + self._scan_args
-            return await self._scan_runner.run(args, triggered_by=triggered_by)
+            result = await self._scan_runner.run(args, triggered_by=triggered_by)
+            logger.info("Scan completed with exit code %d", result)
+            return result
         except Exception:
             # Per DYK-5: Log and continue
+            logger.exception("Scan failed")
             return 1
         finally:
             self._scan_in_progress = False
@@ -222,5 +243,6 @@ class WatchService:
         Safe to call from signal handlers or other tasks.
         Idempotent - can be called multiple times.
         """
+        logger.info("Stop requested, initiating graceful shutdown")
         self._stop_event.set()
         self._file_watcher.stop()

@@ -14,11 +14,14 @@ Per Critical Finding 02: Adapter ABC with Dual Implementation Pattern.
 """
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pathspec
 import watchfiles
+
+logger = logging.getLogger(__name__)
 from watchfiles import Change, DefaultFilter
 
 from fs2.core.adapters.file_watcher_adapter import FileChange, FileWatcherAdapter
@@ -81,14 +84,24 @@ class GitignoreFilter(DefaultFilter):
                 # Skip empty lines and comments
                 if line and not line.startswith("#"):
                     self._patterns.append(line)
+            logger.debug(
+                "Loaded %d patterns from %s", len(self._patterns), gitignore_path
+            )
+        else:
+            logger.debug("No .gitignore found at %s", gitignore_path)
 
         # Add additional ignores
         if additional_ignores:
             self._patterns.extend(additional_ignores)
+            logger.debug("Added %d additional ignore patterns", len(additional_ignores))
 
         # Create pathspec matcher
         if self._patterns:
             self._spec = pathspec.PathSpec.from_lines("gitwildmatch", self._patterns)
+            logger.debug(
+                "GitignoreFilter initialized with %d total patterns",
+                len(self._patterns),
+            )
         else:
             self._spec = None
 
@@ -184,6 +197,12 @@ class WatchfilesAdapter(FileWatcherAdapter):
         self._additional_ignores = additional_ignores or []
         self._stop_event = asyncio.Event()
 
+        logger.debug(
+            "WatchfilesAdapter initialized: paths=%s, debounce=%dms",
+            [str(p) for p in watch_paths],
+            debounce_ms,
+        )
+
     async def watch(self) -> AsyncIterator[set[FileChange]]:
         """Monitor directories for file changes.
 
@@ -250,4 +269,5 @@ class WatchfilesAdapter(FileWatcherAdapter):
 
         This method is idempotent - safe to call multiple times.
         """
+        logger.debug("Stop requested for file watcher")
         self._stop_event.set()

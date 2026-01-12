@@ -184,6 +184,12 @@ def watch(
         resolved_paths = [Path(p).resolve() for p in watch_paths]
 
         # Display startup info (AC11)
+        logger.info("Watch mode starting with %d paths", len(resolved_paths))
+        logger.debug(
+            "Debounce: %dms, Timeout: %ss",
+            watch_config.debounce_ms,
+            watch_config.scan_timeout_seconds,
+        )
         console.print_success("Watch mode started")
         console.print_info(f"Watching: {', '.join(str(p) for p in resolved_paths)}")
         console.print_info(f"Debounce: {watch_config.debounce_ms}ms")
@@ -223,6 +229,7 @@ def watch(
 
         # Setup signal handler for graceful shutdown
         def handle_signal(signum, frame):
+            logger.info("Received signal %d, initiating shutdown", signum)
             console.print_info("\nShutting down...")
             service.stop()
 
@@ -234,17 +241,21 @@ def watch(
         # Run the watch loop
         asyncio.run(service.run())
 
+        logger.info("Watch mode stopped gracefully")
         console.print_success("Stopped.")
 
     except MissingConfigurationError:
+        logger.warning("No configuration found, suggesting 'fs2 init'")
         console.print_error(
             "No configuration found. Run 'fs2 init' first to create .fs2/config.yaml"
         )
         raise typer.Exit(code=1) from None
 
     except KeyboardInterrupt:
+        logger.info("Watch mode stopped via KeyboardInterrupt")
         console.print_success("Stopped.")
 
     except Exception as e:
+        logger.exception("Watch failed: %s", e)
         console.print_error(f"Watch failed: {e}")
         raise typer.Exit(code=1) from None
