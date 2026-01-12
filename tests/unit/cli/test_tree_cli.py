@@ -886,7 +886,9 @@ class TestDepthLimiting:
     Discovery 11: Format: [N children hidden by depth limit]
     """
 
-    def test_given_depth_one_when_tree_then_shows_top_level_folders(self, scanned_project):
+    def test_given_depth_one_when_tree_then_shows_top_level_folders(
+        self, scanned_project
+    ):
         """
         Purpose: Verifies depth=1 shows only top-level folders (Phase 2 behavior).
         Quality Contribution: Users can get overview without detail.
@@ -910,7 +912,9 @@ class TestDepthLimiting:
             f"Expected hidden indicator for depth=1: {stdout}"
         )
 
-    def test_given_depth_two_when_tree_then_shows_folders_and_files(self, scanned_project):
+    def test_given_depth_two_when_tree_then_shows_folders_and_files(
+        self, scanned_project
+    ):
         """
         Purpose: Verifies depth=2 shows folders and their immediate contents.
         Quality Contribution: Balance between overview and detail.

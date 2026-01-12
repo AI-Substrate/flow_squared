@@ -8,6 +8,7 @@ Per Finding 02: Adapter ABC with Dual Implementation Pattern.
 """
 
 import asyncio
+import contextlib
 from pathlib import Path
 
 import pytest
@@ -95,7 +96,10 @@ class TestWatchfilesAdapter:
         # Check that our file is in the changes
         file_changes = [c for c in all_changes if str(test_file) in c[1]]
         assert len(file_changes) >= 1
-        assert file_changes[0][0] in ("modified", "added")  # Some platforms report as "added"
+        assert file_changes[0][0] in (
+            "modified",
+            "added",
+        )  # Some platforms report as "added"
 
     async def test_watchfiles_adapter_detects_file_creation(self, tmp_path: Path):
         """
@@ -380,10 +384,8 @@ class TestWatchfilesAdapter:
         adapter.stop()
         adapter.stop()
 
-        try:
+        with contextlib.suppress(TimeoutError, asyncio.CancelledError):
             await task
-        except (TimeoutError, asyncio.CancelledError):
-            pass
 
     async def test_watchfiles_adapter_watches_multiple_paths(self, tmp_path: Path):
         """

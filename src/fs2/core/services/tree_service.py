@@ -56,7 +56,9 @@ def _create_folder_node(folder_path: str) -> CodeNode:
     # Ensure trailing slash for consistency
     path = folder_path if folder_path.endswith("/") else folder_path + "/"
     # Extract folder name from path
-    name = path.rstrip("/").split("/")[-1] if "/" in path.rstrip("/") else path.rstrip("/")
+    name = (
+        path.rstrip("/").split("/")[-1] if "/" in path.rstrip("/") else path.rstrip("/")
+    )
 
     return CodeNode(
         node_id=path,
@@ -485,11 +487,13 @@ class TreeService:
             # Check depth limit
             if current_depth + 1 >= max_depth:
                 # At depth limit - folder with hidden children count
-                result.append(TreeNode(
-                    node=folder_node,
-                    children=(),
-                    hidden_children_count=total_items,
-                ))
+                result.append(
+                    TreeNode(
+                        node=folder_node,
+                        children=(),
+                        hidden_children_count=total_items,
+                    )
+                )
             else:
                 # Expand children
                 children = self._build_folder_tree_nodes(
@@ -499,13 +503,21 @@ class TreeService:
                     folder_path,
                 )
                 # Count any items that would be hidden at deeper levels
-                immediate_items = len(folder_contents["files"]) + len(folder_contents["folders"])
-                hidden_count = total_items - immediate_items if current_depth + 2 >= max_depth else 0
-                result.append(TreeNode(
-                    node=folder_node,
-                    children=tuple(children),
-                    hidden_children_count=hidden_count,
-                ))
+                immediate_items = len(folder_contents["files"]) + len(
+                    folder_contents["folders"]
+                )
+                hidden_count = (
+                    total_items - immediate_items
+                    if current_depth + 2 >= max_depth
+                    else 0
+                )
+                result.append(
+                    TreeNode(
+                        node=folder_node,
+                        children=tuple(children),
+                        hidden_children_count=hidden_count,
+                    )
+                )
 
         # Process files second (DD4: files after folders)
         for file_node in sorted(folder_dict["files"], key=lambda n: n.name or ""):
@@ -513,14 +525,18 @@ class TreeService:
             if current_depth + 1 >= max_depth:
                 # At depth limit - files without their symbol children
                 children_count = len(self._graph_store.get_children(file_node.node_id))
-                result.append(TreeNode(
-                    node=file_node,
-                    children=(),
-                    hidden_children_count=children_count,
-                ))
+                result.append(
+                    TreeNode(
+                        node=file_node,
+                        children=(),
+                        hidden_children_count=children_count,
+                    )
+                )
             else:
                 # Expand file's symbol children
-                result.append(self._build_tree_node(file_node, max_depth, current_depth + 1))
+                result.append(
+                    self._build_tree_node(file_node, max_depth, current_depth + 1)
+                )
 
         return result
 

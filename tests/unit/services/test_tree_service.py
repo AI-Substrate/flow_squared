@@ -62,7 +62,9 @@ def make_folder_node(folder_path: str) -> CodeNode:
     # Ensure trailing slash for consistency
     path = folder_path if folder_path.endswith("/") else folder_path + "/"
     # Extract folder name from path (last component before trailing slash)
-    name = path.rstrip("/").split("/")[-1] if "/" in path.rstrip("/") else path.rstrip("/")
+    name = (
+        path.rstrip("/").split("/")[-1] if "/" in path.rstrip("/") else path.rstrip("/")
+    )
 
     return CodeNode(
         node_id=path,
@@ -525,7 +527,9 @@ class TestInputModeDetection:
 
         # Node IDs have colon prefix
         assert TreeService._detect_input_mode("file:src/main.py") == "node_id"
-        assert TreeService._detect_input_mode("type:src/calc.py:Calculator") == "node_id"
+        assert (
+            TreeService._detect_input_mode("type:src/calc.py:Calculator") == "node_id"
+        )
         assert (
             TreeService._detect_input_mode("callable:src/calc.py:Calculator.add")
             == "node_id"
@@ -628,20 +632,28 @@ class TestFolderHierarchyComputation:
         result = service.build_tree(pattern=".", max_depth=1)
 
         # Per DD1: Should have synthetic folder node
-        assert len(result) == 1, f"Expected 1 folder, got {len(result)}: {[tn.node.node_id for tn in result]}"
+        assert len(result) == 1, (
+            f"Expected 1 folder, got {len(result)}: {[tn.node.node_id for tn in result]}"
+        )
 
         folder = result[0]
         # Per DD1: category="folder"
-        assert folder.node.category == "folder", f"Expected folder category, got {folder.node.category}"
+        assert folder.node.category == "folder", (
+            f"Expected folder category, got {folder.node.category}"
+        )
         # Per DD5: node_id is path with trailing slash
-        assert folder.node.node_id == "src/", f"Expected node_id 'src/', got {folder.node.node_id}"
+        assert folder.node.node_id == "src/", (
+            f"Expected node_id 'src/', got {folder.node.node_id}"
+        )
         # name is just the folder name
         assert folder.node.name == "src", f"Expected name 'src', got {folder.node.name}"
         # Per DD1: synthetic nodes have start_line=0, end_line=0
         assert folder.node.start_line == 0
         assert folder.node.end_line == 0
         # At depth=1, folder children are hidden, count shows items inside
-        assert folder.hidden_children_count == 2, f"Expected 2 hidden files, got {folder.hidden_children_count}"
+        assert folder.hidden_children_count == 2, (
+            f"Expected 2 hidden files, got {folder.hidden_children_count}"
+        )
 
     def test_given_files_in_multiple_top_level_folders_when_depth_one_then_returns_all_folders(
         self, graph_setup
@@ -662,15 +674,21 @@ class TestFolderHierarchyComputation:
         result = service.build_tree(pattern=".", max_depth=1)
 
         # Should have 3 folder nodes
-        assert len(result) == 3, f"Expected 3 folders, got {len(result)}: {[tn.node.node_id for tn in result]}"
+        assert len(result) == 3, (
+            f"Expected 3 folders, got {len(result)}: {[tn.node.node_id for tn in result]}"
+        )
 
         # All should be folders
         for folder in result:
-            assert folder.node.category == "folder", f"Expected folder, got {folder.node.category}"
+            assert folder.node.category == "folder", (
+                f"Expected folder, got {folder.node.category}"
+            )
 
         # Per DD4: Folders sorted alphabetically
         node_ids = [tn.node.node_id for tn in result]
-        assert node_ids == ["docs/", "src/", "tests/"], f"Expected alphabetical order, got {node_ids}"
+        assert node_ids == ["docs/", "src/", "tests/"], (
+            f"Expected alphabetical order, got {node_ids}"
+        )
 
     def test_given_nested_folders_when_depth_one_then_returns_only_top_level_folder(
         self, graph_setup
@@ -694,7 +712,9 @@ class TestFolderHierarchyComputation:
         assert len(result) == 1, f"Expected 1 top-level folder, got {len(result)}"
         assert result[0].node.node_id == "src/"
         # All 3 files are nested inside src/
-        assert result[0].hidden_children_count == 3, f"Expected 3 hidden items, got {result[0].hidden_children_count}"
+        assert result[0].hidden_children_count == 3, (
+            f"Expected 3 hidden items, got {result[0].hidden_children_count}"
+        )
 
     def test_given_root_level_files_when_depth_one_then_includes_both_folders_and_files(
         self, graph_setup
@@ -753,7 +773,9 @@ class TestFolderHierarchyComputation:
         assert fs2_folder.node.category == "folder"
 
         # At depth 2, fs2/'s children (cli/, core/) are hidden
-        assert fs2_folder.hidden_children_count == 2, "Expected 2 hidden children (cli/, core/)"
+        assert fs2_folder.hidden_children_count == 2, (
+            "Expected 2 hidden children (cli/, core/)"
+        )
 
     def test_given_folder_with_file_and_subfolder_when_depth_two_then_shows_mixed_children(
         self, graph_setup
@@ -766,7 +788,7 @@ class TestFolderHierarchyComputation:
         """
         config, store, _ = graph_setup
         file1 = make_file_node("src/__init__.py")  # Direct file in src/
-        file2 = make_file_node("src/cli/main.py")   # File in subfolder
+        file2 = make_file_node("src/cli/main.py")  # File in subfolder
         store.set_nodes([file1, file2])
 
         service = TreeService(config=config, graph_store=store)
@@ -778,7 +800,9 @@ class TestFolderHierarchyComputation:
         assert src_folder.node.node_id == "src/"
 
         # Per DD4: folders first, then files
-        assert len(src_folder.children) == 2, "Expected cli/ folder and __init__.py file"
+        assert len(src_folder.children) == 2, (
+            "Expected cli/ folder and __init__.py file"
+        )
         assert src_folder.children[0].node.category == "folder"
         assert src_folder.children[0].node.node_id == "src/cli/"
         assert src_folder.children[1].node.category == "file"

@@ -118,9 +118,8 @@ class GitignoreFilter(DefaultFilter):
             if self._spec.match_file(str(rel_path)):
                 return False  # Ignored
             # Also check with trailing slash for directories
-            if Path(path).is_dir():
-                if self._spec.match_file(str(rel_path) + "/"):
-                    return False
+            if Path(path).is_dir() and self._spec.match_file(str(rel_path) + "/"):
+                return False
         except ValueError:
             # Path not relative to root - don't filter
             pass

@@ -157,7 +157,9 @@ class TestMCPSubprocessIntegration:
 
         async with Client(transport) as client:
             # First get a node_id from tree (use format="json" for structured data)
-            tree_result = await client.call_tool("tree", {"pattern": ".", "format": "json"})
+            tree_result = await client.call_tool(
+                "tree", {"pattern": ".", "format": "json"}
+            )
             tree_response = json.loads(tree_result.content[0].text)
 
             # New format: {"format": "json", "tree": [...], "count": N}

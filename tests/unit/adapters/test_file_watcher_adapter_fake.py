@@ -95,11 +95,13 @@ class TestFakeFileWatcher:
         from fs2.core.adapters.file_watcher_adapter_fake import FakeFileWatcher
 
         watcher = FakeFileWatcher()
-        watcher.add_changes({
-            ("modified", "/path/to/a.py"),
-            ("modified", "/path/to/b.py"),
-            ("added", "/path/to/c.py"),
-        })
+        watcher.add_changes(
+            {
+                ("modified", "/path/to/a.py"),
+                ("modified", "/path/to/b.py"),
+                ("added", "/path/to/c.py"),
+            }
+        )
 
         async for changes in watcher.watch():
             assert len(changes) == 3

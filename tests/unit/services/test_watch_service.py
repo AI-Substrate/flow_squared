@@ -123,7 +123,9 @@ class TestWatchServiceQueueOne:
         # Should have: initial scan + 1 (change-triggered) + 1 (queued)
         # NOT: initial + 4 (one per change)
         # The first change triggers a scan, the other 3 get queued as ONE scan
-        assert runner.run_count <= 3, f"Expected at most 3 scans, got {runner.run_count}"
+        assert runner.run_count <= 3, (
+            f"Expected at most 3 scans, got {runner.run_count}"
+        )
 
     async def test_queue_one_no_queue_when_idle(self):
         """
@@ -233,10 +235,6 @@ class TestWatchServiceSubprocess:
 
         # Verify scan command was called
         assert runner.run_count >= 1
-        # At least one call should have scan-related args
-        all_args = [arg for call in runner.all_calls for arg in call]
-        # The command should include "scan" or the scan is implicit
-        assert runner.run_count >= 1
 
     async def test_subprocess_passes_no_embeddings_flag(self):
         """
@@ -269,9 +267,7 @@ class TestWatchServiceSubprocess:
         await service.run()
 
         # Check that --no-embeddings was passed in at least one call
-        found_flag = any(
-            "--no-embeddings" in call for call in runner.all_calls
-        )
+        found_flag = any("--no-embeddings" in call for call in runner.all_calls)
         assert found_flag or runner.run_count >= 1  # At minimum, a scan ran
 
 
@@ -417,8 +413,6 @@ class TestWatchServiceErrorResilience:
         watcher.add_changes({("modified", "/src/good.py")})  # Should still run
 
         # Runner that fails then succeeds
-        call_count = 0
-
         class FailThenSucceedRunner:
             def __init__(self):
                 self.run_count = 0
