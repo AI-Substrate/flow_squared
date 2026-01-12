@@ -13,6 +13,6 @@ services:
       - ${HOME:-.}/.claude/session-env:/home/vscode/.claude/session-env:cached
       - ${HOME:-.}/.claude/shell-snapshots:/home/vscode/.claude/shell-snapshots:cached
     ports:
-      - "0.0.0.0:2225:2225"
+      - "0.0.0.0:2227:2225"
     stdin_open: true
     tty: true
