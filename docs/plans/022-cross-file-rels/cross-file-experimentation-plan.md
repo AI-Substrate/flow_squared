@@ -34,7 +34,7 @@ Before implementing cross-file relationship detection in fs2, we need to validat
 
 ### Solution Approach
 
-- Create experimental scripts in `scratch/cross-file-rels/` to test Tree-sitter parsing
+- Create experimental scripts in `scripts/cross-files-rels-research/` to test Tree-sitter parsing
 - Enrich test fixtures with deliberate cross-file relationships
 - Validate confidence scoring tiers (1.0 → 0.1) against ground truth
 - Document findings, edge cases, and recommendations in experimentation dossier
@@ -194,7 +194,7 @@ import _ "database/sql/driver"  // Side effects only, no symbols used
 **Problem**: Monolithic experiment scripts duplicate code. Query patterns need to be tested independently from extraction logic.
 **Solution**: Create shared `lib/` modules:
 ```
-/workspaces/flow_squared/scratch/cross-file-rels/
+/workspaces/flow_squared/scripts/cross-files-rels-research/
 ├── lib/
 │   ├── __init__.py     # Package marker
 │   ├── parser.py       # Tree-sitter initialization (~50 LOC)
@@ -309,7 +309,7 @@ N/A - Experimentation uses real fixture files, no mocking needed.
 **Objective**: Establish scratch environment and document current fixture state.
 
 **Deliverables**:
-- `scratch/cross-file-rels/` directory structure
+- `scripts/cross-files-rels-research/` directory structure
 - Tree-sitter packages installed in scratch venv
 - Fixture audit table documenting current state
 - Ground truth reference table (empty, to be populated)
@@ -326,9 +326,9 @@ N/A - Experimentation uses real fixture files, no mocking needed.
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 1.1 | [ ] | Create scratch directory structure | 1 | Directories exist. **Verify**: `ls -la /workspaces/flow_squared/scratch/cross-file-rels/{lib,experiments,results}/` | - | Creates `/workspaces/flow_squared/scratch/cross-file-rels/` |
-| 1.2 | [ ] | Create scratch venv with tree-sitter | 1 | **Commands**: `cd /workspaces/flow_squared/scratch/cross-file-rels && python -m venv .venv && source .venv/bin/activate && pip install tree-sitter tree-sitter-language-pack` | - | Isolated from main project |
-| 1.3 | [ ] | Verify tree-sitter works | 1 | **Command**: `cd /workspaces/flow_squared/scratch/cross-file-rels && source .venv/bin/activate && python experiments/00_verify_setup.py`. Parses Python file, prints AST nodes | - | Creates `experiments/00_verify_setup.py` |
+| 1.1 | [ ] | Create scratch directory structure | 1 | Directories exist. **Verify**: `ls -la /workspaces/flow_squared/scripts/cross-files-rels-research/{lib,experiments,results}/` | - | Creates `/workspaces/flow_squared/scripts/cross-files-rels-research/` |
+| 1.2 | [ ] | Create scratch venv with tree-sitter | 1 | **Commands**: `cd /workspaces/flow_squared/scripts/cross-files-rels-research && python -m venv .venv && source .venv/bin/activate && pip install tree-sitter tree-sitter-language-pack` | - | Isolated from main project |
+| 1.3 | [ ] | Verify tree-sitter works | 1 | **Command**: `cd /workspaces/flow_squared/scripts/cross-files-rels-research && source .venv/bin/activate && python experiments/00_verify_setup.py`. Parses Python file, prints AST nodes | - | Creates `experiments/00_verify_setup.py` |
 | 1.4 | [ ] | Audit all 21 fixture files | 2 | Table showing: file, language, imports, cross-file refs. **Files**: `find /workspaces/flow_squared/tests/fixtures/samples -type f \| wc -l` = 21. Also audit which tests depend on fixture count/structure. | - | Expect: zero cross-file refs |
 | 1.5 | [ ] | Create ground truth template | 1 | `lib/ground_truth.py` with `ExpectedRelation` dataclass and empty `GROUND_TRUTH` list per Finding 08 schema | - | |
 | 1.6 | [ ] | Document fixture gaps | 1 | List of missing fixture types per language (e.g., Go needs handlers.go importing server.go) | - | |
@@ -363,20 +363,20 @@ N/A - Experimentation uses real fixture files, no mocking needed.
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 2.1 | [ ] | Create `lib/parser.py` (~50 LOC) | 2 | Load tree-sitter, parse files, cache trees. File at `/workspaces/flow_squared/scratch/cross-file-rels/lib/parser.py` | - | Shared infrastructure |
+| 2.1 | [ ] | Create `lib/parser.py` (~50 LOC) | 2 | Load tree-sitter, parse files, cache trees. File at `/workspaces/flow_squared/scripts/cross-files-rels-research/lib/parser.py` | - | Shared infrastructure |
 | 2.2 | [ ] | Create `lib/queries.py` (~80 LOC) | 2 | Query registry for Python, TS, Go imports including dot/blank imports per Finding 05 | - | Include `import type` handling per Finding 02 |
 | 2.3 | [ ] | Create `experiments/01_nodeid_detection.py` (~60 LOC) | 2 | Extract fs2 node_ids from text files via regex per Finding 10 | - | Confidence 1.0 tier |
 | 2.4 | [ ] | Create `experiments/02_import_extraction.py` (~100 LOC) | 3 | Extract imports from Python, TS, Go using Tree-sitter. Validate against stdlib imports in existing fixtures | - | Handles function-scoped imports per Finding 04 |
 | 2.5 | [ ] | Create `lib/extractors.py` (~100 LOC) | 2 | Reusable extractors for imports, calls. Returns `list[dict]` with confidence scores | - | Called by experiments |
 | 2.6 | [ ] | Create `experiments/03_call_extraction.py` (~80 LOC) | 3 | Extract function/method calls with receiver tracking. Start with constructor patterns only per Finding 03 | - | Downgraded confidence: 0.8 self-calls, 0.6 typed, 0.3 inferred |
 | 2.7 | [ ] | Create `lib/resolver.py` (~60 LOC) | 2 | Confidence scoring logic per Finding 03 tiers | - | Tiered heuristics |
-| 2.8 | [ ] | Run all scripts on existing fixtures | 1 | **Commands**: `cd /workspaces/flow_squared/scratch/cross-file-rels && source .venv/bin/activate && python experiments/01_nodeid_detection.py /workspaces/flow_squared/tests/fixtures/samples/ && python experiments/02_import_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ && python experiments/03_call_extraction.py /workspaces/flow_squared/tests/fixtures/samples/`. JSON output in `results/` | - | Stdlib imports detected |
+| 2.8 | [ ] | Run all scripts on existing fixtures | 1 | **Commands**: `cd /workspaces/flow_squared/scripts/cross-files-rels-research && source .venv/bin/activate && python experiments/01_nodeid_detection.py /workspaces/flow_squared/tests/fixtures/samples/ && python experiments/02_import_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ && python experiments/03_call_extraction.py /workspaces/flow_squared/tests/fixtures/samples/`. JSON output in `results/` | - | Stdlib imports detected |
 
 ### Script Structure Reference
 
-**`/workspaces/flow_squared/scratch/cross-file-rels/lib/parser.py`** (~50 LOC):
+**`/workspaces/flow_squared/scripts/cross-files-rels-research/lib/parser.py`** (~50 LOC):
 ```python
-# /workspaces/flow_squared/scratch/cross-file-rels/lib/parser.py
+# /workspaces/flow_squared/scripts/cross-files-rels-research/lib/parser.py
 from pathlib import Path
 from tree_sitter_language_pack import get_parser, get_language
 
@@ -391,9 +391,9 @@ def detect_language(file_path: Path) -> str:
     return LANG_MAP.get(file_path.suffix, "unknown")
 ```
 
-**`/workspaces/flow_squared/scratch/cross-file-rels/lib/queries.py`** (~80 LOC):
+**`/workspaces/flow_squared/scripts/cross-files-rels-research/lib/queries.py`** (~80 LOC):
 ```python
-# /workspaces/flow_squared/scratch/cross-file-rels/lib/queries.py
+# /workspaces/flow_squared/scripts/cross-files-rels-research/lib/queries.py
 IMPORT_QUERIES = {
     "python": """
         (import_statement name: (dotted_name) @import.module)
@@ -450,10 +450,10 @@ IMPORT_QUERIES = {
 | 3.2 | [ ] | Create `/workspaces/flow_squared/tests/fixtures/samples/javascript/index.ts` | 2 | Imports from `app.ts`, `utils.js`, `component.tsx`. Note: verify these files exist or create stubs. | - | TypeScript cross-file |
 | 3.3 | [ ] | Create `/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md` | 1 | Contains fs2 node_id patterns in format `callable:path:Symbol.method` | - | Confidence 1.0 test |
 | 3.4 | [ ] | Update `/workspaces/flow_squared/tests/fixtures/samples/markdown/README.md` | 2 | References `auth_handler.py`, method names like `AuthHandler.validate_token()` | - | Multiple confidence tiers |
-| 3.5 | [ ] | Populate ground truth with expected relationships | 2 | `/workspaces/flow_squared/scratch/cross-file-rels/lib/ground_truth.py` complete with 10+ entries | - | Per Finding 08 schema |
+| 3.5 | [ ] | Populate ground truth with expected relationships | 2 | `/workspaces/flow_squared/scripts/cross-files-rels-research/lib/ground_truth.py` complete with 10+ entries | - | Per Finding 08 schema |
 | 3.6 | [ ] | Create `experiments/04_cross_lang_refs.py` (~70 LOC) | 2 | Detects cross-language refs in existing YAML/Dockerfile fixtures OR markdown referencing code. Uses regex for `COPY`/`CMD` patterns. | - | Uses existing `/workspaces/flow_squared/tests/fixtures/samples/docker/Dockerfile` and `/workspaces/flow_squared/tests/fixtures/samples/yaml/deployment.yaml` |
 | 3.7 | [ ] | Create `experiments/05_confidence_scoring.py` (~80 LOC) | 2 | Validate scoring against ground truth. Outputs precision/recall per confidence tier. | - | Precision/recall output |
-| 3.8 | [ ] | Run all experiments on enriched fixtures | 1 | **Commands**: `cd /workspaces/flow_squared/scratch/cross-file-rels && source .venv/bin/activate && for exp in experiments/0*.py; do python "$exp" /workspaces/flow_squared/tests/fixtures/samples/ > "results/$(basename $exp .py).json"; done`. All JSON results in `results/` | - | JSON output |
+| 3.8 | [ ] | Run all experiments on enriched fixtures | 1 | **Commands**: `cd /workspaces/flow_squared/scripts/cross-files-rels-research && source .venv/bin/activate && for exp in experiments/0*.py; do python "$exp" /workspaces/flow_squared/tests/fixtures/samples/ > "results/$(basename $exp .py).json"; done`. All JSON results in `results/` | - | JSON output |
 | 3.9 | [ ] | Verify pytest still passes | 1 | **Command**: `cd /workspaces/flow_squared && pytest tests/ -v`. Exit code 0, no failures. | - | No regressions |
 
 ### New Fixture Content
@@ -525,7 +525,7 @@ class AppService:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 4.1 | [ ] | Run all 5 experiments and capture output | 1 | **Commands**: `cd /workspaces/flow_squared/scratch/cross-file-rels && source .venv/bin/activate && python experiments/01_nodeid_detection.py /workspaces/flow_squared/tests/fixtures/samples/ > results/01_nodeid.json && python experiments/02_import_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ > results/02_imports.json && python experiments/03_call_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ > results/03_calls.json && python experiments/04_cross_lang_refs.py /workspaces/flow_squared/tests/fixtures/samples/ > results/04_crosslang.json && python experiments/05_confidence_scoring.py /workspaces/flow_squared/tests/fixtures/samples/ > results/05_scoring.json`. All 5 JSON files in `results/` | - | |
+| 4.1 | [ ] | Run all 5 experiments and capture output | 1 | **Commands**: `cd /workspaces/flow_squared/scripts/cross-files-rels-research && source .venv/bin/activate && python experiments/01_nodeid_detection.py /workspaces/flow_squared/tests/fixtures/samples/ > results/01_nodeid.json && python experiments/02_import_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ > results/02_imports.json && python experiments/03_call_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ > results/03_calls.json && python experiments/04_cross_lang_refs.py /workspaces/flow_squared/tests/fixtures/samples/ > results/04_crosslang.json && python experiments/05_confidence_scoring.py /workspaces/flow_squared/tests/fixtures/samples/ > results/05_scoring.json`. All 5 JSON files in `results/` | - | |
 | 4.2 | [ ] | Analyze results for patterns | 2 | Document common failures, edge cases in scratch notes | - | |
 | 4.3 | [ ] | Write Executive Summary | 1 | Key findings in 2-3 sentences | - | |
 | 4.4 | [ ] | Write Experiment Results sections | 2 | One section per experiment (5 total) with precision/recall metrics | - | |
@@ -604,7 +604,7 @@ class AppService:
 
 ### Observability
 
-- Each experiment outputs JSON to `/workspaces/flow_squared/scratch/cross-file-rels/results/`
+- Each experiment outputs JSON to `/workspaces/flow_squared/scripts/cross-files-rels-research/results/`
 - Console output shows progress and summary
 - Errors logged with context for debugging
 

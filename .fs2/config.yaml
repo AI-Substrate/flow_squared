@@ -1,0 +1,56 @@
+# fs2 configuration file
+# See docs/how/scanning.md for all options
+
+scan:
+  # Directories to scan (relative to project root)
+  # Excludes initial_exploration/ (test fixtures) and scratch/ (temporary scripts)
+  scan_paths:
+    - "src"
+    - "tests"
+    - "docs"
+    - "scripts"
+
+  # Respect .gitignore patterns
+  respect_gitignore: true
+
+  # Maximum file size to parse (in KB)
+  max_file_size_kb: 500
+
+  # Follow symbolic links
+  follow_symlinks: false
+
+graph:
+  graph_path: ".fs2/graph.pickle"
+
+llm:
+  provider: azure
+  api_key: ${AZURE_OPENAI_API_KEY}
+  base_url: https://jordoopenai2.openai.azure.com/
+  azure_deployment_name: gpt-5-mini
+  azure_api_version: 2024-12-01-preview
+  model: gpt-5-mini
+  temperature: 1.0  # gpt-5-mini only supports default (1.0)
+  max_tokens: 1500
+
+smart_content:
+  max_workers: 50  # Parallel workers for batch processing
+  max_input_tokens: 50000  # Token limit for prompt truncation
+  token_limits:
+    file: 1000
+    type: 1000
+    callable: 1000
+    section: 1000
+    block: 1000
+    definition: 1000
+    statement: 1000
+    expression: 1000
+    other: 1000
+
+embedding:
+  mode: azure
+  dimensions: 1024
+  azure:
+    endpoint: https://oaijodoaustralia.openai.azure.com/
+    api_key: ${AZURE_EMBEDDING_API_KEY}
+    deployment_name: text-embedding-3-small-no-rate
+    api_version: "2024-02-01"

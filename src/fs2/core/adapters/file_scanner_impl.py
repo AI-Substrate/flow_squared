@@ -43,6 +43,7 @@ class FileSystemScanner(FileScanner):
 
     Features:
     - Recursive directory traversal
+    - Hardcoded exclusions for virtual environments and build artifacts
     - Root .gitignore pattern support (AC2)
     - Nested .gitignore pattern scoping (AC3)
     - Configurable symlink handling (Critical Finding 06)
@@ -66,6 +67,27 @@ class FileSystemScanner(FileScanner):
         3. Optionally call should_ignore() to query specific paths
     """
 
+    # Directories that should NEVER be scanned, regardless of gitignore.
+    # These contain generated/external code that pollutes the graph.
+    _HARDCODED_EXCLUDE_DIRS = frozenset(
+        {
+            ".git",
+            ".venv",
+            "venv",
+            "node_modules",
+            "__pycache__",
+            ".pytest_cache",
+            ".mypy_cache",
+            ".ruff_cache",
+            ".tox",
+            ".nox",
+            ".eggs",
+            "dist",
+            "build",
+            ".pixi",
+        }
+    )
+
     def __init__(self, config: "ConfigurationService"):
         """Initialize with ConfigurationService registry.
 
@@ -84,6 +106,8 @@ class FileSystemScanner(FileScanner):
         self._scan_roots: list[Path] = []
         # Flag to track if scan() has been called
         self._scanned = False
+        # Project root is CLI working directory (where .fs2/ lives)
+        self._project_root = Path.cwd().resolve()
 
     def scan(self) -> list[ScanResult]:
         """Discover source files in configured scan paths.
@@ -111,9 +135,9 @@ class FileSystemScanner(FileScanner):
                     "Check scan_paths configuration in .fs2/config.yaml."
                 )
 
-            # Load root gitignore if present and respect_gitignore is True
+            # Load gitignores from project root down to scan path
             if self._scan_config.respect_gitignore:
-                self._load_gitignore(scan_path)
+                self._load_gitignores_to_path(scan_path)
 
             # Walk the directory tree
             results.extend(self._walk_directory(scan_path, scan_path))
@@ -173,8 +197,9 @@ class FileSystemScanner(FileScanner):
                     continue
 
                 if entry.is_dir():
-                    # Skip .git directory
-                    if entry.name == ".git":
+                    # Skip hardcoded exclusions (venvs, build artifacts, etc.)
+                    if entry.name in self._HARDCODED_EXCLUDE_DIRS:
+                        logger.debug(f"Skipping hardcoded excluded directory: {entry}")
                         continue
 
                     # Check if directory is ignored
@@ -243,6 +268,27 @@ class FileSystemScanner(FileScanner):
                     f"Error reading .gitignore at {gitignore_path}: {e}. "
                     "Continuing without these patterns."
                 )
+
+    def _load_gitignores_to_path(self, to_path: Path) -> None:
+        """Load all .gitignore files from project root down to target path.
+
+        Ensures parent gitignore patterns are applied to subdirectories
+        even when scan_paths starts below project root.
+
+        Args:
+            to_path: Target directory (scan path) to load gitignores down to.
+        """
+        # Build list of directories from target up to project root
+        dirs_to_check = []
+        current = to_path.resolve()
+        while current != self._project_root and current != current.parent:
+            dirs_to_check.append(current)
+            current = current.parent
+        dirs_to_check.append(self._project_root)
+
+        # Load gitignores from root down (reverse order)
+        for directory in reversed(dirs_to_check):
+            self._load_gitignore(directory)
 
     def _is_ignored(self, path: Path) -> bool:
         """Check if a path matches any applicable gitignore patterns.

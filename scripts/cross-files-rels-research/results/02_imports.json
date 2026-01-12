@@ -1,0 +1,562 @@
+{
+  "meta": {
+    "directory": "/workspaces/flow_squared/tests/fixtures/samples",
+    "files_scanned": 11,
+    "files_with_imports": 8,
+    "total_imports": 45,
+    "by_language": {
+      "c": {
+        "files": 1,
+        "imports": 4
+      },
+      "cpp": {
+        "files": 1,
+        "imports": 10
+      },
+      "go": {
+        "files": 1,
+        "imports": 10
+      },
+      "java": {
+        "files": 1,
+        "imports": 6
+      },
+      "typescript": {
+        "files": 1,
+        "imports": 1
+      },
+      "tsx": {
+        "files": 1,
+        "imports": 1
+      },
+      "javascript": {
+        "files": 1,
+        "imports": 0
+      },
+      "python": {
+        "files": 2,
+        "imports": 13
+      },
+      "ruby": {
+        "files": 1,
+        "imports": 0
+      },
+      "rust": {
+        "files": 1,
+        "imports": 0
+      }
+    }
+  },
+  "files": [
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/c/algorithm.c",
+      "language": "c",
+      "import_count": 4,
+      "imports": [
+        {
+          "module": "stdio.h",
+          "names": null,
+          "line": 9,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "stdlib.h",
+          "names": null,
+          "line": 10,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "string.h",
+          "names": null,
+          "line": 11,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "stdbool.h",
+          "names": null,
+          "line": 12,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        }
+      ]
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/c/main.cpp",
+      "language": "cpp",
+      "import_count": 10,
+      "imports": [
+        {
+          "module": "functional",
+          "names": null,
+          "line": 9,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "unordered_map",
+          "names": null,
+          "line": 10,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "vector",
+          "names": null,
+          "line": 11,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "memory",
+          "names": null,
+          "line": 12,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "mutex",
+          "names": null,
+          "line": 13,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "future",
+          "names": null,
+          "line": 14,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "iostream",
+          "names": null,
+          "line": 15,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "string",
+          "names": null,
+          "line": 16,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "typeindex",
+          "names": null,
+          "line": 17,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        },
+        {
+          "module": "any",
+          "names": null,
+          "line": 18,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "is_system_include": true
+        }
+      ]
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/go/server.go",
+      "language": "go",
+      "import_count": 10,
+      "imports": [
+        {
+          "module": "context",
+          "names": null,
+          "line": 6,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        },
+        {
+          "module": "encoding/json",
+          "names": null,
+          "line": 7,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        },
+        {
+          "module": "fmt",
+          "names": null,
+          "line": 8,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        },
+        {
+          "module": "log",
+          "names": null,
+          "line": 9,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        },
+        {
+          "module": "net/http",
+          "names": null,
+          "line": 10,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        },
+        {
+          "module": "os",
+          "names": null,
+          "line": 11,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        },
+        {
+          "module": "os/signal",
+          "names": null,
+          "line": 12,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        },
+        {
+          "module": "sync",
+          "names": null,
+          "line": 13,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        },
+        {
+          "module": "syscall",
+          "names": null,
+          "line": 14,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        },
+        {
+          "module": "time",
+          "names": null,
+          "line": 15,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false,
+          "alias": null,
+          "is_dot_import": false,
+          "is_blank_import": false
+        }
+      ]
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/java/UserService.java",
+      "language": "java",
+      "import_count": 6,
+      "imports": [
+        {
+          "module": "java.time.LocalDateTime",
+          "names": null,
+          "line": 3,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "java.util.List",
+          "names": null,
+          "line": 4,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "java.util.Optional",
+          "names": null,
+          "line": 5,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "java.util.UUID",
+          "names": null,
+          "line": 6,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "java.util.concurrent.CompletableFuture",
+          "names": null,
+          "line": 7,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "java.util.stream.Collectors",
+          "names": null,
+          "line": 8,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        }
+      ]
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/javascript/app.ts",
+      "language": "typescript",
+      "import_count": 1,
+      "imports": [
+        {
+          "module": "events",
+          "names": [
+            "EventEmitter"
+          ],
+          "line": 6,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        }
+      ]
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/javascript/component.tsx",
+      "language": "tsx",
+      "import_count": 1,
+      "imports": [
+        {
+          "module": "react",
+          "names": [
+            "React",
+            "useState",
+            "useEffect",
+            "useCallback",
+            "useMemo",
+            "useRef",
+            "createContext",
+            "useContext"
+          ],
+          "line": 6,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        }
+      ]
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/javascript/utils.js",
+      "language": "javascript",
+      "import_count": 0,
+      "imports": []
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/python/auth_handler.py",
+      "language": "python",
+      "import_count": 4,
+      "imports": [
+        {
+          "module": "dataclasses",
+          "names": [
+            "dataclass"
+          ],
+          "line": 7,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "datetime",
+          "names": [
+            "datetime",
+            "timedelta"
+          ],
+          "line": 8,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "enum",
+          "names": [
+            "Enum"
+          ],
+          "line": 9,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "uuid",
+          "names": null,
+          "line": 174,
+          "confidence": 0.6,
+          "is_function_scoped": true,
+          "is_type_only": false
+        }
+      ]
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/python/data_parser.py",
+      "language": "python",
+      "import_count": 9,
+      "imports": [
+        {
+          "module": "json",
+          "names": null,
+          "line": 7,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "abc",
+          "names": [
+            "ABC",
+            "abstractmethod"
+          ],
+          "line": 8,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "collections.abc",
+          "names": [
+            "Iterator"
+          ],
+          "line": 9,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "dataclasses",
+          "names": [
+            "dataclass",
+            "field"
+          ],
+          "line": 10,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "pathlib",
+          "names": [
+            "Path"
+          ],
+          "line": 11,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "typing",
+          "names": [
+            "Any"
+          ],
+          "line": 12,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "csv",
+          "names": null,
+          "line": 200,
+          "confidence": 0.6,
+          "is_function_scoped": true,
+          "is_type_only": false
+        },
+        {
+          "module": "io",
+          "names": [
+            "StringIO"
+          ],
+          "line": 201,
+          "confidence": 0.6,
+          "is_function_scoped": true,
+          "is_type_only": false
+        },
+        {
+          "module": "csv",
+          "names": null,
+          "line": 253,
+          "confidence": 0.6,
+          "is_function_scoped": true,
+          "is_type_only": false
+        }
+      ]
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/ruby/tasks.rb",
+      "language": "ruby",
+      "import_count": 0,
+      "imports": []
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/rust/lib.rs",
+      "language": "rust",
+      "import_count": 0,
+      "imports": []
+    }
+  ]
+}

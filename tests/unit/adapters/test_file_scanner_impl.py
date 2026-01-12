@@ -399,6 +399,56 @@ class TestFileSystemScannerGitignore:
         file_names = [r.path.name for r in results]
         assert ".gitignore" not in file_names
 
+    def test_scanner_loads_parent_gitignore_when_scanning_subdirectory(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Verifies parent .gitignore patterns apply to subdirectory scans.
+        Quality Contribution: Ensures .venv and other root-level exclusions work
+        even when scan_paths starts from a subdirectory.
+        Acceptance Criteria: Patterns in root .gitignore exclude files in subdirs.
+
+        Given: Root .gitignore with 'ignored/' pattern, scan_paths=['subdir']
+        When: Scanning starts from subdir/
+        Then: ignored/ directories inside subdir/ are excluded
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        # Arrange: Create structure
+        # tmp_path/
+        #   .gitignore  (contains 'ignored/')
+        #   subdir/
+        #     ignored/
+        #       excluded.py
+        #     code.py
+        (tmp_path / ".gitignore").write_text("ignored/\n")
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+        (subdir / "code.py").write_text("# included")
+        ignored_dir = subdir / "ignored"
+        ignored_dir.mkdir()
+        (ignored_dir / "excluded.py").write_text("# should be excluded")
+
+        # Monkeypatch cwd to tmp_path (simulates CLI running from project root)
+        monkeypatch.chdir(tmp_path)
+
+        config = FakeConfigurationService(
+            ScanConfig(scan_paths=["subdir"], respect_gitignore=True)
+        )
+        scanner = FileSystemScanner(config)
+
+        # Act
+        results = scanner.scan()
+
+        # Assert
+        file_names = [r.path.name for r in results]
+        assert "code.py" in file_names, "code.py should be included"
+        assert "excluded.py" not in file_names, (
+            "excluded.py should be excluded by root .gitignore"
+        )
+
 
 @pytest.mark.unit
 class TestFileSystemScannerSymlinks:
