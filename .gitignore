@@ -228,3 +228,4 @@ scratch/*
 
 # Generated test output
 scripts/semantic_search_results.json
+.vsc-bridgehost.json

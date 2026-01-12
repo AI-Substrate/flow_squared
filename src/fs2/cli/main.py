@@ -28,6 +28,7 @@ from fs2.cli.mcp import mcp
 from fs2.cli.scan import scan
 from fs2.cli.search import search
 from fs2.cli.tree import tree
+from fs2.cli.watch import watch
 
 
 @dataclass
@@ -83,6 +84,7 @@ app.command(name="tree")(require_init(tree))
 app.command(name="get-node")(require_init(get_node))
 app.command(name="search")(require_init(search))
 app.command(name="mcp")(require_init(mcp))
+app.command(name="watch")(require_init(watch))
 
 # Commands that always work (not guarded)
 app.command(name="init")(init)

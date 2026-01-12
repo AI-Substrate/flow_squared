@@ -130,8 +130,8 @@ Based on comprehensive research (55+ findings from 6 subagents):
 ### AC7: Graceful Shutdown
 **Given** a scan is in progress
 **When** the user presses Ctrl+C
-**Then** the watch command displays "Stopping watcher..."
-**And** waits for the current scan to complete before exiting
+**Then** the watch command waits for the current scan to complete
+**And** displays "Stopped."
 **And** exits with code 0
 
 ### AC8: Scan Argument Pass-through
@@ -154,6 +154,12 @@ Based on comprehensive research (55+ findings from 6 subagents):
 **Given** a user runs `fs2 watch ./src ./tests`
 **When** the watch command starts
 **Then** it displays the paths being watched, debounce setting, and gitignore status
+
+### AC12: Initial Scan on Startup
+**Given** a user runs `fs2 watch` in an initialized project
+**When** the watch command starts
+**Then** it immediately runs `fs2 scan` before entering the watch loop
+**And** displays scan results before showing "Watching for changes..."
 
 ---
 
@@ -178,15 +184,42 @@ Based on comprehensive research (55+ findings from 6 subagents):
 
 ---
 
-## Open Questions
+## Testing Strategy
 
-1. **[NEEDS CLARIFICATION: uvx vs sys.executable]** Should we require `uvx` for subprocess isolation, or fallback gracefully to `sys.executable -m fs2`? Research recommends uvx for full isolation.
+- **Approach**: Full TDD
+- **Rationale**: Queue-one semantics, adapter patterns, and cross-platform behavior require comprehensive test coverage to ensure correctness
+- **Focus Areas**:
+  - Queue-one semantics (multiple changes = exactly one queued scan)
+  - FileWatcherAdapter ABC and WatchfilesAdapter implementation
+  - Graceful shutdown on SIGINT/SIGTERM
+  - Gitignore pattern filtering
+  - Subprocess spawning and output streaming
+  - Configuration loading and defaults
+- **Excluded**: Manual UI testing (Rich output formatting is secondary)
+- **Mock Usage**: Targeted mocks only
+  - Use `FakeFileWatcher` (implements adapter ABC) for unit tests
+  - Use `FakeConsoleAdapter` for output verification
+  - Mock subprocess calls for scan execution tests
+  - Use real filesystem (`tmp_path`) for integration tests
 
-2. **[NEEDS CLARIFICATION: Default watch paths]** When no paths are specified, should we use `scan_paths` from ScanConfig, or require explicit paths? Research suggests using config defaults.
+---
 
-3. **[NEEDS CLARIFICATION: Initial scan on startup]** Should `fs2 watch` run an immediate scan when started, or wait for the first file change?
+## Documentation Strategy
 
-4. **[NEEDS CLARIFICATION: Session statistics]** Should the graceful shutdown message include session statistics (e.g., "5 scans completed in session")?
+- **Location**: README.md only
+- **Rationale**: Watch is a straightforward CLI command; add usage examples to existing CLI documentation section
+- **Target Audience**: fs2 users who want automatic scanning during development
+- **Content**: Command syntax, common flags (`--no-embeddings`, `--debounce`), example usage
+- **Maintenance**: Update when new flags added or behavior changes
+
+---
+
+## Resolved Questions
+
+1. **Subprocess strategy**: Try `uvx fs2 scan` first for full isolation; fallback to `sys.executable -m fs2 scan` if uvx unavailable
+2. **Default watch paths**: Use `scan_paths` from ScanConfig; must strictly obey gitignore; no scanning outside configured paths
+3. **Initial scan on startup**: Run immediate scan when `fs2 watch` starts to ensure graph is fresh
+4. **Session statistics**: Simple "Stopped" message on shutdown; no session statistics
 
 ---
 
@@ -223,13 +256,30 @@ Based on comprehensive research (55+ findings from 6 subagents):
 
 ---
 
+## Clarifications
+
+### Session 2026-01-11
+
+| Question | Answer | Impact |
+|----------|--------|--------|
+| Q1: Workflow Mode | **Simple** | Single-phase plan, plan-4/plan-5 optional |
+| Q2: Testing Strategy | **Full TDD** | Comprehensive tests for queue semantics, adapters, cross-platform |
+| Q3: Mock Usage | **Targeted** | FakeFileWatcher for unit tests, mock subprocess only |
+| Q4: Documentation | **README only** | Add usage examples to existing CLI docs |
+| Q5: Subprocess Strategy | **uvx with fallback** | Try uvx first, fallback to sys.executable |
+| Q6: Default Watch Paths | **Use scan_paths** | Must obey gitignore, no scanning outside config |
+| Q7: Initial Scan | **Yes, on startup** | Run immediate scan to ensure fresh graph |
+| Q8: Session Statistics | **No** | Simple "Stopped." message |
+
+---
+
 ## Next Steps
 
-1. Run `/plan-2-clarify` to resolve open questions
-2. Run `/plan-3-architect` to design implementation phases
+1. Run `/plan-3-architect` to generate single-phase implementation plan
 
 ---
 
 **Spec Created**: 2026-01-06
+**Spec Clarified**: 2026-01-11
 **Plan Folder**: `docs/plans/020-watch-mode/`
 **Research**: Incorporated from `research-dossier.md`

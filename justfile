@@ -98,3 +98,31 @@ generate-fixtures-quick:
     uv run fs2 --graph-file tests/fixtures/fixture_graph.pkl scan \
         --scan-path tests/fixtures/samples \
         --no-smart-content
+
+# === Watch Mode ===
+
+# Start watch mode with full scans (embeddings + smart content)
+watch:
+    uv run fs2 watch
+
+# Start watch mode with verbose output
+watch-verbose:
+    uv run fs2 watch --verbose
+
+# Start watch mode without embeddings/smart content (faster for testing)
+watch-quick:
+    uv run fs2 watch --no-embeddings --no-smart-content
+
+# Demo: Start watch mode, then in another terminal run `just watch-trigger` to see it work
+watch-demo:
+    @echo "Starting watch mode (quick mode for demo)..."
+    @echo "In another terminal, run: just watch-trigger"
+    @echo "Press Ctrl+C to stop"
+    @echo ""
+    uv run fs2 watch --no-embeddings --no-smart-content
+
+# Trigger a file change to test watch mode (run in separate terminal)
+watch-trigger:
+    @echo "Triggering file change..."
+    @touch src/fs2/__init__.py
+    @echo "Done! Check the watch terminal for scan output."

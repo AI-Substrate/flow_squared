@@ -32,6 +32,7 @@ from fs2.core.services.stages import (
     StorageStage,
 )
 from fs2.core.services.tree_service import TreeService
+from fs2.core.services.watch_service import WatchService
 
 __all__ = [
     "SampleService",
@@ -46,4 +47,5 @@ __all__ = [
     "GetNodeService",
     "GraphUtilitiesService",
     "TreeService",
+    "WatchService",
 ]

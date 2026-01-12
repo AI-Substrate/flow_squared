@@ -674,6 +674,68 @@ class EmbeddingConfig(BaseModel):
         return self
 
 
+class WatchConfig(BaseModel):
+    """Configuration for watch mode operations.
+
+    Loaded from YAML or environment variables.
+    Path: watch (e.g., FS2_WATCH__DEBOUNCE_MS)
+
+    Controls the behavior of the `fs2 watch` command which monitors
+    directories for file changes and automatically triggers scans.
+    Per spec AC9: Configuration integration.
+
+    Attributes:
+        debounce_ms: Milliseconds to wait before triggering scan after changes
+                     (default: 1600, range: 100-60000).
+        watch_paths: List of paths to watch. If empty, uses scan_paths from ScanConfig.
+        additional_ignores: Extra patterns to ignore beyond .gitignore (default: empty).
+        scan_timeout_seconds: Timeout for change-triggered scans in seconds
+                              (default: 300, range: 60-3600).
+                              Note: Initial scan has no timeout (may take 40+ min with embeddings).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        watch:
+          debounce_ms: 1600
+          watch_paths:
+            - "./src"
+            - "./tests"
+          additional_ignores:
+            - "*.tmp"
+            - ".cache/"
+          scan_timeout_seconds: 300
+        ```
+
+    Environment variables example:
+        FS2_WATCH__DEBOUNCE_MS=2000
+        FS2_WATCH__SCAN_TIMEOUT_SECONDS=600
+    """
+
+    __config_path__: ClassVar[str] = "watch"
+
+    debounce_ms: int = 1600
+    watch_paths: list[str] = Field(default_factory=list)
+    additional_ignores: list[str] = Field(default_factory=list)
+    scan_timeout_seconds: int = 300
+
+    @field_validator("debounce_ms")
+    @classmethod
+    def validate_debounce_ms(cls, v: int) -> int:
+        """Validate debounce_ms is in reasonable range (100-60000ms)."""
+        if v < 100 or v > 60000:
+            raise ValueError("debounce_ms must be between 100 and 60000")
+        return v
+
+    @field_validator("scan_timeout_seconds")
+    @classmethod
+    def validate_scan_timeout_seconds(cls, v: int) -> int:
+        """Validate scan_timeout_seconds is in reasonable range (60-3600s)."""
+        if v < 60 or v > 3600:
+            raise ValueError("scan_timeout_seconds must be between 60 and 3600")
+        return v
+
+
 class SearchConfig(BaseModel):
     """Configuration for search operations.
 
@@ -757,4 +819,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     SmartContentConfig,
     EmbeddingConfig,
     SearchConfig,
+    WatchConfig,
 ]

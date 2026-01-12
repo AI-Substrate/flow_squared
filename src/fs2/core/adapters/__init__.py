@@ -68,6 +68,9 @@ from fs2.core.adapters.exceptions import (
 from fs2.core.adapters.file_scanner import FileScanner
 from fs2.core.adapters.file_scanner_fake import FakeFileScanner
 from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+from fs2.core.adapters.file_watcher_adapter import FileWatcherAdapter
+from fs2.core.adapters.file_watcher_adapter_fake import FakeFileWatcher
+from fs2.core.adapters.file_watcher_adapter_watchfiles import WatchfilesAdapter
 from fs2.core.adapters.llm_adapter import LLMAdapter
 from fs2.core.adapters.llm_adapter_azure import AzureOpenAIAdapter
 from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
@@ -96,6 +99,9 @@ __all__ = [
     "FileScanner",
     "FakeFileScanner",
     "FileSystemScanner",
+    "FileWatcherAdapter",
+    "FakeFileWatcher",
+    "WatchfilesAdapter",
     "ASTParser",
     "FakeASTParser",
     "TreeSitterParser",

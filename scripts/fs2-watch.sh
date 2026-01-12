@@ -133,31 +133,41 @@ find_watcher() {
 run_watchexec() {
     local watch_args=("${WATCH_PATHS[@]}")
     local cmd_args=()
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
     for path in "${watch_args[@]}"; do
         cmd_args+=(-w "$path")
     done
 
     info "Using watchexec (recommended)"
+    info "fs2 command: $FS2_CMD"
     info "Watching: ${watch_args[*]}"
     [[ ${#SCAN_ARGS[@]} -gt 0 ]] && info "Scan options: ${SCAN_ARGS[*]}"
     echo ""
     success "Watching for changes... (Ctrl+C to stop)"
     echo ""
 
-    # Note: --restart kills running scan on new changes (always get latest)
-    # --debounce waits for activity to settle before triggering
-    # Using longer debounce (2s) to batch rapid file changes
+    # --postpone: don't run until first change (skip initial run)
+    # --emit-events-to=environment: set WATCHEXEC_*_PATH env vars
+    # --debounce: wait for activity to settle before triggering
+    # shellcheck disable=SC2086
     exec watchexec "${cmd_args[@]}" \
+        --postpone \
+        --emit-events-to=environment \
         --debounce 2s \
         --ignore ".fs2/**" \
+        --ignore ".venv/**" \
         --ignore "**/*.pickle" \
         --ignore "**/__pycache__/**" \
         --ignore ".git/**" \
         --ignore "**/*.pyc" \
         --ignore ".uv_cache/**" \
+        --ignore ".vsc-bridge/**" \
+        --ignore ".vsc-bridgehost.json" \
+        --ignore "**/*.tmp.*" \
         --no-vcs-ignore \
-        -- fs2 scan "${SCAN_ARGS[@]}"
+        -- "$script_dir/fs2-scan-on-change.sh" $FS2_CMD scan "${SCAN_ARGS[@]}"
 }
 
 # Run with fswatch (macOS)
@@ -165,21 +175,33 @@ run_fswatch() {
     local watch_paths="${WATCH_PATHS[*]}"
 
     warn "Using fswatch (events may queue during long scans)"
+    info "fs2 command: $FS2_CMD"
     info "Watching: $watch_paths"
     echo ""
     success "Watching for changes... (Ctrl+C to stop)"
     echo ""
 
     # shellcheck disable=SC2086
-    fswatch -o \
+    fswatch --batch-marker=EOF \
         --exclude ".fs2" \
         --exclude ".git" \
         --exclude "__pycache__" \
         --exclude "*.pickle" \
-        $watch_paths | while read -r _; do
-        echo ""
-        info "Change detected, running fs2 scan..."
-        fs2 scan "${SCAN_ARGS[@]}" || true
+        $watch_paths | while read -r changed_file; do
+        if [[ "$changed_file" == "EOF" ]]; then
+            # End of batch - run the scan
+            echo ""
+            $FS2_CMD scan "${SCAN_ARGS[@]}" || true
+        else
+            # Accumulate changed files
+            if [[ -z "$batch_started" ]]; then
+                echo ""
+                info "Change detected:"
+                batch_started=1
+            fi
+            echo -e "       \033[1;33m[modified]\033[0m $changed_file"
+        fi
+        batch_started=""
     done
 }
 
@@ -188,6 +210,7 @@ run_inotifywait() {
     local watch_paths="${WATCH_PATHS[*]}"
 
     warn "Using inotifywait (events may be missed during scans)"
+    info "fs2 command: $FS2_CMD"
     info "Watching: $watch_paths"
     echo ""
     success "Watching for changes... (Ctrl+C to stop)"
@@ -195,13 +218,23 @@ run_inotifywait() {
 
     while true; do
         # shellcheck disable=SC2086
-        inotifywait -r -e modify,create,delete \
+        # Format: directory event filename
+        output=$(inotifywait -r -e modify,create,delete \
+            --format '%w%f %e' \
             --exclude '(\.fs2|\.git|__pycache__|\.pickle$)' \
-            $watch_paths 2>/dev/null || true
+            $watch_paths 2>/dev/null) || true
 
-        echo ""
-        info "Change detected, running fs2 scan..."
-        fs2 scan "${SCAN_ARGS[@]}" || true
+        if [[ -n "$output" ]]; then
+            echo ""
+            info "Change detected:"
+            # Parse output: filepath EVENT
+            filepath="${output% *}"
+            event="${output##* }"
+            event=$(echo "$event" | tr '[:upper:]' '[:lower:]')
+            echo -e "       \033[1;33m[$event]\033[0m $filepath"
+            echo ""
+            $FS2_CMD scan "${SCAN_ARGS[@]}" || true
+        fi
     done
 }
 
@@ -248,11 +281,17 @@ main() {
         WATCH_PATHS=(.)
     fi
 
-    # Check for fs2
-    if ! has_cmd fs2; then
+    # Check for fs2 (either directly or via uv run)
+    if has_cmd fs2; then
+        FS2_CMD="fs2"
+    elif has_cmd uv && uv run fs2 --version &>/dev/null; then
+        FS2_CMD="uv run fs2"
+    else
         error "fs2 not found in PATH"
         echo ""
         echo "Install fs2 first:"
+        echo "  uv pip install -e .    # If in the fs2 project directory"
+        echo "  # Or:"
         echo "  uvx --from git+https://github.com/AI-Substrate/flow_squared fs2 install"
         exit 1
     fi

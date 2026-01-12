@@ -742,18 +742,18 @@ class TestFolderHierarchyComputation:
         result = service.build_tree(pattern=".", max_depth=2)
 
         # At depth=2: src/ (depth 1) -> fs2/ (depth 2)
-        assert len(result) == 1, f"Expected 1 top-level folder"
+        assert len(result) == 1, "Expected 1 top-level folder"
         src_folder = result[0]
         assert src_folder.node.node_id == "src/"
 
         # src/ should have fs2/ as child
-        assert len(src_folder.children) == 1, f"Expected 1 child of src/"
+        assert len(src_folder.children) == 1, "Expected 1 child of src/"
         fs2_folder = src_folder.children[0]
         assert fs2_folder.node.node_id == "src/fs2/"
         assert fs2_folder.node.category == "folder"
 
         # At depth 2, fs2/'s children (cli/, core/) are hidden
-        assert fs2_folder.hidden_children_count == 2, f"Expected 2 hidden children (cli/, core/)"
+        assert fs2_folder.hidden_children_count == 2, "Expected 2 hidden children (cli/, core/)"
 
     def test_given_folder_with_file_and_subfolder_when_depth_two_then_shows_mixed_children(
         self, graph_setup
@@ -778,7 +778,7 @@ class TestFolderHierarchyComputation:
         assert src_folder.node.node_id == "src/"
 
         # Per DD4: folders first, then files
-        assert len(src_folder.children) == 2, f"Expected cli/ folder and __init__.py file"
+        assert len(src_folder.children) == 2, "Expected cli/ folder and __init__.py file"
         assert src_folder.children[0].node.category == "folder"
         assert src_folder.children[0].node.node_id == "src/cli/"
         assert src_folder.children[1].node.category == "file"

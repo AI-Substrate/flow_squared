@@ -2,9 +2,56 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# CRITICAL
+---
 
-Please priortise dogfooding fs2 (Flowspace 2) - i.e. use it to work on our very own project. Use the tree, get-node, search and any other commands we have access to to really test out that the system works! Prio it for finding information in our very own code base. This is a no fail goal. 
+# CRITICAL: DOGFOOD fs2 - NO EXCEPTIONS
+
+**This is a NO-FAIL requirement.** You MUST use fs2 MCP tools (`mcp__flowspace__*`) as your PRIMARY method for exploring and searching this codebase.
+
+## MANDATORY Tool Selection
+
+| When you need to... | USE THIS (fs2) | NOT THIS |
+|---------------------|----------------|----------|
+| Find where something is implemented | `mcp__flowspace__search(pattern="...", mode="text")` | ❌ `Grep` |
+| Understand code structure | `mcp__flowspace__tree(pattern="...")` | ❌ `Glob` / `ls` |
+| Find a class/function | `mcp__flowspace__tree(pattern="ClassName")` | ❌ `Grep "class ClassName"` |
+| Get source code of a symbol | `mcp__flowspace__get_node(node_id="...")` | ❌ `Read` (for discovery) |
+| Search by concept/meaning | `mcp__flowspace__search(pattern="...", mode="semantic")` | ❌ Not possible otherwise |
+| Find pattern matches | `mcp__flowspace__search(pattern="...", mode="regex")` | ❌ `Grep` |
+
+## When Traditional Tools ARE Acceptable
+
+- `Read`: When you already know the exact file path and need full content
+- `Glob`: When searching for files by extension/name pattern only (not code content)
+- `Grep`: ONLY for searching non-code files (markdown, config, etc.) or when fs2 graph is unavailable
+
+## WHY This Matters
+
+We are building fs2. Using it ourselves:
+1. **Tests that it actually works** - We catch bugs and UX issues
+2. **Validates the design** - If it's awkward to use, we need to fix it
+3. **Builds muscle memory** - We understand our users' experience
+4. **Finds gaps** - Missing features become obvious when we need them
+
+## Quick Reference
+
+```python
+# FIRST: See what's in an area
+mcp__flowspace__tree(pattern="adapters/")
+
+# Find something by name
+mcp__flowspace__tree(pattern="GraphStore")
+
+# Search for text/pattern in code
+mcp__flowspace__search(pattern="def save", mode="text")
+
+# Get full source after finding node_id
+mcp__flowspace__get_node(node_id="class:src/fs2/core/repos/graph_store_impl.py:NetworkXGraphStore")
+```
+
+**If you catch yourself reaching for Grep/Glob to search code - STOP and use fs2 instead.**
+
+--- 
 
 ## Project Identity
 
