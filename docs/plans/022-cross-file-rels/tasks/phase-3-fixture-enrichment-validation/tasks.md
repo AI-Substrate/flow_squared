@@ -39,13 +39,13 @@ Result:       TRUE POSITIVE - Precision/Recall validated
 ### Objective
 Create enriched fixtures with known cross-file relationships and validate extraction accuracy against ground truth.
 
-**Acceptance Criteria** (from plan):
-- [ ] All 3 new fixture files created and syntactically valid
-- [ ] Ground truth contains 10+ expected relationships
-- [ ] Node ID detection achieves 100% precision/recall on execution-log.md
-- [ ] Import extraction achieves >90% precision on app_service.py
-- [ ] Confidence scoring matches expected tiers (±0.1)
-- [ ] `pytest tests/` passes after fixture changes
+**Acceptance Criteria** (from plan, refined):
+- [x] All 3 new fixture files created and syntactically valid (app_service.py, index.ts, execution-log.md)
+- [x] Ground truth contains 10+ expected relationships (15 relationships defined)
+- [x] Node ID detection achieves 100% precision/recall on execution-log.md (10 node_ids detected)
+- [x] Import extraction achieves >90% **file-level** precision on cross-file imports (P=1.0, R=1.0)
+- [x] Confidence RMSE ≤ 0.15 (RMSE=0.0)
+- [x] `pytest tests/` passes after fixture changes (1724 passed, 20 skipped)
 
 ### Goals
 
@@ -89,31 +89,31 @@ flowchart TD
     style GroundTruth fill:#F3E5F5,stroke:#7B1FA2
 
     subgraph Phase["Phase 3: Fixture Enrichment & Validation"]
-        T001["T001: Create app_service.py"]:::pending
-        T002["T002: Create index.ts"]:::pending
-        T003["T003: Create execution-log.md"]:::pending
-        T004["T004: Update README.md"]:::pending
-        T005["T005: Populate ground truth"]:::pending
-        T006["T006: Create 04_cross_lang_refs.py"]:::pending
-        T007["T007: Create 05_confidence_scoring.py"]:::pending
-        T008["T008: Run all experiments"]:::pending
-        T009["T009: Verify pytest passes"]:::pending
+        T001["T001: Define ground truth ✓"]:::completed
+        T002["T002: Create app_service.py ✓"]:::completed
+        T003["T003: Create index.ts ✓"]:::completed
+        T004["T004: Create execution-log.md ✓"]:::completed
+        T005["T005: Update README.md ✓"]:::completed
+        T006["T006: Create 04_cross_lang_refs.py ✓"]:::completed
+        T007["T007: Create 05_confidence_scoring.py ✓"]:::completed
+        T008["T008: Run all experiments ✓"]:::completed
+        T009["T009: Verify pytest passes ✓"]:::completed
 
+        T001 --> T002
+        T001 --> T003
+        T001 --> T004
         T001 --> T005
-        T002 --> T005
-        T003 --> T005
-        T004 --> T005
-        T005 --> T007
+        T001 --> T007
         T006 --> T008
         T007 --> T008
         T008 --> T009
     end
 
     subgraph NewFixtures["New Fixtures (Phase 3)"]
-        F1["/tests/fixtures/samples/python/app_service.py"]:::pending
-        F2["/tests/fixtures/samples/javascript/index.ts"]:::pending
-        F3["/tests/fixtures/samples/markdown/execution-log.md"]:::pending
-        F4["/tests/fixtures/samples/markdown/README.md"]:::pending
+        F1["/tests/fixtures/samples/python/app_service.py ✓"]:::completed
+        F2["/tests/fixtures/samples/javascript/index.ts ✓"]:::completed
+        F3["/tests/fixtures/samples/markdown/execution-log.md ✓"]:::completed
+        F4["/tests/fixtures/samples/markdown/README.md ✓"]:::completed
     end
 
     subgraph ExistingFixtures["Existing Fixtures (Phase 1)"]
@@ -125,26 +125,25 @@ flowchart TD
     end
 
     subgraph GroundTruth["Ground Truth"]
-        GT["/scripts/.../lib/ground_truth.py"]:::pending
+        GT["/scripts/.../lib/ground_truth.py ✓"]:::completed
     end
 
     subgraph Experiments["Experiment Scripts"]
-        E4["/scripts/.../experiments/04_cross_lang_refs.py"]:::pending
-        E5["/scripts/.../experiments/05_confidence_scoring.py"]:::pending
+        E4["/scripts/.../experiments/04_cross_lang_refs.py ✓"]:::completed
+        E5["/scripts/.../experiments/05_confidence_scoring.py ✓"]:::completed
     end
 
-    T001 -.-> F1
-    T002 -.-> F2
-    T003 -.-> F3
-    T004 -.-> F4
-    T005 -.-> GT
+    T001 -.-> GT
+    T002 -.-> F1
+    T003 -.-> F2
+    T004 -.-> F3
+    T005 -.-> F4
     T006 -.-> E4
     T007 -.-> E5
 
     F1 -.->|imports| EF1
     F1 -.->|imports| EF2
     F2 -.->|imports| EF3
-    F2 -.->|imports| EF4
     F2 -.->|imports| EF5
 ```
 
@@ -154,15 +153,15 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Python Fixtures | `/workspaces/flow_squared/tests/fixtures/samples/python/app_service.py` | ⬜ Pending | Cross-file imports to auth_handler.py, data_parser.py |
-| T002 | TypeScript Fixtures | `/workspaces/flow_squared/tests/fixtures/samples/javascript/index.ts` | ⬜ Pending | Cross-file imports to app.ts, utils.js, component.tsx |
-| T003 | Markdown Fixtures | `/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md` | ⬜ Pending | Node ID patterns for confidence 1.0 testing |
-| T004 | Markdown Fixtures | `/workspaces/flow_squared/tests/fixtures/samples/markdown/README.md` | ⬜ Pending | Method references for multi-tier confidence |
-| T005 | Ground Truth | `/workspaces/flow_squared/scripts/cross-files-rels-research/lib/ground_truth.py` | ⬜ Pending | 10+ ExpectedRelation entries |
-| T006 | Experiments | `/workspaces/flow_squared/scripts/cross-files-rels-research/experiments/04_cross_lang_refs.py` | ⬜ Pending | Dockerfile/YAML reference detection |
-| T007 | Experiments | `/workspaces/flow_squared/scripts/cross-files-rels-research/experiments/05_confidence_scoring.py` | ⬜ Pending | Precision/recall validation |
-| T008 | Validation | `/workspaces/flow_squared/scripts/cross-files-rels-research/results/` | ⬜ Pending | Run all 5 experiments, JSON output |
-| T009 | Test Suite | `/workspaces/flow_squared/tests/` | ⬜ Pending | Verify no regressions |
+| T001 | Ground Truth | `/workspaces/flow_squared/scripts/cross-files-rels-research/lib/ground_truth.py` | ✅ Complete | 15 ExpectedRelation entries defined |
+| T002 | Python Fixtures | `/workspaces/flow_squared/tests/fixtures/samples/python/app_service.py` | ✅ Complete | Cross-file imports to auth_handler.py, data_parser.py |
+| T003 | TypeScript Fixtures | `/workspaces/flow_squared/tests/fixtures/samples/javascript/index.ts` | ✅ Complete | Cross-file imports to app.ts, component.tsx (ES modules only) |
+| T004 | Markdown Fixtures | `/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md` | ✅ Complete | 10 node_id patterns (8 callable + 2 file) |
+| T005 | Markdown Fixtures | `/workspaces/flow_squared/tests/fixtures/samples/markdown/README.md` | ✅ Complete | References to AuthHandler class added |
+| T006 | Experiments + Dockerfile | `/workspaces/flow_squared/scripts/cross-files-rels-research/experiments/04_cross_lang_refs.py`, `docker/Dockerfile` | ✅ Complete | Detects 1 COPY→auth_handler.py reference |
+| T007 | Experiments | `/workspaces/flow_squared/scripts/cross-files-rels-research/experiments/05_confidence_scoring.py` | ✅ Complete | P=1.0, R=1.0, F1=1.0, RMSE=0.0 |
+| T008 | Validation | `/workspaces/flow_squared/scripts/cross-files-rels-research/results/` | ✅ Complete | 5 JSON files: 10 node_ids, 49 imports, 218 calls, 1 ref |
+| T009 | Test Suite | `/workspaces/flow_squared/tests/` | ✅ Complete | 1724 passed, 20 skipped, 0 failed |
 
 ---
 
@@ -170,15 +169,15 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|------|-----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Create `app_service.py` with cross-file imports | 2 | Core | – | `/workspaces/flow_squared/tests/fixtures/samples/python/app_service.py` | Python syntax valid (`python -m py_compile`), imports `auth_handler`, `data_parser` | – | Per plan § 3.1 content |
-| [ ] | T002 | Create `index.ts` with cross-file imports | 2 | Core | – | `/workspaces/flow_squared/tests/fixtures/samples/javascript/index.ts` | TypeScript syntax valid, imports `app.ts`, `utils.js`, `component.tsx` | – | Verify target files exist first |
-| [ ] | T003 | Create `execution-log.md` with node_id patterns | 1 | Core | – | `/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md` | Contains 5+ valid `callable:path:Symbol` patterns | – | Confidence 1.0 tier test |
-| [ ] | T004 | Update/Create `README.md` with method references | 2 | Core | – | `/workspaces/flow_squared/tests/fixtures/samples/markdown/README.md` | Contains references to `auth_handler.py` symbols | – | Multi-tier confidence test |
-| [ ] | T005 | Populate ground truth with 10+ relationships | 2 | Data | T001, T002, T003, T004 | `/workspaces/flow_squared/scripts/cross-files-rels-research/lib/ground_truth.py` | `len(GROUND_TRUTH) >= 10`, all `ExpectedRelation` valid | – | Per Finding 08 schema |
-| [ ] | T006 | Create `04_cross_lang_refs.py` for Dockerfile/YAML | 2 | Experiment | – | `/workspaces/flow_squared/scripts/cross-files-rels-research/experiments/04_cross_lang_refs.py` | Script runs, JSON output in `results/04_crosslang.json` | – | Uses existing docker/yaml fixtures |
-| [ ] | T007 | Create `05_confidence_scoring.py` for validation | 2 | Experiment | T005 | `/workspaces/flow_squared/scripts/cross-files-rels-research/experiments/05_confidence_scoring.py` | Outputs precision/recall per confidence tier | – | Compare extracted vs ground truth |
-| [ ] | T008 | Run all 5 experiments on enriched fixtures | 1 | Validation | T006, T007 | `/workspaces/flow_squared/scripts/cross-files-rels-research/results/{01_nodeid,02_imports,03_calls,04_crosslang,05_scoring}.json` | All 5 JSON files valid, >90% precision for imports | – | Command in Alignment Brief |
-| [ ] | T009 | Verify pytest still passes | 1 | Test | T008 | `/workspaces/flow_squared/tests/` | `pytest tests/ -v` exit code 0 | – | No regressions from fixtures |
+| [x] | T001 | Define ground truth with 10+ expected relationships | 2 | Data | – | `/workspaces/flow_squared/scripts/cross-files-rels-research/lib/ground_truth.py` | `len(GROUND_TRUTH) >= 10`, all `ExpectedRelation` valid | – | Per Finding 08: define BEFORE fixtures |
+| [x] | T002 | Create `app_service.py` matching ground truth | 2 | Core | T001 | `/workspaces/flow_squared/tests/fixtures/samples/python/app_service.py` | Python syntax valid (`python -m py_compile`), imports match GT entries | – | Per plan § 3.1 content |
+| [x] | T003 | Create `index.ts` matching ground truth | 2 | Core | T001 | `/workspaces/flow_squared/tests/fixtures/samples/javascript/index.ts` | TypeScript syntax valid, imports match GT entries | – | ES modules only: app.ts, component.tsx (skip utils.js - CommonJS) |
+| [x] | T004 | Create `execution-log.md` matching ground truth | 1 | Core | T001 | `/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md` | Contains 5+ valid `callable:path:Symbol` patterns matching GT | – | Confidence 1.0 tier test |
+| [x] | T005 | Update/Create `README.md` matching ground truth | 2 | Core | T001 | `/workspaces/flow_squared/tests/fixtures/samples/markdown/README.md` | Contains references to `auth_handler.py` symbols per GT | – | Multi-tier confidence test |
+| [x] | T006 | Create `04_cross_lang_refs.py` + enrich Dockerfile | 2 | Experiment | T001 | `/workspaces/flow_squared/scripts/cross-files-rels-research/experiments/04_cross_lang_refs.py`, `/workspaces/flow_squared/tests/fixtures/samples/docker/Dockerfile` | Script runs, detects COPY→fixture refs, JSON in `results/04_crosslang.json` | – | Add COPY line for auth_handler.py to Dockerfile |
+| [x] | T007 | Create `05_confidence_scoring.py` for validation | 2 | Experiment | T001 | `/workspaces/flow_squared/scripts/cross-files-rels-research/experiments/05_confidence_scoring.py` | File-level P/R/F1 + confidence RMSE; P>90%, RMSE≤0.15 | – | Module-to-path resolver, stdlib filter, two-tier metrics |
+| [x] | T008 | Run all 5 experiments on enriched fixtures | 1 | Validation | T006, T007 | `/workspaces/flow_squared/scripts/cross-files-rels-research/results/{01_nodeid,02_imports,03_calls,04_crosslang,05_scoring}.json` | All 5 JSON files valid, >90% precision for imports | – | Command in Alignment Brief |
+| [x] | T009 | Verify pytest still passes | 1 | Test | T008 | `/workspaces/flow_squared/tests/` | `pytest tests/ -v` exit code 0 | – | No regressions from fixtures |
 
 ---
 
@@ -329,16 +328,17 @@ flowchart LR
 ```mermaid
 sequenceDiagram
     participant Dev as Developer
-    participant Fix as Fixtures
     participant GT as Ground Truth
+    participant Fix as Fixtures
     participant Exp as Experiments
     participant Val as Validation
 
-    Dev->>Fix: Create app_service.py (T001)
-    Dev->>Fix: Create index.ts (T002)
-    Dev->>Fix: Create markdown fixtures (T003, T004)
+    Dev->>GT: Define GROUND_TRUTH (T001) - FIRST!
+    Note over GT: 10+ ExpectedRelation entries
 
-    Dev->>GT: Populate GROUND_TRUTH (T005)
+    Dev->>Fix: Create app_service.py matching GT (T002)
+    Dev->>Fix: Create index.ts matching GT (T003)
+    Dev->>Fix: Create markdown fixtures matching GT (T004, T005)
 
     Dev->>Exp: Create 04_cross_lang_refs.py (T006)
     Dev->>Exp: Create 05_confidence_scoring.py (T007)
@@ -358,38 +358,53 @@ sequenceDiagram
 
 | Validation | Method | Expected | Fixture/Script |
 |------------|--------|----------|----------------|
-| app_service.py syntax | `python -m py_compile` | Exit 0 | T001 |
-| index.ts syntax | Visual inspection (no tsc in scratch) | Valid TypeScript | T002 |
-| Node ID count | `grep -c 'callable:' execution-log.md` | ≥5 | T003 |
-| Ground truth entries | `len(GROUND_TRUTH)` | ≥10 | T005 |
-| Import precision | 05_confidence_scoring.py | >90% for Python | T007 |
+| Ground truth entries | `len(GROUND_TRUTH)` | ≥10 | T001 |
+| app_service.py syntax | `python -m py_compile` | Exit 0 | T002 |
+| index.ts syntax | Visual inspection (no tsc in scratch) | Valid TypeScript | T003 |
+| Node ID count | `grep -c 'callable:' execution-log.md` | ≥5 | T004 |
+| File-level precision | 05_confidence_scoring.py | >90% (stdlib filtered) | T007 |
+| Confidence RMSE | 05_confidence_scoring.py | ≤0.15 | T007 |
 | pytest | `pytest tests/ -v` | Exit 0 | T009 |
 
 ---
 
 ### Step-by-Step Implementation Outline
 
-1. **T001**: Read `auth_handler.py` and `data_parser.py` to understand exported symbols. Create `app_service.py` importing both.
-
-2. **T002**: Verify `app.ts`, `utils.js`, `component.tsx` exist. Create `index.ts` importing from all three.
-
-3. **T003**: Create `execution-log.md` with at least 5 `callable:path:Symbol` node_id patterns referencing existing fixtures.
-
-4. **T004**: Create/update `README.md` with method references like `AuthHandler.validate_token()`.
-
-5. **T005**: Open `lib/ground_truth.py`, populate `GROUND_TRUTH` list with 10+ `ExpectedRelation` entries covering:
+1. **T001**: Read `auth_handler.py`, `data_parser.py`, `app.ts`, `component.tsx` to understand exported symbols. **FIRST**: Define expected relationships in `GROUND_TRUTH` with 10+ `ExpectedRelation` entries covering:
    - app_service.py → auth_handler.py (import, 0.9)
    - app_service.py → data_parser.py (import, 0.9)
    - app_service.py → AuthHandler.__init__ (call, 0.8)
-   - execution-log.md → auth_handler.py symbols (reference, 1.0)
+   - execution-log.md → auth_handler.py symbols (link, 1.0)
    - index.ts → app.ts (import, 0.9)
+   - index.ts → component.tsx (import, 0.9)
+   - Dockerfile → auth_handler.py (ref, 0.7) - cross-lang COPY reference
+   - *(Note: skip utils.js - CommonJS module incompatible with ES imports)*
 
-6. **T006**: Create `04_cross_lang_refs.py` that parses Dockerfile (COPY/FROM) and YAML (configMapRef) for cross-language references.
+2. **T002**: Create `app_service.py` that matches the ground truth entries - imports must align with GT.
+
+3. **T003**: Create `index.ts` that matches the ground truth entries - imports must align with GT.
+
+4. **T004**: Create `execution-log.md` with at least 5 `callable:path:Symbol` node_id patterns that match GT entries.
+
+5. **T005**: Create/update `README.md` with method references like `AuthHandler.validate_token()` per GT.
+
+6. **T006**:
+   - **First**: Add a COPY line to Dockerfile referencing `auth_handler.py`:
+     ```dockerfile
+     # Cross-file reference for testing (add near line 44)
+     COPY tests/fixtures/samples/python/auth_handler.py ./auth/
+     ```
+   - **Then**: Create `04_cross_lang_refs.py` that parses Dockerfile (COPY/FROM) patterns
+   - Add Dockerfile→auth_handler.py to ground truth (confidence 0.7 for cross-lang ref)
 
 7. **T007**: Create `05_confidence_scoring.py` that:
+   - Includes **module-to-path resolver** to map extracted module names to GT file paths
+   - Filters out stdlib imports before comparison (only cross-file relationships)
    - Runs extraction on enriched fixtures
-   - Compares against `GROUND_TRUTH`
-   - Outputs precision/recall per confidence tier
+   - Compares against `GROUND_TRUTH` using normalized paths
+   - Outputs **two-tier metrics**:
+     * File-level precision/recall/F1 (primary - "did we find the relationship?")
+     * Confidence RMSE (secondary - "how accurate is our scoring?")
 
 8. **T008**: Run all 5 experiments and save JSON to `results/`.
 
@@ -467,6 +482,168 @@ _Footnotes will be added by plan-6 during implementation._
 - **Execution Log**: `/workspaces/flow_squared/docs/plans/022-cross-file-rels/tasks/phase-3-fixture-enrichment-validation/execution.log.md`
 - **JSON Results**: `/workspaces/flow_squared/scripts/cross-files-rels-research/results/{01_nodeid,02_imports,03_calls,04_crosslang,05_scoring}.json`
 - **Ground Truth**: `/workspaces/flow_squared/scripts/cross-files-rels-research/lib/ground_truth.py`
+
+---
+
+## Critical Insights Discussion
+
+**Session**: 2026-01-12
+**Context**: Phase 3 Tasks Dossier - Fixture Enrichment & Validation
+**Analyst**: AI Clarity Agent
+**Reviewer**: Development Team
+**Format**: Water Cooler Conversation (5 Critical Insights)
+
+### Insight 1: Ground Truth Definition Order is Backwards
+
+**Did you know**: The original task dependencies had T005 (populate ground truth) depending on T001-T004 (create fixtures), but Finding 08 explicitly says "Define ground truth BEFORE creating fixtures."
+
+**Implications**:
+- Inverts the recommended methodology
+- Loses ability to validate fixture creation against expectations
+- Ground truth becomes "documentation of what we made" rather than "specification of what we're testing"
+
+**Options Considered**:
+- Option A: Reorder Tasks (Definition-First) - Move GT first, fixtures depend on it
+- Option B: Two-Phase Ground Truth - Define skeleton before, finalize after
+- Option C: Keep Current Order - Accept document-what-you-built approach
+
+**AI Recommendation**: Option A (Reorder Tasks)
+- Reasoning: Matches Finding 08 intent, trivial change, prevents debugging confusion
+
+**Discussion Summary**: Agreed to reorder tasks with ground truth (T001) first, all fixtures (T002-T005) depending on it.
+
+**Decision**: Reorder tasks - T001 is now ground truth definition, T002-T005 are fixtures
+
+**Action Items**: None - changes applied immediately
+
+**Affects**: Tasks table, Mermaid diagrams, Step-by-Step outline
+
+---
+
+### Insight 2: Module-to-File Path Mapping is Missing
+
+**Did you know**: Extraction scripts return module names ("auth_handler") but ground truth uses file paths ("python/auth_handler.py"). No logic exists to map between these.
+
+**Implications**:
+- True positives become false negatives (correct extractions won't match)
+- Precision/recall metrics will be wrong
+- Debugging becomes confusing
+
+**Options Considered**:
+- Option A: Add Module-to-Path Resolver in 05_confidence_scoring.py
+- Option B: Change Ground Truth to Use Module Names
+- Option C: Change Extraction to Return Paths (violates lib/ frozen constraint)
+- Option D: Dual-Key Ground Truth
+
+**AI Recommendation**: Option A (Module-to-Path Resolver)
+- Reasoning: Keeps lib/ frozen, simple resolver (~15 lines), supports language-specific rules
+
+**Discussion Summary**: Agreed to build resolver in 05_confidence_scoring.py.
+
+**Decision**: Build module-to-path resolver in T007's 05_confidence_scoring.py
+
+**Action Items**: None - documented in T007 notes
+
+**Affects**: T007 implementation
+
+---
+
+### Insight 3: Precision Definition is Ambiguous
+
+**Did you know**: The acceptance criterion ">90% precision for imports" doesn't define what constitutes a "match" - granularity, confidence tolerance, and stdlib handling are undefined.
+
+**Implications**:
+- File-level vs symbol-level vs line-level granularity unclear
+- Confidence tolerance (expected 0.9, extracted 0.85 - match?)
+- Stdlib imports would inflate false positive count
+
+**Options Considered**:
+- Option A: File-Level Matching, Ignore Stdlib
+- Option B: File-Level Matching with Confidence Tolerance
+- Option C: Symbol-Level Matching
+- Option D: Two-Tier Metrics (file-level P/R/F1 + confidence RMSE)
+
+**AI Recommendation**: Option D (Two-Tier Metrics)
+- Reasoning: Separates "did we find it?" from "how accurate is scoring?", stdlib filtered
+
+**Discussion Summary**: Agreed to two-tier metrics approach with file-level precision as primary metric.
+
+**Decision**: Use two-tier metrics - file-level P/R/F1 (primary) + confidence RMSE ≤ 0.15 (secondary)
+
+**Action Items**: None - documented in acceptance criteria and T007
+
+**Affects**: T007 implementation, acceptance criteria, test plan
+
+---
+
+### Insight 4: utils.js Uses CommonJS But index.ts Will Use ES Imports
+
+**Did you know**: `utils.js` exports using CommonJS (`module.exports`) but `index.ts` would need ES module syntax. This creates a module system mismatch - the import would be syntactically extractable but not realistic.
+
+**Implications**:
+- TypeScript ES imports from CommonJS require specific tsconfig settings
+- Extraction works syntactically but relationship not realistic at runtime
+- Testing an artificial scenario
+
+**Options Considered**:
+- Option A: Use Only ES Module Targets (app.ts, component.tsx)
+- Option B: Accept Syntactic-Only Validation
+- Option C: Convert utils.js to ES Modules
+- Option D: Add utils.ts as New File
+
+**AI Recommendation**: Option A (Use Only ES Module Targets)
+- Reasoning: Focus on what matters, two targets is enough, no fixture modifications
+
+**Discussion Summary**: Agreed to focus on ES module targets only.
+
+**Decision**: index.ts imports from app.ts and component.tsx only, skip utils.js
+
+**Action Items**: None - documented in T003 notes
+
+**Affects**: T003 implementation, ground truth entries, Mermaid diagram
+
+---
+
+### Insight 5: Existing Dockerfile/YAML May Not Reference Python Files
+
+**Did you know**: T006 is designed to detect cross-language references in Dockerfile/YAML, but existing fixtures are generic syntax samples that don't reference any fixture Python files.
+
+**Implications**:
+- Dockerfile has COPY commands to generic paths (src/, requirements.txt)
+- YAML has K8s resource references, not file paths
+- 04_cross_lang_refs.py would find patterns but no matches to validate
+
+**Options Considered**:
+- Option A: Document Limitation, Focus on Pattern Detection
+- Option B: Enrich Dockerfile to Reference Fixture Files
+- Option C: Remove 04 Script from Phase 3
+- Option D: Create New Cross-Lang Fixture Pair
+
+**AI Recommendation**: Option A (Document Limitation)
+- Reasoning: Honest experimentation, script still demonstrates capability
+
+**Discussion Summary**: User preferred Option B to make cross-lang validation meaningful.
+
+**Decision**: Enrich Dockerfile with COPY reference to auth_handler.py (confidence 0.7)
+
+**Action Items**: T006 now includes Dockerfile modification
+
+**Affects**: T006 scope, ground truth entries, Dockerfile fixture
+
+---
+
+## Session Summary
+
+**Insights Surfaced**: 5 critical insights identified and discussed
+**Decisions Made**: 5 decisions reached through collaborative discussion
+**Action Items Created**: 0 (all changes applied immediately)
+**Areas Updated**: Tasks table, Mermaid diagrams, acceptance criteria, step-by-step outline
+
+**Shared Understanding Achieved**: ✓
+
+**Confidence Level**: High - Key methodology and validation gaps identified and addressed before implementation.
+
+**Next Steps**: Proceed with `/plan-6-implement-phase --phase "Phase 3: Fixture Enrichment & Validation"` when ready.
 
 ---
 

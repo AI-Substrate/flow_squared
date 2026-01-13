@@ -86,6 +86,9 @@ WORKDIR /app
 COPY --chown=appuser:appgroup src/ ./src/
 COPY --chown=appuser:appgroup scripts/entrypoint.sh ./
 
+# Cross-file reference for fs2 testing: auth module
+COPY tests/fixtures/samples/python/auth_handler.py ./auth/
+
 # Make entrypoint executable
 RUN chmod +x entrypoint.sh
 

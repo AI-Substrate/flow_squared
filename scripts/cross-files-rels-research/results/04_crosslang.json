@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "directory": "/workspaces/flow_squared/tests/fixtures/samples",
+    "files_scanned": 2,
+    "files_with_refs": 1,
+    "total_refs": 1
+  },
+  "refs": [
+    {
+      "source_file": "/workspaces/flow_squared/tests/fixtures/samples/docker/Dockerfile",
+      "line": 90,
+      "command": "COPY",
+      "target_path": "tests/fixtures/samples/python/auth_handler.py",
+      "ref_type": "copy",
+      "confidence": 0.7
+    }
+  ]
+}

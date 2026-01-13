@@ -525,13 +525,13 @@ class AppService:
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 4.1 | [ ] | Run all 5 experiments and capture output | 1 | **Commands**: `cd /workspaces/flow_squared/scripts/cross-files-rels-research && source .venv/bin/activate && python experiments/01_nodeid_detection.py /workspaces/flow_squared/tests/fixtures/samples/ > results/01_nodeid.json && python experiments/02_import_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ > results/02_imports.json && python experiments/03_call_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ > results/03_calls.json && python experiments/04_cross_lang_refs.py /workspaces/flow_squared/tests/fixtures/samples/ > results/04_crosslang.json && python experiments/05_confidence_scoring.py /workspaces/flow_squared/tests/fixtures/samples/ > results/05_scoring.json`. All 5 JSON files in `results/` | - | |
-| 4.2 | [ ] | Analyze results for patterns | 2 | Document common failures, edge cases in scratch notes | - | |
-| 4.3 | [ ] | Write Executive Summary | 1 | Key findings in 2-3 sentences | - | |
-| 4.4 | [ ] | Write Experiment Results sections | 2 | One section per experiment (5 total) with precision/recall metrics | - | |
-| 4.5 | [ ] | Write Edge Cases & Limitations | 2 | All discovered edge cases documented. Reference research-dossier.md findings R1-01 through R1-08 | - | Link: `/workspaces/flow_squared/docs/plans/022-cross-file-rels/research-dossier.md` |
-| 4.6 | [ ] | Write Recommendations section | 2 | Actionable guidance for implementation with priority ranking | - | |
-| 4.7 | [ ] | Create experimentation dossier | 1 | Complete markdown document at `/workspaces/flow_squared/docs/plans/022-cross-file-rels/experimentation-dossier.md` | - | Self-contained, no assumed context |
+| 4.1 | [x] | Run all 5 experiments and capture output | 1 | **Commands**: `cd /workspaces/flow_squared/scripts/cross-files-rels-research && source .venv/bin/activate && python experiments/01_nodeid_detection.py /workspaces/flow_squared/tests/fixtures/samples/ > results/01_nodeid.json && python experiments/02_import_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ > results/02_imports.json && python experiments/03_call_extraction.py /workspaces/flow_squared/tests/fixtures/samples/ > results/03_calls.json && python experiments/04_cross_lang_refs.py /workspaces/flow_squared/tests/fixtures/samples/ > results/04_crosslang.json && python experiments/05_confidence_scoring.py /workspaces/flow_squared/tests/fixtures/samples/ > results/05_scoring.json`. All 5 JSON files in `results/` | [📋](tasks/phase-4-documentation-dossier/execution.log.md#task-t001-verify-results) | ✅ Completed [^3] |
+| 4.2 | [x] | Analyze results for patterns | 2 | Document common failures, edge cases in scratch notes | [📋](tasks/phase-4-documentation-dossier/execution.log.md#task-t002-analyze-results) | ✅ Completed - 15 GT entries validated [^3] |
+| 4.3 | [x] | Write Executive Summary | 1 | Key findings in 2-3 sentences | [📋](tasks/phase-4-documentation-dossier/execution.log.md#task-t003-t007-write-dossier) | ✅ Completed [^3] |
+| 4.4 | [x] | Write Experiment Results sections | 2 | One section per experiment (5 total) with precision/recall metrics | [📋](tasks/phase-4-documentation-dossier/execution.log.md#task-t003-t007-write-dossier) | ✅ Completed - 6 experiments + 4 matrices [^3] |
+| 4.5 | [x] | Write Edge Cases & Limitations | 2 | All discovered edge cases documented. Reference research-dossier.md findings R1-01 through R1-08 | [📋](tasks/phase-4-documentation-dossier/execution.log.md#task-t003-t007-write-dossier) | ✅ Completed - R1-01 to R1-08 addressed [^3] |
+| 4.6 | [x] | Write Recommendations section | 2 | Actionable guidance for implementation with priority ranking | [📋](tasks/phase-4-documentation-dossier/execution.log.md#task-t003-t007-write-dossier) | ✅ Completed - P0/P1/P2/P3 priorities [^3] |
+| 4.7 | [x] | Create experimentation dossier | 1 | Complete markdown document at `/workspaces/flow_squared/docs/plans/022-cross-file-rels/experimentation-dossier.md` | [📋](tasks/phase-4-documentation-dossier/execution.log.md#task-t003-t007-write-dossier) | ✅ Completed - 477 lines [^3] |
 
 ### Dossier Structure
 
@@ -586,11 +586,11 @@ class AppService:
 
 ### Acceptance Criteria
 
-- [ ] All 6 experiment results documented with metrics
-- [ ] Edge cases from R1-01 through R1-08 addressed
-- [ ] Confidence scoring calibration documented
-- [ ] Clear recommendations for implementation
-- [ ] Dossier is self-contained (no assumed context)
+- [x] All 6 experiment results documented with metrics
+- [x] Edge cases from R1-01 through R1-08 addressed
+- [x] Confidence scoring calibration documented
+- [x] Clear recommendations for implementation
+- [x] Dossier is self-contained (no assumed context)
 
 ---
 
@@ -632,10 +632,10 @@ class AppService:
 
 ### Phase Completion Checklist
 
-- [ ] Phase 1: Setup & Fixture Audit - NOT STARTED
-- [ ] Phase 2: Core Extraction Scripts - NOT STARTED
-- [ ] Phase 3: Fixture Enrichment & Validation - NOT STARTED
-- [ ] Phase 4: Documentation & Dossier - NOT STARTED
+- [x] Phase 1: Setup & Fixture Audit - COMPLETE (2026-01-12)
+- [x] Phase 2: Core Extraction Scripts - COMPLETE (2026-01-12)
+- [x] Phase 3: Fixture Enrichment & Validation - COMPLETE (2026-01-12)
+- [x] Phase 4: Documentation & Dossier - COMPLETE (2026-01-13)
 
 ### STOP Rule
 
@@ -647,10 +647,14 @@ class AppService:
 
 ## Change Footnotes Ledger
 
-**NOTE**: This section will be populated during implementation by plan-6a-update-progress.
+**NOTE**: This section is populated during implementation by plan-6a-update-progress.
 
-[^1]: [To be added during implementation via plan-6a]
-[^2]: [To be added during implementation via plan-6a]
+[^1]: Phase 1-3: Setup, extraction scripts, fixture enrichment (completed 2026-01-12)
+[^2]: Phase 3: Ground truth validation with P=1.0, R=1.0, F1=1.0, RMSE=0.0 (completed 2026-01-12)
+[^3]: Phase 4: Documentation & Dossier (completed 2026-01-13)
+  - `file:docs/plans/022-cross-file-rels/experimentation-dossier.md` - Primary deliverable (477 lines)
+  - Tasks T001-T007 completed: verification, analysis, executive summary, results, edge cases, recommendations, assembly
+  - Key findings: 10/15 GT entries passing (67%), import detection 100%, critical gap in raw filename detection
 
 ---
 

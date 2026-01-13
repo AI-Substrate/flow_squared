@@ -1,119 +1,109 @@
 {
   "meta": {
-    "directory": "/workspaces/flow_squared/scripts/cross-files-rels-research/test_data",
-    "files_scanned": 1,
+    "directory": "/workspaces/flow_squared/tests/fixtures/samples",
+    "files_scanned": 18,
     "files_with_matches": 1,
-    "total_matches": 11
+    "total_matches": 10
   },
   "matches": [
     {
-      "file": "test_data/sample_nodeid.md",
-      "line": 10,
-      "column": 9,
-      "node_id": "file:src/lib/parser.py",
-      "category": "file",
-      "path": "src/lib/parser.py",
-      "symbol": null,
-      "confidence": 1.0
-    },
-    {
-      "file": "test_data/sample_nodeid.md",
-      "line": 11,
-      "column": 23,
-      "node_id": "class:src/lib/parser.py:Parser",
-      "category": "class",
-      "path": "src/lib/parser.py",
-      "symbol": "Parser",
-      "confidence": 1.0
-    },
-    {
-      "file": "test_data/sample_nodeid.md",
-      "line": 12,
-      "column": 33,
-      "node_id": "method:src/lib/parser.py:Parser.detect_language",
-      "category": "method",
-      "path": "src/lib/parser.py",
-      "symbol": "Parser.detect_language",
-      "confidence": 1.0
-    },
-    {
-      "file": "test_data/sample_nodeid.md",
-      "line": 13,
-      "column": 24,
-      "node_id": "callable:src/lib/resolver.py:calculate_confidence",
-      "category": "callable",
-      "path": "src/lib/resolver.py",
-      "symbol": "calculate_confidence",
-      "confidence": 1.0
-    },
-    {
-      "file": "test_data/sample_nodeid.md",
-      "line": 14,
-      "column": 11,
-      "node_id": "type:src/models/types.py:ImportInfo",
-      "category": "type",
-      "path": "src/models/types.py",
-      "symbol": "ImportInfo",
-      "confidence": 1.0
-    },
-    {
-      "file": "test_data/sample_nodeid.md",
-      "line": 18,
-      "column": 6,
-      "node_id": "class:src/extractors.py:ImportExtractor",
-      "category": "class",
-      "path": "src/extractors.py",
-      "symbol": "ImportExtractor",
-      "confidence": 1.0
-    },
-    {
-      "file": "test_data/sample_nodeid.md",
-      "line": 19,
-      "column": 4,
-      "node_id": "method:src/parser.py:Parser.parse_file",
-      "category": "method",
-      "path": "src/parser.py",
-      "symbol": "Parser.parse_file",
-      "confidence": 1.0
-    },
-    {
-      "file": "test_data/sample_nodeid.md",
-      "line": 20,
-      "column": 4,
-      "node_id": "callable:src/resolver.py:import_confidence",
-      "category": "callable",
-      "path": "src/resolver.py",
-      "symbol": "import_confidence",
-      "confidence": 1.0
-    },
-    {
-      "file": "test_data/sample_nodeid.md",
-      "line": 22,
-      "column": 12,
-      "node_id": "file:docs/plans/022",
-      "category": "file",
-      "path": "docs/plans/022",
-      "symbol": null,
-      "confidence": 1.0
-    },
-    {
-      "file": "test_data/sample_nodeid.md",
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
       "line": 26,
-      "column": 19,
-      "node_id": "class:src/fs2/core/adapters/log_adapter.py:LogAdapter",
-      "category": "class",
-      "path": "src/fs2/core/adapters/log_adapter.py",
-      "symbol": "LogAdapter",
+      "column": 4,
+      "node_id": "callable:tests/fixtures/samples/python/auth_handler.py:AuthHandler.authenticate",
+      "category": "callable",
+      "path": "tests/fixtures/samples/python/auth_handler.py",
+      "symbol": "AuthHandler.authenticate",
       "confidence": 1.0
     },
     {
-      "file": "test_data/sample_nodeid.md",
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
       "line": 27,
-      "column": 19,
-      "node_id": "method:src/fs2/core/repos/graph_store_impl.py:NetworkXGraphStore.save",
-      "category": "method",
-      "path": "src/fs2/core/repos/graph_store_impl.py",
-      "symbol": "NetworkXGraphStore.save",
+      "column": 4,
+      "node_id": "callable:tests/fixtures/samples/python/auth_handler.py:AuthHandler.validate_token",
+      "category": "callable",
+      "path": "tests/fixtures/samples/python/auth_handler.py",
+      "symbol": "AuthHandler.validate_token",
+      "confidence": 1.0
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
+      "line": 28,
+      "column": 4,
+      "node_id": "callable:tests/fixtures/samples/python/auth_handler.py:AuthHandler.has_permission",
+      "category": "callable",
+      "path": "tests/fixtures/samples/python/auth_handler.py",
+      "symbol": "AuthHandler.has_permission",
+      "confidence": 1.0
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
+      "line": 34,
+      "column": 4,
+      "node_id": "callable:tests/fixtures/samples/python/data_parser.py:JSONParser.parse",
+      "category": "callable",
+      "path": "tests/fixtures/samples/python/data_parser.py",
+      "symbol": "JSONParser.parse",
+      "confidence": 1.0
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
+      "line": 35,
+      "column": 4,
+      "node_id": "callable:tests/fixtures/samples/python/data_parser.py:CSVParser.stream",
+      "category": "callable",
+      "path": "tests/fixtures/samples/python/data_parser.py",
+      "symbol": "CSVParser.stream",
+      "confidence": 1.0
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
+      "line": 43,
+      "column": 4,
+      "node_id": "file:tests/fixtures/samples/python/auth_handler.py",
+      "category": "file",
+      "path": "tests/fixtures/samples/python/auth_handler.py",
+      "symbol": null,
+      "confidence": 1.0
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
+      "line": 44,
+      "column": 4,
+      "node_id": "file:tests/fixtures/samples/python/data_parser.py",
+      "category": "file",
+      "path": "tests/fixtures/samples/python/data_parser.py",
+      "symbol": null,
+      "confidence": 1.0
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
+      "line": 52,
+      "column": 30,
+      "node_id": "callable:tests/fixtures/samples/python/auth_handler.py:AuthHandler.validate_token",
+      "category": "callable",
+      "path": "tests/fixtures/samples/python/auth_handler.py",
+      "symbol": "AuthHandler.validate_token",
+      "confidence": 1.0
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
+      "line": 53,
+      "column": 25,
+      "node_id": "callable:tests/fixtures/samples/python/data_parser.py:JSONParser.parse",
+      "category": "callable",
+      "path": "tests/fixtures/samples/python/data_parser.py",
+      "symbol": "JSONParser.parse",
+      "confidence": 1.0
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/markdown/execution-log.md",
+      "line": 54,
+      "column": 29,
+      "node_id": "callable:tests/fixtures/samples/python/auth_handler.py:AuthHandler.has_permission",
+      "category": "callable",
+      "path": "tests/fixtures/samples/python/auth_handler.py",
+      "symbol": "AuthHandler.has_permission",
       "confidence": 1.0
     }
   ]

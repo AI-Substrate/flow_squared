@@ -1,10 +1,10 @@
 {
   "meta": {
     "directory": "/workspaces/flow_squared/tests/fixtures/samples",
-    "files_scanned": 11,
-    "files_with_calls": 6,
-    "total_calls": 212,
-    "total_constructors": 36,
+    "files_scanned": 13,
+    "files_with_calls": 8,
+    "total_calls": 218,
+    "total_constructors": 40,
     "by_language": {
       "c": {
         "files": 1,
@@ -27,9 +27,9 @@
         "constructors": 0
       },
       "typescript": {
-        "files": 1,
-        "calls": 30,
-        "constructors": 9
+        "files": 2,
+        "calls": 33,
+        "constructors": 10
       },
       "tsx": {
         "files": 1,
@@ -42,9 +42,9 @@
         "constructors": 4
       },
       "python": {
-        "files": 2,
-        "calls": 73,
-        "constructors": 17
+        "files": 3,
+        "calls": 76,
+        "constructors": 20
       },
       "ruby": {
         "files": 1,
@@ -1059,6 +1059,42 @@
       ]
     },
     {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/javascript/index.ts",
+      "language": "typescript",
+      "call_count": 3,
+      "constructor_count": 1,
+      "self_call_count": 0,
+      "calls": [
+        {
+          "function": "mergeConfig",
+          "receiver": null,
+          "args_count": 1,
+          "line": 32,
+          "confidence": 0.3,
+          "is_constructor": false,
+          "has_new_keyword": false
+        },
+        {
+          "function": "validateConfig",
+          "receiver": null,
+          "args_count": 1,
+          "line": 39,
+          "confidence": 0.3,
+          "is_constructor": false,
+          "has_new_keyword": false
+        },
+        {
+          "function": "Application",
+          "receiver": null,
+          "args_count": 1,
+          "line": 41,
+          "confidence": 0.8,
+          "is_constructor": true,
+          "has_new_keyword": true
+        }
+      ]
+    },
+    {
       "file": "/workspaces/flow_squared/tests/fixtures/samples/javascript/utils.js",
       "language": "javascript",
       "call_count": 28,
@@ -1316,6 +1352,42 @@
           "confidence": 0.3,
           "is_constructor": false,
           "has_new_keyword": false
+        }
+      ]
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/python/app_service.py",
+      "language": "python",
+      "call_count": 3,
+      "constructor_count": 3,
+      "self_call_count": 0,
+      "calls": [
+        {
+          "function": "AuthHandler",
+          "receiver": null,
+          "args_count": 1,
+          "line": 27,
+          "confidence": 0.5,
+          "is_constructor": true,
+          "is_self_call": false
+        },
+        {
+          "function": "JSONParser",
+          "receiver": null,
+          "args_count": 0,
+          "line": 28,
+          "confidence": 0.5,
+          "is_constructor": true,
+          "is_self_call": false
+        },
+        {
+          "function": "ValueError",
+          "receiver": null,
+          "args_count": 1,
+          "line": 50,
+          "confidence": 0.5,
+          "is_constructor": true,
+          "is_self_call": false
         }
       ]
     },

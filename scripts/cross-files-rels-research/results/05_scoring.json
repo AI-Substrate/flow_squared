@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "fixtures_root": "/workspaces/flow_squared/tests/fixtures/samples",
+    "ground_truth_total": 15,
+    "ground_truth_imports": 4,
+    "extracted_relationships": 4
+  },
+  "metrics": {
+    "file_level": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "confidence": {
+      "rmse": 0.0,
+      "target": 0.15
+    }
+  },
+  "details": {
+    "true_positives": 4,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "true_positive_pairs": [
+      [
+        "python/app_service.py",
+        "python/data_parser.py"
+      ],
+      [
+        "javascript/index.ts",
+        "javascript/component.tsx"
+      ],
+      [
+        "javascript/index.ts",
+        "javascript/app.ts"
+      ],
+      [
+        "python/app_service.py",
+        "python/auth_handler.py"
+      ]
+    ],
+    "false_positive_pairs": [],
+    "false_negative_pairs": []
+  },
+  "validation": {
+    "precision_target": 0.9,
+    "precision_met": true,
+    "rmse_target": 0.15,
+    "rmse_met": true
+  }
+}

@@ -108,6 +108,20 @@ TypeScript is configured with strict mode enabled. Key settings in `tsconfig.jso
 
 ## API Reference
 
+### Python Authentication Module
+
+The project includes a Python authentication module in `auth_handler.py` that provides
+secure token-based authentication. The main class `AuthHandler` handles user authentication
+and session management.
+
+Key features of the `AuthHandler` class:
+- Token-based authentication with configurable expiration
+- Role-based access control via `AuthRole` enum
+- Async methods for `authenticate()` and `validate_token()`
+- Permission checking with `has_permission()` method
+
+See `python/auth_handler.py` for the full implementation.
+
 ### Authentication
 
 The `useAuth` hook provides authentication functionality:

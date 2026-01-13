@@ -1,9 +1,9 @@
 {
   "meta": {
     "directory": "/workspaces/flow_squared/tests/fixtures/samples",
-    "files_scanned": 11,
-    "files_with_imports": 8,
-    "total_imports": 45,
+    "files_scanned": 13,
+    "files_with_imports": 10,
+    "total_imports": 49,
     "by_language": {
       "c": {
         "files": 1,
@@ -22,8 +22,8 @@
         "imports": 6
       },
       "typescript": {
-        "files": 1,
-        "imports": 1
+        "files": 2,
+        "imports": 3
       },
       "tsx": {
         "files": 1,
@@ -34,8 +34,8 @@
         "imports": 0
       },
       "python": {
-        "files": 2,
-        "imports": 13
+        "files": 3,
+        "imports": 15
       },
       "ruby": {
         "files": 1,
@@ -402,10 +402,76 @@
       ]
     },
     {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/javascript/index.ts",
+      "language": "typescript",
+      "import_count": 2,
+      "imports": [
+        {
+          "module": "./app",
+          "names": [
+            "Application",
+            "AppConfig",
+            "AppState",
+            "LogLevel",
+            "mergeConfig",
+            "validateConfig"
+          ],
+          "line": 13,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "./component",
+          "names": [
+            "useTheme",
+            "ThemeProvider",
+            "Button",
+            "useAsync",
+            "useDebounce"
+          ],
+          "line": 23,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        }
+      ]
+    },
+    {
       "file": "/workspaces/flow_squared/tests/fixtures/samples/javascript/utils.js",
       "language": "javascript",
       "import_count": 0,
       "imports": []
+    },
+    {
+      "file": "/workspaces/flow_squared/tests/fixtures/samples/python/app_service.py",
+      "language": "python",
+      "import_count": 2,
+      "imports": [
+        {
+          "module": "auth_handler",
+          "names": [
+            "AuthHandler",
+            "AuthToken",
+            "AuthRole"
+          ],
+          "line": 9,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        },
+        {
+          "module": "data_parser",
+          "names": [
+            "JSONParser",
+            "ParseResult"
+          ],
+          "line": 10,
+          "confidence": 0.9,
+          "is_function_scoped": false,
+          "is_type_only": false
+        }
+      ]
     },
     {
       "file": "/workspaces/flow_squared/tests/fixtures/samples/python/auth_handler.py",
