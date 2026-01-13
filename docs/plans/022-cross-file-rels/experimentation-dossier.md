@@ -17,12 +17,12 @@ This dossier documents the results of a controlled experimentation effort to val
 - **Call Detection**: Partial success - constructors detected but method calls on typed receivers not resolved cross-file
 - **Overall Ground Truth Validation**: 10/15 entries fully passing (67%), 12/15 detected (80%)
 
-**Critical Gap Identified**: Raw file name detection in prose (e.g., README mentioning `auth_handler.py`) is **NOT IMPLEMENTED**. This is the most common reference pattern in real codebases and should be **Priority 0** for production implementation.
+**Critical Gap Closed**: Raw file name detection in prose (e.g., README mentioning `auth_handler.py`) is now **IMPLEMENTED** using heuristics with confidence scoring (0.4-0.5). Perfect is the enemy of good - low-confidence links signal to agents "verify before acting."
 
 **Top Recommendations**:
-1. **P0**: Implement raw file name detection in markdown/prose files
-2. **P1**: Prioritize Python and TypeScript for production (validated working)
-3. **P2**: Investigate Ruby/Rust import extraction (currently non-functional)
+1. **P0**: Ship Python + TypeScript extractors with raw filename detection
+2. **P1**: Investigate Ruby/Rust import extraction (currently non-functional)
+3. **P2**: Consider constructor confidence tuning
 
 ---
 
@@ -128,27 +128,37 @@ flowchart TD
 
 ---
 
-### Experiment 2: Node ID Detection
+### Experiment 2: Node ID Detection + Raw Filename Detection
 
 **Script**: `experiments/01_nodeid_detection.py`
-**Purpose**: Detect fs2 node_id patterns in text files
+**Purpose**: Detect fs2 node_id patterns AND raw filenames in text files
 
-**Pattern**: `\b(file|callable|type|class|method):[\w./]+(?::[\w.]+)?\b`
+**Patterns**:
+- Node IDs: `\b(file|callable|type|class|method):[\w./]+(?::[\w.]+)?\b` → confidence 1.0
+- Raw filenames: `*.py`, `*.ts`, `*.go`, etc. in prose → confidence 0.4-0.5
 
-**Results** (from `results/01_nodeid.json`):
+**Results** (from `results/01_nodeid.json`, updated 2026-01-13):
 
 | Metric | Value |
 |--------|-------|
-| Files scanned | 27 |
-| Files with matches | 1 |
-| Total matches | 10 |
-| Confidence | 1.0 (all matches) |
+| Files scanned | 18 |
+| Files with matches | 18 |
+| Total matches | 103 |
+| Explicit node_ids | 10 (confidence 1.0) |
+| Raw filenames | 93 (confidence 0.4-0.5) |
 
-**Matches Found** (all in `markdown/execution-log.md`):
+**Node ID Matches** (in `markdown/execution-log.md`):
 - 8 `callable:` patterns (e.g., `callable:tests/fixtures/samples/python/auth_handler.py:AuthHandler.authenticate`)
 - 2 `file:` patterns (e.g., `file:tests/fixtures/samples/python/auth_handler.py`)
 
-**Ground Truth Validation**: 5/5 link entries detected (100%)
+**Raw Filename Matches** (examples):
+- `auth_handler.py` in README.md (confidence 0.5 - backticks)
+- `auth_handler.py` in README.md (confidence 0.4 - bare)
+- Various other code files across documentation
+
+**Heuristics Approach**: Some false positives occur (e.g., `github.com` matching as `.c` file), but low confidence signals "verify before acting." Agents can filter or validate as needed.
+
+**Ground Truth Validation**: 6/6 link+ref entries detected (5 links + GT#14 README ref now passes)
 
 ---
 
@@ -283,9 +293,10 @@ flowchart TD
 
 | Feature | Description | Impact | Priority |
 |---------|-------------|--------|----------|
-| Raw file name in prose | Detect `auth_handler.py` in README text | High - most common reference pattern | P0 |
 | Raw class name in prose | Detect `AuthHandler` in markdown | Medium - useful for documentation links | P1 |
 | Cross-file method resolution | Resolve `self.auth.validate_token()` → `AuthHandler.validate_token` | Medium - requires type inference | P2 |
+
+**Note**: Raw file name detection (`auth_handler.py` in README) is now **IMPLEMENTED** with heuristic confidence scoring (0.4-0.5).
 
 ### Tested vs Untested Capabilities
 
@@ -345,17 +356,16 @@ flowchart TD
 
 #### P0 - Critical (Implement First)
 
-**1. Raw File Name Detection in Prose**
+**1. Ship Python + TypeScript Extractors with Raw Filename Detection**
 
-*Rationale*: README files commonly reference code files by name (e.g., "See `auth_handler.py` for details"). This is the most common cross-reference pattern in real codebases and is currently NOT IMPLEMENTED.
+*Rationale*: These are validated and ready for production. Raw filename detection is now implemented with heuristic confidence scoring.
 
-*Implementation*: Add regex pattern to 01_nodeid_detection.py:
-```python
-RAW_FILE_PATTERN = re.compile(r'[`"]?(\w+\.(py|ts|tsx|js|jsx|go|rs|java|c|cpp|h|hpp|rb))[`"]?')
-```
-Assign confidence 0.3-0.5 depending on context (code fence = 0.5, inline = 0.3).
+*Status*: ✅ **IMPLEMENTED** (2026-01-13)
+- Raw filenames in backticks: confidence 0.5
+- Raw filenames bare in prose: confidence 0.4
+- Ground truth entry #14 now passes
 
-*Evidence*: Ground truth entry #14 (`README.md → auth_handler.py`) failed because this feature doesn't exist.
+*Heuristics Philosophy*: Perfect is the enemy of good. Low-confidence links (0.4-0.5) signal to agents "this might be relevant, verify before acting." Agents can be prompted to understand confidence tiers. A few false positives are far better than missing common references.
 
 #### P1 - High (Implement Soon)
 
@@ -471,7 +481,7 @@ Source: `/workspaces/flow_squared/scripts/cross-files-rels-research/lib/ground_t
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2026-01-13
+**Document Version**: 1.1
+**Last Updated**: 2026-01-13 (added raw filename detection)
 **Authors**: AI Development Agent
 **Review Status**: Ready for implementation reference

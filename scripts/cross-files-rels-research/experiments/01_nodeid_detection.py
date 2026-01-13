@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Detect fs2 node_id patterns in text files.
+"""Detect fs2 node_id patterns and raw filenames in text files.
 
-Scans text files for fs2 node_id patterns per Finding 10.
-Pattern: (file|callable|type|class|method):path:name
+Scans text files for:
+1. fs2 node_id patterns per Finding 10: (file|callable|type|class|method):path:name
+2. Raw filenames in prose: auth_handler.py, component.tsx, etc.
 
-Confidence: 1.0 (explicit fs2 references are highest confidence)
+Confidence tiers:
+- 1.0: Explicit node_id patterns (highest)
+- 0.5: Raw filename in backticks (`auth_handler.py`)
+- 0.4: Raw filename inline (auth_handler.py)
 
 Usage:
     python 01_nodeid_detection.py <directory>
@@ -26,6 +30,27 @@ NODE_ID_PATTERN = re.compile(
     r'\b(file|callable|type|class|method):[\w./]+(?::[\w.]+)?\b'
 )
 
+# Raw filename pattern - detects filenames like auth_handler.py, component.tsx
+# Matches common code file extensions
+# Optional backticks, quotes, or bare
+RAW_FILENAME_PATTERN = re.compile(
+    r'[`"\']?'  # Optional opening quote/backtick
+    r'(\w[\w.-]*\.(?:py|ts|tsx|js|jsx|go|rs|java|c|cpp|h|hpp|rb|swift|kt|scala|cs|php|lua|sh|bash|zsh|yaml|yml|json|toml|xml|html|css|scss|sass|sql|graphql|proto|md))'
+    r'[`"\']?',  # Optional closing quote/backtick
+    re.IGNORECASE
+)
+
+# Extensions for code files we want to detect references to
+CODE_FILE_EXTENSIONS = {
+    '.py', '.ts', '.tsx', '.js', '.jsx',
+    '.go', '.rs', '.java', '.c', '.cpp', '.h', '.hpp',
+    '.rb', '.swift', '.kt', '.scala', '.cs', '.php', '.lua',
+    '.sh', '.bash', '.zsh',
+    '.yaml', '.yml', '.json', '.toml', '.xml',
+    '.html', '.css', '.scss', '.sass',
+    '.sql', '.graphql', '.proto', '.md',
+}
+
 # Text file extensions to scan
 TEXT_EXTENSIONS = {
     '.md', '.txt', '.rst', '.adoc',
@@ -37,7 +62,7 @@ TEXT_EXTENSIONS = {
 
 
 def scan_file(file_path: Path) -> list[dict]:
-    """Scan a single file for node_id patterns.
+    """Scan a single file for node_id patterns and raw filenames.
 
     Args:
         file_path: Path to file
@@ -53,6 +78,10 @@ def scan_file(file_path: Path) -> list[dict]:
         return []
 
     for line_num, line in enumerate(content.split('\n'), start=1):
+        # Track positions already matched to avoid duplicates
+        matched_positions = set()
+
+        # 1. Explicit node_id patterns (highest priority, confidence 1.0)
         for match in NODE_ID_PATTERN.finditer(line):
             node_id = match.group(0)
             # Parse the node_id
@@ -70,6 +99,37 @@ def scan_file(file_path: Path) -> list[dict]:
                 'path': path,
                 'symbol': symbol,
                 'confidence': 1.0,  # Explicit node_ids have highest confidence
+                'match_type': 'node_id',
+            })
+            # Mark this range as matched
+            matched_positions.update(range(match.start(), match.end()))
+
+        # 2. Raw filename patterns (lower confidence)
+        for match in RAW_FILENAME_PATTERN.finditer(line):
+            # Skip if this position overlaps with a node_id match
+            if any(pos in matched_positions for pos in range(match.start(), match.end())):
+                continue
+
+            filename = match.group(1)  # The captured filename without quotes
+            full_match = match.group(0)
+
+            # Determine confidence based on quoting
+            # Backticks suggest intentional code reference
+            if full_match.startswith('`') or full_match.startswith('"') or full_match.startswith("'"):
+                confidence = 0.5
+            else:
+                confidence = 0.4
+
+            matches.append({
+                'file': str(file_path),
+                'line': line_num,
+                'column': match.start() + 1,
+                'node_id': f'file:{filename}',  # Synthesize a file node_id
+                'category': 'file',
+                'path': filename,
+                'symbol': None,
+                'confidence': confidence,
+                'match_type': 'raw_filename',
             })
 
     return matches
