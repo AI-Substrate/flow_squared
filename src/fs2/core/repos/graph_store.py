@@ -13,9 +13,12 @@ Per Critical Finding 01: Implementations receive ConfigurationService.
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fs2.core.models.code_node import CodeNode
+
+if TYPE_CHECKING:
+    from fs2.core.models.code_edge import CodeEdge
 
 
 class GraphStore(ABC):
@@ -176,5 +179,63 @@ class GraphStore(ABC):
 
         Raises:
             GraphStoreError: If no graph has been loaded yet.
+        """
+        ...
+
+    # =========================================================================
+    # Cross-File Relationship Methods (Phase 1 T007)
+    # =========================================================================
+
+    @abstractmethod
+    def add_relationship_edge(self, edge: "CodeEdge") -> None:
+        """Add a relationship edge between two nodes.
+
+        Creates a directed edge from source_node_id to target_node_id with
+        the specified relationship type, confidence, and optional metadata.
+
+        Edge direction: source → target (X imports Y = edge X→Y).
+
+        Args:
+            edge: CodeEdge containing source_node_id, target_node_id,
+                  edge_type, confidence, source_line, and resolution_rule.
+
+        Note:
+            Unlike add_edge() for parent-child relationships, this method
+            stores edge attributes (edge_type, confidence, source_line).
+            Edges are discriminated by is_relationship=True attribute.
+        """
+        ...
+
+    @abstractmethod
+    def get_relationships(
+        self,
+        node_id: str,
+        direction: str = "both",
+    ) -> list[dict]:
+        """Get relationship edges for a node.
+
+        Returns edges connected to the given node in the specified direction.
+        Each result includes the related node_id, edge_type, confidence,
+        and source_line (for documentation discovery navigation).
+
+        Args:
+            node_id: The node to query relationships for.
+            direction: Which edges to return:
+                - "outgoing": Edges FROM this node (what it depends on)
+                - "incoming": Edges TO this node (what depends on it)
+                - "both": All edges (default)
+
+        Returns:
+            List of dicts with keys:
+            - node_id: The related node's ID
+            - edge_type: Relationship type (imports, calls, references, documents)
+            - confidence: Certainty score (0.0-1.0)
+            - source_line: Line number in source file (or None)
+
+            Returns empty list if node has no relationships or doesn't exist.
+
+        Example:
+            >>> rels = store.get_relationships("file:src/app.py", "outgoing")
+            >>> # Returns: [{"node_id": "file:src/auth.py", "edge_type": "imports", "confidence": 0.9, "source_line": 5}]
         """
         ...

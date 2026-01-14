@@ -24,6 +24,7 @@ from fs2.core.repos.graph_store import GraphStore
 
 if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
+    from fs2.core.models.code_edge import CodeEdge
 
 
 class FakeGraphStore(GraphStore):
@@ -289,3 +290,99 @@ class FakeGraphStore(GraphStore):
                 "Graph metadata not loaded. Call load() or set_metadata() first."
             )
         return self._metadata
+
+    # =========================================================================
+    # Cross-File Relationship Methods (Phase 1 T011)
+    # =========================================================================
+
+    def add_relationship_edge(self, edge: "CodeEdge") -> None:
+        """Add a relationship edge to the in-memory graph.
+
+        Stores relationship edges with attributes for testing.
+
+        Args:
+            edge: CodeEdge containing source_node_id, target_node_id,
+                  edge_type, confidence, source_line, and resolution_rule.
+        """
+        self._call_history.append(
+            {
+                "method": "add_relationship_edge",
+                "args": (edge,),
+                "kwargs": {},
+            }
+        )
+
+        if "add_relationship_edge" in self.simulate_error_for:
+            raise GraphStoreError("Simulated add_relationship_edge error")
+
+        # Store using (source, target) tuple as key
+        key = (edge.source_node_id, edge.target_node_id)
+        if not hasattr(self, "_relationship_edges"):
+            self._relationship_edges: dict[tuple[str, str], dict] = {}
+
+        self._relationship_edges[key] = {
+            "edge_type": str(edge.edge_type),
+            "confidence": edge.confidence,
+            "source_line": edge.source_line,
+            "resolution_rule": edge.resolution_rule,
+        }
+
+    def get_relationships(
+        self,
+        node_id: str,
+        direction: str = "both",
+    ) -> list[dict]:
+        """Get relationship edges for a node.
+
+        Returns edges connected to the given node in the specified direction.
+
+        Args:
+            node_id: The node to query relationships for.
+            direction: Which edges to return (outgoing, incoming, both).
+
+        Returns:
+            List of dicts with keys: node_id, edge_type, confidence, source_line.
+        """
+        self._call_history.append(
+            {
+                "method": "get_relationships",
+                "args": (node_id, direction),
+                "kwargs": {},
+            }
+        )
+
+        if "get_relationships" in self.simulate_error_for:
+            raise GraphStoreError("Simulated get_relationships error")
+
+        results: list[dict] = []
+
+        if not hasattr(self, "_relationship_edges"):
+            return results
+
+        # Outgoing edges
+        if direction in ("outgoing", "both"):
+            for (source, target), attrs in self._relationship_edges.items():
+                if source == node_id:
+                    results.append(
+                        {
+                            "node_id": target,
+                            "edge_type": attrs["edge_type"],
+                            "confidence": attrs["confidence"],
+                            "source_line": attrs["source_line"],
+                        }
+                    )
+
+        # Incoming edges
+        if direction in ("incoming", "both"):
+            for (source, target), attrs in self._relationship_edges.items():
+                if target == node_id:
+                    results.append(
+                        {
+                            "node_id": source,
+                            "edge_type": attrs["edge_type"],
+                            "confidence": attrs["confidence"],
+                            "source_line": attrs["source_line"],
+                        }
+                    )
+
+        return results

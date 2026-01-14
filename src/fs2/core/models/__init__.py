@@ -12,10 +12,14 @@ Public API:
 - DocMetadata: Document metadata for catalog listings
 - Doc: Complete document with metadata and content
 - ExtensionSummary: File/node counts by extension for graph utilities
+- EdgeType: Cross-file relationship type enum (Phase 1 T014)
+- CodeEdge: Cross-file relationship edge model (Phase 1 T014)
 """
 
+from fs2.core.models.code_edge import CodeEdge
 from fs2.core.models.code_node import CodeNode, classify_node
 from fs2.core.models.doc import Doc, DocMetadata
+from fs2.core.models.edge_type import EdgeType
 from fs2.core.models.extension_summary import ExtensionSummary
 from fs2.core.models.log_entry import LogEntry
 from fs2.core.models.log_level import LogLevel
@@ -36,4 +40,6 @@ __all__ = [
     "DocMetadata",
     "Doc",
     "ExtensionSummary",
+    "EdgeType",
+    "CodeEdge",
 ]

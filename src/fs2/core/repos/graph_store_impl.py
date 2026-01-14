@@ -29,6 +29,7 @@ from fs2.core.repos.graph_store import GraphStore
 
 if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
+    from fs2.core.models.code_edge import CodeEdge
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ FORMAT_VERSION = "1.0"
 
 # Whitelist of allowed classes for unpickling
 # Only CodeNode, networkx types, and stdlib types allowed
+# Per Phase 1 T005: Added edge_type and code_edge for cross-file relationships
 ALLOWED_MODULES = frozenset(
     {
         "builtins",
@@ -48,6 +50,8 @@ ALLOWED_MODULES = frozenset(
         "networkx.classes.reportviews",
         "fs2.core.models.code_node",
         "fs2.core.models.content_type",
+        "fs2.core.models.edge_type",
+        "fs2.core.models.code_edge",
     }
 )
 
@@ -390,3 +394,82 @@ class NetworkXGraphStore(GraphStore):
                 "Call load() first to load a graph from disk."
             )
         return self._metadata
+
+    # =========================================================================
+    # Cross-File Relationship Methods (Phase 1 T008/T010)
+    # =========================================================================
+
+    def add_relationship_edge(self, edge: "CodeEdge") -> None:
+        """Add a relationship edge between two nodes.
+
+        Creates a directed edge from source_node_id to target_node_id with
+        the specified relationship type, confidence, and optional metadata.
+
+        Uses NetworkX edge attributes to store relationship data.
+        Discriminates from parent-child edges via is_relationship=True.
+
+        Args:
+            edge: CodeEdge containing source_node_id, target_node_id,
+                  edge_type, confidence, source_line, and resolution_rule.
+        """
+        self._graph.add_edge(
+            edge.source_node_id,
+            edge.target_node_id,
+            is_relationship=True,
+            edge_type=str(edge.edge_type),
+            confidence=edge.confidence,
+            source_line=edge.source_line,
+            resolution_rule=edge.resolution_rule,
+        )
+
+    def get_relationships(
+        self,
+        node_id: str,
+        direction: str = "both",
+    ) -> list[dict]:
+        """Get relationship edges for a node.
+
+        Returns edges connected to the given node in the specified direction.
+        Each result includes the related node_id, edge_type, confidence,
+        and source_line (for documentation discovery navigation).
+
+        Args:
+            node_id: The node to query relationships for.
+            direction: Which edges to return (outgoing, incoming, both).
+
+        Returns:
+            List of dicts with keys: node_id, edge_type, confidence, source_line.
+            Returns empty list if node has no relationships or doesn't exist.
+        """
+        results: list[dict] = []
+
+        if node_id not in self._graph:
+            return results
+
+        # Outgoing edges: this node → other nodes
+        if direction in ("outgoing", "both"):
+            for _, target, attrs in self._graph.out_edges(node_id, data=True):
+                if attrs.get("is_relationship"):
+                    results.append(
+                        {
+                            "node_id": target,
+                            "edge_type": attrs.get("edge_type"),
+                            "confidence": attrs.get("confidence"),
+                            "source_line": attrs.get("source_line"),
+                        }
+                    )
+
+        # Incoming edges: other nodes → this node
+        if direction in ("incoming", "both"):
+            for source, _, attrs in self._graph.in_edges(node_id, data=True):
+                if attrs.get("is_relationship"):
+                    results.append(
+                        {
+                            "node_id": source,
+                            "edge_type": attrs.get("edge_type"),
+                            "confidence": attrs.get("confidence"),
+                            "source_line": attrs.get("source_line"),
+                        }
+                    )
+
+        return results

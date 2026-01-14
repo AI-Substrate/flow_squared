@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from fs2.config.objects import ScanConfig
     from fs2.core.adapters.ast_parser import ASTParser
     from fs2.core.adapters.file_scanner import FileScanner
+    from fs2.core.models.code_edge import CodeEdge
     from fs2.core.models.code_node import CodeNode
     from fs2.core.models.scan_result import ScanResult
     from fs2.core.repos.graph_store import GraphStore
@@ -110,3 +111,9 @@ class PipelineContext:
     # Called after parsing completes with files_scanned, nodes_created, skip_summary.
     # Allows CLI to display summary before smart content stage starts.
     parsing_complete_callback: Callable[..., None] | None = None
+
+    # Cross-file relationship edges detected by RelationshipExtractionStage (Phase 1 T013).
+    # Populated by relationship extraction stage, consumed by storage stage.
+    # None on first scan (stage not yet run), list[CodeEdge] after extraction.
+    # Per spec: Always-on relationship extraction, no CLI flag needed.
+    relationships: "list[CodeEdge] | None" = None

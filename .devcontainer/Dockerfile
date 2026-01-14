@@ -1,5 +1,5 @@
-# Base image: Python 3.12 on Debian Bullseye
-FROM mcr.microsoft.com/devcontainers/python:2-3.12-bullseye
+# Base image: Python 3.12 on Debian Bookworm (glibc 2.36 for modern neovim)
+FROM mcr.microsoft.com/devcontainers/python:2-3.12-bookworm
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -18,6 +18,22 @@ RUN apt-get update && apt-get upgrade -y \
         openssh-client \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Neovim from source (latest stable - ARM64 binaries need newer glibc than Bookworm)
+RUN apt-get update && \
+    apt-get install -y ninja-build gettext cmake unzip build-essential && \
+    cd /tmp && \
+    NVIM_VERSION=$(curl -sL https://api.github.com/repos/neovim/neovim/releases/latest | grep -oP '"tag_name": "\K[^"]+') && \
+    curl -LO "https://github.com/neovim/neovim/archive/refs/tags/${NVIM_VERSION}.tar.gz" && \
+    tar -xzf ${NVIM_VERSION}.tar.gz && \
+    cd neovim-${NVIM_VERSION#v} && \
+    make CMAKE_BUILD_TYPE=Release && \
+    make install && \
+    cd / && rm -rf /tmp/neovim-* /tmp/*.tar.gz && \
+    apt-get remove -y ninja-build gettext cmake unzip build-essential && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Configure SSH server for remote access on port 2225
 RUN mkdir -p /var/run/sshd && \
