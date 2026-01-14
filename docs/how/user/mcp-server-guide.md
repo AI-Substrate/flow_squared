@@ -193,6 +193,51 @@ args = ["mcp"]
 
 <!-- T008-T010 content goes here -->
 
+### list_graphs
+
+List all available graphs (default + configured external graphs).
+
+**When to Use**: Discover what graphs are available before querying. Returns the default local project graph and any configured external graphs from `other_graphs` in config.
+
+**Parameters**: None
+
+**Returns**: Dict with `docs` (list of graph metadata) and `count`:
+```json
+{
+  "docs": [
+    {
+      "name": "default",
+      "path": "/project/.fs2/graph.pickle",
+      "available": true
+    },
+    {
+      "name": "shared-lib",
+      "path": "/home/user/projects/shared/.fs2/graph.pickle",
+      "description": "Shared utility library",
+      "source_url": "https://github.com/org/shared",
+      "available": true
+    }
+  ],
+  "count": 2
+}
+```
+
+**Example**:
+```python
+# See all available graphs
+list_graphs()
+
+# Check if external graph is available
+result = list_graphs()
+for graph in result["docs"]:
+    if graph["name"] == "shared-lib":
+        print(f"Available: {graph['available']}")
+```
+
+See [Multi-Graph Configuration Guide](multi-graphs.md) for setup instructions.
+
+---
+
 ### tree
 
 Explore codebase structure as a hierarchical tree.
@@ -206,6 +251,7 @@ Explore codebase structure as a hierarchical tree.
 | `max_depth` | int | `0` | Depth limit: `0` = unlimited, `1` = root only, `2` = roots + children |
 | `detail` | string | `"min"` | `"min"` for compact, `"max"` for full metadata |
 | `save_to_file` | string | `null` | Optional path to save tree as JSON |
+| `graph_name` | string | `null` | Named graph from config (see `list_graphs()`). Default uses local graph. |
 
 **Returns**: List of tree nodes, each containing:
 - `node_id`: Unique identifier (use with `get_node` for full source)
@@ -250,6 +296,7 @@ Retrieve complete source code and metadata for a specific code element.
 | `node_id` | string | required | Unique identifier from `tree` or `search` results |
 | `save_to_file` | string | `null` | Optional path to save node as JSON |
 | `detail` | string | `"min"` | `"min"` for 7 core fields, `"max"` for full metadata |
+| `graph_name` | string | `null` | Named graph from config (see `list_graphs()`). Default uses local graph. |
 
 **Returns**: CodeNode dict or `null` if not found:
 - `node_id`, `name`, `category`, `content`, `signature`, `start_line`, `end_line`
@@ -288,6 +335,7 @@ Search codebase for matching code elements by text, regex, or semantic meaning.
 | `exclude` | list | `null` | Regex patterns to exclude (e.g., `["test.*"]`) |
 | `detail` | string | `"min"` | `"min"` for 9 fields, `"max"` for 13 fields |
 | `save_to_file` | string | `null` | Optional path to save results as JSON |
+| `graph_name` | string | `null` | Named graph from config (see `list_graphs()`). Default uses local graph. |
 
 **Search Modes**:
 | Mode | Use When | Example |

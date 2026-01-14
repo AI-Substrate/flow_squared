@@ -27,6 +27,19 @@ Override graph file path (default: `.fs2/graph.pickle`).
 fs2 --graph-file /custom/graph.pickle tree
 ```
 
+### `--graph-name NAME`
+Use a named graph from `other_graphs` config instead of the default graph.
+
+```bash
+# Query an external library configured in other_graphs
+fs2 --graph-name shared-lib tree
+fs2 --graph-name shared-lib search "config"
+```
+
+**Note**: `--graph-name` and `--graph-file` are mutually exclusive.
+
+See [Multi-Graph Configuration Guide](multi-graphs.md) for setup instructions.
+
 ### `--version` / `-V`
 Show version and exit.
 

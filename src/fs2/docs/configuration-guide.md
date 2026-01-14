@@ -13,8 +13,9 @@ This document is a comprehensive reference for all fs2 configuration options. Re
 7. [Scan Configuration](#scan-configuration)
 8. [Smart Content Configuration](#smart-content-configuration)
 9. [Search Configuration](#search-configuration)
-10. [Complete Examples](#complete-examples)
-11. [Troubleshooting](#troubleshooting)
+10. [Multi-Graph Configuration](#multi-graph-configuration)
+11. [Complete Examples](#complete-examples)
+12. [Troubleshooting](#troubleshooting)
 
 **Deep Dives**: LLM Service Usage, Embeddings Architecture, Content-Type Chunking, Error Handling
 
@@ -536,6 +537,49 @@ search:
   # Timeout for regex operations (seconds)
   regex_timeout: 2.0
 ```
+
+---
+
+## Multi-Graph Configuration
+
+The `other_graphs` section lets you query external codebases alongside your local project.
+
+```yaml
+other_graphs:
+  graphs:
+    - name: shared-lib
+      path: ~/projects/shared/.fs2/graph.pickle
+      description: Shared utility library
+      source_url: https://github.com/org/shared
+
+    - name: vendor-sdk
+      path: .fs2/graphs/vendor-sdk.pickle
+      description: Vendor SDK (scanned locally)
+```
+
+### Field Reference
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for CLI (`--graph-name`) and MCP (`graph_name`). Cannot be "default". |
+| `path` | Yes | Path to graph file. Supports absolute, tilde (~), or relative paths. |
+| `description` | No | Human-readable description shown in `list_graphs()` |
+| `source_url` | No | URL to source repository (informational) |
+
+### Prerequisites
+
+Before adding an external graph, you must first scan that repository:
+
+```bash
+# Option A: Initialize fs2 in the external repo
+cd /path/to/shared-library
+fs2 init && fs2 scan
+
+# Option B: Scan from your project
+fs2 scan --scan-path /path/to/shared-library --graph-file .fs2/graphs/shared-lib.pickle
+```
+
+For comprehensive documentation including CLI and MCP usage examples, see the [Multi-Graph Configuration Guide](multi-graphs.md).
 
 ---
 
