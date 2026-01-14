@@ -56,6 +56,11 @@ from fs2.core.adapters.exceptions import (
     GraphNotFoundError,
     GraphStoreError,
 )
+from fs2.core.services.graph_service import (
+    GraphFileNotFoundError,
+    GraphServiceError,
+    UnknownGraphError,
+)
 from fs2.core.models.code_node import CodeNode
 from fs2.core.models.tree_node import TreeNode
 from fs2.core.services.get_node_service import GetNodeService
@@ -64,6 +69,7 @@ from fs2.mcp.dependencies import (
     get_config,
     get_docs_service,
     get_embedding_adapter,
+    get_graph_service,
     get_graph_store,
 )
 
@@ -135,6 +141,42 @@ def translate_error(exc: Exception) -> dict[str, Any]:
         "message": message,
         "action": action,
     }
+
+
+def translate_graph_error(exc: GraphServiceError) -> ToolError:
+    """Translate GraphService exceptions to agent-friendly ToolErrors.
+
+    Per DYK-02: GraphService raises UnknownGraphError and GraphFileNotFoundError
+    which need consistent translation to ToolError with helpful messages.
+
+    Args:
+        exc: GraphServiceError from GraphService operations.
+
+    Returns:
+        ToolError with clear message and guidance.
+
+    Example:
+        >>> try:
+        ...     store = graph_service.get_graph("typo")
+        ... except GraphServiceError as e:
+        ...     raise translate_graph_error(e)
+    """
+    if isinstance(exc, UnknownGraphError):
+        # Include available graph names for user guidance
+        available_str = ", ".join(sorted(exc.available)) if exc.available else "none"
+        return ToolError(
+            f"Unknown graph '{exc.name}'. Available graphs: {available_str}. "
+            "Use list_graphs() to see all configured graphs."
+        )
+
+    if isinstance(exc, GraphFileNotFoundError):
+        return ToolError(
+            f"Graph file for '{exc.name}' not found at: {exc.path}. "
+            "Run 'fs2 scan' in the target project to create it."
+        )
+
+    # Generic fallback for any other GraphServiceError
+    return ToolError(f"Graph service error: {exc}")
 
 
 # =============================================================================
@@ -288,6 +330,7 @@ def tree(
     detail: Literal["min", "max"] = "min",
     format: Literal["text", "json"] = "text",
     save_to_file: str | None = None,
+    graph_name: str | None = None,
 ) -> dict[str, Any]:
     """Explore codebase structure as a hierarchical tree.
 
@@ -334,6 +377,11 @@ def tree(
             exploration, "json" only when you need exact node_ids for get_node().
         save_to_file: Optional file path to save tree as JSON.
             Path must be under current working directory.
+        graph_name: Name of the graph to query.
+            - None (default): Uses the default local project graph
+            - "default": Explicitly selects the default graph
+            - Other names: Selects configured external graphs (see list_graphs())
+            Use list_graphs() to discover available graphs.
 
     Returns:
         Dict with format-specific content:
@@ -353,7 +401,7 @@ def tree(
     """
     try:
         config = get_config()
-        store = get_graph_store()
+        store = get_graph_store(graph_name)
         service = TreeService(config=config, graph_store=store)
         tree_nodes = service.build_tree(pattern=pattern, max_depth=max_depth)
         tree_list = [_tree_node_to_dict(tn, detail) for tn in tree_nodes]
@@ -402,6 +450,9 @@ def tree(
             text_output = _render_tree_as_text(tree_list)
             return {"format": "text", "content": text_output, "count": node_count}
 
+    except GraphServiceError as e:
+        # Per DYK-02: GraphService errors (UnknownGraphError, GraphFileNotFoundError)
+        raise translate_graph_error(e) from None
     except GraphNotFoundError:
         raise ToolError(
             "Graph not found. Run 'fs2 scan' to create the graph."
@@ -518,6 +569,7 @@ def get_node(
     node_id: str,
     save_to_file: str | None = None,
     detail: Literal["min", "max"] = "min",
+    graph_name: str | None = None,
 ) -> dict[str, Any] | None:
     """Retrieve complete code node by ID.
 
@@ -532,6 +584,11 @@ def get_node(
         detail: Output verbosity level.
             - "min" = 7 core fields (default)
             - "max" = adds smart_content, language, parent_node_id, etc.
+        graph_name: Name of the graph to query.
+            - None (default): Uses the default local project graph
+            - "default": Explicitly selects the default graph
+            - Other names: Selects configured external graphs (see list_graphs())
+            Use list_graphs() to discover available graphs.
 
     Returns:
         CodeNode dict if found, None if node_id doesn't exist.
@@ -542,7 +599,7 @@ def get_node(
     """
     try:
         config = get_config()
-        store = get_graph_store()
+        store = get_graph_store(graph_name)
         service = GetNodeService(config=config, graph_store=store)
         code_node = service.get_node(node_id)
 
@@ -569,6 +626,9 @@ def get_node(
 
         return result
 
+    except GraphServiceError as e:
+        # Per DYK-02: GraphService errors (UnknownGraphError, GraphFileNotFoundError)
+        raise translate_graph_error(e) from None
     except GraphNotFoundError:
         raise ToolError(
             "Graph not found. Run 'fs2 scan' to create the graph."
@@ -677,6 +737,7 @@ async def search(
     exclude: list[str] | None = None,
     detail: Literal["min", "max"] = "min",
     save_to_file: str | None = None,
+    graph_name: str | None = None,
 ) -> dict[str, Any]:
     """Search codebase for matching code elements.
 
@@ -711,6 +772,11 @@ async def search(
         save_to_file: Optional file path to save results as JSON.
             Path must be under current working directory (security constraint).
             When specified, response includes 'saved_to' field with absolute path.
+        graph_name: Name of the graph to query.
+            - None (default): Uses the default local project graph
+            - "default": Explicitly selects the default graph
+            - Other names: Selects configured external graphs (see list_graphs())
+            Use list_graphs() to discover available graphs.
 
     Returns:
         Envelope with meta and results:
@@ -786,15 +852,10 @@ async def search(
             raise ToolError(str(e)) from None
 
         # Get dependencies
+        # Per Phase 3: get_graph_store(graph_name) delegates to GraphService which
+        # handles loading and staleness detection. No manual load() needed.
         config = get_config()
-        store = get_graph_store()
-
-        # Ensure graph is loaded (SearchService doesn't have _ensure_loaded like TreeService)
-        graph_config = config.require(GraphConfig)
-        graph_path = Path(graph_config.graph_path)
-        if not graph_path.exists():
-            raise GraphNotFoundError(graph_path)
-        store.load(graph_path)
+        store = get_graph_store(graph_name)
 
         # Create embedding adapter from config (or use injected one for testing)
         from fs2.core.adapters.embedding_adapter import (
@@ -882,6 +943,10 @@ async def search(
         raise ToolError(
             "No configuration found. Run 'fs2 init' to create .fs2/config.yaml"
         ) from None
+
+    except GraphServiceError as e:
+        # Per DYK-02: GraphService errors (UnknownGraphError, GraphFileNotFoundError)
+        raise translate_graph_error(e) from None
 
     except GraphNotFoundError:
         raise ToolError(
@@ -1048,3 +1113,76 @@ _docs_get_tool = mcp.tool(
         "openWorldHint": False,  # No external network calls, docs bundled in package
     }
 )(docs_get)
+
+
+# =============================================================================
+# MCP Tools (Phase 3 Multi-Graph: list_graphs)
+# =============================================================================
+
+
+def list_graphs() -> dict[str, Any]:
+    """List all available graphs with metadata.
+
+    WHEN TO USE: Discover what graphs are available before querying.
+    Returns the default local project graph and any configured external graphs.
+
+    PREREQUISITES: None - returns configured graphs from .fs2/config.yaml.
+
+    WORKFLOW:
+    1. Use list_graphs() to see available graphs
+    2. Use tree(graph_name="...") to explore a specific graph
+    3. Use get_node(node_id="...", graph_name="...") for source code
+
+    Returns:
+        Dict with:
+        - docs: List of graph metadata (name, path, description, source_url, available)
+        - count: Number of graphs returned
+
+    Example:
+        >>> list_graphs()
+        {
+            "docs": [
+                {"name": "default", "path": "/path/to/graph.pickle", "available": true},
+                {"name": "shared-lib", "path": "/path/to/lib/graph.pickle", "available": true}
+            ],
+            "count": 2
+        }
+    """
+    import dataclasses
+
+    try:
+        service = get_graph_service()
+        graph_infos = service.list_graphs()
+
+        # Convert GraphInfo to dicts
+        # GraphInfo is a dataclass with: name, path, description, source_url, available
+        docs_list = []
+        for info in graph_infos:
+            info_dict = dataclasses.asdict(info)
+            # Convert Path to string for JSON serialization
+            info_dict["path"] = str(info_dict["path"])
+            docs_list.append(info_dict)
+
+        return {
+            "docs": docs_list,
+            "count": len(docs_list),
+        }
+
+    except GraphServiceError as e:
+        raise translate_graph_error(e) from None
+    except Exception as e:
+        logger.exception("Unexpected error in list_graphs tool")
+        raise ToolError(f"Unexpected error: {e}") from None
+
+
+# Register list_graphs function as MCP tool with annotations
+# Per Phase 3 Critical Finding 08: read-only, idempotent, no external calls
+_list_graphs_tool = mcp.tool(
+    annotations={
+        "title": "List Available Graphs",
+        "readOnlyHint": True,  # No side effects, pure read
+        "destructiveHint": False,  # No destructive operations
+        "idempotentHint": True,  # Same inputs always return same outputs
+        "openWorldHint": False,  # No external network calls
+    }
+)(list_graphs)

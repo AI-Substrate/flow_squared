@@ -482,7 +482,19 @@ class EmbeddingService:
             return False
 
         # Check smart_content embedding (if smart_content exists)
-        # Has smart_content text - must also have smart_content_embedding
+        # Per fix 2026-01-14: Placeholder smart_content (e.g., "[Empty content...")
+        # is intentionally not embedded in process_batch(). Don't require embedding
+        # for placeholders, otherwise they get re-processed forever.
+        is_placeholder = (
+            node.smart_content is not None
+            and node.smart_content.startswith("[Empty content")
+        )
+
+        if is_placeholder:
+            # Placeholder content is intentionally not embedded - skip is OK
+            return True
+
+        # Has real smart_content - must also have smart_content_embedding
         # All required embeddings present and fresh
         return not (
             node.smart_content is not None

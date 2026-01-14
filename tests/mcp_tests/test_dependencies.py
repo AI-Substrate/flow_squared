@@ -113,6 +113,68 @@ class TestLazyInitialization:
         assert dependencies._config is None
         assert dependencies._graph_store is None
 
+    # =========================================================================
+    # Phase 3: GraphService singleton tests (T001)
+    # =========================================================================
+
+    def test_graph_service_none_before_first_access(self):
+        """GraphService singleton is None before first access.
+
+        Per Phase 3 T001: Validates lazy initialization.
+        """
+        from fs2.mcp import dependencies
+
+        dependencies.reset_services()
+
+        assert dependencies._graph_service is None
+
+    def test_graph_service_created_on_first_access(self):
+        """GraphService is created when get_graph_service() is called.
+
+        Per Phase 3 T001: Service should be a real GraphService instance.
+        """
+        from fs2.core.services.graph_service import GraphService
+        from fs2.mcp import dependencies
+
+        dependencies.reset_services()
+
+        service = dependencies.get_graph_service()
+
+        assert isinstance(service, GraphService)
+
+    def test_graph_service_cached_after_first_access(self):
+        """GraphService is cached (singleton pattern).
+
+        Per Phase 3 T001: Same instance returned on subsequent calls.
+        """
+        from fs2.mcp import dependencies
+
+        dependencies.reset_services()
+
+        service1 = dependencies.get_graph_service()
+        service2 = dependencies.get_graph_service()
+
+        assert service1 is service2, "GraphService should be cached singleton"
+
+    def test_reset_services_clears_graph_service(self):
+        """reset_services() clears GraphService singleton.
+
+        Per Phase 3 T001: reset_services must clear _graph_service.
+        """
+        from fs2.mcp import dependencies
+
+        dependencies.reset_services()
+
+        # Create service
+        dependencies.get_graph_service()
+        assert dependencies._graph_service is not None
+
+        # Reset
+        dependencies.reset_services()
+
+        # Should be None again
+        assert dependencies._graph_service is None
+
 
 class TestDependencyInjection:
     """Test that fakes can be injected for testing."""
@@ -153,6 +215,64 @@ class TestDependencyInjection:
 
         assert config is fake_config
         assert store is fake_graph_store
+
+    # =========================================================================
+    # Phase 3: GraphService injection tests (T001)
+    # =========================================================================
+
+    def test_set_graph_service_allows_fake_injection(self, fake_graph_service_fixture):
+        """Fakes can be injected via set_graph_service() for testing.
+
+        Per Phase 3 T001 / DYK-01: FakeGraphService injection pattern.
+        """
+        from fs2.mcp import dependencies
+
+        dependencies.reset_services()
+        dependencies.set_graph_service(fake_graph_service_fixture)
+
+        service = dependencies.get_graph_service()
+
+        assert service is fake_graph_service_fixture
+
+    def test_get_graph_store_delegates_to_graph_service(
+        self, fake_graph_service_fixture, multi_graph_stores
+    ):
+        """get_graph_store(name) delegates to GraphService.get_graph().
+
+        Per Phase 3 T007 / DYK-03: Full delegation for staleness detection.
+        """
+        from fs2.mcp import dependencies
+
+        stores, config = multi_graph_stores
+
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_service(fake_graph_service_fixture)
+
+        # Get named graph should delegate to service
+        store = dependencies.get_graph_store("default")
+
+        assert store is stores["default"]
+
+    def test_get_graph_store_external_graph(
+        self, fake_graph_service_fixture, multi_graph_stores
+    ):
+        """get_graph_store('external-lib') returns external graph.
+
+        Per Phase 3 T007: Named graph support via delegation.
+        """
+        from fs2.mcp import dependencies
+
+        stores, config = multi_graph_stores
+
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_service(fake_graph_service_fixture)
+
+        # Get external graph
+        store = dependencies.get_graph_store("external-lib")
+
+        assert store is stores["external-lib"]
 
 
 class TestServiceLogging:

@@ -39,11 +39,13 @@ if TYPE_CHECKING:
     from fs2.core.adapters.embedding_adapter import EmbeddingAdapter
     from fs2.core.repos.graph_store import GraphStore
     from fs2.core.services.docs_service import DocsService
+    from fs2.core.services.graph_service import GraphService
 
 
 # Module-level singletons (None until first access)
 _config: ConfigurationService | None = None
 _graph_store: GraphStore | None = None
+_graph_service: "GraphService | None" = None
 _embedding_adapter: EmbeddingAdapter | None = None
 _docs_service: DocsService | None = None
 _lock = (
@@ -80,29 +82,35 @@ def set_config(config: ConfigurationService) -> None:
     _config = config
 
 
-def get_graph_store() -> GraphStore:
-    """Get the GraphStore singleton.
+def get_graph_store(graph_name: str | None = None) -> GraphStore:
+    """Get a GraphStore for the specified graph.
 
-    Creates the store on first access using NetworkXGraphStore
-    with ConfigurationService injection.
-    Returns cached instance on subsequent calls.
+    Per DYK-03: ALWAYS delegates to GraphService for multi-graph support
+    and proper staleness detection. The _graph_store singleton is only
+    used when explicitly set via set_graph_store() for backward compatibility
+    with existing tests.
 
-    Per Critical Discovery 03: GraphStore requires ConfigurationService
-    injection, not extracted config objects.
+    Args:
+        graph_name: Graph name ("default", configured name, or None for default).
+            None or "default" returns the local project graph.
 
     Returns:
-        GraphStore instance (real or injected fake).
+        GraphStore instance for the specified graph.
+
+    Raises:
+        UnknownGraphError: If graph_name is not recognized.
+        GraphFileNotFoundError: If graph file doesn't exist.
     """
     global _graph_store
     with _lock:
-        if _graph_store is None:
-            from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        # Backward compat: If _graph_store was explicitly set via set_graph_store(),
+        # return it for graph_name=None. This preserves existing test behavior.
+        if _graph_store is not None and graph_name is None:
+            return _graph_store
 
-            logger.debug(
-                "Creating GraphStore singleton with ConfigurationService injection"
-            )
-            _graph_store = NetworkXGraphStore(get_config())
-    return _graph_store
+        # Per DYK-03: Full delegation to GraphService for staleness detection
+        service = get_graph_service()
+        return service.get_graph(graph_name or "default")
 
 
 def set_graph_store(store: GraphStore) -> None:
@@ -113,6 +121,42 @@ def set_graph_store(store: GraphStore) -> None:
     """
     global _graph_store
     _graph_store = store
+
+
+def get_graph_service() -> "GraphService":
+    """Get the GraphService singleton for multi-graph management.
+
+    Creates the service on first access using ConfigurationService.
+    Returns cached instance on subsequent calls.
+
+    Per DYK-01: GraphService provides caching and staleness detection
+    for multiple graphs. Use this instead of directly creating GraphStore.
+
+    Returns:
+        GraphService instance (real or injected FakeGraphService).
+    """
+    global _graph_service
+    with _lock:
+        if _graph_service is None:
+            from fs2.core.services.graph_service import GraphService
+
+            logger.debug("Creating GraphService singleton")
+            _graph_service = GraphService(config=get_config())
+    return _graph_service
+
+
+def set_graph_service(service: "GraphService") -> None:
+    """Inject a GraphService (for testing).
+
+    Per DYK-01: Use FakeGraphService for multi-graph testing.
+    This is the proper injection pattern for tests that need to
+    control which GraphStore is returned for each graph name.
+
+    Args:
+        service: GraphService instance (typically FakeGraphService).
+    """
+    global _graph_service
+    _graph_service = service
 
 
 def get_embedding_adapter() -> EmbeddingAdapter | None:
@@ -188,8 +232,9 @@ def reset_services() -> None:
 
     Used in tests to ensure clean state between test cases.
     """
-    global _config, _graph_store, _embedding_adapter, _docs_service
+    global _config, _graph_store, _graph_service, _embedding_adapter, _docs_service
     _config = None
     _graph_store = None
+    _graph_service = None
     _embedding_adapter = None
     _docs_service = None
