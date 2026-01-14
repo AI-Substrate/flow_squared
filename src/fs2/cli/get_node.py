@@ -17,11 +17,9 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
+from fs2.cli.utils import resolve_graph_from_context
 from fs2.config.exceptions import MissingConfigurationError
-from fs2.config.objects import GraphConfig
-from fs2.config.service import FS2ConfigurationService
 from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
-from fs2.core.repos import NetworkXGraphStore
 from fs2.core.services.get_node_service import GetNodeService
 
 # Console for error/status messages - writes to stderr to keep stdout clean for piping
@@ -60,15 +58,8 @@ def get_node(
     """
     try:
         # === Composition Root ===
-        # Create configuration service and adapters
-        config = FS2ConfigurationService()
-
-        # Per Subtask 001: Get graph_file from global option via context
-        if ctx.obj and ctx.obj.graph_file:
-            # Override GraphConfig in config service
-            config.set(GraphConfig(graph_path=ctx.obj.graph_file))
-
-        graph_store = NetworkXGraphStore(config)
+        # Per Phase 4: Use resolve_graph_from_context for multi-graph support
+        config, graph_store = resolve_graph_from_context(ctx)
 
         # Create service with DI
         service = GetNodeService(config=config, graph_store=graph_store)

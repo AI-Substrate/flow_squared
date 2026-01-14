@@ -18,13 +18,10 @@ import typer
 from rich.console import Console
 from rich.tree import Tree
 
-from fs2.cli.utils import safe_write_file, validate_save_path
+from fs2.cli.utils import resolve_graph_from_context, safe_write_file, validate_save_path
 from fs2.config.exceptions import MissingConfigurationError
-from fs2.config.objects import GraphConfig
-from fs2.config.service import FS2ConfigurationService
 from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
 from fs2.core.models.tree_node import TreeNode
-from fs2.core.repos import NetworkXGraphStore
 from fs2.core.services.tree_service import TreeService
 
 # Console for Rich tree display - writes to stdout
@@ -162,18 +159,16 @@ def tree(
 
     try:
         # === Composition Root ===
-        config = FS2ConfigurationService()
+        # Per Phase 4: Use resolve_graph_from_context for multi-graph support
+        config, graph_store = resolve_graph_from_context(ctx)
 
-        # Per Subtask 001: Get graph_file from global option via context
-        if ctx.obj and ctx.obj.graph_file:
-            # Override GraphConfig in config service
-            config.set(GraphConfig(graph_path=ctx.obj.graph_file))
-            if verbose:
-                stderr_console.print(
-                    f"[dim]DEBUG: Using graph file: {ctx.obj.graph_file}[/dim]"
-                )
-
-        graph_store = NetworkXGraphStore(config)
+        if verbose:
+            graph_info = (
+                ctx.obj.graph_name
+                if ctx.obj and ctx.obj.graph_name
+                else ctx.obj.graph_file if ctx.obj and ctx.obj.graph_file else "default"
+            )
+            stderr_console.print(f"[dim]DEBUG: Using graph: {graph_info}[/dim]")
 
         # Create service with DI
         service = TreeService(config=config, graph_store=graph_store)

@@ -11,6 +11,7 @@ Commands:
 
 Global Options:
 - --graph-file: Override graph file path (applies to all graph commands)
+- --graph-name: Use a named graph from other_graphs config (mutually exclusive with --graph-file)
 - --version: Show version and exit
 """
 
@@ -33,9 +34,15 @@ from fs2.cli.watch import watch
 
 @dataclass
 class CLIContext:
-    """Context object for passing global options to subcommands."""
+    """Context object for passing global options to subcommands.
+
+    Attributes:
+        graph_file: Path to graph file (overrides config). Mutually exclusive with graph_name.
+        graph_name: Name of configured graph (from other_graphs). Mutually exclusive with graph_file.
+    """
 
     graph_file: str | None = None
+    graph_name: str | None = None
 
 
 def _version_callback(value: bool) -> None:
@@ -62,6 +69,13 @@ def main(
             help="Graph file path (overrides config). Default: .fs2/graph.pickle",
         ),
     ] = None,
+    graph_name: Annotated[
+        str | None,
+        typer.Option(
+            "--graph-name",
+            help="Named graph from other_graphs config (mutually exclusive with --graph-file)",
+        ),
+    ] = None,
     version: Annotated[
         bool | None,
         typer.Option(
@@ -74,7 +88,12 @@ def main(
     ] = None,
 ) -> None:
     """Flowspace2 - Code intelligence for your codebase."""
-    ctx.obj = CLIContext(graph_file=graph_file)
+    # Mutual exclusivity validation (CF05)
+    if graph_file and graph_name:
+        typer.echo("Error: Cannot use both --graph-file and --graph-name", err=True)
+        raise typer.Exit(1)
+
+    ctx.obj = CLIContext(graph_file=graph_file, graph_name=graph_name)
 
 
 # Register commands

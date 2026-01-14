@@ -682,18 +682,18 @@ class TestTreeWithGraphName:
 
 | #   | Status | Task | CS | Success Criteria | Log | Notes |
 |-----|--------|------|----|------------------|-----|-------|
-| 4.1 | [ ] | Write tests for CLIContext with graph_name | 1 | Tests: field exists, defaults to None | - | /workspaces/flow_squared/tests/unit/cli/test_main.py |
-| 4.2 | [ ] | Write tests for mutual exclusivity | 2 | Tests: both options = error, either alone = ok, neither = ok | - | Same file |
-| 4.3 | [ ] | Write tests for resolve_graph_from_context() | 2 | Tests: --graph-name resolves to path, --graph-file resolves to path | - | Same file |
-| 4.4 | [ ] | Write integration tests for CLI commands | 2 | Tests: tree, search, get-node with --graph-name | - | /workspaces/flow_squared/tests/integration/test_cli_multi_graph.py |
-| 4.5 | [ ] | Write backward compatibility tests | 2 | Tests: all commands work without --graph-name | - | Same file |
-| 4.6 | [ ] | Update CLIContext dataclass | 1 | Add graph_name field | - | /workspaces/flow_squared/src/fs2/cli/main.py |
-| 4.7 | [ ] | Add --graph-name to main() callback | 2 | Option registered with help text | - | Same file |
-| 4.8 | [ ] | Implement mutual exclusivity validation | 2 | Tests from 4.2 pass | - | Same file |
-| 4.9 | [ ] | Implement resolve_graph_from_context() | 2 | Tests from 4.3 pass | - | /workspaces/flow_squared/src/fs2/cli/utils.py or main.py |
-| 4.10 | [ ] | Update tree command composition root | 2 | Uses resolved graph path | - | /workspaces/flow_squared/src/fs2/cli/tree.py |
-| 4.11 | [ ] | Update search command composition root | 2 | Uses resolved graph path | - | /workspaces/flow_squared/src/fs2/cli/search.py |
-| 4.12 | [ ] | Update get-node command composition root | 2 | Uses resolved graph path | - | /workspaces/flow_squared/src/fs2/cli/get_node.py |
+| 4.1 | [x] | Write tests for CLIContext with graph_name | 1 | Tests: field exists, defaults to None | [📋](tasks/phase-4-cli-integration/execution.log.md#task-41) | Completed [^11] |
+| 4.2 | [x] | Write tests for mutual exclusivity | 2 | Tests: both options = error, either alone = ok, neither = ok | [📋](tasks/phase-4-cli-integration/execution.log.md#task-42) | Completed [^11] |
+| 4.3 | [x] | Write tests for resolve_graph_from_context() | 2 | Tests: --graph-name resolves to path, --graph-file resolves to path | [📋](tasks/phase-4-cli-integration/execution.log.md#task-43) | Completed [^11] |
+| 4.4 | [x] | Write integration tests for CLI commands | 2 | Tests: tree, search, get-node with --graph-name | [📋](tasks/phase-4-cli-integration/execution.log.md#task-44) | Completed [^11] |
+| 4.5 | [x] | Write backward compatibility tests | 2 | Tests: all commands work without --graph-name | [📋](tasks/phase-4-cli-integration/execution.log.md#task-45) | Completed [^11] |
+| 4.6 | [x] | Update CLIContext dataclass | 1 | Add graph_name field | [📋](tasks/phase-4-cli-integration/execution.log.md#task-46) | Completed [^11] |
+| 4.7 | [x] | Add --graph-name to main() callback | 2 | Option registered with help text | [📋](tasks/phase-4-cli-integration/execution.log.md#task-47) | Completed [^11] |
+| 4.8 | [x] | Implement mutual exclusivity validation | 2 | Tests from 4.2 pass | [📋](tasks/phase-4-cli-integration/execution.log.md#task-48) | Completed [^11] |
+| 4.9 | [x] | Implement resolve_graph_from_context() | 2 | Tests from 4.3 pass | [📋](tasks/phase-4-cli-integration/execution.log.md#task-49) | Completed [^11] |
+| 4.10 | [x] | Update tree command composition root | 2 | Uses resolved graph path | [📋](tasks/phase-4-cli-integration/execution.log.md#task-410) | Completed [^11] |
+| 4.11 | [x] | Update search command composition root | 2 | Uses resolved graph path | [📋](tasks/phase-4-cli-integration/execution.log.md#task-411) | Completed [^11] |
+| 4.12 | [x] | Update get-node command composition root | 2 | Uses resolved graph path | [📋](tasks/phase-4-cli-integration/execution.log.md#task-412) | Completed [^11] |
 
 ### Test Examples (Write First!)
 
@@ -907,7 +907,7 @@ Query multiple codebases from a single fs2 instance. Configure external graphs i
 - [x] Phase 1: Configuration Model - COMPLETE (2026-01-13)
 - [x] Phase 2: GraphService Implementation - COMPLETE (2026-01-13)
 - [x] Phase 3: MCP Integration - COMPLETE (2026-01-14)
-- [ ] Phase 4: CLI Integration - PENDING
+- [x] Phase 4: CLI Integration - COMPLETE (100%)
 - [ ] Phase 5: Documentation - PENDING
 
 ### STOP Rule
@@ -975,3 +975,15 @@ Query multiple codebases from a single fs2 instance. Configure external graphs i
 [^10]: Phase 3 T015 - E2E cache invalidation validation
   - `file:tests/mcp_tests/test_cache_invalidation.py` - 3 E2E tests
   - `method:src/fs2/core/services/tree_service.py:TreeService._ensure_loaded` - Fixed to skip reload if store has content
+
+### Phase 4: CLI Integration
+
+[^11]: Phase 4: CLI Integration completion
+  - `file:src/fs2/cli/main.py` - Added --graph-name option, mutual exclusivity validation
+  - `function:src/fs2/cli/utils.py:resolve_graph_from_context` - Graph resolution utility
+  - `file:src/fs2/cli/tree.py` - Updated composition root
+  - `file:src/fs2/cli/search.py` - Updated composition root
+  - `file:src/fs2/cli/get_node.py` - Updated composition root
+  - `file:src/fs2/core/dependencies.py` - Shared DI container (created)
+  - `file:tests/unit/cli/test_main.py` - Unit tests (created)
+  - `file:tests/integration/test_cli_multi_graph.py` - Integration tests (created)
