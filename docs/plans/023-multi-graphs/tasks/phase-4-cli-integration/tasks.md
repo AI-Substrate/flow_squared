@@ -185,7 +185,7 @@ flowchart TD
 | [x] | T009 | Implement resolve_graph_from_context() utility | 3 | Core | T000, T003, T008 | /workspaces/flow_squared/src/fs2/cli/utils.py | Returns (config, GraphStore) OR raises typer.Exit(1) with actionable error; tests from T003 pass | – | log#task-t009 [^11] |
 | [x] | T010 | Update tree command composition root | 2 | Core | T009 | /workspaces/flow_squared/src/fs2/cli/tree.py | Uses resolved graph, tests from T004 pass | – | log#task-t010 [^11] |
 | [x] | T011 | Update search command composition root | 2 | Core | T009 | /workspaces/flow_squared/src/fs2/cli/search.py | Uses resolved graph, tests from T004 pass | – | log#task-t011 [^11] |
-| [x] | T012 | Update get-node command composition root | 2 | Core | T009 | /workspaces/flow_squared/src/fs2/cli/get_node.py | Uses resolved graph, tests from T004 pass | – | log#task-t012 [^11] |
+| [x] | T012 | Update get-node command composition root | 2 | Core | T009 | /workspaces/flow_squared/src/fs2/cli/get_node.py | Uses resolved graph, tests from T004 pass | [001](./001-subtask-add-list-graphs-cli-command.md) | log#task-t012 [^11] |
 
 ---
 

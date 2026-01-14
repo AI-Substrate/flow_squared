@@ -987,3 +987,13 @@ Query multiple codebases from a single fs2 instance. Configure external graphs i
   - `file:src/fs2/core/dependencies.py` - Shared DI container (created)
   - `file:tests/unit/cli/test_main.py` - Unit tests (created)
   - `file:tests/integration/test_cli_multi_graph.py` - Integration tests (created)
+
+---
+
+## Subtasks Registry
+
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-add-list-graphs-cli-command | 2026-01-14 | Phase 4: CLI Integration | T012 | CLI parity gap - MCP has list_graphs() but CLI has no equivalent | [x] Complete | [Link](tasks/phase-4-cli-integration/001-subtask-add-list-graphs-cli-command.md) |

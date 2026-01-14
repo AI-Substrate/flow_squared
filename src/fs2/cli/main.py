@@ -25,6 +25,7 @@ from fs2.cli.get_node import get_node
 from fs2.cli.guard import require_init
 from fs2.cli.init import init
 from fs2.cli.install import get_version_string, install, upgrade
+from fs2.cli.list_graphs import list_graphs
 from fs2.cli.mcp import mcp
 from fs2.cli.scan import scan
 from fs2.cli.search import search
@@ -107,6 +108,7 @@ app.command(name="watch")(require_init(watch))
 
 # Commands that always work (not guarded)
 app.command(name="init")(init)
+app.command(name="list-graphs")(list_graphs)  # Per subtask 001: diagnostic command
 app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
 app.command(name="install")(install)
 app.command(name="upgrade")(upgrade)

@@ -101,6 +101,37 @@ Paths are resolved relative to the config file directory:
 
 ## CLI Usage
 
+### Discovering Available Graphs
+
+Use `list-graphs` to see all configured graphs with availability status:
+
+```bash
+# List all configured graphs with availability status
+fs2 list-graphs
+
+# JSON output for scripting (matches MCP list_graphs)
+fs2 list-graphs --json
+```
+
+Example output:
+```
+                             Available Graphs
+┏━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃ Name       ┃ Status ┃ Path                         ┃ Description      ┃
+┡━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│ default    │   ✓    │ /home/user/my-project/.fs2/g │ Local project    │
+│            │        │ raph.pickle                  │                  │
+│ shared-lib │   ✓    │ /home/user/libs/shared/.fs2/ │ Shared library   │
+│            │        │ graph.pickle                 │                  │
+└────────────┴────────┴──────────────────────────────┴──────────────────┘
+
+Total: 2 graph(s)
+```
+
+The `✓` indicates the graph file exists and is loadable; `✗` indicates the file is missing or corrupted. Long paths wrap to show the complete path.
+
+### Querying Specific Graphs
+
 Use the `--graph-name` global option to query a specific graph:
 
 ```bash
