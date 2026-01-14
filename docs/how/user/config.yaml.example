@@ -28,7 +28,7 @@ scan:
 # LLM CONFIGURATION (Optional - for smart content generation)
 # =============================================================================
 # Configures the Large Language Model for AI-generated code summaries.
-# Required for `fs2 scan --smart-content` feature.
+# Required for `fs2 scan` feature.
 #
 # Provider options:
 #   azure  - Azure OpenAI Service (requires: base_url, azure_deployment_name, azure_api_version)
@@ -108,9 +108,15 @@ scan:
 # Configures AI-generated summaries for code elements.
 
 # smart_content:
-#   max_workers: 50
-#   max_input_tokens: 50000
+#   max_workers: 50  # Parallel workers for batch processing
+#   max_input_tokens: 50000  # Token limit for prompt truncation
 #   token_limits:
-#     file: 200
-#     type: 200
-#     callable: 150
+#     file: 1000
+#     type: 1000
+#     callable: 1000
+#     section: 1000
+#     block: 1000
+#     definition: 1000
+#     statement: 1000
+#     expression: 1000
+#     other: 1000

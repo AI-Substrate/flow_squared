@@ -508,15 +508,15 @@ smart_content:
 
   # Per-category output token limits
   token_limits:
-    file: 200
-    type: 200          # Classes, interfaces
-    callable: 150      # Functions, methods
-    section: 150
-    block: 150
-    definition: 150
-    statement: 100
-    expression: 100
-    other: 100
+    file: 1000
+    type: 1000         # Classes, interfaces
+    callable: 1000     # Functions, methods
+    section: 1000
+    block: 1000
+    definition: 1000
+    statement: 1000
+    expression: 1000
+    other: 1000
 ```
 
 ---

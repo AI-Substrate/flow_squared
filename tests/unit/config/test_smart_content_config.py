@@ -27,15 +27,15 @@ class TestSmartContentConfigDefaults:
         assert config.max_workers == 50
         assert config.max_input_tokens == 50000
 
-        assert config.token_limits["file"] == 200
-        assert config.token_limits["type"] == 200
-        assert config.token_limits["callable"] == 150
-        assert config.token_limits["section"] == 150
-        assert config.token_limits["block"] == 150
-        assert config.token_limits["definition"] == 150
-        assert config.token_limits["statement"] == 100
-        assert config.token_limits["expression"] == 100
-        assert config.token_limits["other"] == 100
+        assert config.token_limits["file"] == 1000
+        assert config.token_limits["type"] == 1000
+        assert config.token_limits["callable"] == 1000
+        assert config.token_limits["section"] == 1000
+        assert config.token_limits["block"] == 1000
+        assert config.token_limits["definition"] == 1000
+        assert config.token_limits["statement"] == 1000
+        assert config.token_limits["expression"] == 1000
+        assert config.token_limits["other"] == 1000
 
 
 @pytest.mark.unit
