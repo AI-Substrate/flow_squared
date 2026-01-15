@@ -12,13 +12,17 @@
 This phase installs and verifies all four LSP (Language Server Protocol) servers required for development and testing of the LSP integration feature. Without these servers installed in the devcontainer, we cannot run integration tests with real language servers.
 
 ### What We're Building
-A devcontainer environment that includes:
+Portable LSP installation scripts (not tied to devcontainer features) that install:
 - **Pyright** (Python language server) for Python type analysis
 - **gopls** (Go language server) for Go code intelligence
 - **typescript-language-server** for TypeScript/JavaScript support
-- **OmniSharp** (C# language server) for C# code analysis
+- **.NET SDK** (runtime for C# Roslyn LSP - auto-downloaded by SolidLSP)
 
-Plus a verification script that confirms all servers are correctly installed and accessible.
+Plus a verification script that confirms all servers/runtimes are correctly installed.
+
+**Architecture**: Individual install scripts in `scripts/lsp_install/` with an `install_all.sh` orchestrator. This approach is portable and works in any environment (devcontainers, CI, bare metal, Docker).
+
+> **Note**: We do NOT install OmniSharp. Serena/SolidLSP uses Microsoft.CodeAnalysis.LanguageServer (Roslyn LSP) which is auto-downloaded at runtime. OmniSharp is deprecated in Serena with documented issues ("problems with finding references").
 
 ### User Value
 Developers get a complete LSP development environment out-of-the-box when opening the devcontainer. No manual setup required. CI/CD can reuse the same environment guarantees.
@@ -35,19 +39,22 @@ Developers get a complete LSP development environment out-of-the-box when openin
 Install and verify all 4 LSP servers in the devcontainer, enabling integration tests with real servers.
 
 **Behavior Checklist** (from plan acceptance criteria):
-- [ ] All 4 LSP servers available via `which` command
-- [ ] Verification script passes in devcontainer
-- [ ] Servers persist across container rebuilds
-- [ ] CI workflow can validate server availability
+- [x] All 4 LSP servers available via `which` command
+- [x] Verification script passes in devcontainer
+- [x] Servers persist across container rebuilds (via post-install.sh)
+- [ ] CI workflow can validate server availability (out of scope - see Non-Goals)
 
 ### Goals
 
-- ✅ Install Pyright via npm global install
-- ✅ Install gopls via Go toolchain
-- ✅ Install typescript-language-server via npm global install
-- ✅ Install OmniSharp via .NET global tools
+- ✅ Create `scripts/lsp_install/` directory with portable install scripts
+- ✅ Create `install_pyright.sh` - Pyright via npm
+- ✅ Create `install_go.sh` - Go toolchain (prerequisite for gopls)
+- ✅ Create `install_gopls.sh` - gopls via Go toolchain
+- ✅ Create `install_typescript_ls.sh` - typescript-language-server via npm
+- ✅ Create `install_dotnet.sh` - .NET SDK (runtime for Roslyn LSP)
+- ✅ Create `install_all.sh` - orchestrator that calls all install scripts
 - ✅ Create verification script to validate all installations
-- ✅ Integrate installation into devcontainer postCreateCommand
+- ✅ Integrate `install_all.sh` into devcontainer postCreateCommand
 
 ### Non-Goals
 
@@ -74,45 +81,52 @@ flowchart TD
     classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
 
     style Phase fill:#F5F5F5,stroke:#E0E0E0
-    style Files fill:#F5F5F5,stroke:#E0E0E0
-    style Dependencies fill:#F5F5F5,stroke:#E0E0E0
+    style Scripts fill:#F5F5F5,stroke:#E0E0E0
+    style Integration fill:#F5F5F5,stroke:#E0E0E0
 
     subgraph Phase["Phase 0: Environment Preparation"]
-        T001["T001: Write verification script (TDD)"]:::pending
-        T002["T002: Add Go feature"]:::pending
-        T003["T003: Add .NET feature"]:::pending
-        T004["T004: Add npm global installs"]:::pending
-        T005["T005: Update post-install.sh"]:::pending
-        T006["T006: Rebuild and verify"]:::pending
+        T001["T001: Write verification script (TDD) ✓"]:::completed
+        T002["T002: Create install_pyright.sh ✓"]:::completed
+        T003["T003: Create install_go.sh ✓"]:::completed
+        T004["T004: Create install_gopls.sh ✓"]:::completed
+        T005["T005: Create install_typescript_ls.sh ✓"]:::completed
+        T006["T006: Create install_dotnet.sh ✓"]:::completed
+        T007["T007: Create install_all.sh ✓"]:::completed
+        T008["T008: Update post-install.sh ✓"]:::completed
+        T009["T009: Rebuild and verify ✓"]:::completed
 
-        T001 --> T005
-        T002 --> T005
-        T003 --> T005
-        T004 --> T005
-        T005 --> T006
+        T003 --> T004
+        T002 --> T007
+        T004 --> T007
+        T005 --> T007
+        T006 --> T007
+        T007 --> T008
+        T001 --> T009
+        T008 --> T009
     end
 
-    subgraph Files["Files Modified"]
-        F1["/scripts/verify-lsp-servers.sh"]:::pending
-        F2["/.devcontainer/devcontainer.json"]:::pending
-        F3["/.devcontainer/Dockerfile"]:::pending
-        F4["/.devcontainer/post-install.sh"]:::pending
+    subgraph Scripts["scripts/lsp_install/"]
+        S1["install_pyright.sh ✓"]:::completed
+        S2["install_go.sh ✓"]:::completed
+        S3["install_gopls.sh ✓"]:::completed
+        S4["install_typescript_ls.sh ✓"]:::completed
+        S5["install_dotnet.sh ✓"]:::completed
+        S6["install_all.sh ✓"]:::completed
     end
 
-    subgraph Dependencies["External Dependencies"]
-        D1["npm: pyright"]:::pending
-        D2["npm: typescript-language-server"]:::pending
-        D3["Go feature: gopls"]:::pending
-        D4[".NET SDK: OmniSharp"]:::pending
+    subgraph Integration["Integration"]
+        I1["/scripts/verify-lsp-servers.sh ✓"]:::completed
+        I2["/.devcontainer/post-install.sh ✓"]:::completed
     end
 
-    T001 -.-> F1
-    T002 -.-> F2
-    T003 -.-> F2
-    T004 -.-> F3
-    T004 -.-> F4
-    T005 -.-> F4
-    T006 -.-> F1
+    T002 -.-> S1
+    T003 -.-> S2
+    T004 -.-> S3
+    T005 -.-> S4
+    T006 -.-> S5
+    T007 -.-> S6
+    T001 -.-> I1
+    T008 -.-> I2
 ```
 
 ### Task-to-Component Mapping
@@ -121,12 +135,15 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Verification Script | /scripts/verify-lsp-servers.sh | ⬜ Pending | TDD: write test script first, expect it to fail |
-| T002 | Devcontainer Features | /.devcontainer/devcontainer.json | ⬜ Pending | Add Go devcontainer feature for gopls |
-| T003 | Devcontainer Features | /.devcontainer/devcontainer.json | ⬜ Pending | Add .NET devcontainer feature for OmniSharp |
-| T004 | Dockerfile npm | /.devcontainer/Dockerfile, post-install.sh | ⬜ Pending | Install pyright and typescript-language-server via npm |
-| T005 | Post-install Script | /.devcontainer/post-install.sh | ⬜ Pending | Wire up OmniSharp dotnet tool install |
-| T006 | Verification | All | ⬜ Pending | Rebuild container and run verification script |
+| T001 | Verification Script | /scripts/verify-lsp-servers.sh | ✅ Complete | TDD: RED state confirmed |
+| T002 | Pyright Install | /scripts/lsp_install/install_pyright.sh | ✅ Complete | npm install -g pyright |
+| T003 | Go Install | /scripts/lsp_install/install_go.sh | ✅ Complete | Install Go toolchain (prerequisite for gopls) |
+| T004 | gopls Install | /scripts/lsp_install/install_gopls.sh | ✅ Complete | go install gopls; calls install_go.sh first |
+| T005 | TypeScript LS Install | /scripts/lsp_install/install_typescript_ls.sh | ✅ Complete | npm install -g typescript-language-server typescript |
+| T006 | .NET SDK Install | /scripts/lsp_install/install_dotnet.sh | ✅ Complete | Install .NET SDK for Roslyn LSP runtime |
+| T007 | Orchestrator | /scripts/lsp_install/install_all.sh | ✅ Complete | Calls all individual install scripts |
+| T008 | Integration | /.devcontainer/post-install.sh | ✅ Complete | Call install_all.sh from post-install |
+| T009 | Verification | All | ✅ Complete | All 5 LSP checks pass (TDD GREEN) |
 
 ---
 
@@ -134,12 +151,15 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|------|------|----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Write verification script that checks all 4 LSP servers | 1 | Test | – | /workspaces/flow_squared/scripts/verify-lsp-servers.sh | Script runs but fails (servers not yet installed) | – | TDD: test first; maps to plan task 0.5 |
-| [ ] | T002 | Add Go devcontainer feature for gopls | 1 | Setup | – | /workspaces/flow_squared/.devcontainer/devcontainer.json | Feature added to features section | – | Maps to plan task 0.2; Go feature includes gopls |
-| [ ] | T003 | Add .NET SDK devcontainer feature for OmniSharp | 1 | Setup | – | /workspaces/flow_squared/.devcontainer/devcontainer.json | Feature added to features section | – | Maps to plan task 0.4; Required for dotnet tools |
-| [ ] | T004 | Add npm global installs for Pyright and typescript-language-server | 2 | Setup | – | /workspaces/flow_squared/.devcontainer/Dockerfile, /workspaces/flow_squared/.devcontainer/post-install.sh | npm install commands added | – | Maps to plan tasks 0.1, 0.3; Both via npm |
-| [ ] | T005 | Update post-install.sh to install OmniSharp via dotnet tool | 1 | Setup | T003 | /workspaces/flow_squared/.devcontainer/post-install.sh | OmniSharp install command added | – | Maps to plan task 0.4; Requires .NET SDK |
-| [ ] | T006 | Rebuild devcontainer and run verification script | 2 | Integration | T001, T002, T003, T004, T005 | /workspaces/flow_squared/scripts/verify-lsp-servers.sh | Script exits 0, all servers found | – | Maps to plan task 0.6; Final validation |
+| [x] | T001 | Write verification script that checks 3 LSP servers + Go + .NET | 1 | Test | – | /workspaces/flow_squared/scripts/verify-lsp-servers.sh | Script runs but fails (servers not yet installed) | – | TDD: test first |
+| [x] | T002 | Create install_pyright.sh script | 1 | Setup | – | /workspaces/flow_squared/scripts/lsp_install/install_pyright.sh | Script installs pyright via npm | – | Portable |
+| [x] | T003 | Create install_go.sh script | 2 | Setup | – | /workspaces/flow_squared/scripts/lsp_install/install_go.sh | Script installs Go toolchain | – | Uses official Go install script |
+| [x] | T004 | Create install_gopls.sh script | 1 | Setup | T003 | /workspaces/flow_squared/scripts/lsp_install/install_gopls.sh | Script installs gopls; calls install_go.sh first | – | Depends on Go |
+| [x] | T005 | Create install_typescript_ls.sh script | 1 | Setup | – | /workspaces/flow_squared/scripts/lsp_install/install_typescript_ls.sh | Script installs typescript-language-server via npm | – | Also installs typescript |
+| [x] | T006 | Create install_dotnet.sh script | 2 | Setup | – | /workspaces/flow_squared/scripts/lsp_install/install_dotnet.sh | Script installs .NET SDK | – | Uses Microsoft install script |
+| [x] | T007 | Create install_all.sh orchestrator | 1 | Setup | T002, T003, T004, T005, T006 | /workspaces/flow_squared/scripts/lsp_install/install_all.sh | Script calls all individual installers | – | Single entry point |
+| [x] | T008 | Update post-install.sh to call install_all.sh | 1 | Integration | T007 | /workspaces/flow_squared/.devcontainer/post-install.sh | post-install.sh calls install_all.sh | – | Devcontainer integration |
+| [x] | T009 | Rebuild devcontainer and run verification script | 2 | Integration | T001, T008 | /workspaces/flow_squared/scripts/verify-lsp-servers.sh | Script exits 0, all servers/runtimes found | – | Final validation |
 
 ---
 
@@ -236,19 +256,19 @@ Since Phase 0 is environment setup (not code), we use a **verification script** 
 | V001 | Pyright availability | Verify pyright is installed and executable | `which pyright` returns path |
 | V002 | gopls availability | Verify gopls is installed and executable | `which gopls` returns path |
 | V003 | typescript-language-server availability | Verify ts-server is installed and executable | `which typescript-language-server` returns path |
-| V004 | OmniSharp availability | Verify OmniSharp is installed | `dotnet tool list -g` shows omnisharp |
+| V004 | .NET SDK availability | Verify .NET SDK is installed (Roslyn LSP runtime) | `dotnet --version` returns version |
 | V005 | Version output | Verify servers respond to version flags | Each server outputs version without error |
 
 **Fixtures**: None required (checking installed binaries)
 
 **Expected Outputs**:
 ```
-Verifying LSP servers...
+Verifying LSP servers and runtimes...
 ✓ Pyright: /home/vscode/.local/bin/pyright (version X.Y.Z)
 ✓ gopls: /home/vscode/go/bin/gopls (version X.Y.Z)
 ✓ typescript-language-server: /home/vscode/.npm-global/bin/typescript-language-server (version X.Y.Z)
-✓ OmniSharp: installed via dotnet tools
-All LSP servers verified!
+✓ .NET SDK: X.Y.Z (Roslyn LSP runtime - SolidLSP auto-downloads LSP server)
+All LSP servers and runtimes verified!
 ```
 
 ### Step-by-Step Implementation Outline
@@ -256,30 +276,33 @@ All LSP servers verified!
 | Step | Task | Actions | Files |
 |------|------|---------|-------|
 | 1 | T001 | Create verification script that runs all checks; expect failures initially | /workspaces/flow_squared/scripts/verify-lsp-servers.sh |
-| 2 | T002 | Add `ghcr.io/devcontainers/features/go:1` feature to devcontainer.json | /workspaces/flow_squared/.devcontainer/devcontainer.json |
-| 3 | T003 | Add `ghcr.io/devcontainers/features/dotnet:2` feature to devcontainer.json | /workspaces/flow_squared/.devcontainer/devcontainer.json |
-| 4 | T004 | Add npm global installs for pyright and typescript-language-server to Dockerfile or post-install.sh | /workspaces/flow_squared/.devcontainer/Dockerfile, /workspaces/flow_squared/.devcontainer/post-install.sh |
-| 5 | T005 | Add `dotnet tool install -g OmniSharp` to post-install.sh | /workspaces/flow_squared/.devcontainer/post-install.sh |
-| 6 | T006 | Rebuild devcontainer and run verification script | All files |
+| 2 | T002 | Create install_pyright.sh with npm install -g pyright | /workspaces/flow_squared/scripts/lsp_install/install_pyright.sh |
+| 3 | T003 | Create install_go.sh using official Go install script | /workspaces/flow_squared/scripts/lsp_install/install_go.sh |
+| 4 | T004 | Create install_gopls.sh (calls install_go.sh first) | /workspaces/flow_squared/scripts/lsp_install/install_gopls.sh |
+| 5 | T005 | Create install_typescript_ls.sh with npm install | /workspaces/flow_squared/scripts/lsp_install/install_typescript_ls.sh |
+| 6 | T006 | Create install_dotnet.sh using Microsoft install script | /workspaces/flow_squared/scripts/lsp_install/install_dotnet.sh |
+| 7 | T007 | Create install_all.sh orchestrator | /workspaces/flow_squared/scripts/lsp_install/install_all.sh |
+| 8 | T008 | Update post-install.sh to call install_all.sh | /workspaces/flow_squared/.devcontainer/post-install.sh |
+| 9 | T009 | Rebuild devcontainer and run verification script | All files |
 
 ### Commands to Run
 
 ```bash
 # ============================================
-# STEP 1: Create and test verification script (T001)
+# STEP 1: Create directory structure
 # ============================================
+mkdir -p /workspaces/flow_squared/scripts/lsp_install
 
-# Create the verification script
+# ============================================
+# STEP 2: Create verification script (T001) - TDD: RED
+# ============================================
 cat > /workspaces/flow_squared/scripts/verify-lsp-servers.sh << 'EOF'
 #!/bin/bash
-# verify-lsp-servers.sh
-# Purpose: Verify all LSP servers are installed and accessible
-# Quality: Prevents CI failures from missing servers
+# verify-lsp-servers.sh - Verify all LSP servers and runtimes are installed
+# Portable: Works in devcontainers, CI, bare metal, Docker
 # Exit: 0 if all found, 1 if any missing
 
-set -e
-
-echo "Verifying LSP servers..."
+echo "Verifying LSP servers and runtimes..."
 MISSING=0
 
 # Check Pyright (Python)
@@ -287,16 +310,25 @@ if command -v pyright &> /dev/null; then
     VERSION=$(pyright --version 2>&1 || echo "version check failed")
     echo "✓ Pyright: $(which pyright) ($VERSION)"
 else
-    echo "✗ Pyright not found"
+    echo "✗ Pyright not found - run: scripts/lsp_install/install_pyright.sh"
     MISSING=1
 fi
 
-# Check gopls (Go)
+# Check Go (prerequisite for gopls)
+if command -v go &> /dev/null; then
+    VERSION=$(go version 2>&1 || echo "version check failed")
+    echo "✓ Go: $(which go) ($VERSION)"
+else
+    echo "✗ Go not found - run: scripts/lsp_install/install_go.sh"
+    MISSING=1
+fi
+
+# Check gopls (Go LSP)
 if command -v gopls &> /dev/null; then
     VERSION=$(gopls version 2>&1 | head -1 || echo "version check failed")
     echo "✓ gopls: $(which gopls) ($VERSION)"
 else
-    echo "✗ gopls not found"
+    echo "✗ gopls not found - run: scripts/lsp_install/install_gopls.sh"
     MISSING=1
 fi
 
@@ -305,87 +337,220 @@ if command -v typescript-language-server &> /dev/null; then
     VERSION=$(typescript-language-server --version 2>&1 || echo "version check failed")
     echo "✓ typescript-language-server: $(which typescript-language-server) ($VERSION)"
 else
-    echo "✗ typescript-language-server not found"
+    echo "✗ typescript-language-server not found - run: scripts/lsp_install/install_typescript_ls.sh"
     MISSING=1
 fi
 
-# Check OmniSharp (C#)
-if dotnet tool list -g 2>/dev/null | grep -qi omnisharp; then
-    echo "✓ OmniSharp: installed via dotnet tools"
+# Check .NET SDK (C# Roslyn LSP runtime - SolidLSP auto-downloads the LSP server)
+if command -v dotnet &> /dev/null; then
+    VERSION=$(dotnet --version 2>&1 || echo "version check failed")
+    echo "✓ .NET SDK: $VERSION (Roslyn LSP runtime)"
 else
-    echo "✗ OmniSharp not found"
+    echo "✗ .NET SDK not found - run: scripts/lsp_install/install_dotnet.sh"
     MISSING=1
 fi
 
 if [ $MISSING -eq 1 ]; then
     echo ""
-    echo "Some LSP servers are missing. See above for details."
+    echo "Some LSP servers/runtimes are missing. Run: scripts/lsp_install/install_all.sh"
     exit 1
 fi
 
 echo ""
-echo "All LSP servers verified!"
+echo "All LSP servers and runtimes verified!"
 exit 0
 EOF
-
 chmod +x /workspaces/flow_squared/scripts/verify-lsp-servers.sh
 
-# Run it to confirm failures (TDD: RED)
-/workspaces/flow_squared/scripts/verify-lsp-servers.sh || echo "Expected: Script fails (servers not yet installed)"
+# ============================================
+# STEP 3: Create install_pyright.sh (T002)
+# ============================================
+cat > /workspaces/flow_squared/scripts/lsp_install/install_pyright.sh << 'EOF'
+#!/bin/bash
+# install_pyright.sh - Install Pyright (Python LSP)
+# Requires: Node.js/npm in PATH
+set -e
+echo "Installing Pyright..."
+npm install -g pyright
+echo "✓ Pyright installed: $(which pyright)"
+EOF
+chmod +x /workspaces/flow_squared/scripts/lsp_install/install_pyright.sh
 
 # ============================================
-# STEP 2-5: Modify devcontainer files
+# STEP 4: Create install_go.sh (T003)
 # ============================================
+cat > /workspaces/flow_squared/scripts/lsp_install/install_go.sh << 'EOF'
+#!/bin/bash
+# install_go.sh - Install Go toolchain (prerequisite for gopls)
+set -e
 
-# After modifying devcontainer.json, Dockerfile, post-install.sh:
-# Review changes before rebuild
-cat /workspaces/flow_squared/.devcontainer/devcontainer.json
-cat /workspaces/flow_squared/.devcontainer/post-install.sh
+# Skip if Go is already installed
+if command -v go &> /dev/null; then
+    echo "✓ Go already installed: $(go version)"
+    exit 0
+fi
+
+echo "Installing Go..."
+
+# Detect architecture
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64) GOARCH="amd64" ;;
+    aarch64|arm64) GOARCH="arm64" ;;
+    *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+esac
+
+# Detect OS
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+# Download and install latest Go
+GO_VERSION="1.22.0"  # Pin to known good version
+TARBALL="go${GO_VERSION}.${OS}-${GOARCH}.tar.gz"
+curl -fsSL "https://go.dev/dl/${TARBALL}" -o "/tmp/${TARBALL}"
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf "/tmp/${TARBALL}"
+rm "/tmp/${TARBALL}"
+
+# Add to PATH for current session
+export PATH=$PATH:/usr/local/go/bin
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+
+echo "✓ Go installed: $(go version)"
+echo ""
+echo "Add to your shell profile:"
+echo '  export PATH=$PATH:/usr/local/go/bin'
+echo '  export GOPATH=$HOME/go'
+echo '  export PATH=$PATH:$GOPATH/bin'
+EOF
+chmod +x /workspaces/flow_squared/scripts/lsp_install/install_go.sh
 
 # ============================================
-# STEP 6: Rebuild and verify (T006)
+# STEP 5: Create install_gopls.sh (T004)
 # ============================================
+cat > /workspaces/flow_squared/scripts/lsp_install/install_gopls.sh << 'EOF'
+#!/bin/bash
+# install_gopls.sh - Install gopls (Go LSP)
+# Automatically installs Go if not present
+set -e
 
-# Rebuild devcontainer (run this from VS Code or:)
-# devcontainer rebuild
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# After rebuild, verify all servers
+# Ensure Go is installed first
+"$SCRIPT_DIR/install_go.sh"
+
+# Source Go paths if needed
+export PATH=$PATH:/usr/local/go/bin
+export GOPATH=${GOPATH:-$HOME/go}
+export PATH=$PATH:$GOPATH/bin
+
+echo "Installing gopls..."
+go install golang.org/x/tools/gopls@latest
+echo "✓ gopls installed: $(which gopls || echo '$GOPATH/bin/gopls')"
+EOF
+chmod +x /workspaces/flow_squared/scripts/lsp_install/install_gopls.sh
+
+# ============================================
+# STEP 6: Create install_typescript_ls.sh (T005)
+# ============================================
+cat > /workspaces/flow_squared/scripts/lsp_install/install_typescript_ls.sh << 'EOF'
+#!/bin/bash
+# install_typescript_ls.sh - Install TypeScript Language Server
+# Requires: Node.js/npm in PATH
+set -e
+echo "Installing typescript-language-server..."
+npm install -g typescript typescript-language-server
+echo "✓ typescript-language-server installed: $(which typescript-language-server)"
+EOF
+chmod +x /workspaces/flow_squared/scripts/lsp_install/install_typescript_ls.sh
+
+# ============================================
+# STEP 7: Create install_dotnet.sh (T006)
+# ============================================
+cat > /workspaces/flow_squared/scripts/lsp_install/install_dotnet.sh << 'EOF'
+#!/bin/bash
+# install_dotnet.sh - Install .NET SDK (runtime for Roslyn LSP)
+# SolidLSP auto-downloads Microsoft.CodeAnalysis.LanguageServer at runtime
+set -e
+echo "Installing .NET SDK..."
+
+# Use Microsoft's official install script
+curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS
+
+# Add to PATH for current session
+export DOTNET_ROOT="$HOME/.dotnet"
+export PATH="$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools"
+
+echo "✓ .NET SDK installed: $(dotnet --version)"
+echo ""
+echo "Add to your shell profile:"
+echo '  export DOTNET_ROOT="$HOME/.dotnet"'
+echo '  export PATH="$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools"'
+EOF
+chmod +x /workspaces/flow_squared/scripts/lsp_install/install_dotnet.sh
+
+# ============================================
+# STEP 8: Create install_all.sh (T007)
+# ============================================
+cat > /workspaces/flow_squared/scripts/lsp_install/install_all.sh << 'EOF'
+#!/bin/bash
+# install_all.sh - Install all LSP servers and runtimes
+# Portable: Works in devcontainers, CI, bare metal, Docker
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "========================================"
+echo "Installing all LSP servers and runtimes"
+echo "========================================"
+echo ""
+
+# Install runtimes first
+"$SCRIPT_DIR/install_go.sh"
+echo ""
+
+"$SCRIPT_DIR/install_dotnet.sh"
+echo ""
+
+# Install LSP servers
+"$SCRIPT_DIR/install_pyright.sh"
+echo ""
+
+"$SCRIPT_DIR/install_typescript_ls.sh"
+echo ""
+
+"$SCRIPT_DIR/install_gopls.sh"
+echo ""
+
+echo "========================================"
+echo "All LSP servers installed!"
+echo "Run scripts/verify-lsp-servers.sh to verify"
+echo "========================================"
+EOF
+chmod +x /workspaces/flow_squared/scripts/lsp_install/install_all.sh
+
+# ============================================
+# STEP 9: Update post-install.sh (T008)
+# ============================================
+# Add this line to .devcontainer/post-install.sh:
+# /workspaces/flow_squared/scripts/lsp_install/install_all.sh
+
+# ============================================
+# STEP 10: Rebuild and verify (T009)
+# ============================================
+# Rebuild devcontainer, then:
 /workspaces/flow_squared/scripts/verify-lsp-servers.sh
-
-# Expected output:
-# Verifying LSP servers...
-# ✓ Pyright: /path/to/pyright (version X.Y.Z)
-# ✓ gopls: /path/to/gopls (version X.Y.Z)
-# ✓ typescript-language-server: /path/to/ts-server (version X.Y.Z)
-# ✓ OmniSharp: installed via dotnet tools
-# All LSP servers verified!
-
-# ============================================
-# ADDITIONAL VERIFICATION COMMANDS
-# ============================================
-
-# Individual server checks
-which pyright && pyright --version
-which gopls && gopls version
-which typescript-language-server && typescript-language-server --version
-dotnet tool list -g | grep -i omnisharp
-
-# Verify devcontainer features loaded
-echo "Checking Go installation..."
-go version
-
-echo "Checking .NET installation..."
-dotnet --version
 ```
 
 ### Risks/Unknowns
 
 | Risk | Severity | Likelihood | Mitigation |
 |------|----------|------------|------------|
-| OmniSharp requires .NET SDK version compatibility | Medium | Low | Use latest .NET feature version; document minimum version |
-| npm global install path issues | Low | Medium | Ensure PATH includes npm global bin directory |
-| Devcontainer feature conflicts | Low | Low | Test feature combinations; order matters |
-| Large container image size | Low | Medium | Accept for development; optimize later if needed |
+| Go not in PATH for gopls install | Medium | Medium | Scripts require Go pre-installed; document prerequisite |
+| npm not in PATH | Medium | Low | Node.js already in devcontainer; scripts check prerequisites |
+| .NET install script requires curl | Low | Low | curl standard on most systems; document prerequisite |
+| PATH not updated after .NET install | Medium | Medium | Script outputs PATH instructions; add to shell profile |
+| Scripts not executable | Low | Low | Commands include chmod +x; scripts self-document |
 
 ### Ready Check
 
@@ -420,8 +585,13 @@ Before proceeding to implementation, verify:
 
 **Supporting Files**:
 - Verification script: `/workspaces/flow_squared/scripts/verify-lsp-servers.sh`
-- Modified devcontainer: `/workspaces/flow_squared/.devcontainer/devcontainer.json`
-- Modified Dockerfile: `/workspaces/flow_squared/.devcontainer/Dockerfile`
+- Install scripts directory: `/workspaces/flow_squared/scripts/lsp_install/`
+  - `install_go.sh` - Go toolchain (prerequisite for gopls)
+  - `install_dotnet.sh` - .NET SDK (Roslyn LSP runtime)
+  - `install_pyright.sh` - Pyright (Python LSP)
+  - `install_gopls.sh` - gopls (Go LSP)
+  - `install_typescript_ls.sh` - TypeScript Language Server
+  - `install_all.sh` - Orchestrator
 - Modified post-install: `/workspaces/flow_squared/.devcontainer/post-install.sh`
 
 ---
@@ -461,11 +631,207 @@ docs/plans/025-lsp-research/
     └── phase-0-environment-preparation/
         ├── tasks.md              # This file
         └── execution.log.md      # Created by plan-6 during implementation
+
+scripts/
+├── verify-lsp-servers.sh         # Verification script
+└── lsp_install/                  # Portable LSP install scripts
+    ├── install_go.sh             # Go toolchain
+    ├── install_dotnet.sh         # .NET SDK
+    ├── install_pyright.sh        # Python LSP
+    ├── install_gopls.sh          # Go LSP (calls install_go.sh)
+    ├── install_typescript_ls.sh  # TypeScript LSP
+    └── install_all.sh            # Orchestrator
 ```
 
 ---
 
-**Status**: AWAITING GO
-**Next Step**: Run `/plan-6-implement-phase --phase "Phase 0: Environment Preparation"` after human approval
+**Status**: ✅ COMPLETE
+**Completed**: 2026-01-14
+**Next Step**: Run `/plan-7-code-review --phase "Phase 0: Environment Preparation"` for code review
 
 ---
+
+## Critical Insights Discussion
+
+**Session**: 2026-01-14
+**Context**: Phase 0: Environment Preparation Tasks v1.0
+**Analyst**: AI Clarity Agent
+**Reviewer**: Development Team
+**Format**: Water Cooler Conversation (5 Critical Insights)
+
+### Insight 1: OmniSharp Is Legacy Technology
+
+**Did you know**: Microsoft deprecated OmniSharp in favor of the Roslyn LSP, and Serena/SolidLSP already uses Microsoft.CodeAnalysis.LanguageServer (not OmniSharp) as the default for C#.
+
+**Implications**:
+- OmniSharp is marked as "experimental" in Serena with documented issues ("problems with finding references")
+- SolidLSP auto-downloads Roslyn LSP from NuGet at runtime
+- We only need .NET SDK installed, not OmniSharp
+
+**Options Considered**:
+- Option A: Remove OmniSharp, just install .NET SDK (SELECTED)
+- Option B: Install OmniSharp as originally planned
+- Option C: Install csharp-ls (community alternative)
+- Option D: Defer C# support entirely
+
+**AI Recommendation**: Option A - Remove OmniSharp
+- Reasoning: Follows Serena's actual architecture; SolidLSP auto-manages the Roslyn LSP
+
+**Discussion Summary**: Research into Serena's codebase revealed they explicitly mark OmniSharp as experimental with known issues. The default CSHARP language uses Microsoft.CodeAnalysis.LanguageServer which is auto-downloaded.
+
+**Decision**: Remove OmniSharp; install .NET SDK only; let SolidLSP auto-download Roslyn LSP
+
+**Action Items**:
+- [x] Remove T005 (OmniSharp installation)
+- [x] Update T003 to ".NET SDK (Roslyn LSP runtime)"
+- [x] Update verification script to check .NET, not OmniSharp
+
+**Affects**: Tasks T003, T005, verification script
+
+---
+
+### Insight 2: Container Image Bloat
+
+**Did you know**: Adding Go and .NET SDK features would add ~1-1.5GB to the container image, significantly increasing rebuild time for all developers.
+
+**Implications**:
+- Current container: ~3.3GB
+- Estimated after changes: ~4.5-5GB
+- Every rebuild takes longer
+- New developer onboarding slower
+
+**Options Considered**:
+- Option A: Accept the bloat (SELECTED)
+- Option B: Use Alpine/slim base images
+- Option C: Lazy/on-demand installation
+- Option D: Split into optional features
+
+**AI Recommendation**: Option A - Accept the bloat
+- Reasoning: Dev environment prioritizes functionality; LSP is core feature; one-time rebuild cost
+
+**Discussion Summary**: The size increase was acknowledged as acceptable for a development environment where functionality trumps size optimization.
+
+**Decision**: Accept container image bloat; proceed with full installations
+
+**Action Items**: None
+
+**Affects**: No changes needed
+
+---
+
+### Insight 3: Verification Script Runs Manually
+
+**Did you know**: The verification script was designed as a manual step, meaning installation failures could go unnoticed until Phase 3 integration tests fail.
+
+**Implications**:
+- Developer might forget to run verification
+- Problems discovered late
+- Extra debugging time
+
+**Options Considered**:
+- Option A: Add verification to postCreateCommand (fail fast)
+- Option B: Add verification with warning only
+- Option C: Keep manual verification (SELECTED)
+- Option D: VS Code task + notification
+
+**AI Recommendation**: Option A - Fail fast
+- Reasoning: Immediate feedback; impossible to miss; guarantees working environment
+
+**Discussion Summary**: User pointed out that integration tests will fail anyway if servers are missing - that's the real safety net. The verification script is a convenience for debugging, not a critical gate.
+
+**Decision**: Keep manual verification; integration tests are the real gate
+
+**Action Items**: None
+
+**Affects**: No changes needed
+
+---
+
+### Insight 4: Use Portable Scripts Instead of Devcontainer Features
+
+**Did you know**: Using devcontainer features would tie the installation to the devcontainer environment, making it non-portable to CI, bare metal, or other Docker setups.
+
+**Implications**:
+- Devcontainer features are opaque and version-locked
+- Can't reuse installation logic elsewhere
+- Debugging feature issues is difficult
+
+**Options Considered**:
+- Option A: Use devcontainer features (original plan)
+- Option B: Create portable install scripts (SELECTED)
+- Option C: Hybrid approach
+- Option D: Document manual installation
+
+**AI Recommendation**: User-initiated change
+- Reasoning: Portability is valuable; scripts work anywhere; transparent and debuggable
+
+**Discussion Summary**: User requested portable scripts instead of devcontainer features, noting the installation might be needed outside devcontainers.
+
+**Decision**: Create `scripts/lsp_install/` with individual install scripts and `install_all.sh` orchestrator
+
+**Action Items**:
+- [x] Create `scripts/lsp_install/` directory
+- [x] Create individual install scripts for each LSP/runtime
+- [x] Create `install_all.sh` orchestrator
+- [x] Call `install_all.sh` from post-install.sh
+
+**Affects**: Complete restructure of Phase 0 tasks (5 → 8 tasks)
+
+---
+
+### Insight 5: gopls Requires Go Toolchain Pre-installed
+
+**Did you know**: The `install_gopls.sh` script would fail because Go isn't installed by default in the devcontainer, and the script assumed Go was already present.
+
+**Implications**:
+- `go install` command fails without Go toolchain
+- Hidden dependency not documented
+- Non-portable to environments without Go
+
+**Options Considered**:
+- Option A: Add Go installation to install_gopls.sh
+- Option B: Create separate install_go.sh script (SELECTED)
+- Option C: Require Go as prerequisite, document it
+- Option D: Add Go to Dockerfile only
+
+**AI Recommendation**: Option B - Create install_go.sh
+- Reasoning: Consistency with install_dotnet.sh pattern; portable; reusable
+
+**Discussion Summary**: Creating a separate install_go.sh maintains the pattern established with install_dotnet.sh and keeps scripts self-contained.
+
+**Decision**: Create `install_go.sh`; have `install_gopls.sh` call it first
+
+**Action Items**:
+- [x] Add T003 for install_go.sh
+- [x] Update T004 (install_gopls.sh) to depend on T003
+- [x] Renumber tasks to T001-T009
+- [x] Update install_all.sh to call install_go.sh before install_gopls.sh
+
+**Affects**: Tasks T003-T009, Architecture Map, verification script
+
+---
+
+## Session Summary
+
+**Insights Surfaced**: 5 critical insights identified and discussed
+**Decisions Made**: 5 decisions reached through collaborative discussion
+**Action Items Created**: 15+ updates applied throughout session
+**Areas Updated**:
+- Tasks restructured from 5 to 9 tasks
+- Switched from devcontainer features to portable scripts
+- Removed OmniSharp in favor of .NET SDK + SolidLSP auto-download
+- Added Go toolchain installation
+- Updated verification script to check Go and .NET
+
+**Shared Understanding Achieved**: ✓
+
+**Confidence Level**: High - All critical issues addressed; portable, maintainable approach
+
+**Next Steps**:
+- Review final tasks.md
+- Run `/plan-6-implement-phase --phase "Phase 0: Environment Preparation"` to implement
+
+**Notes**:
+- The switch to portable scripts makes the installation reusable across environments
+- Serena research revealed OmniSharp is deprecated; following their architecture
+- 9 tasks now provide clear, granular implementation steps

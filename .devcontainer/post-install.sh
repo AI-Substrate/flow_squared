@@ -17,6 +17,10 @@ fi
 
 
 
+# Install LSP servers and runtimes for fs2 development
+echo "Installing LSP servers..."
+/workspaces/flow_squared/scripts/lsp_install/install_all.sh
+
 # Add any additional post-install commands here
 uvx --from git+https://github.com/jakkaj/tools jk-tools-setup
 
@@ -28,7 +32,10 @@ echo "Pulling flowspace image"
 flowspace update
 
 # Source updated PATH to make newly installed tools available
-export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"
+# Includes: npm globals, local bin, Go, and .NET
+export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:/usr/local/go/bin:$HOME/go/bin:$HOME/.dotnet:$PATH"
+export GOPATH="$HOME/go"
+export DOTNET_ROOT="$HOME/.dotnet"
 
 claude mcp add flowspace -- flowspace mcp
 claude mcp add wormhole -- npx github:AI-Substrate/wormhole mcp --workspace .
