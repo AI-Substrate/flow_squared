@@ -19,17 +19,18 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from fs2.cli.utils import safe_write_file, validate_save_path
+from fs2.cli.utils import (
+    resolve_graph_from_context,
+    safe_write_file,
+    validate_save_path,
+)
 from fs2.config.exceptions import MissingConfigurationError
-from fs2.config.objects import GraphConfig
-from fs2.config.service import FS2ConfigurationService
 from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
 from fs2.core.models.search import QuerySpec, SearchMode
 from fs2.core.models.search.search_result_meta import (
     SearchResultMeta,
     compute_folder_distribution,
 )
-from fs2.core.repos import NetworkXGraphStore
 from fs2.core.services.search import SearchService
 from fs2.core.services.search.exceptions import SearchError
 from fs2.core.utils import normalize_filter_pattern
@@ -173,22 +174,8 @@ def search(
 
     try:
         # === Composition Root ===
-        config = FS2ConfigurationService()
-
-        # Get graph_file from global option via context
-        if ctx.obj and ctx.obj.graph_file:
-            config.set(GraphConfig(graph_path=ctx.obj.graph_file))
-
-        graph_config = config.require(GraphConfig)
-        graph_store = NetworkXGraphStore(config)
-
-        # === Load Graph (lazy loading) ===
-        from pathlib import Path
-
-        graph_path = Path(graph_config.graph_path)
-        if not graph_path.exists():
-            raise GraphNotFoundError(graph_path)
-        graph_store.load(graph_path)
+        # Per Phase 4: Use resolve_graph_from_context for multi-graph support
+        config, graph_store = resolve_graph_from_context(ctx)
 
         # Try to create embedding adapter if configured (for semantic search)
         from fs2.core.adapters.embedding_adapter import (

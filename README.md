@@ -73,6 +73,7 @@ See [Developer Setup](#developer-setup) below for contributing.
 | [Scanning](docs/how/user/scanning.md) | Build the code graph, configure paths, troubleshoot |
 | [MCP Server](docs/how/user/mcp-server-guide.md) | Connect Claude, Copilot, and other AI agents |
 | [Configuration Guide](docs/how/user/configuration-guide.md) | LLM, embeddings, secrets, and all config options |
+| [Multi-Graph](docs/how/user/multi-graphs.md) | Query multiple codebases from one installation |
 | [Agent Integration](docs/how/user/AGENTS.md) | How AI agents should use fs2 tools effectively |
 
 ## Quick Diagnostics

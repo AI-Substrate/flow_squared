@@ -21,20 +21,11 @@ fs2 (Flowspace2) is a code intelligence tool that provides structured access to 
 **Parameters**:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `pattern` | string | `"."` | Filter: `"."` for all, `"src/fs2/"` for folder, `"ClassName"` for substring, `"*.py"` for glob |
-| `max_depth` | int | `0` | `0` = unlimited, `1` = top-level folders only, `2` = folders + contents |
+| `pattern` | string | `"."` | Filter: `"."` for all, `"ClassName"` for substring, `"*.py"` for glob |
+| `max_depth` | int | `0` | `0` = unlimited, `1` = root only, `2` = roots + children |
 | `detail` | string | `"min"` | `"min"` = compact, `"max"` = includes signatures and AI summaries |
-| `format` | string | `"text"` | `"text"` = compact tree view (default), `"json"` = structured data |
 
-**Returns**: Dict with format-specific content:
-- `format="text"`: `{"format": "text", "content": "...", "count": N}` - compact tree view
-- `format="json"`: `{"format": "json", "tree": [...], "count": N}` - list of tree nodes
-
-**Folder Navigation** (progressive disclosure):
-- `tree(pattern=".", max_depth=1)` → Top-level folders only (📁 docs/, src/, tests/)
-- `tree(pattern=".", max_depth=2)` → Folders + their immediate contents
-- `tree(pattern="src/fs2/cli/")` → Contents of specific folder path
-- Folder nodes have `category: "folder"` and `node_id` with trailing slash (e.g., `src/fs2/`)
+**Returns**: List of tree nodes with `node_id` (use with `get_node`), `name`, `category`, `start_line`, `end_line`, `children`.
 
 ---
 
@@ -94,22 +85,16 @@ fs2 (Flowspace2) is a code intelligence tool that provides structured access to 
 ### Exploring a New Codebase
 
 ```python
-# 1. Get top-level folder structure
+# 1. Get top-level structure
 tree(pattern=".", max_depth=1)
-# → 📁 docs/, 📁 src/, 📁 tests/ with children counts
 
-# 2. Drill into a folder
-tree(pattern=".", max_depth=2)
-# → Shows folders + their immediate contents
+# 2. Find specific area of interest
+tree(pattern="services")
 
-# 3. Filter to specific folder path
-tree(pattern="src/fs2/cli/")
-# → Contents of the cli folder with files and symbols
-
-# 4. Find specific class by name
+# 3. Drill into a specific class
 tree(pattern="TreeService", detail="max")
 
-# 5. Get full source
+# 4. Get full source
 get_node(node_id="class:src/core/services/tree_service.py:TreeService")
 ```
 

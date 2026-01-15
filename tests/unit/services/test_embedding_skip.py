@@ -527,3 +527,52 @@ class TestSkipLogicWithSmartContent:
         should_skip = service._should_skip(node)
 
         assert should_skip is True, "Fully embedded node should be skipped"
+
+    def test_node_with_placeholder_smart_content_is_skipped(self, config):
+        """Node with placeholder smart_content should be skipped.
+
+        Per fix 2026-01-14: Placeholder smart_content (e.g., "[Empty content...")
+        is intentionally not embedded by process_batch(). The skip logic should
+        NOT require smart_content_embedding for placeholder content, otherwise
+        these nodes get re-processed forever.
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        node = CodeNode(
+            node_id="file:test/__init__.py",
+            category="file",
+            ts_kind="module",
+            name="__init__.py",
+            qualified_name="__init__.py",
+            start_line=1,
+            end_line=1,
+            start_column=0,
+            end_column=0,
+            start_byte=0,
+            end_byte=0,
+            content="",  # Empty __init__.py
+            content_hash="empty_hash",
+            signature=None,
+            language="python",
+            content_type=ContentType.CODE,
+            is_named=True,
+            field_name=None,
+            embedding=((0.1,),),  # Has raw embedding (even if empty)
+            embedding_hash="empty_hash",  # Matches content_hash
+            smart_content="[Empty content - no summary generated for file '__init__.py']",
+            smart_content_hash="empty_hash",
+            smart_content_embedding=None,  # Intentionally None - placeholder not embedded
+        )
+
+        service = EmbeddingService(
+            config=config,
+            embedding_adapter=None,
+            token_counter=None,
+        )
+
+        should_skip = service._should_skip(node)
+
+        assert should_skip is True, (
+            "Node with placeholder smart_content should be skipped even without "
+            "smart_content_embedding"
+        )

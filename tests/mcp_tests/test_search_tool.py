@@ -1040,3 +1040,103 @@ class TestSearchSaveToFile:
             os.chdir(original_cwd)
 
         assert output_file.exists(), "Nested file should be created"
+
+
+# =============================================================================
+# Phase 3: Multi-Graph Support - T004 Tests
+# =============================================================================
+
+
+class TestSearchWithGraphName:
+    """T004: Tests for search with graph_name parameter.
+
+    Per Phase 3 AC7-AC9: search tool accepts graph_name to query different graphs.
+    - graph_name=None (default) uses default graph
+    - graph_name="external-lib" selects external library graph
+    - Unknown graph_name raises ToolError with available names
+    """
+
+    @pytest.mark.asyncio
+    async def test_graph_name_none_uses_default(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves backward compatibility - no graph_name uses default.
+        Quality Contribution: Existing agent code continues to work.
+        Acceptance Criteria: Returns results from default graph (Calculator nodes).
+
+        Task: T004
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "search", {"pattern": "Calculator", "mode": "text"}
+        )
+        parsed = json.loads(result.content[0].text)
+
+        # Should find Calculator in default graph
+        node_ids = [r["node_id"] for r in parsed.get("results", [])]
+        assert any("Calculator" in nid for nid in node_ids), (
+            f"Default graph should have Calculator. Got: {node_ids}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_graph_name_named_graph(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves named graph returns different content.
+        Quality Contribution: Multi-graph functionality works.
+        Acceptance Criteria: Returns auth nodes from external-lib graph.
+
+        Task: T004
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "search",
+            {"pattern": "authenticate", "mode": "text", "graph_name": "external-lib"},
+        )
+        parsed = json.loads(result.content[0].text)
+
+        # Should find authenticate in external-lib graph
+        node_ids = [r["node_id"] for r in parsed.get("results", [])]
+        assert any("authenticate" in nid or "auth" in nid for nid in node_ids), (
+            f"external-lib should have auth nodes. Got: {node_ids}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_graph_name_results_from_correct_graph(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves results come from the specified graph only.
+        Quality Contribution: Graph isolation works correctly.
+        Acceptance Criteria: external-lib results don't include Calculator.
+
+        Task: T004
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "search",
+            {"pattern": ".", "mode": "text", "graph_name": "external-lib", "limit": 10},
+        )
+        parsed = json.loads(result.content[0].text)
+
+        node_ids = [r["node_id"] for r in parsed.get("results", [])]
+        # Should NOT contain Calculator (that's in default graph)
+        assert not any("Calculator" in nid for nid in node_ids), (
+            f"external-lib should not have Calculator. Got: {node_ids}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_graph_name_unknown_error(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves unknown graph_name raises helpful error.
+        Quality Contribution: User typos get clear feedback.
+        Acceptance Criteria: ToolError with available graph names listed.
+
+        Task: T004
+        """
+        from fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError) as exc_info:
+            await mcp_client_multi_graph.call_tool(
+                "search",
+                {"pattern": "test", "mode": "text", "graph_name": "typo-graph"},
+            )
+
+        error_msg = str(exc_info.value)
+        assert "typo-graph" in error_msg, f"Should mention typo-graph. Got: {error_msg}"
+        assert "default" in error_msg or "list_graphs" in error_msg, (
+            f"Should guide to available graphs. Got: {error_msg}"
+        )

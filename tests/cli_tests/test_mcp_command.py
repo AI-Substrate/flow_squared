@@ -103,23 +103,37 @@ class TestProtocolCompliance:
 
         Per AC13: All logging to stderr.
         """
-        stderr_captured = StringIO()
-        monkeypatch.setattr(sys, "stderr", stderr_captured)
-
-        # Configure logging (what mcp() function does)
-        from fs2.core.adapters.logging_config import MCPLoggingConfig
-
-        MCPLoggingConfig().configure()
-
-        # Emit a log message
         import logging
 
-        logger = logging.getLogger("fs2.test")
-        logger.info("Test log message for stderr capture")
+        # Save logging state to restore after test (prevent test pollution)
+        fs2_logger = logging.getLogger("fs2")
+        original_handlers = fs2_logger.handlers[:]
+        original_propagate = fs2_logger.propagate
+        original_level = fs2_logger.level
+        root_handlers = logging.root.handlers[:]
 
-        # Verify stderr capture works (content may or may not be present
-        # depending on log level and timing - the important thing is stdout is clean)
-        _ = stderr_captured.getvalue()
+        try:
+            stderr_captured = StringIO()
+            monkeypatch.setattr(sys, "stderr", stderr_captured)
+
+            # Configure logging (what mcp() function does)
+            from fs2.core.adapters.logging_config import MCPLoggingConfig
+
+            MCPLoggingConfig().configure()
+
+            # Emit a log message
+            logger = logging.getLogger("fs2.test")
+            logger.info("Test log message for stderr capture")
+
+            # Verify stderr capture works (content may or may not be present
+            # depending on log level and timing - the important thing is stdout is clean)
+            _ = stderr_captured.getvalue()
+        finally:
+            # Restore logging state to prevent pollution of subsequent tests
+            fs2_logger.handlers = original_handlers
+            fs2_logger.propagate = original_propagate
+            fs2_logger.level = original_level
+            logging.root.handlers = root_handlers
 
 
 class TestToolDescriptions:

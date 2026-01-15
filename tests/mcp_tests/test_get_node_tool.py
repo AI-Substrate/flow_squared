@@ -719,5 +719,130 @@ class TestGetNodeMCPProtocol:
                 )
 
             # ToolError should contain actionable message
-            assert "Graph not found" in str(exc_info.value)
-            assert "fs2 scan" in str(exc_info.value)
+            # Per Phase 3: GraphServiceError translation includes "not found"
+            error_msg = str(exc_info.value)
+            assert "not found" in error_msg
+            assert "fs2 scan" in error_msg
+
+
+# =============================================================================
+# Phase 3: Multi-Graph Support - T005 Tests
+# =============================================================================
+
+
+class TestGetNodeWithGraphName:
+    """T005: Tests for get_node with graph_name parameter.
+
+    Per Phase 3 AC7-AC9: get_node tool accepts graph_name to query different graphs.
+    - graph_name=None (default) uses default graph
+    - graph_name="external-lib" selects external library graph
+    - Unknown graph_name raises ToolError with available names
+    """
+
+    @pytest.mark.asyncio
+    async def test_graph_name_none_uses_default(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves backward compatibility - no graph_name uses default.
+        Quality Contribution: Existing agent code continues to work.
+        Acceptance Criteria: Returns node from default graph.
+
+        Task: T005
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "get_node", {"node_id": "class:src/calculator.py:Calculator"}
+        )
+        parsed = parse_tool_response(result)
+
+        # Should find Calculator node from default graph
+        assert parsed is not None, "Should find Calculator in default graph"
+        assert parsed["node_id"] == "class:src/calculator.py:Calculator"
+        assert parsed["name"] == "Calculator"
+
+    @pytest.mark.asyncio
+    async def test_graph_name_default_explicit(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves explicit "default" works same as None.
+        Quality Contribution: Consistent behavior for explicit vs implicit.
+        Acceptance Criteria: Returns same node as graph_name=None.
+
+        Task: T005
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "get_node",
+            {"node_id": "class:src/calculator.py:Calculator", "graph_name": "default"},
+        )
+        parsed = parse_tool_response(result)
+
+        assert parsed is not None, "Explicit default should find Calculator"
+        assert parsed["name"] == "Calculator"
+
+    @pytest.mark.asyncio
+    async def test_graph_name_named_graph(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves named graph returns node from that graph.
+        Quality Contribution: Multi-graph functionality works.
+        Acceptance Criteria: Returns authenticate node from external-lib graph.
+
+        Task: T005
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "get_node",
+            {
+                "node_id": "callable:src/auth/login.py:authenticate",
+                "graph_name": "external-lib",
+            },
+        )
+        parsed = parse_tool_response(result)
+
+        assert parsed is not None, "Should find authenticate in external-lib"
+        assert parsed["node_id"] == "callable:src/auth/login.py:authenticate"
+        assert parsed["name"] == "authenticate"
+
+    @pytest.mark.asyncio
+    async def test_graph_name_node_from_wrong_graph_returns_none(
+        self, mcp_client_multi_graph
+    ):
+        """
+        Purpose: Proves nodes don't leak between graphs.
+        Quality Contribution: Graph isolation works correctly.
+        Acceptance Criteria: Calculator node not found in external-lib graph.
+
+        Task: T005
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "get_node",
+            {
+                "node_id": "class:src/calculator.py:Calculator",
+                "graph_name": "external-lib",
+            },
+        )
+        parsed = parse_tool_response(result)
+
+        # Calculator is NOT in external-lib graph
+        assert parsed is None, "Calculator should not be in external-lib graph"
+
+    @pytest.mark.asyncio
+    async def test_graph_name_unknown_error(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves unknown graph_name raises helpful error.
+        Quality Contribution: User typos get clear feedback.
+        Acceptance Criteria: ToolError with available graph names listed.
+
+        Task: T005
+        """
+        from fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError) as exc_info:
+            await mcp_client_multi_graph.call_tool(
+                "get_node",
+                {
+                    "node_id": "class:src/calculator.py:Calculator",
+                    "graph_name": "typo-graph",
+                },
+            )
+
+        error_msg = str(exc_info.value)
+        assert "typo-graph" in error_msg, f"Should mention typo-graph. Got: {error_msg}"
+        assert "default" in error_msg or "list_graphs" in error_msg, (
+            f"Should guide to available graphs. Got: {error_msg}"
+        )

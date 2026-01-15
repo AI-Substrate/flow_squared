@@ -78,6 +78,18 @@ documents:
       - tools
     path: mcp-server-guide.md
 
+  # === Multi-Graph ===
+  - id: multi-graphs
+    title: "Multi-Graph Configuration Guide"
+    summary: "Query multiple codebases from a single fs2 installation. Configure external graphs to search across monorepos, shared libraries, or vendor SDKs."
+    category: how-to
+    tags:
+      - multi-graph
+      - config
+      - external
+      - monorepo
+    path: multi-graphs.md
+
   # === IDE Integration ===
   - id: wormhole-mcp-guide
     title: "Wormhole MCP Guide"

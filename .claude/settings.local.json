@@ -44,7 +44,9 @@
       "Bash(chmod:*)",
       "Bash(./scripts/fs2-watch.sh:*)",
       "Bash(bash -n:*)",
-      "Bash(fs2 scan:*)"
+      "Bash(fs2 scan:*)",
+      "Bash(lsof:*)",
+      "Bash(docker ps:*)"
     ],
     "deny": [],
     "ask": []
