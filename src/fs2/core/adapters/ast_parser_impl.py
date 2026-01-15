@@ -570,6 +570,7 @@ class TreeSitterParser(ASTParser):
         depth: int,
         parent_qualified_name: str | None,
         parent_node_id: str | None,
+        seen_node_ids: dict[str, int] | None = None,
     ) -> None:
         """Recursively extract named nodes from AST.
 
@@ -586,7 +587,12 @@ class TreeSitterParser(ASTParser):
             depth: Current depth in tree.
             parent_qualified_name: Qualified name of parent node.
             parent_node_id: Node ID of parent for hierarchy edges.
+            seen_node_ids: Dict tracking node_id -> line for collision detection.
         """
+        # Initialize seen_node_ids on first call
+        if seen_node_ids is None:
+            seen_node_ids = {}
+
         # Depth limit per CF08
         if depth > 4:
             return
@@ -628,6 +634,7 @@ class TreeSitterParser(ASTParser):
                     depth=depth,
                     parent_qualified_name=parent_qualified_name,
                     parent_node_id=parent_node_id,
+                    seen_node_ids=seen_node_ids,
                 )
                 continue
 
@@ -644,6 +651,7 @@ class TreeSitterParser(ASTParser):
                     depth=depth,
                     parent_qualified_name=parent_qualified_name,
                     parent_node_id=parent_node_id,
+                    seen_node_ids=seen_node_ids,
                 )
                 continue
 
@@ -651,13 +659,33 @@ class TreeSitterParser(ASTParser):
             name = self._extract_name(child, language)
             if name is None:
                 # Anonymous node - use position-based ID per CF11
-                name = f"@{child.start_point[0] + 1}"
+                # Per fix 2026-01-14: Include column for disambiguation when
+                # multiple anonymous nodes exist at the same line
+                line = child.start_point[0] + 1
+                col = child.start_point[1]
+                name = f"@{line}.{col}"
 
             # Build qualified name
             if parent_qualified_name:
                 qualified_name = f"{parent_qualified_name}.{name}"
             else:
                 qualified_name = name
+
+            # Per fix 2026-01-14: Detect and resolve node_id collisions
+            # E.g., Rust trait and impl with same name would both get type:...Cacheable
+            # The second occurrence gets a @line suffix to disambiguate
+            tentative_node_id = f"{category}:{file_path}:{qualified_name}"
+            current_line = child.start_point[0] + 1
+
+            if tentative_node_id in seen_node_ids:
+                existing_line = seen_node_ids[tentative_node_id]
+                if existing_line != current_line:
+                    # Collision! Disambiguate with line number
+                    qualified_name = f"{qualified_name}@{current_line}"
+
+            # Track this node_id (using the potentially-modified qualified_name)
+            final_node_id = f"{category}:{file_path}:{qualified_name}"
+            seen_node_ids[final_node_id] = current_line
 
             # Extract content
             start_byte = child.start_byte
@@ -704,6 +732,7 @@ class TreeSitterParser(ASTParser):
                 depth=depth + 1,
                 parent_qualified_name=qualified_name,
                 parent_node_id=code_node.node_id,
+                seen_node_ids=seen_node_ids,
             )
 
     def _extract_name(self, node, language: str) -> str | None:

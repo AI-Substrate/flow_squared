@@ -1102,3 +1102,110 @@ class TestTreeSitterParserSkipTracking:
 
         summary = parser.get_skip_summary()
         assert summary == {"(no extension)": 1}
+
+
+# =============================================================================
+# Node ID Collision Detection Tests (Fix 2026-01-14)
+# =============================================================================
+
+
+@pytest.mark.unit
+class TestNodeIdCollisionDetection:
+    """Tests for node_id collision detection in parser.
+
+    Per fix 2026-01-14: When multiple AST nodes would get the same node_id
+    (e.g., Rust trait and impl block both named "Cacheable"), the second
+    occurrence should get a @line suffix to disambiguate.
+    """
+
+    def test_rust_trait_and_impl_have_different_node_ids(self, tmp_path):
+        """
+        Purpose: Trait and impl block with same name should have different node_ids.
+        Quality Contribution: Prevents non-deterministic graph content.
+        Acceptance Criteria: No duplicate node_ids for different AST nodes.
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
+
+        # Create a Rust file with both trait and impl with same name
+        rust_content = """
+pub trait Cacheable {
+    fn cache_key(&self) -> String;
+}
+
+impl<T: Clone> Cacheable for T {
+    fn cache_key(&self) -> String {
+        "default".to_string()
+    }
+}
+""".strip()
+
+        rust_file = tmp_path / "test.rs"
+        rust_file.write_text(rust_content)
+
+        config = FakeConfigurationService(ScanConfig())
+        parser = TreeSitterParser(config)
+        nodes = parser.parse(rust_file)
+
+        # Find all nodes with "Cacheable" in their node_id
+        cacheable_nodes = [
+            n for n in nodes if "Cacheable" in n.node_id and n.category == "type"
+        ]
+
+        # Should have at least 2 (trait + impl)
+        assert len(cacheable_nodes) >= 2, (
+            f"Expected at least 2 Cacheable nodes, got {len(cacheable_nodes)}: "
+            f"{[n.node_id for n in cacheable_nodes]}"
+        )
+
+        # They should have different node_ids
+        node_ids = [n.node_id for n in cacheable_nodes]
+        assert len(node_ids) == len(set(node_ids)), (
+            f"Node ID collision detected: {node_ids}"
+        )
+
+    def test_duplicate_function_names_have_different_node_ids(self, tmp_path):
+        """
+        Purpose: Multiple functions with same name at different lines get unique IDs.
+        Quality Contribution: Ensures all code is captured in graph.
+        Acceptance Criteria: Each occurrence has a unique node_id.
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.ast_parser_impl import TreeSitterParser
+
+        # Create Python file with duplicate function names (e.g., in different scopes)
+        # For simplicity, we use a class with multiple methods that would collide
+        py_content = """
+class A:
+    def helper(self):
+        pass
+
+class B:
+    def helper(self):
+        pass
+""".strip()
+
+        py_file = tmp_path / "test.py"
+        py_file.write_text(py_content)
+
+        config = FakeConfigurationService(ScanConfig())
+        parser = TreeSitterParser(config)
+        nodes = parser.parse(py_file)
+
+        # Find all "helper" callable nodes
+        helper_nodes = [
+            n for n in nodes if n.name == "helper" and n.category == "callable"
+        ]
+
+        # Should have 2 helper methods
+        assert len(helper_nodes) == 2, (
+            f"Expected 2 helper nodes, got {len(helper_nodes)}"
+        )
+
+        # They should have different node_ids (A.helper vs B.helper)
+        node_ids = [n.node_id for n in helper_nodes]
+        assert len(node_ids) == len(set(node_ids)), (
+            f"Node ID collision detected: {node_ids}"
+        )

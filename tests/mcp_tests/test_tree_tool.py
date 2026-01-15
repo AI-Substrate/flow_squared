@@ -1270,3 +1270,121 @@ class TestTreeSaveToFile:
             json.loads(content)
         finally:
             os.chdir(original_cwd)
+
+
+# =============================================================================
+# Phase 3: Multi-Graph Support - T003 Tests
+# =============================================================================
+
+
+class TestTreeWithGraphName:
+    """T003: Tests for tree with graph_name parameter.
+
+    Per Phase 3 AC7-AC9: tree tool accepts graph_name to query different graphs.
+    - graph_name=None (default) uses default graph
+    - graph_name="default" explicitly selects default graph
+    - graph_name="external-lib" selects external library graph
+    - Unknown graph_name raises ToolError with available names
+    """
+
+    @pytest.mark.asyncio
+    async def test_graph_name_none_uses_default(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves backward compatibility - no graph_name uses default.
+        Quality Contribution: Existing agent code continues to work.
+        Acceptance Criteria: Returns Calculator nodes from default graph.
+
+        Task: T003
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "tree", {"pattern": ".", "format": "json"}
+        )
+        parsed = parse_tool_response(result)
+        nodes = parsed.get("tree", [])
+
+        # Flatten to check all nodes
+        all_nodes = _flatten_tree(nodes)
+        node_ids = [n["node_id"] for n in all_nodes]
+
+        # Should contain default graph content (Calculator)
+        assert any("Calculator" in nid for nid in node_ids), (
+            f"Default graph should have Calculator. Got: {node_ids}"
+        )
+        # Should NOT contain external-lib content (auth)
+        assert not any("auth" in nid for nid in node_ids), (
+            f"Default graph should not have auth nodes. Got: {node_ids}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_graph_name_default_explicit(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves explicit "default" works same as None.
+        Quality Contribution: Consistent behavior for explicit vs implicit.
+        Acceptance Criteria: Returns same Calculator nodes as graph_name=None.
+
+        Task: T003
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "tree", {"pattern": ".", "graph_name": "default", "format": "json"}
+        )
+        parsed = parse_tool_response(result)
+        nodes = parsed.get("tree", [])
+
+        all_nodes = _flatten_tree(nodes)
+        node_ids = [n["node_id"] for n in all_nodes]
+
+        # Should contain Calculator (default graph)
+        assert any("Calculator" in nid for nid in node_ids), (
+            f"Explicit default should have Calculator. Got: {node_ids}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_graph_name_named_graph(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves named graph returns different content.
+        Quality Contribution: Multi-graph functionality works.
+        Acceptance Criteria: Returns auth nodes from external-lib graph.
+
+        Task: T003
+        """
+        result = await mcp_client_multi_graph.call_tool(
+            "tree", {"pattern": ".", "graph_name": "external-lib", "format": "json"}
+        )
+        parsed = parse_tool_response(result)
+        nodes = parsed.get("tree", [])
+
+        all_nodes = _flatten_tree(nodes)
+        node_ids = [n["node_id"] for n in all_nodes]
+
+        # Should contain auth nodes (external-lib graph)
+        assert any("auth" in nid or "authenticate" in nid for nid in node_ids), (
+            f"external-lib should have auth nodes. Got: {node_ids}"
+        )
+        # Should NOT contain Calculator (default graph)
+        assert not any("Calculator" in nid for nid in node_ids), (
+            f"external-lib should not have Calculator. Got: {node_ids}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_graph_name_unknown_error(self, mcp_client_multi_graph):
+        """
+        Purpose: Proves unknown graph_name raises helpful error.
+        Quality Contribution: User typos get clear feedback with available names.
+        Acceptance Criteria: ToolError with available graph names listed.
+
+        Task: T003
+        """
+        from fastmcp.exceptions import ToolError
+
+        with pytest.raises(ToolError) as exc_info:
+            await mcp_client_multi_graph.call_tool(
+                "tree", {"pattern": ".", "graph_name": "typo-graph"}
+            )
+
+        error_msg = str(exc_info.value)
+        # Should mention the unknown graph name
+        assert "typo-graph" in error_msg, f"Should mention typo-graph. Got: {error_msg}"
+        # Should mention available graphs
+        assert "default" in error_msg or "list_graphs" in error_msg, (
+            f"Should guide to available graphs. Got: {error_msg}"
+        )

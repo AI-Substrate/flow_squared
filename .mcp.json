@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "flowspace": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "fs2",
+        "mcp"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -3,13 +3,19 @@ set -e
 
 echo "Running post-install script..."
 
-# Install Python dependencies if requirements.txt exists
+# Install Python dependencies via uv (includes ruff and all dev deps from pyproject.toml)
+if [ -f "pyproject.toml" ]; then
+    echo "Installing Python dependencies via uv sync..."
+    uv sync
+fi
+
+# Legacy: Install Python dependencies if requirements.txt exists
 if [ -f "requirements.txt" ]; then
     echo "Installing Python dependencies..."
     pip3 install --user -r requirements.txt
 fi
 
-# Install dev dependencies if requirements-dev.txt exists
+# Legacy: Install dev dependencies if requirements-dev.txt exists
 if [ -f "requirements-dev.txt" ]; then
     echo "Installing dev dependencies..."
     pip3 install --user -r requirements-dev.txt
@@ -37,7 +43,7 @@ export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:/usr/local/go/bin:$HOME/go/b
 export GOPATH="$HOME/go"
 export DOTNET_ROOT="$HOME/.dotnet"
 
-claude mcp add flowspace -- flowspace mcp
+claude mcp add flowspace -- uv run fs2 mcp
 claude mcp add wormhole -- npx github:AI-Substrate/wormhole mcp --workspace .
 
 echo "Post-install script completed!"

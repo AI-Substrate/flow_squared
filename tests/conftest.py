@@ -38,6 +38,58 @@ def pytest_configure(config):
             )
 
 
+@pytest.fixture(autouse=True)
+def reset_dependencies_after_test():
+    """Reset service singletons after each test to prevent test pollution.
+
+    Per DYK-01: Services in fs2.core.dependencies use module-level singletons.
+    Tests that inject fakes or modify state must not leak to other tests.
+    This autouse fixture ensures clean state for every test.
+    """
+    yield
+    # Reset after test completes
+    from fs2.core import dependencies
+
+    dependencies.reset_services()
+
+
+@pytest.fixture(autouse=True)
+def reset_logging_after_test():
+    """Reset logging configuration after each test to prevent test pollution.
+
+    Some tests (e.g., MCP logging tests) configure logging handlers that persist
+    and break caplog in subsequent tests. This fixture saves and restores logging
+    state to ensure clean state for every test.
+    """
+    import logging
+
+    # Save state of fs2 logger and root logger before test
+    fs2_logger = logging.getLogger("fs2")
+    fs2_server_logger = logging.getLogger("fs2.mcp.server")
+    fs2_config_logger = logging.getLogger("fs2.config.service")
+
+    original_fs2_handlers = fs2_logger.handlers[:]
+    original_fs2_propagate = fs2_logger.propagate
+    original_fs2_level = fs2_logger.level
+
+    original_server_handlers = fs2_server_logger.handlers[:]
+    original_config_handlers = fs2_config_logger.handlers[:]
+
+    original_root_handlers = logging.root.handlers[:]
+
+    yield
+
+    # Restore logging state after test
+    fs2_logger.handlers = original_fs2_handlers
+    fs2_logger.propagate = original_fs2_propagate
+    fs2_logger.level = original_fs2_level
+
+    fs2_server_logger.handlers = original_server_handlers
+    fs2_config_logger.handlers = original_config_handlers
+
+    logging.root.handlers = original_root_handlers
+
+
 @pytest.fixture
 def clean_config_env(monkeypatch):
     """Clear all FS2_* environment variables for test isolation.

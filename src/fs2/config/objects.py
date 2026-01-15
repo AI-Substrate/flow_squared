@@ -12,9 +12,10 @@ Per Architecture Decision: Typed object registry pattern.
 Per Insight #6: Pydantic validation on construction.
 """
 
+from pathlib import Path
 from typing import ClassVar, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
 
 
 class AzureOpenAIConfig(BaseModel):
@@ -736,6 +737,107 @@ class WatchConfig(BaseModel):
         return v
 
 
+class OtherGraph(BaseModel):
+    """Configuration for an external graph reference.
+
+    Represents a single external code graph that can be queried alongside
+    the default project graph. Part of multi-graph support.
+
+    Per Critical Finding 04: "default" is reserved for the local graph.
+    Per Phase 1 spec: name and path required, description and source_url optional.
+    Per Phase 2 DYK-02: _source_dir tracks config file location for path resolution.
+
+    Attributes:
+        name: Unique identifier for this graph (required, cannot be "default").
+        path: File path to the graph pickle file (required).
+              Supports absolute, tilde (~), or relative paths.
+              Path resolution happens at access time (Phase 2).
+        description: Human-readable description of this graph (optional).
+        source_url: URL of the source repository (optional, informational only).
+        _source_dir: Directory of the config file this graph came from (internal).
+                     Used for resolving relative paths from the config file location.
+                     Set during config merge, not from YAML directly.
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        other_graphs:
+          graphs:
+            - name: "shared-lib"
+              path: "~/projects/shared/.fs2/graph.pickle"
+              description: "Shared utilities library"
+              source_url: "https://github.com/org/shared"
+        ```
+    """
+
+    name: str
+    path: str
+    description: str | None = None
+    source_url: str | None = None
+    _source_dir: Path | None = PrivateAttr(default=None)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        """Validate name is not empty, whitespace, or reserved.
+
+        Per Critical Finding 04: 'default' is reserved for local graph.
+        """
+        if not v or not v.strip():
+            raise ValueError("name must not be empty or whitespace")
+        if v == "default":
+            raise ValueError(
+                "'default' is reserved for the local project graph. "
+                "Choose a different name for this external graph."
+            )
+        return v
+
+    @field_validator("path")
+    @classmethod
+    def validate_path(cls, v: str) -> str:
+        """Validate path is not empty or whitespace."""
+        if not v or not v.strip():
+            raise ValueError("path must not be empty or whitespace")
+        return v
+
+
+class OtherGraphsConfig(BaseModel):
+    """Configuration for external graph references.
+
+    Loaded from YAML at path "other_graphs".
+    Path: other_graphs (e.g., in YAML: other_graphs.graphs)
+
+    Container model for listing external graphs that can be queried
+    alongside the default project graph. Supports multi-graph workflows.
+
+    Per Critical Finding 01: User and project config graphs are concatenated
+    (not replaced) via custom merge logic in ConfigurationService.
+
+    Attributes:
+        graphs: List of OtherGraph configurations (default: empty list).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        other_graphs:
+          graphs:
+            - name: "team-lib"
+              path: "/shared/team-lib/.fs2/graph.pickle"
+              description: "Team shared components"
+            - name: "personal-utils"
+              path: "~/projects/utils/.fs2/graph.pickle"
+        ```
+
+    Note:
+        The `graphs:` wrapper is required (not a direct list under other_graphs).
+        This allows future extension of the config schema.
+    """
+
+    __config_path__: ClassVar[str] = "other_graphs"
+
+    graphs: list[OtherGraph] = []
+
+
 class SearchConfig(BaseModel):
     """Configuration for search operations.
 
@@ -820,4 +922,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     EmbeddingConfig,
     SearchConfig,
     WatchConfig,
+    OtherGraphsConfig,
 ]

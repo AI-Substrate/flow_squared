@@ -567,3 +567,184 @@ async def docs_mcp_client():
         yield client
 
     # Cleanup handled by reset_mcp_dependencies autouse fixture
+
+
+# =============================================================================
+# Multi-Graph Fixtures (Phase 3 - MCP Integration)
+# =============================================================================
+
+
+@pytest.fixture
+def multi_graph_stores(
+    tmp_path: Path,
+) -> tuple[dict[str, FakeGraphStore], FakeConfigurationService]:
+    """Create multiple FakeGraphStores for multi-graph testing.
+
+    Creates two graph stores with distinct content:
+    - "default": Local project graph with Calculator nodes
+    - "external-lib": External library with auth nodes
+
+    Per DYK-01: These stores are injected via FakeGraphService,
+    not via set_graph_store().
+
+    Args:
+        tmp_path: Pytest's temporary directory fixture.
+
+    Returns:
+        Tuple of (stores_dict, config) where stores_dict maps name to FakeGraphStore.
+    """
+    # Create graph files for TreeService compatibility
+    default_graph_path = tmp_path / "default_graph.pickle"
+    external_graph_path = tmp_path / "external_graph.pickle"
+    default_graph_path.touch()
+    external_graph_path.touch()
+
+    # Config with both graph paths
+    config = FakeConfigurationService(
+        ScanConfig(),
+        GraphConfig(graph_path=str(default_graph_path)),
+    )
+
+    # Default graph - Calculator nodes
+    default_store = FakeGraphStore(config)
+    default_store.set_nodes(
+        [
+            make_code_node(
+                node_id="file:src/calculator.py",
+                category="file",
+                name="calculator.py",
+                content="# Calculator module",
+                start_line=1,
+                end_line=50,
+            ),
+            make_code_node(
+                node_id="class:src/calculator.py:Calculator",
+                category="class",
+                name="Calculator",
+                content="class Calculator:\n    pass",
+                start_line=5,
+                end_line=45,
+                parent_node_id="file:src/calculator.py",
+            ),
+        ]
+    )
+    default_store.add_edge(
+        "file:src/calculator.py", "class:src/calculator.py:Calculator"
+    )
+
+    # External library - Auth nodes
+    external_config = FakeConfigurationService(
+        ScanConfig(),
+        GraphConfig(graph_path=str(external_graph_path)),
+    )
+    external_store = FakeGraphStore(external_config)
+    external_store.set_nodes(
+        [
+            make_code_node(
+                node_id="file:src/auth/login.py",
+                category="file",
+                name="login.py",
+                content="# Auth module",
+                start_line=1,
+                end_line=30,
+            ),
+            make_code_node(
+                node_id="callable:src/auth/login.py:authenticate",
+                category="callable",
+                name="authenticate",
+                content="def authenticate(user, password): pass",
+                start_line=5,
+                end_line=15,
+                parent_node_id="file:src/auth/login.py",
+            ),
+        ]
+    )
+    external_store.add_edge(
+        "file:src/auth/login.py", "callable:src/auth/login.py:authenticate"
+    )
+
+    stores = {
+        "default": default_store,
+        "external-lib": external_store,
+    }
+
+    return stores, config
+
+
+@pytest.fixture
+def fake_graph_service_fixture(
+    multi_graph_stores: tuple[dict[str, FakeGraphStore], FakeConfigurationService],
+    tmp_path: Path,
+):
+    """Create a FakeGraphService with pre-configured stores.
+
+    Per DYK-01: This is the proper injection pattern for multi-graph testing.
+
+    Args:
+        multi_graph_stores: Tuple of (stores_dict, config) from fixture.
+        tmp_path: Pytest's temporary directory fixture.
+
+    Returns:
+        FakeGraphService with stores for "default" and "external-lib".
+    """
+    from fs2.core.services.graph_service_fake import FakeGraphService
+
+    stores, config = multi_graph_stores
+
+    fake_service = FakeGraphService()
+
+    # Register stores
+    for name, store in stores.items():
+        fake_service.set_graph(name, store)
+
+    # Configure list_graphs() return value
+    fake_service.add_graph_info(
+        name="default",
+        path=tmp_path / "default_graph.pickle",
+        description="Local project graph",
+        available=True,
+    )
+    fake_service.add_graph_info(
+        name="external-lib",
+        path=tmp_path / "external_graph.pickle",
+        description="External library",
+        source_url="https://github.com/example/lib",
+        available=True,
+    )
+
+    return fake_service
+
+
+@pytest.fixture
+async def mcp_client_multi_graph(
+    fake_graph_service_fixture,
+    multi_graph_stores: tuple[dict[str, FakeGraphStore], FakeConfigurationService],
+):
+    """Async MCP client with multi-graph support.
+
+    Per DYK-01: Uses set_graph_service() to inject FakeGraphService,
+    enabling tests to query different graphs via graph_name parameter.
+
+    Args:
+        fake_graph_service_fixture: FakeGraphService with configured stores.
+        multi_graph_stores: Tuple of (stores_dict, config) for accessing config.
+
+    Yields:
+        Client connected to MCP server with multi-graph support.
+    """
+    from fastmcp.client import Client
+
+    from fs2.mcp import dependencies
+    from fs2.mcp.server import mcp
+
+    stores, config = multi_graph_stores
+
+    # Inject dependencies
+    dependencies.reset_services()
+    dependencies.set_config(config)
+    dependencies.set_graph_service(fake_graph_service_fixture)
+
+    async with Client(mcp) as client:
+        yield client
+
+    # Cleanup handled by reset_mcp_dependencies autouse fixture

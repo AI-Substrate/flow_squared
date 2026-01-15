@@ -11,6 +11,7 @@ Complete command-line interface reference for Flowspace2 (fs2).
 | `fs2 tree` | Display code structure | `fs2 tree src/core --json` |
 | `fs2 search` | Search code graph | `fs2 search "auth" --mode semantic` |
 | `fs2 get-node` | Retrieve node by ID | `fs2 get-node "file:src/main.py"` |
+| `fs2 list-graphs` | List available graphs | `fs2 list-graphs --json` |
 | `fs2 mcp` | Start MCP server | `fs2 mcp` |
 | `fs2 install` | Install fs2 globally | `fs2 install` |
 
@@ -26,6 +27,19 @@ Override graph file path (default: `.fs2/graph.pickle`).
 ```bash
 fs2 --graph-file /custom/graph.pickle tree
 ```
+
+### `--graph-name NAME`
+Use a named graph from `other_graphs` config instead of the default graph.
+
+```bash
+# Query an external library configured in other_graphs
+fs2 --graph-name shared-lib tree
+fs2 --graph-name shared-lib search "config"
+```
+
+**Note**: `--graph-name` and `--graph-file` are mutually exclusive.
+
+See [Multi-Graph Configuration Guide](multi-graphs.md) for setup instructions.
 
 ### `--version` / `-V`
 Show version and exit.
@@ -218,8 +232,9 @@ fs2 tree src/core
 # Filter by class name
 fs2 tree Calculator
 
-# Limit depth
-fs2 tree --depth 2
+# Limit depth (shows folder hierarchy)
+fs2 tree --depth 1   # Top-level folders only
+fs2 tree --depth 2   # Folders + immediate contents
 
 # Full details
 fs2 tree --detail max
@@ -233,6 +248,43 @@ fs2 tree --json --file tree.json
 # Combined: filter, JSON, file
 fs2 tree Calculator --json --file calc.json
 ```
+
+**Folder Navigation (Progressive Disclosure):**
+
+When using `--depth` with `tree .`, the output shows a hierarchical folder structure:
+
+```bash
+# Show only top-level folders with item counts
+$ fs2 tree --depth 1
+├── 📁 docs [0-0]
+│   └── [253 children hidden by depth limit]
+├── 📁 scripts [0-0]
+│   └── [59 children hidden by depth limit]
+├── 📁 src [0-0]
+│   └── [722 children hidden by depth limit]
+└── 📁 tests [0-0]
+    └── [3064 children hidden by depth limit]
+
+# Drill down: show folders + their immediate contents
+$ fs2 tree --depth 2
+├── 📁 src [0-0]
+│   └── 📁 fs2 [0-0]
+│       └── [722 children hidden]
+...
+
+# Filter to specific folder path
+$ fs2 tree src/fs2/cli/
+└── 📁 src/fs2/cli/
+    ├── 📄 file:src/fs2/cli/__init__.py [1-2]
+    ├── 📄 file:src/fs2/cli/tree.py [1-364]
+    │   ├── ƒ callable:src/fs2/cli/tree.py:tree [102-240]
+    │   └── ...
+```
+
+Folder nodes have:
+- `category: "folder"` (synthetic, not in graph)
+- `node_id` with trailing slash (e.g., `src/fs2/cli/`)
+- `hidden_children_count` shows nested files (not folders)
 
 ---
 
@@ -414,6 +466,88 @@ fs2 get-node "file:src/main.py" --file node.json
 # Get class definition
 fs2 get-node "class:src/core/adapters/log_adapter.py:LogAdapter"
 ```
+
+---
+
+### fs2 list-graphs
+
+List all available graphs with their metadata.
+
+**Synopsis:**
+```bash
+fs2 list-graphs [OPTIONS]
+```
+
+**Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--json` | flag | false | Output JSON instead of table |
+
+**Exit Codes:**
+- `0` - Success
+- `1` - Configuration error (no config found)
+
+**Output Formats:**
+
+**Rich Table (default):**
+```
+                             Available Graphs
+┏━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃ Name       ┃ Status ┃ Path                         ┃ Description      ┃
+┡━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│ default    │   ✓    │ /home/user/my-project/.fs2/g │ Local project    │
+│            │        │ raph.pickle                  │                  │
+│ shared-lib │   ✓    │ /home/user/libs/shared/.fs2/ │ Shared library   │
+│            │        │ graph.pickle                 │                  │
+└────────────┴────────┴──────────────────────────────┴──────────────────┘
+
+Total: 2 graph(s)
+```
+
+Long paths wrap to show the complete path.
+
+**JSON (`--json`):**
+```json
+{
+  "docs": [
+    {
+      "name": "default",
+      "path": "/project/.fs2/graph.pickle",
+      "description": "Local project graph",
+      "source_url": null,
+      "available": true
+    },
+    {
+      "name": "shared-lib",
+      "path": "/home/user/libs/.fs2/graph.pickle",
+      "description": "Shared library",
+      "source_url": "https://github.com/org/lib",
+      "available": true
+    }
+  ],
+  "count": 2
+}
+```
+
+The JSON output matches the MCP `list_graphs()` tool exactly, enabling consistent scripting across CLI and MCP.
+
+**Examples:**
+```bash
+# Show table with name, status, path, description
+fs2 list-graphs
+
+# Output JSON for scripting (matches MCP list_graphs)
+fs2 list-graphs --json
+
+# Pipe to jq
+fs2 list-graphs --json | jq '.docs[] | select(.available) | .name'
+
+# Check which graphs are unavailable
+fs2 list-graphs --json | jq '.docs[] | select(.available == false)'
+```
+
+See [Multi-Graph Configuration Guide](multi-graphs.md) for setup instructions.
 
 ---
 
