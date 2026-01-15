@@ -1129,7 +1129,7 @@ class TestNodeIdCollisionDetection:
         from fs2.core.adapters.ast_parser_impl import TreeSitterParser
 
         # Create a Rust file with both trait and impl with same name
-        rust_content = '''
+        rust_content = """
 pub trait Cacheable {
     fn cache_key(&self) -> String;
 }
@@ -1139,7 +1139,7 @@ impl<T: Clone> Cacheable for T {
         "default".to_string()
     }
 }
-'''.strip()
+""".strip()
 
         rust_file = tmp_path / "test.rs"
         rust_file.write_text(rust_content)
@@ -1150,8 +1150,7 @@ impl<T: Clone> Cacheable for T {
 
         # Find all nodes with "Cacheable" in their node_id
         cacheable_nodes = [
-            n for n in nodes
-            if "Cacheable" in n.node_id and n.category == "type"
+            n for n in nodes if "Cacheable" in n.node_id and n.category == "type"
         ]
 
         # Should have at least 2 (trait + impl)
@@ -1178,7 +1177,7 @@ impl<T: Clone> Cacheable for T {
 
         # Create Python file with duplicate function names (e.g., in different scopes)
         # For simplicity, we use a class with multiple methods that would collide
-        py_content = '''
+        py_content = """
 class A:
     def helper(self):
         pass
@@ -1186,7 +1185,7 @@ class A:
 class B:
     def helper(self):
         pass
-'''.strip()
+""".strip()
 
         py_file = tmp_path / "test.py"
         py_file.write_text(py_content)
@@ -1197,8 +1196,7 @@ class B:
 
         # Find all "helper" callable nodes
         helper_nodes = [
-            n for n in nodes
-            if n.name == "helper" and n.category == "callable"
+            n for n in nodes if n.name == "helper" and n.category == "callable"
         ]
 
         # Should have 2 helper methods

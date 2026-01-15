@@ -61,7 +61,7 @@ def list_graphs(
         except (MissingConfigurationError, FileNotFoundError):
             stderr_console.print("[red]No fs2 configuration found.[/red]")
             stderr_console.print("Run [bold]fs2 init[/bold] to initialize.")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
 
         # Per Critical Insight #3: JSON output must match MCP list_graphs() exactly
         if json_output:
@@ -100,4 +100,4 @@ def list_graphs(
     except MissingConfigurationError:
         stderr_console.print("[red]No fs2 configuration found.[/red]")
         stderr_console.print("Run [bold]fs2 init[/bold] to initialize.")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None

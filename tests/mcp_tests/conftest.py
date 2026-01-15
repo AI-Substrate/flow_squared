@@ -628,7 +628,9 @@ def multi_graph_stores(
             ),
         ]
     )
-    default_store.add_edge("file:src/calculator.py", "class:src/calculator.py:Calculator")
+    default_store.add_edge(
+        "file:src/calculator.py", "class:src/calculator.py:Calculator"
+    )
 
     # External library - Auth nodes
     external_config = FakeConfigurationService(

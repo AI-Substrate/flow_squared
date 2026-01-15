@@ -13,9 +13,12 @@ Per Critical Finding 01: Pre-extract/post-inject for list concatenation.
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from fs2.config.objects import OtherGraphsConfig
 
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.config.loaders import (
@@ -335,7 +338,7 @@ class FS2ConfigurationService(ConfigurationService):
         to ensure users see actionable error messages.
         Per Phase 2 DYK-02: Set _source_dir on OtherGraph objects after creation.
         """
-        from fs2.config.objects import OtherGraph, OtherGraphsConfig
+        from fs2.config.objects import OtherGraphsConfig
 
         for config_type in YAML_CONFIG_TYPES:
             config_path = getattr(config_type, "__config_path__", None)

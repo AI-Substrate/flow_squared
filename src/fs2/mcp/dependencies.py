@@ -16,6 +16,10 @@ Usage (backward compatible - existing code continues to work):
 
 # Re-export everything from core.dependencies for backward compatibility
 # This includes public API functions
+# Re-export module-level private singletons for tests that check them directly
+# (e.g., test_dependencies.py::test_config_none_before_first_access)
+# Uses __getattr__ for module-level attribute forwarding (PEP 562)
+from fs2.core import dependencies as _core_deps
 from fs2.core.dependencies import (
     get_config,
     get_docs_service,
@@ -30,11 +34,6 @@ from fs2.core.dependencies import (
     set_graph_service,
     set_graph_store,
 )
-
-# Re-export module-level private singletons for tests that check them directly
-# (e.g., test_dependencies.py::test_config_none_before_first_access)
-# Uses __getattr__ for module-level attribute forwarding (PEP 562)
-from fs2.core import dependencies as _core_deps
 
 __all__ = [
     "get_config",
@@ -54,7 +53,13 @@ __all__ = [
 
 def __getattr__(name: str):
     """Forward private variable access to core.dependencies module."""
-    if name in ("_config", "_graph_store", "_graph_service", "_embedding_adapter",
-                "_docs_service", "_lock"):
+    if name in (
+        "_config",
+        "_graph_store",
+        "_graph_service",
+        "_embedding_adapter",
+        "_docs_service",
+        "_lock",
+    ):
         return getattr(_core_deps, name)
     raise AttributeError(f"module 'fs2.mcp.dependencies' has no attribute '{name}'")

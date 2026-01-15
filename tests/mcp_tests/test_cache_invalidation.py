@@ -146,7 +146,12 @@ class TestCacheInvalidationE2E:
                 graph_path,
                 [
                     ("file:src/new.py", "new.py", "file", "# New"),
-                    ("class:src/new.py:NewClass", "NewClass", "class", "class NewClass: pass"),
+                    (
+                        "class:src/new.py:NewClass",
+                        "NewClass",
+                        "class",
+                        "class NewClass: pass",
+                    ),
                 ],
             )
 
@@ -251,7 +256,12 @@ class TestCacheInvalidationE2E:
         """
         from fastmcp.client import Client
 
-        from fs2.config.objects import GraphConfig, OtherGraph, OtherGraphsConfig, ScanConfig
+        from fs2.config.objects import (
+            GraphConfig,
+            OtherGraph,
+            OtherGraphsConfig,
+            ScanConfig,
+        )
         from fs2.config.service import FakeConfigurationService
         from fs2.mcp import dependencies
         from fs2.mcp.server import mcp
@@ -391,16 +401,12 @@ class TestCachingActuallyWorks:
 
         async with Client(mcp) as client:
             # First query - should trigger load
-            result1 = await client.call_tool(
-                "tree", {"pattern": ".", "format": "json"}
-            )
+            result1 = await client.call_tool("tree", {"pattern": ".", "format": "json"})
             data1 = json.loads(result1.content[0].text)
             assert data1["count"] > 0, "First query should return data"
 
             # Second query - should use cache (no additional load)
-            result2 = await client.call_tool(
-                "tree", {"pattern": ".", "format": "json"}
-            )
+            result2 = await client.call_tool("tree", {"pattern": ".", "format": "json"})
             data2 = json.loads(result2.content[0].text)
             assert data2["count"] > 0, "Second query should return data"
 
@@ -433,7 +439,12 @@ class TestCachingActuallyWorks:
         """
         from fastmcp.client import Client
 
-        from fs2.config.objects import GraphConfig, OtherGraph, OtherGraphsConfig, ScanConfig
+        from fs2.config.objects import (
+            GraphConfig,
+            OtherGraph,
+            OtherGraphsConfig,
+            ScanConfig,
+        )
         from fs2.config.service import FakeConfigurationService
         from fs2.mcp import dependencies
         from fs2.mcp.server import mcp

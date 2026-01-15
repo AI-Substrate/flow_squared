@@ -29,7 +29,9 @@ class TestListGraphsCommandRegistration:
         Acceptance Criteria: 'list-graphs' in registered commands.
         """
         command_names = [cmd.name for cmd in app.registered_commands]
-        assert "list-graphs" in command_names, f"Expected 'list-graphs' in {command_names}"
+        assert "list-graphs" in command_names, (
+            f"Expected 'list-graphs' in {command_names}"
+        )
 
 
 @pytest.mark.unit
@@ -115,6 +117,7 @@ graph:
 
     # Reset dependencies to pick up new config
     from fs2.core import dependencies
+
     dependencies.reset_services()
 
     return tmp_path
@@ -163,6 +166,7 @@ other_graphs:
 
     # Reset dependencies to pick up new config
     from fs2.core import dependencies
+
     dependencies.reset_services()
 
     return tmp_path

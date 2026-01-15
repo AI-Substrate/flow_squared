@@ -55,9 +55,7 @@ class TestListGraphs:
             assert isinstance(doc["available"], bool)
 
     @pytest.mark.asyncio
-    async def test_list_graphs_includes_description(
-        self, mcp_client_multi_graph
-    ):
+    async def test_list_graphs_includes_description(self, mcp_client_multi_graph):
         """list_graphs includes description when provided.
 
         Per Phase 3 AC6: GraphInfo contains description.
@@ -71,9 +69,7 @@ class TestListGraphs:
         assert external["description"] == "External library"
 
     @pytest.mark.asyncio
-    async def test_list_graphs_includes_source_url(
-        self, mcp_client_multi_graph
-    ):
+    async def test_list_graphs_includes_source_url(self, mcp_client_multi_graph):
         """list_graphs includes source_url when provided.
 
         Per Phase 3 AC6: GraphInfo contains source_url.
@@ -87,9 +83,7 @@ class TestListGraphs:
         assert external["source_url"] == "https://github.com/example/lib"
 
     @pytest.mark.asyncio
-    async def test_list_graphs_includes_path(
-        self, mcp_client_multi_graph
-    ):
+    async def test_list_graphs_includes_path(self, mcp_client_multi_graph):
         """list_graphs includes resolved path for each graph.
 
         Per Phase 3 AC6: GraphInfo contains resolved path.
@@ -104,9 +98,7 @@ class TestListGraphs:
             assert len(doc["path"]) > 0
 
     @pytest.mark.asyncio
-    async def test_list_graphs_count_matches_docs_length(
-        self, mcp_client_multi_graph
-    ):
+    async def test_list_graphs_count_matches_docs_length(self, mcp_client_multi_graph):
         """list_graphs count field matches docs array length.
 
         Per Phase 3 T002 validation: count field is accurate.

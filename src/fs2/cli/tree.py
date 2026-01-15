@@ -18,7 +18,11 @@ import typer
 from rich.console import Console
 from rich.tree import Tree
 
-from fs2.cli.utils import resolve_graph_from_context, safe_write_file, validate_save_path
+from fs2.cli.utils import (
+    resolve_graph_from_context,
+    safe_write_file,
+    validate_save_path,
+)
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
 from fs2.core.models.tree_node import TreeNode
@@ -166,7 +170,9 @@ def tree(
             graph_info = (
                 ctx.obj.graph_name
                 if ctx.obj and ctx.obj.graph_name
-                else ctx.obj.graph_file if ctx.obj and ctx.obj.graph_file else "default"
+                else ctx.obj.graph_file
+                if ctx.obj and ctx.obj.graph_file
+                else "default"
             )
             stderr_console.print(f"[dim]DEBUG: Using graph: {graph_info}[/dim]")
 

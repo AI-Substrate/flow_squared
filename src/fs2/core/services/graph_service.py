@@ -80,8 +80,7 @@ class UnknownGraphError(GraphServiceError):
         self.name = name
         self.available = available
         super().__init__(
-            f"Unknown graph '{name}'. "
-            f"Available graphs: {', '.join(sorted(available))}"
+            f"Unknown graph '{name}'. Available graphs: {', '.join(sorted(available))}"
         )
 
 
@@ -145,7 +144,7 @@ class _CacheEntry:
     Stores GraphStore instance along with file stats for staleness detection.
     """
 
-    store: "GraphStore"
+    store: GraphStore
     mtime: float
     size: int
 
@@ -168,7 +167,7 @@ class GraphService:
         _lock: RLock for thread-safe cache operations.
     """
 
-    def __init__(self, config: "ConfigurationService") -> None:
+    def __init__(self, config: ConfigurationService) -> None:
         """Initialize with configuration service registry.
 
         Args:
@@ -277,7 +276,7 @@ class GraphService:
             # File no longer exists or inaccessible
             return True
 
-    def _load_graph(self, name: str, path: Path) -> "GraphStore":
+    def _load_graph(self, name: str, path: Path) -> GraphStore:
         """Load a graph from disk and update cache.
 
         Creates a new NetworkXGraphStore instance and loads the graph.
@@ -293,9 +292,9 @@ class GraphService:
             GraphFileNotFoundError: If file doesn't exist.
             GraphStoreError: If file is corrupted.
         """
-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
-        from fs2.config.service import FakeConfigurationService
         from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
 
         if not path.exists():
             raise GraphFileNotFoundError(name, path)
@@ -320,7 +319,7 @@ class GraphService:
         logger.debug("Loaded graph '%s' from %s", name, path)
         return store
 
-    def get_graph(self, name: str = "default") -> "GraphStore":
+    def get_graph(self, name: str = "default") -> GraphStore:
         """Get a GraphStore for the specified graph.
 
         Per AC2: Returns GraphStore for named graph.

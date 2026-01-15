@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 # Module-level singletons (None until first access)
 _config: ConfigurationService | None = None
 _graph_store: GraphStore | None = None
-_graph_service: "GraphService | None" = None
+_graph_service: GraphService | None = None
 _embedding_adapter: EmbeddingAdapter | None = None
 _docs_service: DocsService | None = None
 _lock = (
@@ -125,7 +125,7 @@ def set_graph_store(store: GraphStore) -> None:
     _graph_store = store
 
 
-def get_graph_service() -> "GraphService":
+def get_graph_service() -> GraphService:
     """Get the GraphService singleton for multi-graph management.
 
     Creates the service on first access using ConfigurationService.
@@ -147,7 +147,7 @@ def get_graph_service() -> "GraphService":
     return _graph_service
 
 
-def set_graph_service(service: "GraphService") -> None:
+def set_graph_service(service: GraphService) -> None:
     """Inject a GraphService (for testing).
 
     Per DYK-01: Use FakeGraphService for multi-graph testing.

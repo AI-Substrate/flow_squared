@@ -3,13 +3,19 @@ set -e
 
 echo "Running post-install script..."
 
-# Install Python dependencies if requirements.txt exists
+# Install Python dependencies via uv (includes ruff and all dev deps from pyproject.toml)
+if [ -f "pyproject.toml" ]; then
+    echo "Installing Python dependencies via uv sync..."
+    uv sync
+fi
+
+# Legacy: Install Python dependencies if requirements.txt exists
 if [ -f "requirements.txt" ]; then
     echo "Installing Python dependencies..."
     pip3 install --user -r requirements.txt
 fi
 
-# Install dev dependencies if requirements-dev.txt exists
+# Legacy: Install dev dependencies if requirements-dev.txt exists
 if [ -f "requirements-dev.txt" ]; then
     echo "Installing dev dependencies..."
     pip3 install --user -r requirements-dev.txt

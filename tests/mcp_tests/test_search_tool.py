@@ -1131,7 +1131,8 @@ class TestSearchWithGraphName:
 
         with pytest.raises(ToolError) as exc_info:
             await mcp_client_multi_graph.call_tool(
-                "search", {"pattern": "test", "mode": "text", "graph_name": "typo-graph"}
+                "search",
+                {"pattern": "test", "mode": "text", "graph_name": "typo-graph"},
             )
 
         error_msg = str(exc_info.value)

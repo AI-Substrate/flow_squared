@@ -19,7 +19,11 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from fs2.cli.utils import resolve_graph_from_context, safe_write_file, validate_save_path
+from fs2.cli.utils import (
+    resolve_graph_from_context,
+    safe_write_file,
+    validate_save_path,
+)
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
 from fs2.core.models.search import QuerySpec, SearchMode

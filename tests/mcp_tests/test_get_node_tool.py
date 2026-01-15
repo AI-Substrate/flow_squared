@@ -835,7 +835,10 @@ class TestGetNodeWithGraphName:
         with pytest.raises(ToolError) as exc_info:
             await mcp_client_multi_graph.call_tool(
                 "get_node",
-                {"node_id": "class:src/calculator.py:Calculator", "graph_name": "typo-graph"},
+                {
+                    "node_id": "class:src/calculator.py:Calculator",
+                    "graph_name": "typo-graph",
+                },
             )
 
         error_msg = str(exc_info.value)

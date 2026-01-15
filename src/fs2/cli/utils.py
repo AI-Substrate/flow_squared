@@ -91,7 +91,7 @@ def safe_write_file(path: Path, content: str, console: Console) -> None:
 
 def resolve_graph_from_context(
     ctx: typer.Context,
-) -> tuple["ConfigurationService", "GraphStore"]:
+) -> tuple[ConfigurationService, GraphStore]:
     """Resolve graph from CLI context using GraphService.
 
     Per DYK-01: Uses GraphService for all graph resolution.
@@ -163,7 +163,7 @@ def resolve_graph_from_context(
         service = dependencies.get_graph_service()
 
         # Determine graph name
-        graph_name = (cli_ctx.graph_name if cli_ctx and cli_ctx.graph_name else "default")
+        graph_name = cli_ctx.graph_name if cli_ctx and cli_ctx.graph_name else "default"
 
         # Get the graph store via service
         store = service.get_graph(graph_name)

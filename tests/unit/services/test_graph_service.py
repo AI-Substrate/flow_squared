@@ -10,17 +10,14 @@ TDD Approach: Tests written FIRST (RED), implementation follows (GREEN).
 """
 
 import pickle
-import tempfile
 from pathlib import Path
 
 import networkx as nx
 import pytest
 
-from fs2.config.objects import GraphConfig, OtherGraph, OtherGraphsConfig, ScanConfig
+from fs2.config.objects import GraphConfig, OtherGraph, OtherGraphsConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.models.code_node import CodeNode
-from fs2.core.repos.graph_store_fake import FakeGraphStore
-
 
 # =============================================================================
 # Test Fixtures and Helpers

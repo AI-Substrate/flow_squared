@@ -56,14 +56,14 @@ from fs2.core.adapters.exceptions import (
     GraphNotFoundError,
     GraphStoreError,
 )
+from fs2.core.models.code_node import CodeNode
+from fs2.core.models.tree_node import TreeNode
+from fs2.core.services.get_node_service import GetNodeService
 from fs2.core.services.graph_service import (
     GraphFileNotFoundError,
     GraphServiceError,
     UnknownGraphError,
 )
-from fs2.core.models.code_node import CodeNode
-from fs2.core.models.tree_node import TreeNode
-from fs2.core.services.get_node_service import GetNodeService
 from fs2.core.services.tree_service import TreeService
 from fs2.mcp.dependencies import (
     get_config,
@@ -808,8 +808,6 @@ async def search(
 
     try:
         from pathlib import Path
-
-        from fs2.config.objects import GraphConfig
 
         # Validate pattern
         if not pattern or not pattern.strip():

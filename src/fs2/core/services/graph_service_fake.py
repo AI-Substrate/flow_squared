@@ -38,7 +38,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fs2.core.services.graph_service import (
-    GraphFileNotFoundError,
     GraphInfo,
     UnknownGraphError,
 )

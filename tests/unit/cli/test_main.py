@@ -9,7 +9,6 @@ TDD RED tests for:
 Per Testing Philosophy: Full TDD with targeted mocks.
 """
 
-import pytest
 from typer.testing import CliRunner
 
 from fs2.cli.main import CLIContext, app
@@ -82,7 +81,10 @@ class TestMutualExclusivity:
             ["--graph-file", "/tmp/g.pkl", "--graph-name", "test", "tree"],
         )
         assert result.exit_code == 1
-        assert "Cannot use both" in result.output or "cannot use both" in result.output.lower()
+        assert (
+            "Cannot use both" in result.output
+            or "cannot use both" in result.output.lower()
+        )
 
     def test_only_graph_file_works(self, tmp_path):
         """Verify --graph-file alone is accepted.
@@ -149,8 +151,8 @@ class TestResolveGraphFromContext:
         # Import here to verify it exists (will fail in RED phase)
         from fs2.cli.utils import resolve_graph_from_context
 
-        # Create mock context with graph_file
-        ctx_obj = CLIContext(graph_file="/path/to/graph.pkl")
+        # Verify CLIContext accepts graph_file parameter
+        _ = CLIContext(graph_file="/path/to/graph.pkl")
 
         # Should not raise AttributeError - function exists
         assert callable(resolve_graph_from_context)
@@ -163,8 +165,8 @@ class TestResolveGraphFromContext:
         """
         from fs2.cli.utils import resolve_graph_from_context
 
-        # Create mock context with graph_name
-        ctx_obj = CLIContext(graph_name="flowspace")
+        # Verify CLIContext accepts graph_name parameter
+        _ = CLIContext(graph_name="flowspace")
 
         # Should not raise AttributeError - function exists
         assert callable(resolve_graph_from_context)
@@ -177,7 +179,6 @@ class TestResolveGraphFromContext:
         """
         from fs2.core import dependencies
         from fs2.core.services.graph_service_fake import FakeGraphService
-        from fs2.cli.utils import resolve_graph_from_context
 
         # Set up fake with only "default" graph
         fake_service = FakeGraphService()
@@ -185,7 +186,8 @@ class TestResolveGraphFromContext:
         dependencies.set_graph_service(fake_service)
 
         try:
-            ctx_obj = CLIContext(graph_name="unknown")
+            # Verify CLIContext accepts unknown graph_name (validation happens later)
+            _ = CLIContext(graph_name="unknown")
             # Should raise SystemExit with actionable message
             # (implementation will call typer.Exit)
         finally:
@@ -199,8 +201,8 @@ class TestResolveGraphFromContext:
         """
         from fs2.cli.utils import resolve_graph_from_context
 
-        # Create context with neither option
-        ctx_obj = CLIContext()
+        # Verify CLIContext works with default (neither option set)
+        _ = CLIContext()
 
         # Should not raise AttributeError - function exists
         assert callable(resolve_graph_from_context)
@@ -211,10 +213,11 @@ class TestResolveGraphFromContext:
         Purpose: Commands need both config and store.
         Quality Contribution: Consistent interface for all commands.
         """
-        from fs2.cli.utils import resolve_graph_from_context
-
         # Verify function signature exists
         import inspect
+
+        from fs2.cli.utils import resolve_graph_from_context
+
         sig = inspect.signature(resolve_graph_from_context)
         # Should accept ctx parameter
         assert "ctx" in sig.parameters or len(sig.parameters) >= 1

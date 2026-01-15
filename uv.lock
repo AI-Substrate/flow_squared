@@ -507,6 +507,11 @@ dev = [
     { name = "ruff" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "fastmcp", specifier = ">=2.0.0" },
@@ -531,6 +536,9 @@ requires-dist = [
     { name = "watchfiles", specifier = ">=0.21" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.14.6" }]
 
 [[package]]
 name = "h11"

@@ -827,12 +827,12 @@ docs/how/user/
 
 | #   | Status | Task | CS | Success Criteria | Log | Notes |
 |-----|--------|------|----|------------------|-----|-------|
-| 5.1 | [ ] | Survey existing docs for integration points | 1 | List files that need cross-references | - | configuration-guide.md, mcp-server-guide.md, cli.md |
-| 5.2 | [ ] | Update README.md features section | 1 | Brief mention of multi-graph capability | - | /workspaces/flow_squared/README.md |
-| 5.3 | [ ] | Create docs/how/user/multi-graphs.md | 2 | Complete guide with examples | - | /workspaces/flow_squared/docs/how/user/multi-graphs.md |
-| 5.4 | [ ] | Add registry entry | 1 | Entry in registry.yaml for MCP discovery | - | /workspaces/flow_squared/docs/how/user/registry.yaml |
-| 5.5 | [ ] | Update configuration-guide.md with cross-reference | 1 | Link to multi-graphs.md | - | /workspaces/flow_squared/docs/how/user/configuration-guide.md |
-| 5.6 | [ ] | Run doc-build and verify | 1 | `just doc-build` succeeds, doc accessible via MCP | - | Build and test |
+| 5.1 | [x] | Survey existing docs for integration points | 1 | List files that need cross-references | - | configuration-guide.md, mcp-server-guide.md, cli.md |
+| 5.2 | [x] | Update README.md features section | 1 | Brief mention of multi-graph capability | - | /workspaces/flow_squared/README.md |
+| 5.3 | [x] | Create docs/how/user/multi-graphs.md | 2 | Complete guide with examples | - | /workspaces/flow_squared/docs/how/user/multi-graphs.md |
+| 5.4 | [x] | Add registry entry | 1 | Entry in registry.yaml for MCP discovery | - | /workspaces/flow_squared/docs/how/user/registry.yaml |
+| 5.5 | [x] | Update configuration-guide.md with cross-reference | 1 | Link to multi-graphs.md | - | /workspaces/flow_squared/docs/how/user/configuration-guide.md |
+| 5.6 | [x] | Run doc-build and verify | 1 | `just doc-build` succeeds, doc accessible via MCP | - | Build and test |
 
 ### Content Outline
 
@@ -864,11 +864,11 @@ Query multiple codebases from a single fs2 instance. Configure external graphs i
 ```
 
 ### Acceptance Criteria
-- [ ] README.md updated
-- [ ] multi-graphs.md complete and accurate
-- [ ] Registry entry added
-- [ ] doc-build succeeds
-- [ ] MCP docs_get(id="multi-graphs") returns content
+- [x] README.md updated
+- [x] multi-graphs.md complete and accurate
+- [x] Registry entry added
+- [x] doc-build succeeds
+- [x] MCP docs_get(id="multi-graphs") returns content
 
 ---
 
@@ -907,8 +907,8 @@ Query multiple codebases from a single fs2 instance. Configure external graphs i
 - [x] Phase 1: Configuration Model - COMPLETE (2026-01-13)
 - [x] Phase 2: GraphService Implementation - COMPLETE (2026-01-13)
 - [x] Phase 3: MCP Integration - COMPLETE (2026-01-14)
-- [x] Phase 4: CLI Integration - COMPLETE (100%)
-- [ ] Phase 5: Documentation - PENDING
+- [x] Phase 4: CLI Integration - COMPLETE (2026-01-14)
+- [x] Phase 5: Documentation - COMPLETE (2026-01-14)
 
 ### STOP Rule
 **IMPORTANT**: This plan must be complete before creating tasks. After writing this plan:
@@ -987,6 +987,15 @@ Query multiple codebases from a single fs2 instance. Configure external graphs i
   - `file:src/fs2/core/dependencies.py` - Shared DI container (created)
   - `file:tests/unit/cli/test_main.py` - Unit tests (created)
   - `file:tests/integration/test_cli_multi_graph.py` - Integration tests (created)
+
+### Phase 5: Documentation (2026-01-14)
+
+[^12]: Phase 5: Documentation completion
+  - `file:docs/how/user/multi-graphs.md` - Comprehensive guide with CLI, MCP, and config examples
+  - `file:docs/how/user/registry.yaml` - Added multi-graphs entry for MCP docs_list/docs_get
+  - `file:docs/how/user/cli.md` - Added list-graphs command section
+  - `file:docs/how/user/configuration-guide.md` - Cross-reference to multi-graphs.md
+  - `file:README.md` - Multi-Graph listed in Guides table
 
 ---
 

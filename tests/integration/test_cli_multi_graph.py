@@ -119,6 +119,7 @@ class TestCLIMultiGraph:
         assert result.exit_code == 0, f"Failed with: {result.output}"
         # JSON output should be parseable
         import json
+
         try:
             data = json.loads(result.output)
             assert "meta" in data or "results" in data
@@ -126,7 +127,9 @@ class TestCLIMultiGraph:
             # May fail for other reasons, but JSON should be valid
             pass
 
-    def test_get_node_with_graph_name(self, tmp_config_with_graph: Path, fixture_graph_path: Path, monkeypatch):
+    def test_get_node_with_graph_name(
+        self, tmp_config_with_graph: Path, fixture_graph_path: Path, monkeypatch
+    ):
         """Verify get-node command accepts --graph-name and returns node.
 
         Purpose: E2E get-node with named graph.
@@ -143,6 +146,7 @@ class TestCLIMultiGraph:
                 # New format: {format_version, networkx.DiGraph, ...}
                 # Find the DiGraph in the values
                 import networkx as nx
+
                 for v in data.values():
                     if isinstance(v, nx.DiGraph):
                         G = v
@@ -185,7 +189,11 @@ class TestCLIMultiGraph:
         assert result.exit_code == 1
         # Error should mention the unknown graph and available options
         output_lower = result.output.lower()
-        assert "unknown" in output_lower or "not found" in output_lower or "error" in output_lower
+        assert (
+            "unknown" in output_lower
+            or "not found" in output_lower
+            or "error" in output_lower
+        )
 
 
 class TestBackwardCompatibility:
@@ -214,7 +222,9 @@ class TestBackwardCompatibility:
         # Should succeed using default graph
         assert result.exit_code == 0, f"Failed with: {result.output}"
 
-    def test_search_without_graph_options(self, tmp_config_with_graph: Path, monkeypatch):
+    def test_search_without_graph_options(
+        self, tmp_config_with_graph: Path, monkeypatch
+    ):
         """Verify search works without any graph options.
 
         Purpose: Backward compatibility.
@@ -227,7 +237,9 @@ class TestBackwardCompatibility:
         # Should succeed using default graph
         assert result.exit_code == 0, f"Failed with: {result.output}"
 
-    def test_get_node_without_graph_options(self, tmp_config_with_graph: Path, fixture_graph_path: Path, monkeypatch):
+    def test_get_node_without_graph_options(
+        self, tmp_config_with_graph: Path, fixture_graph_path: Path, monkeypatch
+    ):
         """Verify get-node works without any graph options.
 
         Purpose: Backward compatibility.
@@ -238,6 +250,7 @@ class TestBackwardCompatibility:
         # Get a valid node_id from the fixture graph
         with open(fixture_graph_path, "rb") as f:
             import networkx as nx
+
             data = pickle.load(f)
             # Handle both old tuple format and new dict format
             if isinstance(data, dict):
@@ -263,7 +276,9 @@ class TestBackwardCompatibility:
         # Should succeed using default graph
         assert result.exit_code == 0, f"Failed with: {result.output}"
 
-    def test_tree_with_graph_file_only(self, tmp_config_with_graph: Path, fixture_graph_path: Path, monkeypatch):
+    def test_tree_with_graph_file_only(
+        self, tmp_config_with_graph: Path, fixture_graph_path: Path, monkeypatch
+    ):
         """Verify --graph-file alone continues to work.
 
         Purpose: Backward compatibility for --graph-file.

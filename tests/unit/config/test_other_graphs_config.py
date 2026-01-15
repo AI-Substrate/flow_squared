@@ -17,7 +17,6 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-
 # =============================================================================
 # T001: Tests for OtherGraph model
 # =============================================================================
@@ -364,7 +363,6 @@ other_graphs:
         """
         import logging
 
-        from fs2.config.objects import OtherGraphsConfig
         from fs2.config.service import FS2ConfigurationService
 
         # Setup user config
@@ -620,7 +618,6 @@ other_graphs:
         """
         import logging
 
-        from fs2.config.objects import OtherGraphsConfig
         from fs2.config.service import FS2ConfigurationService
 
         # Setup config with invalid graph (uses reserved name "default")
@@ -664,7 +661,6 @@ other_graphs:
         """
         import logging
 
-        from fs2.config.objects import OtherGraphsConfig
         from fs2.config.service import FS2ConfigurationService
 
         # Setup config with wrong schema (list directly under other_graphs)
@@ -686,13 +682,9 @@ other_graphs:
         with caplog.at_level(logging.ERROR, logger="fs2.config.service"):
             FS2ConfigurationService()
 
-        # Should log ERROR about schema misuse
-        error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
-        # If we detect schema misuse, there should be an error
-        # Note: This may not fire if YAML loads it as a different structure
-        # The implementation should check if other_graphs is a list and log error
-        # For now, we just verify no exception is raised
-        # The actual assertion depends on implementation
+        # Verify no crash occurred - service handles malformed config gracefully
+        # Note: Schema misuse detection may or may not log depending on YAML structure
+        # For now, we just verify no exception is raised (graceful degradation)
 
 
 # =============================================================================
