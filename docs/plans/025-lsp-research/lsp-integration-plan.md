@@ -437,11 +437,12 @@ bash scripts/verify-lsp-servers.sh
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 0b.1 | [ ] | Create scripts/lsp/ directory | 1 | Directory exists | - | |
-| 0b.2 | [ ] | Create multi-project test fixtures | 2 | Fixtures have nested project roots | - | Python, TS, Go, C# |
-| 0b.3 | [ ] | Write project root detection script | 2 | Script finds marker files | - | .csproj, go.mod, tsconfig.json, pyproject.toml |
-| 0b.4 | [ ] | Test "deepest wins" algorithm | 2 | Correct root for nested projects | - | |
-| 0b.5 | [ ] | Document detection algorithm | 1 | README in scripts/lsp/ | - | |
+| 0b.1 | [x] | Create scripts/lsp/ directory | 1 | Directory exists | [📋](tasks/phase-0b-multi-project-research/execution.log.md) | Complete |
+| 0b.2 | [x] | Create multi-project test fixtures | 2 | Fixtures have nested project roots | [📋](tasks/phase-0b-multi-project-research/execution.log.md) | Python, TS, Go, C# |
+| 0b.3 | [x] | Write project root detection script | 2 | Script finds marker files | [📋](tasks/phase-0b-multi-project-research/execution.log.md) | .csproj, go.mod, tsconfig.json, pyproject.toml |
+| 0b.4 | [x] | Test "deepest wins" algorithm | 2 | Correct root for nested projects | [📋](tasks/phase-0b-multi-project-research/execution.log.md) | |
+| 0b.5 | [x] | Document detection algorithm | 1 | README in scripts/lsp/ | [📋](tasks/phase-0b-multi-project-research/execution.log.md) | |
+| 0b.6 | [x] | **Subtask 001**: Validate SolidLSP cross-file refs | 3 | 4/4 languages pass | [📋](tasks/phase-0b-multi-project-research/001-subtask-validate-lsp-cross-file.execution.log.md) | [^3][^4][^5][^6] |
 
 ### Test Examples
 
@@ -1846,7 +1847,7 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 
 ### Phase Completion Checklist
 - [x] Phase 0: Environment Preparation - COMPLETE (2026-01-14)
-- [ ] Phase 0b: Multi-Project Research - NOT STARTED
+- [x] Phase 0b: Multi-Project Research - COMPLETE (2026-01-15) - includes Subtask 001: SolidLSP validation (4/4 languages)
 - [ ] Phase 1: Vendor SolidLSP Core - NOT STARTED
 - [ ] Phase 2: LspAdapter ABC and Exceptions - NOT STARTED
 - [ ] Phase 3: SolidLspAdapter Implementation - NOT STARTED
@@ -1857,7 +1858,7 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - [ ] Phase 8: Pipeline Integration - NOT STARTED (merged from 024 Phase 5 + 025 Phase 5)
 - [ ] Phase 9: Documentation - NOT STARTED
 
-**Overall Progress**: 0/11 phases complete (0%)
+**Overall Progress**: 2/11 phases complete (18%) - Phase 0 + Phase 0b
 
 **Note**: 024 Phase 1 (Core Models & GraphStore Extension) is COMPLETE - foundation models (EdgeType, CodeEdge, GraphStore extensions) are already implemented and available for use.
 
@@ -1870,11 +1871,27 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 
 ## Change Footnotes Ledger
 
-**NOTE**: This section will be populated during implementation by plan-6a-update-progress.
+**NOTE**: This section is populated during implementation by plan-6a-update-progress.
 
-[^1]: [To be added during implementation via plan-6a]
-[^2]: [To be added during implementation via plan-6a]
-...
+[^1]: Phase 0 - Environment preparation scripts created
+[^2]: Phase 0 - LSP installation scripts at scripts/lsp_install/
+
+[^3]: Subtask 001 ST005 - Created SolidLSP validation script
+  - `function:scripts/lsp/validate_solidlsp_cross_file.py:validate_python`
+  - `function:scripts/lsp/validate_solidlsp_cross_file.py:validate_typescript`
+  - `function:scripts/lsp/validate_solidlsp_cross_file.py:validate_go`
+  - `function:scripts/lsp/validate_solidlsp_cross_file.py:validate_csharp`
+
+[^4]: Subtask 001 ST006 - Validation discoveries
+  - TypeScript LSP requires opening both files before query
+  - Added `pyright>=1.1.400` to fs2 pyproject.toml
+
+[^5]: Subtask 001 ST007 - Research document
+  - `file:docs/plans/025-lsp-research/tasks/phase-0b-multi-project-research/cross-file-lsp-validation.md`
+
+[^6]: Subtask 001 ST008 - C# MSBuild fix
+  - `method:scratch/serena/src/solidlsp/language_servers/csharp_language_server.py:CSharpLanguageServer._ensure_dotnet_runtime` - Accept .NET 9+
+  - `method:scratch/serena/src/solidlsp/language_servers/csharp_language_server.py:CSharpLanguageServer.__init__` - Pass DOTNET_ROOT env vars
 
 ---
 
@@ -2068,7 +2085,17 @@ No deviations from constitution or architecture required. Plan follows:
 
 ---
 
+## Subtasks Registry
+
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-validate-lsp-cross-file | 2026-01-15 | Phase 0b: Multi-Project Research | T007 | Validate that LSP servers can resolve cross-file method calls before vendoring 25K LOC of SolidLSP. | [ ] Pending | [Link](tasks/phase-0b-multi-project-research/001-subtask-validate-lsp-cross-file.md) |
+
+---
+
 **Plan Version**: 1.1.0
 **Created**: 2026-01-14
-**Updated**: 2026-01-14 (Critical Insights Session)
+**Updated**: 2026-01-15 (Subtask 001 added)
 **Spec**: [./lsp-integration-spec.md](./lsp-integration-spec.md)

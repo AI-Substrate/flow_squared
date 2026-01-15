@@ -54,3 +54,9 @@ embedding:
     api_key: ${AZURE_EMBEDDING_API_KEY}
     deployment_name: text-embedding-3-small-no-rate
     api_version: "2024-02-01"
+
+other_graphs:
+  graphs:
+    - name: serena
+      path: /workspaces/flow_squared/scratch/serena/graph.pickle
+      description: Serena Graph

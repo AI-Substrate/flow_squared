@@ -3,7 +3,7 @@
 **Spec**: [../lsp-integration-spec.md](../lsp-integration-spec.md)
 **Plan**: [../lsp-integration-plan.md](../lsp-integration-plan.md)
 **Date**: 2026-01-14
-**Status**: NOT STARTED
+**Status**: COMPLETE
 
 ---
 
@@ -11,6 +11,8 @@
 
 ### Purpose
 This phase researches and validates the project root detection algorithm needed for LSP servers to work correctly. LSP servers require the correct `rootUri` to understand workspace boundaries for cross-file analysis—sending the wrong root breaks symbol resolution across files.
+
+**Context**: Phase 1 will **vendor** ~25K LOC of SolidLSP into fs2. This phase validates Serena's patterns work for our needs **before** committing to that integration. See [SolidLSP Integration Strategy](#solidlsp-integration-strategy-plan-context) below.
 
 ### What We're Building
 Research scripts in `scripts/lsp/` that:
@@ -62,18 +64,51 @@ Research and validate the project root detection strategy via experimental scrip
 
 **Note (Insight 4)**: Code will be written with **production quality** (type hints, docstrings, error handling) even though it lives in `scripts/lsp/`. Phase 3 will cherry-pick to `src/fs2/core/utils/project_root.py`.
 
+### SolidLSP Integration Strategy (Plan Context)
+
+**Approach**: **VENDOR** SolidLSP (~25K LOC) into `src/fs2/vendors/solidlsp/`
+
+| What | How | Why |
+|------|-----|-----|
+| **Source** | Copy from Serena's `src/solidlsp/` | Tight control over LSP lifecycle |
+| **Import Paths** | `solidlsp.*` → `fs2.vendors.solidlsp.*` | Avoid external dependency |
+| **NOT** pip dependency | Direct code copy, not `pip install` | Process management (stdout isolation) |
+| **NOT** subprocess/CLI | Python import, not shell calls | No runtime Serena installation needed |
+
+**Phase Sequence**:
+1. **Phase 0b** (this phase): Validate Serena patterns in `scripts/lsp/` before committing
+2. **Phase 1**: Vendor SolidLSP core into `src/fs2/vendors/solidlsp/`
+3. **Phase 2**: Create `LspAdapter` ABC (interface boundary)
+4. **Phase 3**: Implement `SolidLspAdapter` wrapping vendored code
+
+**Why Vendor (not dependency)**:
+- Need tight control over LSP server process lifecycle
+- stdout isolation required (LSP uses JSON-RPC over stdout)
+- Child process cleanup guarantees
+- No external runtime dependency on Serena being installed
+
+---
+
 ### Serena Patterns to Validate
 
-Based on research in `/docs/plans/025-lsp-research/research/serena-architecture-research.md`, this phase validates these patterns before Phase 3 adoption:
+Based on research in:
+- `/docs/plans/025-lsp-research/research/serena-architecture-research.md` (architecture patterns)
+- `/docs/plans/025-lsp-research/research/serena-extension-mapping-research.md` (extension mapping)
+
+This phase validates these patterns before Phase 3 adoption:
 
 | Pattern | Serena Source | Validation Goal | If Successful |
 |---------|---------------|-----------------|---------------|
-| **Language Enum** | `solidlsp/ls_config.py:29-430` | `Language(str, Enum)` with `markers` property and `from_extension()` | Adopt for `ScannerAdapterFactory` in Phase 3 |
+| **Language Enum** | `solidlsp/ls_config.py:29-102` | `Language(str, Enum)` with `markers` and `file_patterns` properties | Adopt for `ScannerAdapterFactory` in Phase 3 |
+| **File Pattern Matching** | `solidlsp/ls_config.py:149-243` | `fnmatch` glob patterns for extension variants (`.tsx`, `.jsx`, `.mjs`, etc.) | Comprehensive file detection |
+| **TypeScript Algorithm** | `solidlsp/ls_config.py:155-162` | Algorithmic generation of 12 TS/JS patterns (prefix × postfix × base) | Handle all JS/TS variants |
 | **Boundary Constraint** | `serena/cli.py:40-72` | `ancestors(current, boundary)` generator stops at workspace_root | Adopt for sandboxed environments |
 | **First-Match Priority** | Implicit in list order | Document and test marker priority at same directory level | Explicit documentation |
 
-**Why Validate Now**:
+**Why Validate Now** (before Phase 1 vendoring):
+- **Vendoring is expensive to undo** — Once ~25K LOC is copied, architectural changes are costly
 - Phase 3 depends on these patterns for `SolidLspAdapter`
+- Extension variants (`.tsx`, `.jsx`) are critical for real-world TypeScript projects
 - Discovering issues now is cheaper than during integration
 - Production-quality code written once, cherry-picked later
 
@@ -97,15 +132,15 @@ flowchart TD
     style Fixtures fill:#F5F5F5,stroke:#E0E0E0
 
     subgraph Phase["Phase 0b: Multi-Project Research"]
-        T001["T001: Create scripts/lsp/ directory"]:::pending
-        T002["T002: Create Python multi-project fixture"]:::pending
-        T003["T003: Create TypeScript multi-project fixture"]:::pending
-        T004["T004: Create Go multi-project fixture"]:::pending
-        T005["T005: Create C# multi-project fixture"]:::pending
-        T006["T006: Write project root detection script"]:::pending
-        T006a["T006a: Create Language enum prototype"]:::pending
-        T007["T007: Write detection test script"]:::pending
-        T008["T008: Document detection algorithm"]:::pending
+        T001["T001: Create scripts/lsp/ directory ✓"]:::completed
+        T002["T002: Create Python multi-project fixture ✓"]:::completed
+        T003["T003: Create TypeScript multi-project fixture ✓"]:::completed
+        T004["T004: Create Go multi-project fixture ✓"]:::completed
+        T005["T005: Create C# multi-project fixture ✓"]:::completed
+        T006["T006: Write project root detection script ✓"]:::completed
+        T006a["T006a: Create Language enum prototype ✓"]:::completed
+        T007["T007: Write detection test script ✓"]:::completed
+        T008["T008: Document detection algorithm ✓"]:::completed
 
         T001 --> T006a
         T001 --> T002
@@ -122,18 +157,18 @@ flowchart TD
     end
 
     subgraph Scripts["Research Scripts"]
-        F1["/scripts/lsp/"]:::pending
-        F1a["/scripts/lsp/language.py"]:::pending
-        F2["/scripts/lsp/detect_project_root.py"]:::pending
-        F3["/scripts/lsp/test_detection.py"]:::pending
-        F4["/scripts/lsp/README.md"]:::pending
+        F1["/scripts/lsp/ ✓"]:::completed
+        F1a["/scripts/lsp/language.py ✓"]:::completed
+        F2["/scripts/lsp/detect_project_root.py ✓"]:::completed
+        F3["/scripts/lsp/test_detection.py ✓"]:::completed
+        F4["/scripts/lsp/README.md ✓"]:::completed
     end
 
     subgraph Fixtures["Test Fixtures"]
-        FX1["/tests/fixtures/lsp/python_multi_project/"]:::pending
-        FX2["/tests/fixtures/lsp/typescript_multi_project/"]:::pending
-        FX3["/tests/fixtures/lsp/go_multi_project/"]:::pending
-        FX4["/tests/fixtures/lsp/csharp_multi_project/"]:::pending
+        FX1["/tests/fixtures/lsp/python_multi_project/ ✓"]:::completed
+        FX2["/tests/fixtures/lsp/typescript_multi_project/ ✓"]:::completed
+        FX3["/tests/fixtures/lsp/go_project/ ✓"]:::completed
+        FX4["/tests/fixtures/lsp/csharp_multi_project/ ✓"]:::completed
     end
 
     T001 -.-> F1
@@ -153,15 +188,15 @@ flowchart TD
 
 | Task | Component(s) | Files | Status | Comment |
 |------|-------------|-------|--------|---------|
-| T001 | Research Directory | `/workspaces/flow_squared/scripts/lsp/` | ⬜ Pending | Create directory structure for LSP research scripts |
-| T002 | Python Fixture | `/workspaces/flow_squared/tests/fixtures/lsp/python_multi_project/` | ⬜ Pending | Nested pyproject.toml structure |
-| T003 | TypeScript Fixture | `/workspaces/flow_squared/tests/fixtures/lsp/typescript_multi_project/` | ⬜ Pending | Nested tsconfig.json structure |
-| T004 | Go Fixture | `/workspaces/flow_squared/tests/fixtures/lsp/go_multi_project/` | ⬜ Pending | Nested go.mod structure |
-| T005 | C# Fixture | `/workspaces/flow_squared/tests/fixtures/lsp/csharp_multi_project/` | ⬜ Pending | Nested .csproj structure |
-| T006 | Detection Script | `/workspaces/flow_squared/scripts/lsp/detect_project_root.py` | ⬜ Pending | Core "deepest wins" algorithm |
-| T006a | Language Enum | `/workspaces/flow_squared/scripts/lsp/language.py` | ⬜ Pending | Validates Serena enum pattern for Phase 3 |
-| T007 | Test Script | `/workspaces/flow_squared/scripts/lsp/test_detection.py` | ⬜ Pending | Validate detection + boundary + priority |
-| T008 | Documentation | `/workspaces/flow_squared/scripts/lsp/README.md` | ⬜ Pending | Algorithm description and usage |
+| T001 | Research Directory | `/workspaces/flow_squared/scripts/lsp/` | ✅ Complete | Created directory with __init__.py |
+| T002 | Python Fixture | `/workspaces/flow_squared/tests/fixtures/lsp/python_multi_project/` | ✅ Complete | Root + nested pyproject.toml |
+| T003 | TypeScript Fixture | `/workspaces/flow_squared/tests/fixtures/lsp/typescript_multi_project/` | ✅ Complete | Root + nested tsconfig.json |
+| T004 | Go Fixture | `/workspaces/flow_squared/tests/fixtures/lsp/go_project/` | ✅ Complete | Single go.mod (Go best practice) |
+| T005 | C# Fixture | `/workspaces/flow_squared/tests/fixtures/lsp/csharp_multi_project/` | ✅ Complete | .sln at root, .csproj nested |
+| T006 | Detection Script | `/workspaces/flow_squared/scripts/lsp/detect_project_root.py` | ✅ Complete | "Deepest wins" algorithm implemented |
+| T006a | Language Enum | `/workspaces/flow_squared/scripts/lsp/language.py` | ✅ Complete | Serena patterns validated (12 TS patterns) |
+| T007 | Test Script | `/workspaces/flow_squared/scripts/lsp/test_detection.py` | ✅ Complete | 31/31 tests pass |
+| T008 | Documentation | `/workspaces/flow_squared/scripts/lsp/README.md` | ✅ Complete | Full documentation with API reference |
 
 ---
 
@@ -169,15 +204,15 @@ flowchart TD
 
 | Status | ID | Task | CS | Type | Dependencies | Absolute Path(s) | Validation | Subtasks | Notes |
 |--------|-----|------|----|------|--------------|------------------|------------|----------|-------|
-| [ ] | T001 | Create scripts/lsp/ directory with __init__.py | 1 | Setup | – | `/workspaces/flow_squared/scripts/lsp/`, `/workspaces/flow_squared/scripts/lsp/__init__.py` | `ls scripts/lsp/__init__.py` returns path | – | Foundation for research scripts |
-| [ ] | T002 | Create Python multi-project test fixture with nested pyproject.toml | 2 | Setup | T001 | `/workspaces/flow_squared/tests/fixtures/lsp/python_multi_project/` | Fixture has root + nested pyproject.toml files | – | Per Discovery 11 markers |
-| [ ] | T003 | Create TypeScript multi-project test fixture with nested tsconfig.json | 2 | Setup | T001 | `/workspaces/flow_squared/tests/fixtures/lsp/typescript_multi_project/` | Fixture has root + nested tsconfig.json files | – | Also test package.json fallback |
-| [ ] | T004 | Create Go multi-project test fixture with nested go.mod | 2 | Setup | T001 | `/workspaces/flow_squared/tests/fixtures/lsp/go_multi_project/` | Fixture has root + nested go.mod files | – | Go modules are always explicit |
-| [ ] | T005 | Create C# multi-project test fixture with nested .csproj | 2 | Setup | T001 | `/workspaces/flow_squared/tests/fixtures/lsp/csharp_multi_project/` | Fixture has root + nested .csproj files | – | Also test .sln at root |
-| [ ] | T006 | Write project root detection script (detect_project_root.py) | 2 | Core | T001, T006a | `/workspaces/flow_squared/scripts/lsp/detect_project_root.py` | Script defines find_project_root() and detect_project_root_auto() with workspace_root fallback; always returns Path (never None); **production quality** (type hints, docstrings) | – | Per Discovery 11 + Insights 1,2,4 |
-| [ ] | T006a | Create Language enum prototype (language.py) | 2 | Core | T001 | `/workspaces/flow_squared/scripts/lsp/language.py` | Enum defines PYTHON, TYPESCRIPT, GO, CSHARP with markers property and from_extension() classmethod; **production quality** | – | Validates Serena pattern for Phase 3 |
-| [ ] | T007 | Write detection test script (test_detection.py) | 2 | Test | T002, T003, T004, T005, T006, T006a | `/workspaces/flow_squared/scripts/lsp/test_detection.py` | Script passes for all 4 languages + boundary + priority tests, exits 0 | – | Validates "deepest wins" + Serena patterns |
-| [ ] | T008 | Document detection algorithm in README.md | 1 | Doc | T007 | `/workspaces/flow_squared/scripts/lsp/README.md` | README explains marker files, algorithm, edge cases | – | User-facing documentation |
+| [x] | T001 | Create scripts/lsp/ directory with __init__.py | 1 | Setup | – | `/workspaces/flow_squared/scripts/lsp/`, `/workspaces/flow_squared/scripts/lsp/__init__.py` | `ls scripts/lsp/__init__.py` returns path | – | Foundation for research scripts |
+| [x] | T002 | Create Python multi-project test fixture with nested pyproject.toml | 2 | Setup | T001 | `/workspaces/flow_squared/tests/fixtures/lsp/python_multi_project/` | Fixture has root + nested pyproject.toml files | – | Per Discovery 11 markers |
+| [x] | T003 | Create TypeScript multi-project test fixture with nested tsconfig.json | 2 | Setup | T001 | `/workspaces/flow_squared/tests/fixtures/lsp/typescript_multi_project/` | Fixture has root + nested tsconfig.json files | – | Also test package.json fallback |
+| [x] | T004 | Create Go project test fixture with single go.mod | 1 | Setup | T001 | `/workspaces/flow_squared/tests/fixtures/lsp/go_project/` | Fixture has single go.mod at root (Go best practice) | – | Nested go.mod is anti-pattern; test real-world structure |
+| [x] | T005 | Create C# multi-project test fixture with nested .csproj | 2 | Setup | T001 | `/workspaces/flow_squared/tests/fixtures/lsp/csharp_multi_project/` | Fixture has root + nested .csproj files | – | Also test .sln at root |
+| [x] | T006 | Write project root detection script (detect_project_root.py) | 2 | Core | T001, T006a | `/workspaces/flow_squared/scripts/lsp/detect_project_root.py` | Script defines find_project_root() and detect_project_root_auto() with workspace_root fallback; always returns Path (never None); **production quality** (type hints, docstrings) | – | Per Discovery 11 + Insights 1,2,4 |
+| [x] | T006a | Create Language enum prototype (language.py) | 2 | Core | T001 | `/workspaces/flow_squared/scripts/lsp/language.py` | Enum defines PYTHON, TYPESCRIPT, GO, CSHARP with `markers` property, `file_patterns` property (fnmatch globs), and `from_filename()` classmethod; TypeScript uses algorithmic pattern generation (12 patterns); **production quality** | – | Validates Serena patterns for Phase 3 |
+| [x] | T007 | Write detection test script (test_detection.py) | 2 | Test | T002, T003, T004, T005, T006, T006a | `/workspaces/flow_squared/scripts/lsp/test_detection.py` | Script passes for all 4 languages + boundary + priority tests, exits 0 | 001-subtask-validate-lsp-cross-file | Validates "deepest wins" + Serena patterns |
+| [x] | T008 | Document detection algorithm in README.md | 1 | Doc | T007 | `/workspaces/flow_squared/scripts/lsp/README.md` | README explains marker files, algorithm, edge cases | – | User-facing documentation |
 
 ---
 
@@ -285,7 +320,8 @@ No ADRs currently exist that affect this phase. (docs/adr/ is empty)
 |------|---------|
 | `/workspaces/flow_squared/docs/plans/025-lsp-research/lsp-integration-plan.md` | Phase 0b task definitions |
 | `/workspaces/flow_squared/docs/plans/025-lsp-research/lsp-integration-spec.md` | Overall requirements |
-| `/workspaces/flow_squared/docs/plans/025-lsp-research/research/serena-architecture-research.md` | Serena patterns to validate |
+| `/workspaces/flow_squared/docs/plans/025-lsp-research/research/serena-architecture-research.md` | Serena architecture patterns |
+| `/workspaces/flow_squared/docs/plans/025-lsp-research/research/serena-extension-mapping-research.md` | File extension mapping patterns (fnmatch, TypeScript algorithm) |
 | Phase 0 execution log (referenced above) | Server availability confirmation |
 
 ### Visual Alignment Aids
@@ -338,7 +374,7 @@ sequenceDiagram
 | `test_python_no_marker` | No marker found | `python_multi_project/src/` | Returns None or fallback |
 | `test_typescript_tsconfig_wins` | tsconfig.json priority | `typescript_multi_project/` | Inner tsconfig.json |
 | `test_typescript_packagejson_fallback` | package.json fallback | `typescript_multi_project/` | Uses package.json when no tsconfig |
-| `test_go_gomod_detection` | Go module detection | `go_multi_project/` | Inner go.mod |
+| `test_go_gomod_detection` | Go module detection | `go_project/` | Finds root go.mod from nested file |
 | `test_csharp_csproj_detection` | .csproj detection | `csharp_multi_project/` | Inner .csproj |
 | `test_csharp_sln_fallback` | .sln at root | `csharp_multi_project/` | .sln wins when no inner .csproj |
 | `test_auto_detection_python` | Auto-detect .py → python | `python_multi_project/` | Infers language, finds correct root |
@@ -350,9 +386,16 @@ sequenceDiagram
 | `test_typescript_both_markers_same_dir` | tsconfig.json AND package.json in same dir | `typescript_multi_project/` | tsconfig.json wins (first in list) |
 | `test_csharp_both_markers_same_dir` | .csproj AND .sln in same dir | `csharp_multi_project/` | .csproj wins (first in list) |
 | `test_boundary_constraint_stops_at_root` | workspace_root prevents walking beyond | `/tmp/` (dynamic) | Search stops at workspace_root, doesn't find markers above |
+| `test_path_resolve_normalizes_input` | Paths are resolved before processing | `/tmp/` (dynamic) | `./foo/../bar` normalized to absolute path |
 | `test_language_enum_markers_property` | Language.PYTHON.markers returns list | N/A (unit test) | Returns `["pyproject.toml", "setup.py", "setup.cfg"]` |
-| `test_language_enum_from_extension` | Language.from_extension(".py") | N/A (unit test) | Returns Language.PYTHON |
-| `test_language_enum_unknown_extension` | Language.from_extension(".xyz") | N/A (unit test) | Returns None |
+| `test_language_enum_file_patterns_property` | Language.TYPESCRIPT.file_patterns returns tuple | N/A (unit test) | Returns 12 patterns including `*.tsx`, `*.jsx`, `*.mjs`, `*.cjs` |
+| `test_language_from_filename_py` | Language.from_filename("foo.py") | N/A (unit test) | Returns Language.PYTHON |
+| `test_language_from_filename_tsx` | Language.from_filename("Component.tsx") | N/A (unit test) | Returns Language.TYPESCRIPT |
+| `test_language_from_filename_jsx` | Language.from_filename("App.jsx") | N/A (unit test) | Returns Language.TYPESCRIPT |
+| `test_language_from_filename_mjs` | Language.from_filename("module.mjs") | N/A (unit test) | Returns Language.TYPESCRIPT |
+| `test_language_from_filename_pyi` | Language.from_filename("types.pyi") | N/A (unit test) | Returns Language.PYTHON |
+| `test_language_from_filename_unknown` | Language.from_filename("file.xyz") | N/A (unit test) | Returns None |
+| `test_typescript_pattern_count` | Verify TypeScript generates 12 patterns | N/A (unit test) | `len(Language.TYPESCRIPT.file_patterns) == 12` |
 
 ### Step-by-Step Implementation Outline
 
@@ -361,12 +404,21 @@ sequenceDiagram
    - Each fixture has: root marker, nested directory with marker, source file in nested
 3. **T006a**: Create `language.py` with Language enum (Serena pattern validation):
    - `Language(str, Enum)` with PYTHON, TYPESCRIPT, GO, CSHARP values
-   - `markers` property returning list of marker files (priority order)
-   - `from_extension(ext: str)` classmethod for extension → language lookup
-   - `EXTENSION_MAP` dict for reverse lookup (`.py` → `Language.PYTHON`)
+   - `markers` property returning tuple of marker files (priority order)
+   - `file_patterns` property returning tuple of fnmatch glob patterns
+   - TypeScript: Algorithmic generation of 12 patterns (prefix × postfix × base)
+     ```python
+     for prefix in ("c", "m", ""):      # CommonJS, ESM, standard
+         for postfix in ("x", ""):       # JSX/TSX, plain
+             for base in ("ts", "js"):
+                 patterns.append(f"*.{prefix}{base}{postfix}")
+     ```
+   - `from_filename(filename: str)` classmethod using `fnmatch.fnmatch()`
    - Production quality: type hints, docstrings, `__all__` export
+   - Reference: `/docs/plans/025-lsp-research/research/serena-extension-mapping-research.md`
 4. **T006**: Implement `detect_project_root.py` with:
    - Import `Language` enum from `language.py`
+   - **Path normalization**: Call `Path.resolve()` on both `file_path` and `workspace_root` (Serena pattern - prevents symlink escape)
    - `ancestors(current, boundary)` generator (Serena pattern) for bounded traversal
    - `find_project_root(file_path: Path, language: Language, workspace_root: Path | None = None) -> Path`
    - `detect_project_root_auto(file_path: Path, workspace_root: Path | None = None) -> Path`
@@ -375,7 +427,12 @@ sequenceDiagram
 5. **T007**: Write `test_detection.py` that:
    - Imports `Language` from `language.py`
    - Imports `find_project_root` and `detect_project_root_auto` from `detect_project_root.py`
-   - **Language enum tests**: markers property, from_extension(), unknown extension
+   - **Language enum tests**:
+     - `markers` property returns correct tuples
+     - `file_patterns` property returns fnmatch patterns
+     - TypeScript has exactly 12 patterns (algorithmic generation)
+     - `from_filename()` works for `.py`, `.pyi`, `.tsx`, `.jsx`, `.mjs`, `.cjs`, `.go`, `.cs`
+     - Unknown extensions return `None`
    - **Fixture tests**: Each fixture scenario (static fixtures in `tests/fixtures/lsp/`)
    - **Boundary tests**: workspace_root prevents walking beyond boundary
    - **Edge case tests**: Dynamic temp directories for no-marker scenarios
@@ -384,10 +441,15 @@ sequenceDiagram
    - Exits 0 if all pass, 1 if any fail
 6. **T008**: Write `README.md` documenting:
    - Algorithm description ("deepest wins")
-   - Extension → language mapping table
+   - **File patterns table**: All supported extensions per language
+     - Python: `*.py`, `*.pyi`
+     - TypeScript: 12 patterns (`*.ts`, `*.tsx`, `*.js`, `*.jsx`, `*.mts`, `*.mjs`, `*.cts`, `*.cjs`, etc.)
+     - Go: `*.go`
+     - C#: `*.cs`
    - Supported languages and markers with **priority order** (first in list = highest priority)
    - Marker priority behavior: "when multiple markers exist at same level, first match wins"
    - `detect_project_root_auto()` vs `find_project_root()` usage
+   - `Language.from_filename()` usage for extension detection
    - Fallback behavior (workspace_root → file's parent)
    - Edge cases and limitations
    - Usage examples for Phase 3 integration
@@ -401,7 +463,7 @@ ls -la /workspaces/flow_squared/scripts/lsp/
 # T002-T005: Verify fixtures exist
 ls -la /workspaces/flow_squared/tests/fixtures/lsp/python_multi_project/
 ls -la /workspaces/flow_squared/tests/fixtures/lsp/typescript_multi_project/
-ls -la /workspaces/flow_squared/tests/fixtures/lsp/go_multi_project/
+ls -la /workspaces/flow_squared/tests/fixtures/lsp/go_project/
 ls -la /workspaces/flow_squared/tests/fixtures/lsp/csharp_multi_project/
 
 # T006a: Verify Language enum exists and is valid Python
@@ -470,7 +532,11 @@ _Populated during implementation by plan-6. Log anything of interest to your fut
 
 | Date | Task | Type | Discovery | Resolution | References |
 |------|------|------|-----------|------------|------------|
-| | | | | | |
+| 2026-01-15 | T006 | gotcha | "Deepest wins" = FIRST match walking UP (not last) | Only set candidate if None | log#task-t006 |
+| 2026-01-15 | T006a | insight | TypeScript algorithmic pattern generation produces 12 patterns from prefix×postfix×base | Validated Serena approach works well | log#task-t006a |
+| 2026-01-15 | T004 | decision | Go fixture has NO nested go.mod (anti-pattern) | Single root tests real-world structure | log#task-t004 |
+| 2026-01-15 | T007 | gotcha | `Path.is_file()` returns False for non-existent paths | Also check suffix to determine if file path | log#task-t007 |
+| 2026-01-15 | T006 | decision | C# markers use glob matching (.csproj/.sln are extensions, not exact names) | `directory.glob(f"*{marker}")` | log#task-t006 |
 
 **Types**: `gotcha` | `research-needed` | `unexpected-behavior` | `workaround` | `decision` | `debt` | `insight`
 
@@ -535,16 +601,17 @@ tests/fixtures/lsp/typescript_multi_project/
     └── dual.ts                 # Target file for priority test
 ```
 
-### Go Multi-Project Fixture
+### Go Project Fixture
 ```
-tests/fixtures/lsp/go_multi_project/
-├── go.mod                      # Root marker
+tests/fixtures/lsp/go_project/
+├── go.mod                      # Root marker (only one - Go best practice)
 ├── main.go                     # File at root level
 └── internal/
     └── auth/
-        ├── go.mod              # Nested marker (should win)
-        └── handler.go          # Target file for detection
+        └── handler.go          # Target file for detection (finds root go.mod)
 ```
+**Note**: Go projects typically have a single `go.mod` at root. Nested `go.mod` is rare/discouraged.
+The fixture tests real-world Go structure, not the anti-pattern of nested modules.
 
 ### C# Multi-Project Fixture
 ```
@@ -734,3 +801,142 @@ tests/fixtures/lsp/csharp_multi_project/
 **Confidence Level**: High — Key edge cases identified and addressed before implementation.
 
 **Next Steps**: Proceed to `/plan-6-implement-phase --phase "Phase 0b: Multi-Project Research"` with confidence.
+
+---
+
+## Critical Insights Discussion (Session 2)
+
+**Session**: 2026-01-15
+**Context**: Phase 0b with Serena patterns integration
+**Analyst**: AI Clarity Agent
+**Reviewer**: Development Team
+**Format**: Water Cooler Conversation (5 Critical Insights)
+
+### Insight 1: Extension Variants Will Cause Silent Failures
+
+**Did you know**: The planned `EXTENSION_MAP` only covered canonical extensions (`.py`, `.ts`, `.go`, `.cs`), but real-world TypeScript/React projects use `.tsx` and `.jsx` extensively—causing silent fallback to `workspace_root`.
+
+**Research Conducted**: Used fs2 multi-graph to query Serena codebase (`graph_name="serena"`), discovered their `FilenameMatcher` + `fnmatch` pattern approach.
+
+**Options Considered**:
+- Option A: Expand EXTENSION_MAP comprehensively
+- Option B: Extension family matching (regex)
+- Option C: Fallback to "try all markers"
+- Option D: Expand + document gaps
+- Option E: Adopt Serena's fnmatch pattern approach (NEW)
+
+**AI Recommendation**: Option E (Serena's approach)
+- Reasoning: Battle-tested, handles all variants, algorithmic TypeScript generation
+
+**Decision**: Adopt Serena's `file_patterns` property with `fnmatch` globs; TypeScript uses algorithmic generation (12 patterns)
+
+**Action Items**:
+- [x] Created `/docs/plans/025-lsp-research/research/serena-extension-mapping-research.md`
+- [x] Updated T006a to include `file_patterns` property
+- [x] Added 9 new file pattern tests to test plan
+- [x] Updated step-by-step outline with TypeScript algorithm
+
+**Affects**: T006a, T007, T008
+
+---
+
+### Insight 2: Test Infrastructure Divergence (WITHDRAWN)
+
+**Did you know**: `test_detection.py` as standalone script doesn't integrate with pytest/CI.
+
+**Discussion**: User correctly noted this is a research phase—tests just need to prove concepts work. CI integration is a production concern, not research concern.
+
+**Decision**: WITHDRAWN - not critical for research phase. Standalone script is appropriate.
+
+**Affects**: None
+
+---
+
+### Insight 3: Import Paths Will Break on Cherry-Pick
+
+**Did you know**: When Phase 3 cherry-picks from `scripts/lsp/` to `src/fs2/`, absolute imports like `from scripts.lsp.language import Language` will break.
+
+**Options Considered**:
+- Option A: Use relative imports (`.language`)
+- Option B: Document and fix in Phase 3
+- Option C: Abstract import location (try/except)
+
+**AI Recommendation**: Option A
+- Reasoning: One character difference, trivial to do
+
+**Decision**: Use relative imports—but acknowledged this is a minor detail the cherry-pick process can handle
+
+**Action Items**:
+- [x] Noted in implementation guidance (no formal task change needed)
+
+**Affects**: T006 (minor)
+
+---
+
+### Insight 4: Go Nested Modules is an Anti-Pattern
+
+**Did you know**: The `go_multi_project` fixture tested nested `go.mod` files, which is rare/discouraged in Go. Most Go projects have a single `go.mod` at root.
+
+**Options Considered**:
+- Option A: Keep fixture anyway (tests algorithm)
+- Option B: Simplify to single go.mod (test real-world)
+- Option C: Add go.work awareness (scope creep)
+
+**AI Recommendation**: Option A initially
+
+**Decision**: Option B - Simplify Go fixture to single `go.mod` (test what developers actually use)
+
+**Action Items**:
+- [x] Renamed `go_multi_project/` → `go_project/`
+- [x] Updated fixture structure (single go.mod at root)
+- [x] Updated T004 task description and complexity (CS-2 → CS-1)
+- [x] Updated test plan (`test_go_gomod_detection` now tests root detection)
+- [x] Updated mermaid diagram and commands
+
+**Affects**: T004, test plan, fixture structure
+
+---
+
+### Insight 5: Path.resolve() Missing Could Cause Symlink Escapes
+
+**Did you know**: Serena's `find_project_root()` uses `Path.resolve()` to normalize paths, preventing symlinks from escaping the `workspace_root` boundary. Our algorithm didn't include this.
+
+**Options Considered**:
+- Option A: Add resolve() to both paths (Serena pattern)
+- Option B: Document as limitation
+
+**AI Recommendation**: Option A
+- Reasoning: One line, matches Serena, prevents security issue
+
+**Decision**: Add `Path.resolve()` to both `file_path` and `workspace_root`
+
+**Action Items**:
+- [x] Added path normalization step to T006 implementation outline
+- [x] Added `test_path_resolve_normalizes_input` to test plan
+
+**Affects**: T006, T007
+
+---
+
+## Session 2 Summary
+
+**Insights Surfaced**: 5 (1 withdrawn as not applicable to research phase)
+**Decisions Made**: 4 actionable decisions
+**Research Conducted**: Serena extension mapping deep-dive via fs2 multi-graph
+**Documents Created**: 1 new research dossier
+**Test Cases Added**: 10 new tests (28 total now)
+
+**Areas Updated**:
+- Serena Patterns to Validate section (added file patterns, TypeScript algorithm)
+- T006a task (file_patterns property, from_filename())
+- T004 task (simplified Go fixture)
+- T006 task (Path.resolve() normalization)
+- Test plan (file pattern tests, path normalization test)
+- Fixture structures (Go simplified)
+- Inputs to Read (extension mapping research)
+
+**Shared Understanding Achieved**: ✓
+
+**Confidence Level**: High — Serena patterns validated and integrated, edge cases addressed.
+
+**Key Insight**: Research phase should stay lightweight. Test infrastructure concerns deferred to production phase.

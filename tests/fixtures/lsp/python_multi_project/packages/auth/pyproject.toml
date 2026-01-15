@@ -1,0 +1,4 @@
+# Nested project marker (auth package)
+[project]
+name = "auth"
+version = "0.1.0"
