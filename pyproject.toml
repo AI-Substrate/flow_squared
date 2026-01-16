@@ -9,7 +9,9 @@ dependencies = [
     "networkx>=3.0",
     "numpy>=1.24",
     "openai>=1.0.0",
+    "overrides>=7.0.0",  # Required by vendored SolidLSP
     "pathspec>=0.12",
+    "psutil>=5.9.0",  # Required by vendored SolidLSP
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "pyright>=1.1.400",  # Python LSP server for SolidLSP integration
@@ -58,6 +60,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B017", "SIM102"]  # allow pytest.raises(Exception), nested ifs for clarity
+"src/fs2/vendors/*" = ["ALL"]  # vendored third-party code: exempt from all lint rules
 
 [tool.ruff.lint.isort]
 known-first-party = ["fs2"]

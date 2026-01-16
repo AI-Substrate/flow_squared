@@ -50,8 +50,8 @@ RUN echo '#!/bin/bash\nif ! pgrep -x sshd > /dev/null 2>&1; then\n    sudo servi
 RUN echo "vscode ALL=(ALL) NOPASSWD: /usr/sbin/service ssh start" >> /etc/sudoers.d/vscode-ssh && \
     chmod 0440 /etc/sudoers.d/vscode-ssh
 
-# Install Node.js 20.x (LTS) from NodeSource
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+# Install Node.js 22.x (LTS) from NodeSource
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

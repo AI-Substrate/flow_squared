@@ -46,7 +46,12 @@
       "Bash(bash -n:*)",
       "Bash(fs2 scan:*)",
       "Bash(lsof:*)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(curl:*)",
+      "Bash(sudo -E bash -)",
+      "Bash(sudo apt-get install:*)",
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)"
     ],
     "deny": [],
     "ask": []

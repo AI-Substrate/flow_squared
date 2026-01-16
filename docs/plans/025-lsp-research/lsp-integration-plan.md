@@ -1848,7 +1848,7 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 ### Phase Completion Checklist
 - [x] Phase 0: Environment Preparation - COMPLETE (2026-01-14)
 - [x] Phase 0b: Multi-Project Research - COMPLETE (2026-01-15) - includes Subtask 001: SolidLSP validation (4/4 languages)
-- [ ] Phase 1: Vendor SolidLSP Core - NOT STARTED
+- [x] Phase 1: Vendor SolidLSP Core - COMPLETE (2026-01-16) - 14/14 tasks, 60 files, ~25K LOC vendored [^7]
 - [ ] Phase 2: LspAdapter ABC and Exceptions - NOT STARTED
 - [ ] Phase 3: SolidLspAdapter Implementation - NOT STARTED
 - [ ] Phase 4: Multi-Language LSP Support - NOT STARTED
@@ -1858,7 +1858,7 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - [ ] Phase 8: Pipeline Integration - NOT STARTED (merged from 024 Phase 5 + 025 Phase 5)
 - [ ] Phase 9: Documentation - NOT STARTED
 
-**Overall Progress**: 2/11 phases complete (18%) - Phase 0 + Phase 0b
+**Overall Progress**: 3/11 phases complete (27%) - Phase 0 + Phase 0b + Phase 1
 
 **Note**: 024 Phase 1 (Core Models & GraphStore Extension) is COMPLETE - foundation models (EdgeType, CodeEdge, GraphStore extensions) are already implemented and available for use.
 
@@ -1892,6 +1892,38 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 [^6]: Subtask 001 ST008 - C# MSBuild fix
   - `method:scratch/serena/src/solidlsp/language_servers/csharp_language_server.py:CSharpLanguageServer._ensure_dotnet_runtime` - Accept .NET 9+
   - `method:scratch/serena/src/solidlsp/language_servers/csharp_language_server.py:CSharpLanguageServer.__init__` - Pass DOTNET_ROOT env vars
+
+[^7]: Phase 1 - Vendored SolidLSP (~25K LOC, 60 files)
+  - `file:src/fs2/vendors/solidlsp/__init__.py` - Package init
+  - `file:src/fs2/vendors/solidlsp/ls.py` - Main server (96KB)
+  - `file:src/fs2/vendors/solidlsp/ls_handler.py` - Request handler
+  - `file:src/fs2/vendors/solidlsp/ls_config.py` - Language config
+  - `file:src/fs2/vendors/solidlsp/language_servers/` - 42 language server files
+  - `file:src/fs2/vendors/solidlsp/lsp_protocol_handler/` - Protocol handler (4 files)
+  - `file:src/fs2/vendors/solidlsp/util/` - Utilities (3 files)
+
+[^8]: Phase 1 - Stub modules for serena.* dependencies
+  - `class:src/fs2/vendors/solidlsp/_stubs/serena/text_utils.py:MatchedConsecutiveLines` - Text context extraction
+  - `function:src/fs2/vendors/solidlsp/_stubs/serena/util/file_system.py:match_path` - Path matching
+
+[^9]: Phase 1 - Stub modules for sensai.* dependencies
+  - `class:src/fs2/vendors/solidlsp/_stubs/sensai/util/string.py:ToStringMixin` - String representation mixin
+  - `function:src/fs2/vendors/solidlsp/_stubs/sensai/util/pickle.py:dump_pickle` - Pickle wrapper
+  - `function:src/fs2/vendors/solidlsp/_stubs/sensai/util/pickle.py:load_pickle` - Pickle wrapper
+  - `function:src/fs2/vendors/solidlsp/_stubs/sensai/util/pickle.py:getstate` - State getter
+  - `class:src/fs2/vendors/solidlsp/_stubs/sensai/util/logging.py:LogTime` - Timing context manager
+
+[^10]: Phase 1 - Import verification test (5 tests)
+  - `function:tests/unit/vendors/test_solidlsp_imports.py:test_given_vendored_solidlsp_when_importing_core_then_succeeds`
+  - `function:tests/unit/vendors/test_solidlsp_imports.py:test_given_vendored_solidlsp_when_importing_language_configs_then_succeeds`
+  - `function:tests/unit/vendors/test_solidlsp_imports.py:test_given_vendored_solidlsp_when_checking_no_serena_imports_then_clean`
+  - `function:tests/unit/vendors/test_solidlsp_imports.py:test_given_vendored_solidlsp_when_checking_csharp_fixes_then_preserved`
+  - `function:tests/unit/vendors/test_solidlsp_imports.py:test_given_vendored_solidlsp_when_instantiating_then_stubs_compatible`
+
+[^11]: Phase 1 - Dependencies and configuration
+  - `file:pyproject.toml` - Added psutil>=5.9.0, overrides>=7.0.0; lint exclusion for vendors/
+  - `file:THIRD_PARTY_LICENSES` - MIT attribution for Oraios AI, Microsoft
+  - `file:src/fs2/vendors/solidlsp/VENDOR_VERSION` - Upstream commit tracking (b7142cbfd4ee18701e59c27c9e058ed20f8cd125)
 
 ---
 

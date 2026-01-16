@@ -1,0 +1,22 @@
+# Vendored SolidLSP Version Information
+
+upstream_repo: https://github.com/oraios/serena
+upstream_path: src/solidlsp/
+commit_sha: b7142cbfd4ee18701e59c27c9e058ed20f8cd125
+vendored_date: 2026-01-16
+vendored_by: fs2-plan-025-phase-1
+
+## Local Modifications
+
+- Import path transformation: solidlsp.* -> fs2.vendors.solidlsp.*
+- External dependencies stubbed: serena.* and sensai.* -> _stubs/
+- Dependencies added to pyproject.toml: psutil, overrides
+- C# DOTNET_ROOT fix preserved from Phase 0b research
+
+## Files Included
+
+- Core modules: ls.py, ls_handler.py, ls_config.py, ls_types.py, ls_request.py, ls_exceptions.py, ls_utils.py, settings.py
+- Protocol handler: lsp_protocol_handler/ (4 files)
+- Utilities: util/ (3 files)
+- Language servers: language_servers/ (42 files)
+- Stubs: _stubs/ (10 files)
