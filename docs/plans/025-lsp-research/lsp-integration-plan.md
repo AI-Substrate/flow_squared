@@ -629,13 +629,13 @@ ruff check src/fs2/vendors/solidlsp/ --select=E,F
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 2.1 | [ ] | Write ABC contract tests | 2 | Tests define expected interface | - | TDD: test first |
-| 2.2 | [ ] | Write FakeLspAdapter tests | 2 | Tests for call_history, set_response, set_error | - | TDD: test first |
-| 2.3 | [ ] | Add LspAdapterError hierarchy to exceptions.py | 2 | NotFound, Crash, Timeout, Initialization errors | - | AC07 |
-| 2.4 | [ ] | Create LspAdapter ABC | 2 | Interface with initialize, shutdown, get_references | - | AC04 |
-| 2.5 | [ ] | Create FakeLspAdapter | 2 | Inherits ABC, has call_history | - | AC06 |
-| 2.6 | [ ] | Add LspConfig to config/objects.py | 1 | Config type for server settings | - | |
-| 2.7 | [ ] | Run all tests green | 1 | All Phase 2 tests pass | - | TDD: green |
+| 2.1 | [x] | Write ABC contract tests | 2 | Tests define expected interface | [^12] | TDD: test first - 7 tests |
+| 2.2 | [x] | Write FakeLspAdapter tests | 2 | Tests for call_history, set_response, set_error | [^12] | TDD: test first - 8 tests |
+| 2.3 | [x] | Add LspAdapterError hierarchy to exceptions.py | 2 | NotFound, Crash, Timeout, Initialization errors | [^12] | AC07 - 5 exceptions |
+| 2.4 | [x] | Create LspAdapter ABC | 2 | Interface with initialize, shutdown, get_references | [^12] | AC04 - 5 abstract methods |
+| 2.5 | [x] | Create FakeLspAdapter | 2 | Inherits ABC, has call_history | [^12] | AC06 - method-specific setters (DYK-1) |
+| 2.6 | [x] | Add LspConfig to config/objects.py | 1 | Config type for server settings | [^12] | timeout_seconds, enable_logging |
+| 2.7 | [x] | Run all tests green | 1 | All Phase 2 tests pass | [^12] | TDD: green - 15/15 tests, ruff/mypy clean |
 
 ### Test Examples
 
@@ -706,17 +706,17 @@ class TestFakeLspAdapter:
 ```
 
 ### Non-Happy-Path Coverage
-- [ ] LspServerNotFoundError includes install command
-- [ ] LspServerCrashError includes server name and exit code
-- [ ] LspTimeoutError includes operation and timeout value
-- [ ] LspInitializationError includes root cause
+- [x] LspServerNotFoundError includes install command
+- [x] LspServerCrashError includes server name and exit code
+- [x] LspTimeoutError includes operation and timeout value
+- [x] LspInitializationError includes root cause
 
 ### Acceptance Criteria
-- [ ] AC04: `LspAdapter` ABC defines language-agnostic interface returning `CodeEdge` only
-- [ ] AC06: `FakeLspAdapter` inherits from ABC with `call_history` tracking
-- [ ] AC07: Adapter raises `LspAdapterError` hierarchy (NotFound, StartError, Timeout, NotSupported)
-- [ ] All error messages include actionable fix instructions
-- [ ] Tests pass with FakeLspAdapter
+- [x] AC04: `LspAdapter` ABC defines language-agnostic interface returning `CodeEdge` only
+- [x] AC06: `FakeLspAdapter` inherits from ABC with `call_history` tracking
+- [x] AC07: Adapter raises `LspAdapterError` hierarchy (NotFound, StartError, Timeout, NotSupported)
+- [x] All error messages include actionable fix instructions
+- [x] Tests pass with FakeLspAdapter
 
 ### Commands to Run
 ```bash
@@ -1849,7 +1849,7 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - [x] Phase 0: Environment Preparation - COMPLETE (2026-01-14)
 - [x] Phase 0b: Multi-Project Research - COMPLETE (2026-01-15) - includes Subtask 001: SolidLSP validation (4/4 languages)
 - [x] Phase 1: Vendor SolidLSP Core - COMPLETE (2026-01-16) - 14/14 tasks, 60 files, ~25K LOC vendored [^7]
-- [ ] Phase 2: LspAdapter ABC and Exceptions - NOT STARTED
+- [x] Phase 2: LspAdapter ABC and Exceptions - COMPLETE (2026-01-16) - 8/8 tasks, ABC + Fake + Exceptions + Config [^12]
 - [ ] Phase 3: SolidLspAdapter Implementation - NOT STARTED
 - [ ] Phase 4: Multi-Language LSP Support - NOT STARTED
 - [ ] Phase 5: Python Import Extraction - NOT STARTED (ported from 024 Phase 2)
@@ -1858,7 +1858,7 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - [ ] Phase 8: Pipeline Integration - NOT STARTED (merged from 024 Phase 5 + 025 Phase 5)
 - [ ] Phase 9: Documentation - NOT STARTED
 
-**Overall Progress**: 3/11 phases complete (27%) - Phase 0 + Phase 0b + Phase 1
+**Overall Progress**: 4/11 phases complete (36%) - Phase 0 + Phase 0b + Phase 1 + Phase 2
 
 **Note**: 024 Phase 1 (Core Models & GraphStore Extension) is COMPLETE - foundation models (EdgeType, CodeEdge, GraphStore extensions) are already implemented and available for use.
 
@@ -1924,6 +1924,18 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
   - `file:pyproject.toml` - Added psutil>=5.9.0, overrides>=7.0.0; lint exclusion for vendors/
   - `file:THIRD_PARTY_LICENSES` - MIT attribution for Oraios AI, Microsoft
   - `file:src/fs2/vendors/solidlsp/VENDOR_VERSION` - Upstream commit tracking (b7142cbfd4ee18701e59c27c9e058ed20f8cd125)
+
+[^12]: Phase 2 - LspAdapter ABC and Exceptions (8/8 tasks)
+  - `class:src/fs2/core/adapters/lsp_adapter.py:LspAdapter` - ABC with initialize, shutdown, get_references, get_definition, is_ready
+  - `class:src/fs2/core/adapters/lsp_adapter_fake.py:FakeLspAdapter` - Test double with call_history, method-specific setters (DYK-1)
+  - `class:src/fs2/core/adapters/exceptions.py:LspAdapterError` - Base LSP exception
+  - `class:src/fs2/core/adapters/exceptions.py:LspServerNotFoundError` - Platform-specific install commands
+  - `class:src/fs2/core/adapters/exceptions.py:LspServerCrashError` - Exit code tracking
+  - `class:src/fs2/core/adapters/exceptions.py:LspTimeoutError` - Timeout tracking
+  - `class:src/fs2/core/adapters/exceptions.py:LspInitializationError` - Root cause tracking
+  - `class:src/fs2/config/objects.py:LspConfig` - timeout_seconds, enable_logging
+  - `function:tests/unit/adapters/test_lsp_adapter.py:*` - 7 ABC contract tests
+  - `function:tests/unit/adapters/test_lsp_adapter_fake.py:*` - 8 FakeLspAdapter tests
 
 ---
 

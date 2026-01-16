@@ -908,6 +908,42 @@ class SearchConfig(BaseModel):
         return v
 
 
+class LspConfig(BaseModel):
+    """LSP adapter configuration.
+
+    Controls Language Server Protocol adapter behavior for cross-file
+    reference resolution.
+
+    Per DYK-4: Only contains adapter-level settings. Language and project_root
+    are passed to initialize(), not stored in config.
+
+    Attributes:
+        timeout_seconds: Request timeout in seconds (default: 30.0, range 1.0-300.0).
+        enable_logging: Whether to log LSP requests/responses (default: False).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        lsp:
+          timeout_seconds: 30.0
+          enable_logging: false
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "lsp"
+
+    timeout_seconds: float = 30.0
+    enable_logging: bool = False
+
+    @field_validator("timeout_seconds")
+    @classmethod
+    def validate_timeout_seconds(cls, v: float) -> float:
+        """Validate timeout is in reasonable range."""
+        if v < 1.0 or v > 300.0:
+            raise ValueError("timeout_seconds must be between 1.0 and 300.0")
+        return v
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -923,4 +959,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     SearchConfig,
     WatchConfig,
     OtherGraphsConfig,
+    LspConfig,
 ]

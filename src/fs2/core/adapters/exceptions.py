@@ -353,3 +353,173 @@ class DocsNotFoundError(AdapterError):
             "Use docs_list() to see available documents."
         )
         super().__init__(message or default_message)
+
+
+# LSP Adapter Exception Hierarchy
+# Per Discovery 04: Actionable error messages with platform-specific install commands
+# Per Discovery 12: Exception hierarchy at adapter boundary
+
+
+class LspAdapterError(AdapterError):
+    """Base error for LSP adapter operations.
+
+    All LSP-specific errors inherit from this class to enable
+    catch-all patterns for LSP operations at the service layer.
+
+    Note: This error is raised for generic LSP failures that don't
+    fit into more specific categories.
+    """
+
+
+class LspServerNotFoundError(LspAdapterError):
+    """LSP server binary not found.
+
+    Raised when the adapter cannot locate the LSP server binary
+    required for the specified language.
+
+    Per Discovery 04: Includes platform-specific install commands.
+
+    Common causes:
+    - Server not installed
+    - Server not in PATH
+    - Wrong server name configured
+
+    Recovery:
+    - Install the appropriate server for your platform
+    - Ensure server binary is in PATH
+    - Check configuration for correct server name
+
+    Attributes:
+        server_name: Name of the missing server binary.
+        install_commands: Dict of platform -> install command.
+    """
+
+    def __init__(self, server_name: str, install_commands: dict[str, str]):
+        """Initialize with server name and platform-specific install commands.
+
+        Args:
+            server_name: Name of the missing server (e.g., "pyright").
+            install_commands: Mapping of platform.system() values to install commands.
+                             Include "default" key as fallback.
+        """
+        import platform
+
+        self.server_name = server_name
+        self.install_commands = install_commands
+
+        system = platform.system()
+        cmd = install_commands.get(system, install_commands.get("default", ""))
+
+        message = f"LSP server '{server_name}' not found. Install with:\n  {cmd}"
+        super().__init__(message)
+
+
+class LspServerCrashError(LspAdapterError):
+    """LSP server process crashed unexpectedly.
+
+    Raised when the language server process terminates abnormally
+    during operation (not during initialization).
+
+    Common causes:
+    - Server bug triggered by input
+    - Out of memory
+    - Unhandled exception in server
+
+    Recovery:
+    - Check server logs for error details
+    - Try restarting the adapter
+    - Report issue to server maintainers if reproducible
+
+    Attributes:
+        server_name: Name of the crashed server.
+        exit_code: Exit code of the crashed process, if known.
+    """
+
+    def __init__(self, server_name: str, exit_code: int | None = None):
+        """Initialize with server name and optional exit code.
+
+        Args:
+            server_name: Name of the crashed server.
+            exit_code: Exit code of the crashed process, or None if unknown.
+        """
+        self.server_name = server_name
+        self.exit_code = exit_code
+
+        if exit_code is not None:
+            message = (
+                f"LSP server '{server_name}' crashed with exit code {exit_code}. "
+                "Check server logs and try restarting."
+            )
+        else:
+            message = (
+                f"LSP server '{server_name}' crashed unexpectedly. "
+                "Check server logs and try restarting."
+            )
+        super().__init__(message)
+
+
+class LspTimeoutError(LspAdapterError):
+    """LSP operation timed out.
+
+    Raised when an LSP request doesn't complete within the configured
+    timeout period.
+
+    Common causes:
+    - Large codebase with many files
+    - Server still indexing
+    - Server hung on complex operation
+
+    Recovery:
+    - Wait for server indexing to complete
+    - Increase timeout in configuration
+    - Check if server is responsive
+
+    Attributes:
+        operation: Name of the operation that timed out.
+        timeout_seconds: Configured timeout value in seconds.
+    """
+
+    def __init__(self, message: str, operation: str | None = None, timeout_seconds: float | None = None):
+        """Initialize with message and optional operation details.
+
+        Args:
+            message: Error description.
+            operation: Name of the operation that timed out (e.g., "get_references").
+            timeout_seconds: Configured timeout value.
+        """
+        self.operation = operation
+        self.timeout_seconds = timeout_seconds
+        super().__init__(message)
+
+
+class LspInitializationError(LspAdapterError):
+    """LSP server initialization failed.
+
+    Raised when the language server fails to initialize properly.
+    This typically occurs during the LSP initialize/initialized handshake.
+
+    Common causes:
+    - Invalid project root path
+    - Server doesn't support the language/file type
+    - Missing project configuration files
+    - Server binary exists but is incompatible
+
+    Recovery:
+    - Check project root path is valid
+    - Verify language is supported by the server
+    - Check for required project configuration files
+    - Update server to compatible version
+
+    Attributes:
+        root_cause: Underlying error that caused initialization failure.
+    """
+
+    def __init__(self, message: str, root_cause: Exception | None = None):
+        """Initialize with message and optional root cause.
+
+        Args:
+            message: Error description.
+            root_cause: Underlying exception that caused the failure.
+        """
+        self.root_cause = root_cause
+        super().__init__(message)
