@@ -31,6 +31,7 @@ from fs2.cli.scan import scan
 from fs2.cli.search import search
 from fs2.cli.tree import tree
 from fs2.cli.watch import watch
+from fs2.cli.web import web
 
 
 @dataclass
@@ -112,6 +113,7 @@ app.command(name="list-graphs")(list_graphs)  # Per subtask 001: diagnostic comm
 app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
 app.command(name="install")(install)
 app.command(name="upgrade")(upgrade)
+app.command(name="web")(web)
 
 
 if __name__ == "__main__":

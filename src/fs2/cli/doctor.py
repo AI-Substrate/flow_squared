@@ -11,11 +11,12 @@ Diagnostic command that displays configuration health status including:
 Subcommands:
 - fs2 doctor: Check configuration health (default)
 - fs2 doctor llm: Test LLM and embedding provider connectivity
+
+Note: Core validation logic is in fs2.core.validation (shared with web UI).
 """
 
 import asyncio
 import os
-import re
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,16 @@ from fs2.config.exceptions import MissingConfigurationError
 from fs2.config.loaders import deep_merge, load_yaml_config
 from fs2.config.paths import get_project_config_dir, get_user_config_dir
 
+# Import validation logic from shared module (single source of truth)
+from fs2.core.validation import (
+    EMBEDDING_DOCS_URL,
+    LLM_DOCS_URL,
+    detect_literal_secrets,
+    find_placeholders_in_value,
+    validate_embedding_config,
+    validate_llm_config,
+)
+
 console = Console()
 
 # Create Typer app for doctor command group
@@ -38,21 +49,6 @@ doctor_app = typer.Typer(
     help="Diagnose fs2 configuration and provider connectivity",
     no_args_is_help=False,  # Allow running without subcommand
 )
-
-# GitHub documentation URLs
-GITHUB_BASE = "https://github.com/AI-Substrate/flow_squared/blob/main"
-LLM_DOCS_URL = f"{GITHUB_BASE}/docs/how/user/configuration-guide.md#llm-configuration"
-EMBEDDING_DOCS_URL = (
-    f"{GITHUB_BASE}/docs/how/user/configuration-guide.md#embedding-configuration"
-)
-CONFIG_DOCS_URL = f"{GITHUB_BASE}/docs/how/user/configuration-guide.md"
-
-# Placeholder pattern: ${VAR_NAME}
-PLACEHOLDER_PATTERN = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
-
-# Secret detection patterns
-SK_PREFIX_PATTERN = re.compile(r"^sk-")
-LONG_SECRET_MIN_LENGTH = 64
 
 # Health check prompts (substantial to ensure valid responses)
 LLM_HEALTH_CHECK_PROMPT = (
@@ -214,63 +210,6 @@ def detect_overrides() -> list[dict[str, Any]]:
     return _find_overrides(user_config, project_config)
 
 
-def _validate_llm_config(config: dict[str, Any]) -> tuple[bool, bool, list[str]]:
-    """Validate LLM configuration.
-
-    Returns:
-        Tuple of (is_configured, is_misconfigured, list of issues)
-    """
-    llm = config.get("llm")
-    if not llm:
-        return False, False, []
-
-    provider = llm.get("provider")
-    if not provider:
-        return False, True, ["Missing 'provider' field"]
-
-    issues = []
-    if provider == "azure":
-        if not llm.get("base_url"):
-            issues.append("base_url is required when provider=azure")
-        if not llm.get("azure_deployment_name"):
-            issues.append("azure_deployment_name is required when provider=azure")
-        if not llm.get("azure_api_version"):
-            issues.append("azure_api_version is required when provider=azure")
-
-    if issues:
-        return False, True, issues
-
-    return True, False, []
-
-
-def _validate_embedding_config(config: dict[str, Any]) -> tuple[bool, bool, list[str]]:
-    """Validate embedding configuration.
-
-    Returns:
-        Tuple of (is_configured, is_misconfigured, list of issues)
-    """
-    embedding = config.get("embedding")
-    if not embedding:
-        return False, False, []
-
-    mode = embedding.get("mode")
-    if not mode:
-        return False, True, ["Missing 'mode' field"]
-
-    issues = []
-    if mode == "azure":
-        azure = embedding.get("azure", {})
-        if not azure.get("endpoint"):
-            issues.append("azure.endpoint is required when mode=azure")
-        if not azure.get("api_key"):
-            issues.append("azure.api_key is required when mode=azure")
-
-    if issues:
-        return False, True, issues
-
-    return True, False, []
-
-
 def check_provider_status() -> dict[str, dict[str, Any]]:
     """Check configuration status for LLM and embedding providers.
 
@@ -285,8 +224,9 @@ def check_provider_status() -> dict[str, dict[str, Any]]:
     chain = compute_merge_chain()
     final_config = chain["final"]
 
-    llm_configured, llm_misconfigured, llm_issues = _validate_llm_config(final_config)
-    emb_configured, emb_misconfigured, emb_issues = _validate_embedding_config(
+    # Use shared validation module
+    llm_configured, llm_misconfigured, llm_issues = validate_llm_config(final_config)
+    emb_configured, emb_misconfigured, emb_issues = validate_embedding_config(
         final_config
     )
 
@@ -306,34 +246,6 @@ def check_provider_status() -> dict[str, dict[str, Any]]:
             "docs_url": EMBEDDING_DOCS_URL,
         },
     }
-
-
-def _find_placeholders_in_value(value: Any, path: str = "") -> list[dict[str, str]]:
-    """Find ${VAR} placeholders in a config value recursively.
-
-    Returns:
-        List of dicts with name and path for each placeholder found.
-    """
-    placeholders = []
-
-    if isinstance(value, str):
-        for match in PLACEHOLDER_PATTERN.finditer(value):
-            placeholders.append(
-                {
-                    "name": match.group(1),
-                    "path": path,
-                }
-            )
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            current_path = f"{path}.{k}" if path else k
-            placeholders.extend(_find_placeholders_in_value(v, current_path))
-    elif isinstance(value, list):
-        for i, item in enumerate(value):
-            current_path = f"{path}[{i}]"
-            placeholders.extend(_find_placeholders_in_value(item, current_path))
-
-    return placeholders
 
 
 def _load_all_env_values() -> dict[str, str]:
@@ -377,14 +289,15 @@ def validate_placeholders() -> list[dict[str, Any]]:
     chain = compute_merge_chain()
     final_config = chain["final"]
 
-    placeholders = _find_placeholders_in_value(final_config)
+    # Use shared function from validation module
+    placeholders = find_placeholders_in_value(final_config)
 
     # Load all env values (including from env files)
     all_env_values = _load_all_env_values()
 
     # Deduplicate by name and add resolved status
-    seen = set()
-    result = []
+    seen: set[str] = set()
+    result: list[dict[str, Any]] = []
     for p in placeholders:
         if p["name"] not in seen:
             seen.add(p["name"])
@@ -399,57 +312,10 @@ def validate_placeholders() -> list[dict[str, Any]]:
     return result
 
 
-def _find_secrets_in_value(
-    value: Any, path: str = "", is_secret_field: bool = False
-) -> list[dict[str, Any]]:
-    """Find literal secrets in config values.
-
-    Returns:
-        List of secret warnings (never includes actual values).
-    """
-    secrets = []
-
-    # Fields that typically contain secrets
-    secret_field_names = {"api_key", "secret", "password", "token", "key"}
-
-    if isinstance(value, str):
-        # Check for sk-* prefix (OpenAI API key format)
-        if SK_PREFIX_PATTERN.match(value):
-            secrets.append(
-                {
-                    "path": path,
-                    "pattern": "sk-*",
-                    "reason": "OpenAI API key format detected",
-                }
-            )
-        # Check for long strings in secret fields (but not placeholders)
-        elif (
-            is_secret_field
-            and len(value) >= LONG_SECRET_MIN_LENGTH
-            and not PLACEHOLDER_PATTERN.search(value)
-        ):
-            secrets.append(
-                {
-                    "path": path,
-                    "pattern": f">{LONG_SECRET_MIN_LENGTH} chars",
-                    "reason": "Long literal in secret field",
-                }
-            )
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            current_path = f"{path}.{k}" if path else k
-            is_secret = k.lower() in secret_field_names
-            secrets.extend(_find_secrets_in_value(v, current_path, is_secret))
-    elif isinstance(value, list):
-        for i, item in enumerate(value):
-            current_path = f"{path}[{i}]"
-            secrets.extend(_find_secrets_in_value(item, current_path, is_secret_field))
-
-    return secrets
-
-
-def detect_literal_secrets() -> list[dict[str, Any]]:
+def detect_literal_secrets_in_config() -> list[dict[str, Any]]:
     """Detect literal secrets in config files.
+
+    Wrapper that loads config and calls shared detect_literal_secrets_in_config().
 
     Returns:
         List of secret warnings (never includes actual values).
@@ -457,7 +323,8 @@ def detect_literal_secrets() -> list[dict[str, Any]]:
     chain = compute_merge_chain()
     final_config = chain["final"]
 
-    return _find_secrets_in_value(final_config)
+    # Use shared function from validation module
+    return detect_literal_secrets(final_config)
 
 
 def get_suggestions() -> list[str]:
@@ -683,7 +550,7 @@ def _has_critical_issues() -> bool:
         True if critical issues found.
     """
     # Literal secrets are critical
-    if detect_literal_secrets():
+    if detect_literal_secrets_in_config():
         return True
 
     # Schema validation errors are critical
@@ -802,7 +669,7 @@ def _render_output() -> None:
 
     # Warnings section
     warnings = get_warnings()
-    secrets = detect_literal_secrets()
+    secrets = detect_literal_secrets_in_config()
     if warnings or secrets:
         console.print("[bold]⚠️  Warnings:[/bold]")
         for w in warnings:

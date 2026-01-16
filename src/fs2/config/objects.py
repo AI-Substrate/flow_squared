@@ -908,6 +908,49 @@ class SearchConfig(BaseModel):
         return v
 
 
+class UIConfig(BaseModel):
+    """Configuration for fs2 Web UI.
+
+    Loaded from YAML or environment variables.
+    Path: ui (e.g., FS2_UI__PORT)
+
+    Controls the Streamlit-based web interface launched by `fs2 web`.
+
+    Attributes:
+        port: Port number for web server (default: 8501).
+        host: Host address to bind (default: "localhost").
+        theme: Streamlit theme name (default: None = Streamlit default).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        ui:
+          port: 8501
+          host: localhost
+          theme: dark
+        ```
+
+    Environment variables example:
+        FS2_UI__PORT=8080
+        FS2_UI__HOST=0.0.0.0
+        FS2_UI__THEME=light
+    """
+
+    __config_path__: ClassVar[str] = "ui"
+
+    port: int = 8501
+    host: str = "localhost"
+    theme: str | None = None
+
+    @field_validator("port")
+    @classmethod
+    def validate_port(cls, v: int) -> int:
+        """Validate port is in valid range (1-65535)."""
+        if v < 1 or v > 65535:
+            raise ValueError("port must be between 1 and 65535")
+        return v
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -923,4 +966,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     SearchConfig,
     WatchConfig,
     OtherGraphsConfig,
+    UIConfig,
 ]

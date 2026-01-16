@@ -563,7 +563,7 @@ class TestSecretDetection:
         Quality Contribution: Prevents committing OpenAI keys.
         Acceptance Criteria: AC-13 - Warns about sk-* prefix.
         """
-        from fs2.cli.doctor import detect_literal_secrets
+        from fs2.cli.doctor import detect_literal_secrets_in_config as detect_literal_secrets
 
         project_dir = tmp_path / "project"
         project_dir.mkdir()
@@ -591,7 +591,7 @@ class TestSecretDetection:
         Quality Contribution: Catches long literal secrets.
         Acceptance Criteria: AC-13 - Warns about >64 char strings.
         """
-        from fs2.cli.doctor import detect_literal_secrets
+        from fs2.cli.doctor import detect_literal_secrets_in_config as detect_literal_secrets
 
         project_dir = tmp_path / "project"
         project_dir.mkdir()
@@ -613,7 +613,7 @@ class TestSecretDetection:
         Quality Contribution: No noise for properly configured secrets.
         Acceptance Criteria: AC-13 - No warning for placeholders.
         """
-        from fs2.cli.doctor import detect_literal_secrets
+        from fs2.cli.doctor import detect_literal_secrets_in_config as detect_literal_secrets
 
         project_dir = tmp_path / "project"
         project_dir.mkdir()

@@ -26,6 +26,9 @@ dependencies = [
 fs2 = "fs2.cli.main:app"
 
 [project.optional-dependencies]
+web = [
+    "streamlit>=1.30",
+]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.23",
