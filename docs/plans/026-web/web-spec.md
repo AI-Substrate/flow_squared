@@ -229,7 +229,7 @@ The browsing experience is **fluid and interconnected**:
 
 **AC-12**: Given user selects a node from tree or search results, then full source code displays with syntax highlighting and metadata (file path, line numbers, category).
 
-**AC-21**: Given user is in tree view and enters text in the search/filter box, then the tree filters to show only nodes whose node_id contains the search text, preserving hierarchy context.
+**AC-21**: Given user is in tree view and enters text in the search/filter box, then the tree narrows to show matching nodes as roots (search results become starter_nodes for TreeView), each expandable to reveal their children. *Note: This is "search narrows tree" behavior—results replace the tree roots rather than highlighting within the original hierarchy. See DYK Session 2026-01-16 Insight #5.*
 
 **AC-22**: Given user clicks a node in search results or tree view, then they can expand that node to see its children (if any) and continue browsing from that point.
 

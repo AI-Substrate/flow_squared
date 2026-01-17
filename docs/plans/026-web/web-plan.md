@@ -841,8 +841,10 @@ test -f docs/how/user/web-ui.md && echo "Guide exists" || echo "Guide missing"
 - [ ] Phase 3: Configuration Editor - NOT STARTED
 - [ ] Phase 4: Setup Wizards - NOT STARTED
 - [ ] Phase 5: Graph Management - NOT STARTED
-- [ ] Phase 6: Exploration - NOT STARTED
+- [~] Phase 6: Exploration - IN PROGRESS (12/17 tasks, 2026-01-16) ← Pulled forward
 - [ ] Phase 7: Polish & Documentation - NOT STARTED
+
+**Note**: Phase 6 (Exploration) was implemented before Phases 3-5 to enable "verify before configure" workflow.
 
 ### STOP Rule
 
@@ -946,6 +948,57 @@ test -f docs/how/user/web-ui.md && echo "Guide exists" || echo "Guide missing"
 [^15]: Phase 2 T012 - Dashboard page
   - `file:src/fs2/web/pages/1_Dashboard.py`
 
+### Phase 6: Exploration (2026-01-16)
+
+[^16]: Phase 6 T001 - GraphSelector tests (11 tests)
+  - `file:tests/unit/web/components/test_graph_selector.py`
+
+[^17]: Phase 6 T002 - GraphSelector component
+  - `class:src/fs2/web/components/graph_selector.py:GraphSelector`
+  - `method:src/fs2/web/components/graph_selector.py:GraphSelector.render`
+  - `method:src/fs2/web/components/graph_selector.py:GraphSelector.get_graph_options`
+
+[^18]: Phase 6 T003 - TreeView tests (13 tests)
+  - `file:tests/unit/web/components/test_tree_view.py`
+
+[^19]: Phase 6 T004 - TreeView component
+  - `class:src/fs2/web/components/tree_view.py:TreeView`
+  - `method:src/fs2/web/components/tree_view.py:TreeView.render`
+  - `method:src/fs2/web/components/tree_view.py:TreeView.get_display_nodes`
+
+[^20]: Phase 6 T005 - SearchPanel tests (14 tests)
+  - `file:tests/unit/web/components/test_search_panel.py`
+
+[^21]: Phase 6 T006 - SearchPanel component
+  - `class:src/fs2/web/components/search_panel.py:SearchPanel`
+  - `class:src/fs2/web/components/search_panel.py:SearchPanelOutput`
+  - `method:src/fs2/web/components/search_panel.py:SearchPanel.render`
+  - `method:src/fs2/web/components/search_panel.py:SearchPanel.get_search_output`
+
+[^22]: Phase 6 T009 - NodeInspector tests (9 tests)
+  - `file:tests/unit/web/components/test_node_inspector.py`
+
+[^23]: Phase 6 T010 - NodeInspector component
+  - `class:src/fs2/web/components/node_inspector.py:NodeInspector`
+  - `method:src/fs2/web/components/node_inspector.py:NodeInspector.render`
+  - `method:src/fs2/web/components/node_inspector.py:NodeInspector.get_node_data`
+  - `method:src/fs2/web/components/node_inspector.py:NodeInspector.get_language`
+
+[^24]: Phase 6 T013 - Explore page
+  - `file:src/fs2/web/pages/5_Explore.py`
+
+[^25]: Phase 6 T014 - Web UI integration
+  - `method:src/fs2/web/app.py:_render_explore`
+
+[^26]: Phase 6 T016 - SearchPanelService tests (15 tests)
+  - `file:tests/unit/web/services/test_search_panel_service.py`
+
+[^27]: Phase 6 T017 - SearchPanelService + Fake
+  - `class:src/fs2/web/services/search_panel_service.py:SearchPanelService`
+  - `class:src/fs2/web/services/search_panel_service.py:SearchPanelResult`
+  - `method:src/fs2/web/services/search_panel_service.py:SearchPanelService.search`
+  - `class:src/fs2/web/services/search_panel_service_fake.py:FakeSearchPanelService`
+
 ---
 
 ## Appendix: Directory Structure
@@ -991,3 +1044,13 @@ src/fs2/
 **Total Phases**: 7
 **Total Tasks**: 77
 **Next Step**: Run `/plan-5-phase-tasks-and-brief` for Phase 1
+
+---
+
+## Subtasks Registry
+
+Mid-implementation detours requiring structured tracking.
+
+| ID | Created | Phase | Parent Task | Reason | Status | Dossier |
+|----|---------|-------|-------------|--------|--------|---------|
+| 001-subtask-virtual-folder-hierarchy | 2026-01-16 | Phase 6: Exploration | T004 | TreeView shows flat file nodes instead of virtual folder hierarchy like CLI | [ ] Pending | [Link](tasks/phase-6-exploration/001-subtask-virtual-folder-hierarchy.md) |

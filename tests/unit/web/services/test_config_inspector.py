@@ -400,7 +400,7 @@ class TestErrorHandling:
         """
         missing_path = tmp_path / "nonexistent.yaml"
 
-        inspector = ConfigInspectorService(project_path=missing_path)
+        inspector = ConfigInspectorService(project_path=missing_path, use_defaults=False)
         result = inspector.inspect()
 
         assert result.attribution == {}
@@ -447,7 +447,7 @@ class TestErrorHandling:
         config = tmp_path / "empty.yaml"
         config.write_text("")
 
-        inspector = ConfigInspectorService(project_path=config)
+        inspector = ConfigInspectorService(project_path=config, use_defaults=False)
         result = inspector.inspect()
 
         assert result.attribution == {}

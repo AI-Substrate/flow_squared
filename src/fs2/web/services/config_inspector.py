@@ -217,6 +217,11 @@ class ConfigInspectorService:
 
     Usage:
         ```python
+        # Use defaults (recommended)
+        inspector = ConfigInspectorService()
+        result = inspector.inspect()
+
+        # Or specify paths explicitly
         inspector = ConfigInspectorService(
             user_path=Path("~/.config/fs2/config.yaml"),
             project_path=Path(".fs2/config.yaml"),
@@ -240,6 +245,7 @@ class ConfigInspectorService:
         user_path: Path | None = None,
         project_path: Path | None = None,
         secrets_paths: list[Path] | None = None,
+        use_defaults: bool = True,
     ) -> None:
         """Initialize inspector with config and secrets paths.
 
@@ -248,7 +254,26 @@ class ConfigInspectorService:
             project_path: Path to project config YAML (e.g., .fs2/config.yaml)
             secrets_paths: List of .env files to check for placeholder resolution
                           (checked in order, last wins)
+            use_defaults: If True and paths not specified, use standard fs2 paths
         """
+        if use_defaults:
+            # Import here to avoid circular imports
+            from fs2.config.paths import get_project_config_dir, get_user_config_dir
+
+            # Use standard fs2 config paths if not specified
+            if user_path is None:
+                user_path = get_user_config_dir() / "config.yaml"
+            if project_path is None:
+                project_path = get_project_config_dir() / "config.yaml"
+            if secrets_paths is None:
+                # Standard secrets locations (project .env and secrets.env files)
+                project_dir = get_project_config_dir()
+                secrets_paths = [
+                    Path.cwd() / ".env",  # Project root .env
+                    project_dir / "secrets.env",  # .fs2/secrets.env
+                    get_user_config_dir() / "secrets.env",  # ~/.config/fs2/secrets.env
+                ]
+
         self._user_path = user_path
         self._project_path = project_path
         self._secrets_paths = secrets_paths or []
