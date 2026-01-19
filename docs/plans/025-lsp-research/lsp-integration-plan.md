@@ -922,6 +922,36 @@ ps aux | grep -E "pyright|gopls" | grep -v grep || echo "✓ No orphaned LSP pro
 | Server-specific quirks | Medium | Medium | Test each server independently |
 | OmniSharp requires .NET | Low | Low | Phase 0 ensures availability |
 
+**⚠️ CRITICAL DISCOVERY (2026-01-19): TypeScript LSP Cross-File Resolution**
+
+**Problem**: TypeScript Language Server returns empty cross-file references unless ALL project files are opened first.
+
+**Evidence** (from DYK session):
+- With only `index.ts` opened: 0 cross-file references
+- With both `index.ts` AND `use_helper.ts` opened: 4 references (including 2 cross-file)
+
+**Root Cause**: SolidLSP's `request_references()` only opens the single file being queried:
+```python
+with self.open_file(relative_file_path):  # Only ONE file
+    response = self._send_references_request(...)
+```
+
+**Required Fix for Phase 4**:
+In `SolidLspAdapter.initialize()`, add logic to open all relevant project files for TypeScript:
+```python
+def initialize(self, language: str, project_root: str):
+    # ... existing init ...
+    
+    # For TypeScript: open all files to enable cross-file indexing
+    if language == "typescript":
+        for ts_file in Path(project_root).rglob("*.ts"):
+            self._server.open_file(str(ts_file.relative_to(project_root)))
+        for tsx_file in Path(project_root).rglob("*.tsx"):
+            self._server.open_file(str(tsx_file.relative_to(project_root)))
+```
+
+**See**: `/workspaces/flow_squared/scratch/dyk-session-ts-lsp.md` for full investigation details.
+
 ### Tasks (Full TDD Approach)
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
@@ -929,11 +959,12 @@ ps aux | grep -E "pyright|gopls" | grep -v grep || echo "✓ No orphaned LSP pro
 | 4.1 | [ ] | Write gopls integration tests | 2 | Tests with real gopls server | - | AC12 |
 | 4.2 | [ ] | Verify gopls support works | 2 | Tests pass | - | |
 | 4.3 | [ ] | Write TypeScript integration tests | 2 | Tests with real TS server | - | AC13 |
-| 4.4 | [ ] | Verify TypeScript support works | 2 | Tests pass | - | |
-| 4.5 | [ ] | Write OmniSharp integration tests | 2 | Tests with real OmniSharp | - | AC14 |
-| 4.6 | [ ] | Verify OmniSharp support works | 2 | Tests pass | - | |
-| 4.7 | [ ] | Add per-language wait configuration | 1 | LspConfig has per-language settings | - | Discovery 10 |
-| 4.8 | [ ] | Document any per-language code needed | 1 | Report to user if any | - | User request |
+| 4.4 | [ ] | **Fix TS cross-file: open all project files on init** | 2 | Cross-file refs return correctly | - | **CRITICAL** - see discovery above |
+| 4.5 | [ ] | Verify TypeScript support works | 2 | Tests pass | - | |
+| 4.6 | [ ] | Write OmniSharp integration tests | 2 | Tests with real OmniSharp | - | AC14 |
+| 4.7 | [ ] | Verify OmniSharp support works | 2 | Tests pass | - | |
+| 4.8 | [ ] | Add per-language wait configuration | 1 | LspConfig has per-language settings | - | Discovery 10 |
+| 4.9 | [ ] | Document any per-language code needed | 1 | Report to user if any | - | User request |
 
 ### Test Examples
 
@@ -1850,7 +1881,7 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - [x] Phase 0b: Multi-Project Research - COMPLETE (2026-01-15) - includes Subtask 001: SolidLSP validation (4/4 languages)
 - [x] Phase 1: Vendor SolidLSP Core - COMPLETE (2026-01-16) - 14/14 tasks, 60 files, ~25K LOC vendored [^7]
 - [x] Phase 2: LspAdapter ABC and Exceptions - COMPLETE (2026-01-16) - 8/8 tasks, ABC + Fake + Exceptions + Config [^12]
-- [ ] Phase 3: SolidLspAdapter Implementation - NOT STARTED
+- [~] Phase 3: SolidLspAdapter Implementation - CODE REVIEW FIXES REQUIRED (2026-01-19) - 10/10 tasks, 31 tests pass, 4 blocking issues [^13][^14]
 - [ ] Phase 4: Multi-Language LSP Support - NOT STARTED
 - [ ] Phase 5: Python Import Extraction - NOT STARTED (ported from 024 Phase 2)
 - [ ] Phase 6: Node ID and Filename Detection - NOT STARTED (ported from 024 Phase 3)
@@ -1858,7 +1889,7 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - [ ] Phase 8: Pipeline Integration - NOT STARTED (merged from 024 Phase 5 + 025 Phase 5)
 - [ ] Phase 9: Documentation - NOT STARTED
 
-**Overall Progress**: 4/11 phases complete (36%) - Phase 0 + Phase 0b + Phase 1 + Phase 2
+**Overall Progress**: 4/11 phases complete (36%) - Phase 0 + Phase 0b + Phase 1 + Phase 2 (Phase 3 pending review fixes)
 
 **Note**: 024 Phase 1 (Core Models & GraphStore Extension) is COMPLETE - foundation models (EdgeType, CodeEdge, GraphStore extensions) are already implemented and available for use.
 
@@ -1936,6 +1967,33 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
   - `class:src/fs2/config/objects.py:LspConfig` - timeout_seconds, enable_logging
   - `function:tests/unit/adapters/test_lsp_adapter.py:*` - 7 ABC contract tests
   - `function:tests/unit/adapters/test_lsp_adapter_fake.py:*` - 8 FakeLspAdapter tests
+
+[^13]: Phase 3 - SolidLspAdapter Implementation (10/10 tasks)
+  - `class:src/fs2/core/adapters/lsp_adapter_solidlsp.py:SolidLspAdapter` - Production adapter wrapping vendored SolidLSP (~500 LOC)
+  - `method:src/fs2/core/adapters/lsp_adapter_solidlsp.py:SolidLspAdapter.initialize` - Pre-check server with shutil.which() (DYK-1)
+  - `method:src/fs2/core/adapters/lsp_adapter_solidlsp.py:SolidLspAdapter.shutdown` - Delegates to SolidLSP psutil cleanup (DYK-2)
+  - `method:src/fs2/core/adapters/lsp_adapter_solidlsp.py:SolidLspAdapter.get_references` - Location → CodeEdge with EdgeType.REFERENCES
+  - `method:src/fs2/core/adapters/lsp_adapter_solidlsp.py:SolidLspAdapter.get_definition` - Location → CodeEdge with EdgeType.CALLS (DYK-3)
+  - `method:src/fs2/core/adapters/lsp_adapter_solidlsp.py:SolidLspAdapter._location_to_node_id` - Tree-sitter compatible node_id format (DYK-5)
+  - `file:tests/integration/test_lsp_pyright.py` - 7 Pyright integration tests (real LSP server)
+  - `file:tests/unit/adapters/test_lsp_type_translation.py` - 9 type translation unit tests
+  - TDD approach: RED (tests fail with ImportError) → GREEN (31/31 tests pass)
+  - Quality gates: ruff clean, mypy --strict clean
+
+[^14]: Phase 3 - Code Review (2026-01-19) - REQUEST_CHANGES verdict
+  - **SEC-001**: Path traversal vulnerability in `_uri_to_relative()` - insufficient validation (MEDIUM)
+  - **SEC-002**: `lstrip('/')` removes all leading slashes - use `removeprefix('/')` (MEDIUM)
+  - **COR-001/002**: Unvalidated dict access in `_translate_reference()` and `_translate_definition()` (HIGH)
+  - **LINK-001**: Footnote [^14] missing from plan ledger (fixed by this entry)
+  - Review files: `reviews/review.phase-3-solidlspadapter-implementation.md`, `reviews/fix-tasks.phase-3-solidlspadapter-implementation.md`
+  - Status: Implementation complete, fixes required before phase approval
+
+[^15]: Phase 4 Discovery (2026-01-19) - TypeScript LSP Cross-File Resolution Issue
+  - **Root Cause**: TypeScript Language Server requires ALL project files to be opened before cross-file references work
+  - **Evidence**: With only `index.ts` opened: 0 cross-file refs; with both files opened: 4 refs (2 cross-file)
+  - **Fix Required**: Task 4.4 - Open all `.ts`/`.tsx` files during `SolidLspAdapter.initialize()` for TypeScript
+  - **Investigation**: `/workspaces/flow_squared/scratch/dyk-session-ts-lsp.md`
+  - **Note**: Similar issue may affect Go (gopls) and C# (OmniSharp) - needs testing in Phase 4
 
 ---
 
