@@ -1,5 +1,9 @@
 {
   "name": "typescript-fixture",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/react": "^19.2.8",
+    "typescript": "^5.9.3"
+  }
 }

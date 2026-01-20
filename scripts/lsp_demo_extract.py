@@ -1,19 +1,29 @@
 #!/usr/bin/env python3
-"""LSP Demo: Extract cross-file relationships from a Python file.
+"""LSP Demo: Extract cross-file relationships from source files.
 
 This script demonstrates the SolidLspAdapter by:
-1. Parsing a Python file with AST to find all name references
+1. Parsing a source file to find all name references
 2. Calling LSP get_definition() for each name
 3. Collecting and displaying cross-file edges
 
+Supports: Python, TypeScript, Go, C#
+
 Usage:
-    python scripts/lsp_demo_extract.py [file_path]
+    python scripts/lsp_demo_extract.py [file_path] [--lang LANG]
     
     If no file_path given, defaults to src/fs2/core/adapters/log_adapter_console.py
+    If no --lang given, auto-detects from file extension
+    
+Examples:
+    python scripts/lsp_demo_extract.py  # Default Python file
+    python scripts/lsp_demo_extract.py tests/fixtures/lsp/go_project/cmd/server/main.go
+    python scripts/lsp_demo_extract.py tests/fixtures/lsp/typescript_multi_project/packages/client/utils.ts
+    python scripts/lsp_demo_extract.py tests/fixtures/lsp/csharp_multi_project/src/Api/Models.cs
 """
 
+import argparse
 import ast
-import asyncio
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,6 +34,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from fs2.config.objects import LspConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters.lsp_adapter_solidlsp import SolidLspAdapter
+
+# Language detection from file extension
+EXTENSION_TO_LANG = {
+    ".py": "python",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".go": "go",
+    ".cs": "csharp",
+}
 
 
 @dataclass
@@ -36,7 +57,7 @@ class NameLocation:
 
 
 class NameFinder(ast.NodeVisitor):
-    """AST visitor to find all Name nodes (variable/module references)."""
+    """AST visitor to find all Name nodes (variable/module references). Python only."""
     
     def __init__(self, source_lines: list[str]):
         self.names: list[NameLocation] = []
@@ -91,38 +112,189 @@ def extract_names_from_file(file_path: Path) -> tuple[list[NameLocation], str]:
     return finder.names, source
 
 
-def main() -> None:
-    # Determine file to analyze
-    if len(sys.argv) > 1:
-        target_file = Path(sys.argv[1]).resolve()
+def extract_names_regex(file_path: Path, language: str) -> tuple[list[NameLocation], str]:
+    """Extract identifiers using regex patterns for non-Python languages."""
+    source = file_path.read_text()
+    source_lines = source.splitlines()
+    names: list[NameLocation] = []
+    seen: set[tuple[str, int, int]] = set()
+    
+    # Language-specific identifier patterns
+    if language == "go":
+        # Go: function calls, type references, package.Identifier
+        patterns = [
+            r'\b([A-Z][a-zA-Z0-9_]*)\b',  # Exported identifiers (capitalized)
+            r'(\w+)\.([A-Z][a-zA-Z0-9_]*)',  # package.Exported
+            r'\b(\w+)\s*\(',  # function calls
+        ]
+    elif language in ("typescript", "javascript"):
+        # TypeScript/JS: imports, function calls, class references
+        patterns = [
+            r'import\s+\{([^}]+)\}',  # named imports
+            r'import\s+(\w+)\s+from',  # default imports
+            r'\b([A-Z][a-zA-Z0-9_]*)\b',  # PascalCase (classes, types)
+            r'(\w+)\s*\(',  # function calls
+        ]
+    elif language == "csharp":
+        # C#: class references, method calls, using statements
+        patterns = [
+            r'using\s+([\w.]+);',  # using statements
+            r'\b([A-Z][a-zA-Z0-9_]*)\b',  # PascalCase identifiers
+            r'new\s+([A-Z][a-zA-Z0-9_]*)',  # constructor calls
+            r'(\w+)\s*\(',  # method calls
+        ]
     else:
-        target_file = Path("src/fs2/core/adapters/log_adapter_console.py").resolve()
+        patterns = [r'\b([a-zA-Z_][a-zA-Z0-9_]*)\b']  # fallback
+    
+    for line_idx, line in enumerate(source_lines):
+        for pattern in patterns:
+            for match in re.finditer(pattern, line):
+                # Get the matched identifier
+                for group_idx in range(1, match.lastindex + 1 if match.lastindex else 1):
+                    name = match.group(group_idx)
+                    if name and len(name) > 1:  # Skip single chars
+                        # For import lists, split by comma
+                        if ',' in name:
+                            for part in name.split(','):
+                                part = part.strip()
+                                if part:
+                                    col = line.find(part)
+                                    key = (part, line_idx, col)
+                                    if key not in seen:
+                                        seen.add(key)
+                                        names.append(NameLocation(
+                                            name=part,
+                                            line=line_idx,
+                                            column=col if col >= 0 else 0,
+                                            context=line.strip(),
+                                        ))
+                        else:
+                            col = match.start(group_idx)
+                            key = (name, line_idx, col)
+                            if key not in seen:
+                                seen.add(key)
+                                names.append(NameLocation(
+                                    name=name,
+                                    line=line_idx,
+                                    column=col,
+                                    context=line.strip(),
+                                ))
+    
+    return names, source
+
+
+def detect_language(file_path: Path) -> str:
+    """Detect language from file extension."""
+    ext = file_path.suffix.lower()
+    return EXTENSION_TO_LANG.get(ext, "python")
+
+
+def get_project_root_for_language(file_path: Path, language: str) -> Path:
+    """Find appropriate project root based on language markers."""
+    current = file_path.parent
+    
+    # Language-specific project markers
+    markers = {
+        "python": ["pyproject.toml", "setup.py", "requirements.txt"],
+        "typescript": ["tsconfig.json", "package.json"],
+        "javascript": ["package.json", "jsconfig.json"],
+        "go": ["go.mod"],
+        "csharp": ["*.sln", "*.csproj"],
+    }
+    
+    lang_markers = markers.get(language, [])
+    
+    while current != current.parent:
+        for marker in lang_markers:
+            if "*" in marker:
+                if list(current.glob(marker)):
+                    return current
+            elif (current / marker).exists():
+                return current
+        current = current.parent
+    
+    # Fallback to cwd
+    return Path.cwd().resolve()
+
+
+def main() -> None:
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description="LSP Demo: Extract cross-file relationships from source files",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python scripts/lsp_demo_extract.py
+  python scripts/lsp_demo_extract.py tests/fixtures/lsp/go_project/cmd/server/main.go
+  python scripts/lsp_demo_extract.py tests/fixtures/lsp/typescript_multi_project/packages/client/utils.ts
+  python scripts/lsp_demo_extract.py tests/fixtures/lsp/csharp_multi_project/src/Api/Models.cs
+  python scripts/lsp_demo_extract.py --lang python src/fs2/cli/main.py
+        """,
+    )
+    parser.add_argument(
+        "file", 
+        nargs="?", 
+        default="src/fs2/core/adapters/log_adapter_console.py",
+        help="Source file to analyze (default: log_adapter_console.py)"
+    )
+    parser.add_argument(
+        "--lang", 
+        choices=["python", "typescript", "go", "csharp", "javascript"],
+        help="Language (auto-detected from extension if not specified)"
+    )
+    args = parser.parse_args()
+    
+    # Determine file to analyze
+    target_file = Path(args.file).resolve()
     
     if not target_file.exists():
         print(f"❌ File not found: {target_file}")
         sys.exit(1)
     
-    project_root = Path.cwd().resolve()
-    rel_path = str(target_file.relative_to(project_root))
+    # Detect or use specified language
+    language = args.lang or detect_language(target_file)
+    
+    # Find project root based on language
+    project_root = get_project_root_for_language(target_file, language)
+    
+    try:
+        rel_path = str(target_file.relative_to(project_root))
+    except ValueError:
+        # File not under project root, use absolute
+        rel_path = str(target_file)
+    
+    # Language display names
+    lang_display = {
+        "python": "Python (Pyright)",
+        "typescript": "TypeScript (tsserver)",
+        "javascript": "JavaScript (tsserver)",
+        "go": "Go (gopls)",
+        "csharp": "C# (Roslyn)",
+    }
     
     print(f"╔══════════════════════════════════════════════════════════════════╗")
     print(f"║  LSP Demo: Extract Cross-File Relationships                      ║")
     print(f"╚══════════════════════════════════════════════════════════════════╝")
     print(f"\n📁 Target file: {rel_path}")
     print(f"📂 Project root: {project_root}")
+    print(f"🔤 Language: {lang_display.get(language, language)}")
     
     # Step 1: Extract names from file
-    print(f"\n🔍 Step 1: Parsing AST to find name references...")
-    names, source = extract_names_from_file(target_file)
+    print(f"\n🔍 Step 1: Parsing source to find name references...")
+    if language == "python":
+        names, source = extract_names_from_file(target_file)
+    else:
+        names, source = extract_names_regex(target_file, language)
     print(f"   Found {len(names)} name references")
     
     # Show sample of names found
     print(f"\n   Sample names (first 10):")
     for name in names[:10]:
-        print(f"   - {name.name:20} @ line {name.line + 1:3}:{name.column:2}  |  {name.context[:50]}...")
+        ctx = name.context[:50] + "..." if len(name.context) > 50 else name.context
+        print(f"   - {name.name:20} @ line {name.line + 1:3}:{name.column:2}  |  {ctx}")
     
     # Step 2: Initialize LSP adapter
-    print(f"\n⚡ Step 2: Initializing SolidLspAdapter (Pyright)...")
+    print(f"\n⚡ Step 2: Initializing SolidLspAdapter ({lang_display.get(language, language)})...")
     
     # Create minimal config for LSP
     lsp_config = LspConfig(timeout_seconds=30.0)
@@ -131,7 +303,7 @@ def main() -> None:
     adapter = SolidLspAdapter(config_service)
     
     try:
-        adapter.initialize(language="python", project_root=str(project_root))
+        adapter.initialize(language=language, project_root=str(project_root))
         print(f"   ✅ LSP server ready")
     except Exception as e:
         print(f"   ❌ LSP initialization failed: {e}")
@@ -145,11 +317,18 @@ def main() -> None:
     builtin_or_none: list[NameLocation] = []
     errors: list[tuple[NameLocation, str]] = []
     
-    # Filter to interesting names (skip common builtins)
-    skip_names = {'True', 'False', 'None', 'str', 'int', 'float', 'bool', 'list', 'dict', 'set', 'tuple'}
-    interesting_names = [n for n in names if n.name not in skip_names and not n.name.startswith('_')]
+    # Filter to interesting names (skip common builtins/keywords)
+    skip_names_by_lang = {
+        "python": {'True', 'False', 'None', 'str', 'int', 'float', 'bool', 'list', 'dict', 'set', 'tuple', 'self', 'cls'},
+        "typescript": {'true', 'false', 'null', 'undefined', 'string', 'number', 'boolean', 'any', 'void', 'this', 'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'import', 'export', 'from', 'async', 'await'},
+        "javascript": {'true', 'false', 'null', 'undefined', 'this', 'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'import', 'export', 'from', 'async', 'await'},
+        "go": {'true', 'false', 'nil', 'string', 'int', 'bool', 'error', 'func', 'return', 'if', 'else', 'for', 'range', 'package', 'import', 'var', 'const', 'type', 'struct', 'interface', 'defer', 'go', 'chan', 'select', 'case', 'default', 'break', 'continue'},
+        "csharp": {'true', 'false', 'null', 'string', 'int', 'bool', 'void', 'var', 'class', 'public', 'private', 'protected', 'static', 'return', 'if', 'else', 'for', 'foreach', 'while', 'using', 'namespace', 'new', 'this', 'base', 'async', 'await', 'Task'},
+    }
+    skip_names = skip_names_by_lang.get(language, set())
+    interesting_names = [n for n in names if n.name not in skip_names and not n.name.startswith('_') and len(n.name) > 1]
     
-    print(f"   Querying {len(interesting_names)} names (skipping builtins)...")
+    print(f"   Querying {len(interesting_names)} names (skipping keywords/builtins)...")
     
     for i, name_loc in enumerate(interesting_names):
         try:
@@ -214,6 +393,7 @@ def main() -> None:
     print(f"📈 SUMMARY")
     print(f"═══════════════════════════════════════════════════════════════════")
     print(f"   File analyzed:     {rel_path}")
+    print(f"   Language:          {lang_display.get(language, language)}")
     print(f"   Names processed:   {len(interesting_names)}")
     print(f"   Cross-file edges:  {len(cross_file_edges)}")
     print(f"   Unique targets:    {len(by_target)}")

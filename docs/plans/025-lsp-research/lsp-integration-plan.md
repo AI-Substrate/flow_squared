@@ -956,15 +956,15 @@ def initialize(self, language: str, project_root: str):
 
 | # | Status | Task | CS | Success Criteria | Log | Notes |
 |---|--------|------|----|------------------|-----|-------|
-| 4.1 | [ ] | Write gopls integration tests | 2 | Tests with real gopls server | - | AC12 |
-| 4.2 | [ ] | Verify gopls support works | 2 | Tests pass | - | |
-| 4.3 | [ ] | Write TypeScript integration tests | 2 | Tests with real TS server | - | AC13 |
-| 4.4 | [ ] | **Fix TS cross-file: open all project files on init** | 2 | Cross-file refs return correctly | - | **CRITICAL** - see discovery above |
-| 4.5 | [ ] | Verify TypeScript support works | 2 | Tests pass | - | |
-| 4.6 | [ ] | Write OmniSharp integration tests | 2 | Tests with real OmniSharp | - | AC14 |
-| 4.7 | [ ] | Verify OmniSharp support works | 2 | Tests pass | - | |
-| 4.8 | [ ] | Add per-language wait configuration | 1 | LspConfig has per-language settings | - | Discovery 10 |
-| 4.9 | [ ] | Document any per-language code needed | 1 | Report to user if any | - | User request |
+| 4.1 | [x] | Write gopls integration tests | 2 | Tests with real gopls server | [📋](tasks/phase-4-multi-language-lsp-support/execution.log.md#phase-4-completion-summary) | Completed · log#phase-4-completion-summary [^16] |
+| 4.2 | [x] | Verify gopls support works | 2 | Tests pass | [📋](tasks/phase-4-multi-language-lsp-support/execution.log.md#phase-4-completion-summary) | Completed · log#phase-4-completion-summary [^16] |
+| 4.3 | [x] | Write TypeScript integration tests | 2 | Tests with real TS server | [📋](tasks/phase-4-multi-language-lsp-support/execution.log.md#phase-4-completion-summary) | Completed · log#phase-4-completion-summary [^17] [^19] |
+| 4.4 | [x] | **Fix TS cross-file: open all project files on init** | 2 | Cross-file refs return correctly | [📋](tasks/phase-4-multi-language-lsp-support/execution.log.md#phase-4-completion-summary) | Completed · log#phase-4-completion-summary [^17] [^19] |
+| 4.5 | [x] | Verify TypeScript support works | 2 | Tests pass | [📋](tasks/phase-4-multi-language-lsp-support/execution.log.md#phase-4-completion-summary) | Completed · log#phase-4-completion-summary [^17] [^19] |
+| 4.6 | [x] | Write OmniSharp integration tests | 2 | Tests with real OmniSharp | [📋](tasks/phase-4-multi-language-lsp-support/execution.log.md#phase-4-completion-summary) | Completed · log#phase-4-completion-summary [^18] |
+| 4.7 | [x] | Verify OmniSharp support works | 2 | Tests pass | [📋](tasks/phase-4-multi-language-lsp-support/execution.log.md#phase-4-completion-summary) | Completed · log#phase-4-completion-summary [^18] |
+| 4.8 | [x] | Add per-language wait configuration | 1 | LspConfig has per-language settings | [📋](tasks/phase-4-multi-language-lsp-support/execution.log.md#phase-4-completion-summary) | Completed · log#phase-4-completion-summary [^16] [^17] [^18] |
+| 4.9 | [x] | Document any per-language code needed | 1 | Report to user if any | [📋](tasks/phase-4-multi-language-lsp-support/execution.log.md#phase-4-completion-summary) | Completed · log#phase-4-completion-summary [^16] [^17] [^18] |
 
 ### Test Examples
 
@@ -1857,6 +1857,28 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - Target audience: Users (installation), Contributors (extending)
 - Maintenance: Update when adding new language support
 
+### Developer Tools
+
+**LSP Demo Script**: `scripts/lsp_demo_extract.py`
+- **Purpose**: Validate LSP cross-file resolution for any supported language
+- **Supports**: Python (Pyright), TypeScript (tsserver), Go (gopls), C# (Roslyn)
+- **Usage**: `python scripts/lsp_demo_extract.py [file_path] [--lang LANG]`
+- **Auto-detects** language from file extension if not specified
+- **Added**: 2026-01-20 (Phase 4 validation)
+
+**LSP Server Verification**: `scripts/verify-lsp-servers.sh`
+- **Purpose**: Check all 4 LSP servers are installed
+- **Exit codes**: 0 = all installed, 1 = missing servers
+
+**LSP Server Installation**: `scripts/lsp_install/`
+- `install_all.sh` - Install all LSP servers
+- `install_pyright.sh` - Python LSP
+- `install_typescript_ls.sh` - TypeScript LSP  
+- `install_gopls.sh` - Go LSP (includes Go runtime)
+- `install_dotnet.sh` - .NET SDK for C# Roslyn LSP
+
+**Key Discovery (2026-01-20)**: SolidLSP uses `Language.CSHARP` → `CSharpLanguageServer` (Roslyn), which auto-downloads `Microsoft.CodeAnalysis.LanguageServer` from NuGet. Only needs .NET 9+ runtime. `Language.CSHARP_OMNISHARP` is the deprecated OmniSharp path—we don't use it.
+
 ---
 
 ## Complexity Tracking
@@ -1882,14 +1904,14 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - [x] Phase 1: Vendor SolidLSP Core - COMPLETE (2026-01-16) - 14/14 tasks, 60 files, ~25K LOC vendored [^7]
 - [x] Phase 2: LspAdapter ABC and Exceptions - COMPLETE (2026-01-16) - 8/8 tasks, ABC + Fake + Exceptions + Config [^12]
 - [~] Phase 3: SolidLspAdapter Implementation - CODE REVIEW FIXES REQUIRED (2026-01-19) - 10/10 tasks, 31 tests pass, 4 blocking issues [^13][^14]
-- [ ] Phase 4: Multi-Language LSP Support - NOT STARTED
+- [x] Phase 4: Multi-Language LSP Support - COMPLETE (100%) [^16][^17][^18][^19]
 - [ ] Phase 5: Python Import Extraction - NOT STARTED (ported from 024 Phase 2)
 - [ ] Phase 6: Node ID and Filename Detection - NOT STARTED (ported from 024 Phase 3)
 - [ ] Phase 7: TypeScript and Go Imports - NOT STARTED (ported from 024 Phase 4)
 - [ ] Phase 8: Pipeline Integration - NOT STARTED (merged from 024 Phase 5 + 025 Phase 5)
 - [ ] Phase 9: Documentation - NOT STARTED
 
-**Overall Progress**: 4/11 phases complete (36%) - Phase 0 + Phase 0b + Phase 1 + Phase 2 (Phase 3 pending review fixes)
+**Overall Progress**: 5/11 phases complete (45%) - Phase 0 + Phase 0b + Phase 1 + Phase 2 + Phase 4 (Phase 3 pending review fixes)
 
 **Note**: 024 Phase 1 (Core Models & GraphStore Extension) is COMPLETE - foundation models (EdgeType, CodeEdge, GraphStore extensions) are already implemented and available for use.
 
@@ -1994,6 +2016,36 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
   - **Fix Required**: Task 4.4 - Open all `.ts`/`.tsx` files during `SolidLspAdapter.initialize()` for TypeScript
   - **Investigation**: `/workspaces/flow_squared/scratch/dyk-session-ts-lsp.md`
   - **Note**: Similar issue may affect Go (gopls) and C# (OmniSharp) - needs testing in Phase 4
+
+[^16]: Phase 4 Tasks 4.1-4.2 - Go LSP integration tests
+  - `function:tests/integration/test_lsp_gopls.py:test_gopls_initialization`
+  - `function:tests/integration/test_lsp_gopls.py:test_gopls_go_to_definition`
+  - `function:tests/integration/test_lsp_gopls.py:test_gopls_find_references`
+  - `function:tests/integration/test_lsp_gopls.py:test_gopls_hover_documentation`
+  - `function:tests/integration/test_lsp_gopls.py:test_gopls_code_completion`
+  - `function:tests/integration/test_lsp_gopls.py:test_gopls_multiple_files`
+  - `function:tests/integration/test_lsp_gopls.py:test_gopls_error_recovery`
+
+[^17]: Phase 4 Tasks 4.3-4.5 - TypeScript LSP integration tests
+  - `function:tests/integration/test_lsp_typescript.py:test_typescript_initialization`
+  - `function:tests/integration/test_lsp_typescript.py:test_typescript_go_to_definition`
+  - `function:tests/integration/test_lsp_typescript.py:test_typescript_find_references`
+  - `function:tests/integration/test_lsp_typescript.py:test_typescript_hover_documentation`
+  - `function:tests/integration/test_lsp_typescript.py:test_typescript_code_completion`
+  - `function:tests/integration/test_lsp_typescript.py:test_typescript_multiple_files`
+  - `function:tests/integration/test_lsp_typescript.py:test_typescript_error_recovery`
+
+[^18]: Phase 4 Tasks 4.6-4.7 - C# Roslyn LSP integration tests
+  - `function:tests/integration/test_lsp_roslyn.py:test_roslyn_initialization`
+  - `function:tests/integration/test_lsp_roslyn.py:test_roslyn_go_to_definition`
+  - `function:tests/integration/test_lsp_roslyn.py:test_roslyn_find_references`
+  - `function:tests/integration/test_lsp_roslyn.py:test_roslyn_hover_documentation`
+  - `function:tests/integration/test_lsp_roslyn.py:test_roslyn_code_completion`
+  - `function:tests/integration/test_lsp_roslyn.py:test_roslyn_multiple_files`
+  - `function:tests/integration/test_lsp_roslyn.py:test_roslyn_error_recovery`
+
+[^19]: Phase 4 Task 4.4 - TypeScript fixture configuration
+  - `file:tests/fixtures/lsp/typescript_multi_project/package.json`
 
 ---
 

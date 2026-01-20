@@ -229,3 +229,23 @@ scratch/*
 # Generated test output
 scripts/semantic_search_results.json
 .vsc-bridgehost.json
+
+# Node.js (test fixtures)
+node_modules/
+package-lock.json
+
+# .NET / C# build artifacts (test fixtures)
+bin/
+obj/
+*.dll
+*.pdb
+*.cache
+*.assets.cache
+*.nuget.cache
+*.nuget.dgspec.json
+*.nuget.g.props
+*.nuget.g.targets
+project.assets.json
+
+# SolidLSP runtime artifacts
+.solidlsp/

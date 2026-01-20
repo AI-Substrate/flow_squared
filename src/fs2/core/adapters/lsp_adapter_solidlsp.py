@@ -45,6 +45,7 @@ log = logging.getLogger(__name__)
 
 # Server binary names and install commands per language
 # Per Discovery 04: Actionable error messages with platform-specific install
+# Note: C# (Roslyn) auto-downloads via CSharpLanguageServer, only needs dotnet runtime
 _SERVER_CONFIG: dict[str, dict[str, Any]] = {
     "python": {
         "binary": "pyright-langserver",
@@ -68,10 +69,13 @@ _SERVER_CONFIG: dict[str, dict[str, Any]] = {
         },
     },
     "csharp": {
-        "binary": "OmniSharp",
+        # CSharpLanguageServer (Roslyn) auto-downloads Microsoft.CodeAnalysis.LanguageServer
+        # Only need dotnet runtime present - no pre-check binary
+        "binary": "dotnet",
         "install": {
-            "default": "dotnet tool install --global omnisharp",
-            "Darwin": "brew install omnisharp/omnisharp-roslyn/omnisharp",
+            "default": "curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel LTS",
+            "Darwin": "brew install dotnet-sdk",
+            "Windows": "winget install Microsoft.DotNet.SDK.9",
         },
     },
 }
