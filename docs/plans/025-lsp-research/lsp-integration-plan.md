@@ -1905,13 +1905,13 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - [x] Phase 2: LspAdapter ABC and Exceptions - COMPLETE (2026-01-16) - 8/8 tasks, ABC + Fake + Exceptions + Config [^12]
 - [~] Phase 3: SolidLspAdapter Implementation - CODE REVIEW FIXES REQUIRED (2026-01-19) - 10/10 tasks, 31 tests pass, 4 blocking issues [^13][^14]
 - [x] Phase 4: Multi-Language LSP Support - COMPLETE (100%) [^16][^17][^18][^19]
-- [ ] Phase 5: Python Import Extraction - NOT STARTED (ported from 024 Phase 2)
+- [S] Phase 5: Python Import Extraction - **SKIPPED** (LSP resolves call sites directly; import enumeration redundant)
 - [ ] Phase 6: Node ID and Filename Detection - NOT STARTED (ported from 024 Phase 3)
-- [ ] Phase 7: TypeScript and Go Imports - NOT STARTED (ported from 024 Phase 4)
-- [ ] Phase 8: Pipeline Integration - NOT STARTED (merged from 024 Phase 5 + 025 Phase 5)
+- [S] Phase 7: TypeScript and Go Imports - **SKIPPED** (LSP resolves call sites directly; import enumeration redundant)
+- [ ] Phase 8: Pipeline Integration - NOT STARTED (simplified: LSP + Node ID detection only)
 - [ ] Phase 9: Documentation - NOT STARTED
 
-**Overall Progress**: 5/11 phases complete (45%) - Phase 0 + Phase 0b + Phase 1 + Phase 2 + Phase 4 (Phase 3 pending review fixes)
+**Overall Progress**: 5/9 phases complete (56%) - Phase 0 + Phase 0b + Phase 1 + Phase 2 + Phase 4 (Phase 3 pending review fixes, Phases 5 & 7 skipped)
 
 **Note**: 024 Phase 1 (Core Models & GraphStore Extension) is COMPLETE - foundation models (EdgeType, CodeEdge, GraphStore extensions) are already implemented and available for use.
 

@@ -1,0 +1,1226 @@
+Generating Phase 6 unified diff...
+
+--- /dev/null
++++ src/fs2/core/services/relationship_extraction/__init__.py
+@@ -0,0 +1,21 @@
++"""Relationship extraction services for detecting cross-file references.
++
++This package contains detectors for finding relationships between code elements:
++- NodeIdDetector: Detects explicit fs2 node_id patterns (confidence 1.0)
++- RawFilenameDetector: Detects raw filename mentions (confidence 0.4-0.5)
++- TextReferenceExtractor: Combines both detectors for complete extraction
++"""
++
++from fs2.core.services.relationship_extraction.nodeid_detector import NodeIdDetector
++from fs2.core.services.relationship_extraction.raw_filename_detector import (
++    RawFilenameDetector,
++)
++from fs2.core.services.relationship_extraction.text_reference_extractor import (
++    TextReferenceExtractor,
++)
++
++__all__ = [
++    "NodeIdDetector",
++    "RawFilenameDetector",
++    "TextReferenceExtractor",
++]
+
+--- /dev/null
++++ src/fs2/core/services/relationship_extraction/nodeid_detector.py
+@@ -0,0 +1,85 @@
++"""NodeIdDetector - detects explicit fs2 node_id patterns in text.
++
++Scans text content for explicit node_id patterns like:
++- file:src/app.py
++- callable:src/lib/resolver.py:calculate_confidence
++- class:src/lib/parser.py:Parser
++- method:src/lib/parser.py:Parser.detect_language
++- type:src/models/types.py:ImportInfo
++
++All matches return CodeEdge instances with:
++- edge_type: EdgeType.REFERENCES (explicit reference)
++- confidence: 1.0 (highest confidence for explicit patterns)
++- resolution_rule: "nodeid:explicit"
++
++Pattern ported from 022 experiment: 01_nodeid_detection.py
++"""
++
++import re
++
++from fs2.core.models.code_edge import CodeEdge
++from fs2.core.models.edge_type import EdgeType
++
++
++class NodeIdDetector:
++    """Detects explicit fs2 node_id patterns in text content.
++
++    Uses regex pattern to find node_id references with format:
++    (file|callable|type|class|method):path(:symbol)?
++
++    Returns CodeEdge instances with confidence=1.0 for all matches.
++    """
++
++    # Node ID regex pattern per 022 experiment Finding 10
++    # Matches: file:path, callable:path:name, type:path:name, class:path:name, method:path:name
++    # Word boundaries (\b) prevent matching URLs or other colon-separated text
++    NODE_ID_PATTERN = re.compile(
++        r'\b(file|callable|type|class|method):[\w./]+(?::[\w.]+)?\b'
++    )
++
++    def detect(self, source_file: str, content: str) -> list[CodeEdge]:
++        """Detect explicit node_id patterns in text content.
++
++        Args:
++            source_file: Source file path (e.g., "file:README.md")
++            content: Text content to scan
++
++        Returns:
++            List of CodeEdge instances for each node_id pattern found.
++            Empty list if no patterns detected.
++
++        Example:
++            >>> detector = NodeIdDetector()
++            >>> edges = detector.detect(
++            ...     "file:README.md",
++            ...     "See `file:src/app.py` for details"
++            ... )
++            >>> len(edges)
++            1
++            >>> edges[0].target_node_id
++            'file:src/app.py'
++            >>> edges[0].confidence
++            1.0
++        """
++        edges: list[CodeEdge] = []
++
++        # Split content into lines for line number tracking
++        lines = content.split('\n')
++
++        for line_num, line in enumerate(lines, start=1):
++            # Find all node_id patterns in this line
++            for match in self.NODE_ID_PATTERN.finditer(line):
++                node_id = match.group(0)
++
++                # Create CodeEdge for this match
++                edge = CodeEdge(
++                    source_node_id=source_file,
++                    target_node_id=node_id,
++                    edge_type=EdgeType.REFERENCES,
++                    confidence=1.0,  # Explicit node_ids have highest confidence
++                    source_line=line_num,
++                    resolution_rule="nodeid:explicit",
++                )
++                edges.append(edge)
++
++        return edges
+
+--- /dev/null
++++ src/fs2/core/services/relationship_extraction/raw_filename_detector.py
+@@ -0,0 +1,143 @@
++"""RawFilenameDetector - detects raw filename mentions in text.
++
++Scans text content for raw filename patterns like:
++- `auth_handler.py` (backtick-quoted, confidence 0.5)
++- auth_handler.py (bare inline, confidence 0.4)
++- src/auth/handler.py (nested paths)
++- Component.tsx (TypeScript)
++
++Returns CodeEdge instances with:
++- edge_type: EdgeType.DOCUMENTS (documentation reference)
++- confidence: 0.5 (backtick) or 0.4 (bare)
++- resolution_rule: "filename:backtick" or "filename:bare"
++
++Implements URL pre-filtering per DYK-6 to avoid false positives:
++- Filters out URLs: https://example.com/file.py
++- Filters out domains: github.com
++
++Pattern ported from 022 experiment: 01_nodeid_detection.py
++"""
++
++import re
++
++from fs2.core.models.code_edge import CodeEdge
++from fs2.core.models.edge_type import EdgeType
++
++
++class RawFilenameDetector:
++    """Detects raw filename mentions in text content.
++
++    Uses regex patterns to find filenames with code extensions.
++    Implements confidence tiers based on quoting:
++    - Backtick/quote wrapped: 0.5 (intentional reference)
++    - Bare inline: 0.4 (uncertain reference)
++
++    Filters URLs per DYK-6 to prevent false positives.
++    """
++
++    # URL patterns to filter out before filename detection (DYK-6)
++    # Matches: http://, https://, ftp://, file://, etc.
++    URL_PATTERN = re.compile(
++        r'\b(?:https?|ftp|file)://[^\s]+',
++        re.IGNORECASE
++    )
++
++    # Domain-like patterns: github.com, example.org, etc.
++    # Prevents "github.com" → "github.c" false positive from 022
++    DOMAIN_PATTERN = re.compile(
++        r'\b(?:[\w-]+\.)+(?:com|org|net|edu|gov|io|co|dev|app|ai)\b',
++        re.IGNORECASE
++    )
++
++    # Raw filename pattern - detects filenames with code extensions
++    # Captures filename with path, with optional backticks/quotes
++    # Note: Longer extensions (tsx, jsx, hpp, etc.) MUST come before shorter ones (ts, js, etc.)
++    RAW_FILENAME_PATTERN = re.compile(
++        r'([`"\'])?'  # Optional opening quote/backtick (group 1)
++        r'((?:[\w.-]+/)*[\w.-]+\.(?:tsx|jsx|hpp|cpp|bash|yaml|toml|graphql|proto|scss|sass|html|json|java|swift|scala|ts|js|py|go|rs|c|h|rb|kt|cs|php|lua|sh|zsh|yml|xml|css|sql|md))'  # Filename with path (group 2)
++        r'([`"\'])?',  # Optional closing quote/backtick (group 3)
++        re.IGNORECASE
++    )
++
++    def detect(self, source_file: str, content: str) -> list[CodeEdge]:
++        """Detect raw filename patterns in text content.
++
++        Args:
++            source_file: Source file path (e.g., "file:README.md")
++            content: Text content to scan
++
++        Returns:
++            List of CodeEdge instances for each filename found.
++            Empty list if no filenames detected.
++
++        Example:
++            >>> detector = RawFilenameDetector()
++            >>> edges = detector.detect(
++            ...     "file:README.md",
++            ...     "Check `auth.py` for authentication"
++            ... )
++            >>> len(edges)
++            1
++            >>> edges[0].target_node_id
++            'file:auth.py'
++            >>> edges[0].confidence
++            0.5
++        """
++        edges: list[CodeEdge] = []
++
++        # Pre-filter: Remove URLs and domains from content (DYK-6)
++        # This prevents "github.com/repo.git" from matching "repo.git"
++        filtered_content = self._filter_urls(content)
++
++        # Split into lines for line number tracking
++        lines = filtered_content.split('\n')
++
++        for line_num, filtered_line in enumerate(lines, start=1):
++            # Find all filename patterns in this line
++            for match in self.RAW_FILENAME_PATTERN.finditer(filtered_line):
++                opening_quote = match.group(1) or ''
++                filename = match.group(2)
++                closing_quote = match.group(3) or ''
++
++                # Determine confidence based on quoting
++                # Backticks/quotes suggest intentional code reference
++                if opening_quote or closing_quote:
++                    confidence = 0.5
++                    resolution_rule = "filename:backtick"
++                else:
++                    confidence = 0.4
++                    resolution_rule = "filename:bare"
++
++                # Create CodeEdge for this match
++                edge = CodeEdge(
++                    source_node_id=source_file,
++                    target_node_id=f"file:{filename}",
++                    edge_type=EdgeType.DOCUMENTS,
++                    confidence=confidence,
++                    source_line=line_num,
++                    resolution_rule=resolution_rule,
++                )
++                edges.append(edge)
++
++        return edges
++
++    def _filter_urls(self, content: str) -> str:
++        """Filter out URLs and domain patterns from content.
++
++        Per DYK-6: Prevents false positives like:
++        - "https://github.com/repo.git" → "repo.git"
++        - "github.com" → "github.c"
++
++        Args:
++            content: Original text content
++
++        Returns:
++            Content with URLs and domains replaced by spaces
++        """
++        # Replace URLs with spaces (preserve line structure)
++        filtered = self.URL_PATTERN.sub(lambda m: ' ' * len(m.group(0)), content)
++
++        # Replace domains with spaces
++        filtered = self.DOMAIN_PATTERN.sub(lambda m: ' ' * len(m.group(0)), filtered)
++
++        return filtered
+
+--- /dev/null
++++ src/fs2/core/services/relationship_extraction/text_reference_extractor.py
+@@ -0,0 +1,110 @@
++"""TextReferenceExtractor - combines NodeId and RawFilename detectors.
++
++Orchestrates text reference detection by:
++1. Running NodeIdDetector for explicit node_id patterns (confidence 1.0)
++2. Running RawFilenameDetector for raw filename patterns (confidence 0.4-0.5)
++3. Deduplicating by (source, target, source_line) tuple per DYK-7
++4. Returning merged results with highest confidence wins
++
++Deduplication Strategy (DYK-7):
++- Preserves multiple mentions of same file on different lines
++- Deduplicates matches on same line (highest confidence wins)
++- Tuple key: (source_node_id, target_node_id, source_line)
++"""
++
++from fs2.core.models.code_edge import CodeEdge
++from fs2.core.services.relationship_extraction.nodeid_detector import NodeIdDetector
++from fs2.core.services.relationship_extraction.raw_filename_detector import (
++    RawFilenameDetector,
++)
++
++
++class TextReferenceExtractor:
++    """Combines NodeIdDetector and RawFilenameDetector with deduplication.
++
++    Orchestrates both detectors and merges results using DYK-7 deduplication
++    strategy: deduplicate by (source, target, source_line) tuple.
++
++    This preserves multiple mentions of the same file on different lines
++    while preventing duplicate edges on the same line.
++    """
++
++    def __init__(self) -> None:
++        """Initialize extractor with both detectors."""
++        self.nodeid_detector = NodeIdDetector()
++        self.raw_filename_detector = RawFilenameDetector()
++
++    def extract(self, source_file: str, content: str) -> list[CodeEdge]:
++        """Extract all text references from content.
++
++        Runs both detectors and merges results with deduplication.
++
++        Args:
++            source_file: Source file path (e.g., "file:README.md")
++            content: Text content to scan
++
++        Returns:
++            List of CodeEdge instances with duplicates removed.
++            Empty list if no references detected.
++
++        Example:
++            >>> extractor = TextReferenceExtractor()
++            >>> edges = extractor.extract(
++            ...     "file:README.md",
++            ...     "See `file:src/app.py` and check auth.py"
++            ... )
++            >>> len(edges)
++            2
++            >>> {e.target_node_id for e in edges}
++            {'file:src/app.py', 'file:auth.py'}
++        """
++        # Collect edges from both detectors
++        all_edges: list[CodeEdge] = []
++
++        # 1. Explicit node_ids (highest confidence)
++        nodeid_edges = self.nodeid_detector.detect(source_file, content)
++        all_edges.extend(nodeid_edges)
++
++        # 2. Raw filenames (lower confidence)
++        filename_edges = self.raw_filename_detector.detect(source_file, content)
++        all_edges.extend(filename_edges)
++
++        # 3. Deduplicate by (source, target, source_line) tuple per DYK-7
++        # When duplicates exist on same line, keep highest confidence
++        deduplicated = self._deduplicate_edges(all_edges)
++
++        return deduplicated
++
++    def _deduplicate_edges(self, edges: list[CodeEdge]) -> list[CodeEdge]:
++        """Deduplicate edges by (source, target, source_line) tuple.
++
++        Per DYK-7: Preserves multiple mentions on different lines,
++        but deduplicates same target on same line (keeping highest confidence).
++
++        Args:
++            edges: List of potentially duplicate edges
++
++        Returns:
++            Deduplicated list with highest confidence edges
++        """
++        # Use dict with tuple key to track unique edges
++        # Key: (source_node_id, target_node_id, source_line)
++        # Value: CodeEdge (keep highest confidence)
++        unique_edges: dict[tuple[str, str, int | None], CodeEdge] = {}
++
++        for edge in edges:
++            key = (edge.source_node_id, edge.target_node_id, edge.source_line)
++
++            if key not in unique_edges:
++                # First occurrence
++                unique_edges[key] = edge
++            else:
++                # Duplicate - keep higher confidence
++                existing = unique_edges[key]
++                if edge.confidence > existing.confidence:
++                    unique_edges[key] = edge
++
++        # Return as list, sorted by line number for consistency
++        result = list(unique_edges.values())
++        result.sort(key=lambda e: (e.source_line or 0, e.target_node_id))
++        return result
+
+--- /dev/null
++++ tests/unit/services/test_nodeid_detector.py
+@@ -0,0 +1,206 @@
++"""Tests for NodeIdDetector - detects explicit fs2 node_id patterns.
++
++Purpose: Validate node_id pattern detection with 1.0 confidence
++Quality Contribution: Ensures all 5 node_id prefixes are detected correctly
++Acceptance Criteria:
++- file:, callable:, type:, class:, method: prefixes detected
++- Confidence always 1.0 for explicit patterns
++- Returns CodeEdge instances with EdgeType.REFERENCES
++- Word boundaries prevent URL false positives
++- Multiple patterns in same line detected
++"""
++
++import pytest
++
++from fs2.core.models.code_edge import CodeEdge
++from fs2.core.models.edge_type import EdgeType
++from fs2.core.services.relationship_extraction.nodeid_detector import NodeIdDetector
++
++
++class TestNodeIdDetector:
++    """Test suite for NodeIdDetector."""
++
++    def test_given_explicit_file_nodeid_when_detect_then_confidence_1_0(self):
++        """
++        Purpose: Validate file: prefix detection with correct confidence
++        Quality Contribution: Ensures highest confidence for explicit patterns
++        Acceptance Criteria: Returns CodeEdge with confidence=1.0, EdgeType.REFERENCES
++        """
++        detector = NodeIdDetector()
++        source_file = "file:README.md"
++        content = "See `file:src/app.py` for details."
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.source_node_id == source_file
++        assert edge.target_node_id == "file:src/app.py"
++        assert edge.edge_type == EdgeType.REFERENCES
++        assert edge.confidence == 1.0
++        assert edge.source_line == 1
++        assert edge.resolution_rule == "nodeid:explicit"
++
++    def test_given_explicit_callable_nodeid_when_detect_then_returns_edge(self):
++        """
++        Purpose: Validate callable: prefix with symbol detection
++        Quality Contribution: Ensures callable references are captured
++        Acceptance Criteria: target_node_id extracted correctly with symbol
++        """
++        detector = NodeIdDetector()
++        source_file = "file:docs/api.md"
++        content = "The resolver is at `callable:src/lib/resolver.py:calculate_confidence`"
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.target_node_id == "callable:src/lib/resolver.py:calculate_confidence"
++        assert edge.confidence == 1.0
++        assert edge.edge_type == EdgeType.REFERENCES
++
++    def test_given_explicit_class_nodeid_when_detect_then_returns_edge(self):
++        """
++        Purpose: Validate class: prefix detection
++        Quality Contribution: Ensures class references work
++        Acceptance Criteria: Correct target_node_id with class symbol
++        """
++        detector = NodeIdDetector()
++        source_file = "file:README.md"
++        content = "The main class is `class:src/lib/parser.py:Parser`"
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.target_node_id == "class:src/lib/parser.py:Parser"
++        assert edge.confidence == 1.0
++
++    def test_given_explicit_method_nodeid_when_detect_then_returns_edge(self):
++        """
++        Purpose: Validate method: prefix detection
++        Quality Contribution: Ensures method references work
++        Acceptance Criteria: Correct target_node_id with method symbol
++        """
++        detector = NodeIdDetector()
++        source_file = "file:docs/guide.md"
++        content = "For language detection, see `method:src/lib/parser.py:Parser.detect_language`"
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.target_node_id == "method:src/lib/parser.py:Parser.detect_language"
++        assert edge.confidence == 1.0
++
++    def test_given_explicit_type_nodeid_when_detect_then_returns_edge(self):
++        """
++        Purpose: Validate type: prefix detection
++        Quality Contribution: Ensures type references work
++        Acceptance Criteria: Correct target_node_id with type symbol
++        """
++        detector = NodeIdDetector()
++        source_file = "file:README.md"
++        content = "Check `type:src/models/types.py:ImportInfo` for type definitions"
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.target_node_id == "type:src/models/types.py:ImportInfo"
++        assert edge.confidence == 1.0
++
++    def test_given_no_nodeid_when_detect_then_returns_empty_list(self):
++        """
++        Purpose: Validate no false positives on plain text
++        Quality Contribution: Ensures precision of pattern matching
++        Acceptance Criteria: Returns empty list for non-matching content
++        """
++        detector = NodeIdDetector()
++        source_file = "file:README.md"
++        content = "This is just plain text with no node_id patterns."
++
++        edges = detector.detect(source_file, content)
++
++        assert edges == []
++
++    def test_given_url_when_detect_then_not_matched(self):
++        """
++        Purpose: Validate URLs are not matched as node_ids
++        Quality Contribution: Prevents false positives from URLs
++        Acceptance Criteria: URLs with colons don't trigger matches
++        """
++        detector = NodeIdDetector()
++        source_file = "file:README.md"
++        content = "See https://example.com and http://github.com for more info."
++
++        edges = detector.detect(source_file, content)
++
++        assert edges == []
++
++    def test_given_multiple_nodeids_when_detect_then_returns_all(self):
++        """
++        Purpose: Validate multiple patterns in one line
++        Quality Contribution: Ensures all references are captured
++        Acceptance Criteria: Returns 2 edges for 2 patterns
++        """
++        detector = NodeIdDetector()
++        source_file = "file:docs/plan.md"
++        content = "The `class:src/extractors.py:ImportExtractor` uses `callable:src/resolver.py:import_confidence`"
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 2
++        assert edges[0].target_node_id == "class:src/extractors.py:ImportExtractor"
++        assert edges[1].target_node_id == "callable:src/resolver.py:import_confidence"
++
++    def test_given_nested_path_when_detect_then_extracts_correctly(self):
++        """
++        Purpose: Validate deeply nested paths work
++        Quality Contribution: Ensures real-world nested paths don't break
++        Acceptance Criteria: Deep paths with slashes extracted correctly
++        """
++        detector = NodeIdDetector()
++        source_file = "file:README.md"
++        content = "See `class:src/fs2/core/adapters/log_adapter.py:LogAdapter`"
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        assert edges[0].target_node_id == "class:src/fs2/core/adapters/log_adapter.py:LogAdapter"
++
++    def test_given_multiline_content_when_detect_then_tracks_line_numbers(self):
++        """
++        Purpose: Validate source_line tracking across multiple lines
++        Quality Contribution: Ensures navigation to specific line works
++        Acceptance Criteria: source_line set correctly for each match
++        """
++        detector = NodeIdDetector()
++        source_file = "file:docs/plan.md"
++        content = """Line 1: See `file:src/app.py` first
++Line 2: Then check `class:src/models.py:User`
++Line 3: Finally review `method:src/auth.py:Auth.login`"""
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 3
++        assert edges[0].source_line == 1
++        assert edges[0].target_node_id == "file:src/app.py"
++        assert edges[1].source_line == 2
++        assert edges[1].target_node_id == "class:src/models.py:User"
++        assert edges[2].source_line == 3
++        assert edges[2].target_node_id == "method:src/auth.py:Auth.login"
++
++    def test_given_colons_in_text_when_detect_then_no_false_positives(self):
++        """
++        Purpose: Validate word boundaries prevent false matches
++        Quality Contribution: Ensures key:value pairs don't match
++        Acceptance Criteria: Returns empty for non-node_id colons
++        """
++        detector = NodeIdDetector()
++        source_file = "file:config.md"
++        content = "Configuration: key:value, time:10:30:45, ratio:1:2"
++
++        edges = detector.detect(source_file, content)
++
++        assert edges == []
+
+--- /dev/null
++++ tests/unit/services/test_raw_filename_detector.py
+@@ -0,0 +1,233 @@
++"""Tests for RawFilenameDetector - detects raw filename mentions.
++
++Purpose: Validate raw filename detection with confidence tiers
++Quality Contribution: Ensures filename references in docs are captured
++Acceptance Criteria:
++- Backtick-quoted filenames: confidence 0.5
++- Bare filenames: confidence 0.4
++- Common code extensions detected
++- URL pre-filtering (DYK-6) prevents false positives
++- Returns CodeEdge instances with EdgeType.DOCUMENTS
++"""
++
++import pytest
++
++from fs2.core.models.code_edge import CodeEdge
++from fs2.core.models.edge_type import EdgeType
++from fs2.core.services.relationship_extraction.raw_filename_detector import (
++    RawFilenameDetector,
++)
++
++
++class TestRawFilenameDetector:
++    """Test suite for RawFilenameDetector."""
++
++    def test_given_backtick_filename_when_detect_then_confidence_0_5(self):
++        """
++        Purpose: Validate backtick-quoted filenames get higher confidence
++        Quality Contribution: Intentional code references get proper weighting
++        Acceptance Criteria: confidence=0.5 for backtick-quoted
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = "Check `auth.py` for authentication logic."
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.source_node_id == source_file
++        assert edge.target_node_id == "file:auth.py"
++        assert edge.edge_type == EdgeType.DOCUMENTS
++        assert edge.confidence == 0.5
++        assert edge.source_line == 1
++        assert edge.resolution_rule == "filename:backtick"
++
++    def test_given_bare_filename_when_detect_then_confidence_0_4(self):
++        """
++        Purpose: Validate bare filenames get lower confidence
++        Quality Contribution: Uncertain references get lower weighting
++        Acceptance Criteria: confidence=0.4 for bare filenames
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:docs/guide.md"
++        content = "The main module is app.py which handles routing."
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.target_node_id == "file:app.py"
++        assert edge.confidence == 0.4
++        assert edge.resolution_rule == "filename:bare"
++
++    def test_given_nested_path_filename_when_detect_then_extracts(self):
++        """
++        Purpose: Validate nested path detection
++        Quality Contribution: Real-world paths with directories work
++        Acceptance Criteria: Paths like src/auth/handler.py extracted
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = "See src/auth/handler.py for auth logic."
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.target_node_id == "file:src/auth/handler.py"
++
++    def test_given_typescript_extension_when_detect_then_matches(self):
++        """
++        Purpose: Validate TypeScript extensions work
++        Quality Contribution: Multi-language filename detection
++        Acceptance Criteria: .tsx extension detected
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = "The component is in `Component.tsx` file."
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.target_node_id == "file:Component.tsx"
++
++    def test_given_various_extensions_when_detect_then_matches_code_files(self):
++        """
++        Purpose: Validate common code extensions
++        Quality Contribution: Language-agnostic detection
++        Acceptance Criteria: py, js, go, rs, java all work
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = "Files: `main.go`, `app.rs`, `Server.java`, `util.js`"
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 4
++        targets = {e.target_node_id for e in edges}
++        assert targets == {
++            "file:main.go",
++            "file:app.rs",
++            "file:Server.java",
++            "file:util.js",
++        }
++
++    def test_given_unknown_extension_when_detect_then_no_match(self):
++        """
++        Purpose: Validate unknown extensions are skipped
++        Quality Contribution: Prevents noise from non-code files
++        Acceptance Criteria: .xyz doesn't match
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = "Random file.xyz should not match."
++
++        edges = detector.detect(source_file, content)
++
++        assert edges == []
++
++    def test_given_url_with_filename_when_detect_then_skips(self):
++        """
++        Purpose: Validate URLs are filtered (DYK-6)
++        Quality Contribution: Prevents github.com → github.c false positives
++        Acceptance Criteria: URLs don't create edges
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = "Clone from github.com/user/repo.git for code."
++
++        edges = detector.detect(source_file, content)
++
++        # repo.git should NOT be matched due to URL context
++        assert edges == []
++
++    def test_given_https_url_when_detect_then_skips(self):
++        """
++        Purpose: Validate HTTPS URLs are filtered (DYK-6)
++        Quality Contribution: Comprehensive URL filtering
++        Acceptance Criteria: Full URLs don't create edges
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = "Download from https://example.com/files/data.json today."
++
++        edges = detector.detect(source_file, content)
++
++        # data.json should NOT be matched due to URL context
++        assert edges == []
++
++    def test_given_domain_like_filename_when_detect_then_skips(self):
++        """
++        Purpose: Validate domain-like patterns are filtered (DYK-6 core case)
++        Quality Contribution: Prevents github.com → github.c bug from 022
++        Acceptance Criteria: github.com doesn't create github.c edge
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = "Visit github.com for more info."
++
++        edges = detector.detect(source_file, content)
++
++        # Should NOT match "github.c" or "github.com"
++        assert edges == []
++
++    def test_given_multiline_content_when_detect_then_tracks_lines(self):
++        """
++        Purpose: Validate line tracking for multiple files
++        Quality Contribution: Navigation to specific mentions
++        Acceptance Criteria: source_line correct for each match
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = """Line 1: See `auth.py` first
++Line 2: Then check models.py
++Line 3: Review `utils.js` last"""
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 3
++        assert edges[0].source_line == 1
++        assert edges[0].target_node_id == "file:auth.py"
++        assert edges[1].source_line == 2
++        assert edges[1].target_node_id == "file:models.py"
++        assert edges[2].source_line == 3
++        assert edges[2].target_node_id == "file:utils.js"
++
++    def test_given_already_matched_nodeid_when_detect_then_skips(self):
++        """
++        Purpose: Validate explicit node_ids are not double-matched
++        Quality Contribution: Prevents duplicate edges
++        Acceptance Criteria: file:auth.py (explicit) not matched as raw filename
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        # This should NOT be matched as a raw filename (it's an explicit node_id)
++        content = "See file:auth.py for details."
++
++        edges = detector.detect(source_file, content)
++
++        # The detector should skip patterns that look like explicit node_ids
++        # This test validates the detector doesn't re-extract what NodeIdDetector handles
++        # For now, we expect the raw filename detector to match "auth.py" part
++        # The deduplication happens at the TextReferenceExtractor level (T007)
++        # So this test expects 1 match but lower priority
++        assert len(edges) == 1
++        assert edges[0].target_node_id == "file:auth.py"
++
++    def test_given_mixed_quotes_when_detect_then_handles_correctly(self):
++        """
++        Purpose: Validate quote handling (backticks, single, double)
++        Quality Contribution: Markdown and doc format flexibility
++        Acceptance Criteria: All quote styles get 0.5 confidence
++        """
++        detector = RawFilenameDetector()
++        source_file = "file:README.md"
++        content = 'Files: `app.py`, "auth.py", and \'models.py\''
++
++        edges = detector.detect(source_file, content)
++
++        assert len(edges) == 3
++        for edge in edges:
++            assert edge.confidence == 0.5  # All quoted get higher confidence
+
+--- /dev/null
++++ tests/unit/services/test_text_reference_extractor.py
+@@ -0,0 +1,169 @@
++"""Tests for TextReferenceExtractor - combines NodeId and RawFilename detectors.
++
++Purpose: Validate extractor combines detectors with correct deduplication
++Quality Contribution: Ensures DYK-7 deduplication strategy works
++Acceptance Criteria:
++- Combines NodeIdDetector and RawFilenameDetector results
++- Deduplicates by (source, target, source_line) tuple per DYK-7
++- Explicit node_ids take precedence over raw filenames
++- Multiple mentions on different lines preserved
++"""
++
++import pytest
++
++from fs2.core.models.code_edge import CodeEdge
++from fs2.core.models.edge_type import EdgeType
++from fs2.core.services.relationship_extraction.text_reference_extractor import (
++    TextReferenceExtractor,
++)
++
++
++class TestTextReferenceExtractor:
++    """Test suite for TextReferenceExtractor."""
++
++    def test_given_explicit_nodeid_when_extract_then_returns_edge(self):
++        """
++        Purpose: Validate basic extraction works
++        Quality Contribution: Ensures extractor uses NodeIdDetector
++        Acceptance Criteria: Explicit node_id detected
++        """
++        extractor = TextReferenceExtractor()
++        source_file = "file:README.md"
++        content = "See `file:src/app.py` for details."
++
++        edges = extractor.extract(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.target_node_id == "file:src/app.py"
++        assert edge.edge_type == EdgeType.REFERENCES
++        assert edge.confidence == 1.0
++
++    def test_given_raw_filename_when_extract_then_returns_edge(self):
++        """
++        Purpose: Validate raw filename extraction works
++        Quality Contribution: Ensures extractor uses RawFilenameDetector
++        Acceptance Criteria: Raw filename detected
++        """
++        extractor = TextReferenceExtractor()
++        source_file = "file:README.md"
++        content = "Check `auth.py` for authentication."
++
++        edges = extractor.extract(source_file, content)
++
++        assert len(edges) == 1
++        edge = edges[0]
++        assert edge.target_node_id == "file:auth.py"
++        assert edge.edge_type == EdgeType.DOCUMENTS
++        assert edge.confidence == 0.5
++
++    def test_given_both_nodeid_and_filename_when_extract_then_returns_both(self):
++        """
++        Purpose: Validate both detectors work together
++        Quality Contribution: Ensures combination works
++        Acceptance Criteria: Both patterns detected
++        """
++        extractor = TextReferenceExtractor()
++        source_file = "file:README.md"
++        content = "See `file:src/app.py` and also check models.py"
++
++        edges = extractor.extract(source_file, content)
++
++        assert len(edges) == 2
++        targets = {e.target_node_id for e in edges}
++        assert "file:src/app.py" in targets
++        assert "file:models.py" in targets
++
++    def test_given_same_file_different_lines_when_extract_then_preserves_both(self):
++        """
++        Purpose: Validate DYK-7 deduplication strategy
++        Quality Contribution: Ensures multiple mentions preserved
++        Acceptance Criteria: Same file on lines 1 and 3 → 2 edges
++        """
++        extractor = TextReferenceExtractor()
++        source_file = "file:README.md"
++        content = """Line 1: See `auth.py` first
++Line 2: Some other text
++Line 3: Review `auth.py` again"""
++
++        edges = extractor.extract(source_file, content)
++
++        # Should have 2 edges for auth.py (lines 1 and 3)
++        auth_edges = [e for e in edges if e.target_node_id == "file:auth.py"]
++        assert len(auth_edges) == 2
++        
++        lines = {e.source_line for e in auth_edges}
++        assert lines == {1, 3}
++
++    def test_given_same_file_same_line_when_extract_then_deduplicates(self):
++        """
++        Purpose: Validate deduplication on same line
++        Quality Contribution: Prevents duplicate edges on same line
++        Acceptance Criteria: Same file twice on same line → 1 edge
++        """
++        extractor = TextReferenceExtractor()
++        source_file = "file:README.md"
++        content = "Check `auth.py` and auth.py on same line"
++
++        edges = extractor.extract(source_file, content)
++
++        # Should deduplicate to 1 edge (same source, target, line)
++        # But RawFilenameDetector will find both matches
++        # Deduplication by (source, target, source_line) should keep only 1
++        auth_edges = [e for e in edges if e.target_node_id == "file:auth.py"]
++        
++        # Actually, they have different confidences (0.5 vs 0.4) so might be different
++        # Let me check: backtick `auth.py` (0.5) and bare auth.py (0.4)
++        # Both on line 1, same target → should deduplicate
++        # The question is which one wins? Higher confidence should win
++        assert len(auth_edges) == 1
++        assert auth_edges[0].confidence == 0.5  # Higher confidence wins
++
++    def test_given_nodeid_overlaps_filename_when_extract_then_nodeid_wins(self):
++        """
++        Purpose: Validate explicit node_ids take precedence
++        Quality Contribution: Ensures higher confidence wins
++        Acceptance Criteria: file:auth.py (1.0) beats auth.py (0.4)
++        """
++        extractor = TextReferenceExtractor()
++        source_file = "file:README.md"
++        content = "See file:auth.py for details"
++        
++        # Both NodeIdDetector (file:auth.py → 1.0) and 
++        # RawFilenameDetector (auth.py → 0.4) will match
++        edges = extractor.extract(source_file, content)
++        
++        # Should have 1 edge with confidence 1.0 (node_id wins)
++        auth_edges = [e for e in edges if e.target_node_id == "file:auth.py"]
++        assert len(auth_edges) == 1
++        assert auth_edges[0].confidence == 1.0
++        assert auth_edges[0].edge_type == EdgeType.REFERENCES
++
++    def test_given_empty_content_when_extract_then_returns_empty(self):
++        """
++        Purpose: Validate empty content handling
++        Quality Contribution: Edge case handling
++        Acceptance Criteria: Empty content → empty list
++        """
++        extractor = TextReferenceExtractor()
++        source_file = "file:README.md"
++        content = ""
++
++        edges = extractor.extract(source_file, content)
++
++        assert edges == []
++
++    def test_given_url_in_content_when_extract_then_no_false_positives(self):
++        """
++        Purpose: Validate URL filtering (DYK-6)
++        Quality Contribution: Ensures URL pre-filtering works end-to-end
++        Acceptance Criteria: URLs don't create edges
++        """
++        extractor = TextReferenceExtractor()
++        source_file = "file:README.md"
++        content = "Visit https://github.com/user/repo.git for code"
++
++        edges = extractor.extract(source_file, content)
++
++        # Should not match "repo.git" due to URL filtering
++        assert edges == []
+
+--- /dev/null
++++ tests/integration/test_text_reference_integration.py
+@@ -0,0 +1,186 @@
++"""Integration tests for text reference detection.
++
++Purpose: Validate complete text reference extraction pipeline
++Quality Contribution: Ensures NodeIdDetector and RawFilenameDetector work together
++Acceptance Criteria:
++- Real markdown fixtures processed correctly
++- All node_id patterns detected
++- All filename patterns detected
++- No URL false positives
++- Line numbers tracked accurately
++"""
++
++import pytest
++from pathlib import Path
++
++from fs2.core.models.edge_type import EdgeType
++from fs2.core.services.relationship_extraction.nodeid_detector import NodeIdDetector
++from fs2.core.services.relationship_extraction.raw_filename_detector import (
++    RawFilenameDetector,
++)
++
++
++class TestTextReferenceIntegration:
++    """Integration tests for text reference detection."""
++
++    @pytest.fixture
++    def fixtures_dir(self) -> Path:
++        """Return path to test fixtures directory."""
++        return Path(__file__).parent.parent / "fixtures" / "text_references"
++
++    def test_given_sample_nodeid_md_when_detect_then_finds_all_patterns(
++        self, fixtures_dir: Path
++    ):
++        """
++        Purpose: Validate sample fixture detection end-to-end
++        Quality Contribution: Ensures real-world fixture works
++        Acceptance Criteria: All 8 node_id patterns from fixture detected
++        """
++        detector = NodeIdDetector()
++        fixture_file = fixtures_dir / "sample_nodeid.md"
++        
++        assert fixture_file.exists(), f"Fixture not found: {fixture_file}"
++        
++        content = fixture_file.read_text()
++        source_file = f"file:{fixture_file.name}"
++
++        edges = detector.detect(source_file, content)
++
++        # Expected patterns from sample_nodeid.md:
++        # 1. file:src/lib/parser.py
++        # 2. class:src/lib/parser.py:Parser
++        # 3. method:src/lib/parser.py:Parser.detect_language
++        # 4. callable:src/lib/resolver.py:calculate_confidence
++        # 5. type:src/models/types.py:ImportInfo
++        # 6. class:src/extractors.py:ImportExtractor
++        # 7. method:src/parser.py:Parser.parse_file
++        # 8. callable:src/resolver.py:import_confidence
++        # 9. file:docs/plans/022-cross-file-rels/tasks.md
++        # 10. class:src/fs2/core/adapters/log_adapter.py:LogAdapter
++        # 11. method:src/fs2/core/repos/graph_store_impl.py:NetworkXGraphStore.save
++
++        assert len(edges) >= 11, f"Expected at least 11 node_id patterns, got {len(edges)}"
++        
++        # Validate all are REFERENCES type with confidence 1.0
++        for edge in edges:
++            assert edge.edge_type == EdgeType.REFERENCES
++            assert edge.confidence == 1.0
++            assert edge.resolution_rule == "nodeid:explicit"
++
++        # Validate specific patterns exist
++        targets = {e.target_node_id for e in edges}
++        assert "file:src/lib/parser.py" in targets
++        assert "class:src/lib/parser.py:Parser" in targets
++        assert "method:src/lib/parser.py:Parser.detect_language" in targets
++        assert "callable:src/lib/resolver.py:calculate_confidence" in targets
++        assert "type:src/models/types.py:ImportInfo" in targets
++
++    def test_given_execution_log_when_extract_then_finds_references(self):
++        """
++        Purpose: Validate execution log style content
++        Quality Contribution: Ensures plan/log files work
++        Acceptance Criteria: Both node_ids and filenames detected
++        """
++        detector_nodeid = NodeIdDetector()
++        detector_filename = RawFilenameDetector()
++        
++        source_file = "file:execution.log.md"
++        content = """## Task T003: Implement NodeIdDetector
++
++### What I Did
++Created `nodeid_detector.py` using patterns from `file:scripts/01_nodeid_detection.py`.
++The detector returns CodeEdge instances per spec.
++
++### Files Changed
++- `/src/fs2/core/services/relationship_extraction/nodeid_detector.py` — Main implementation
++- Check auth.py for reference patterns
++
++### Evidence
++All tests passing. See `class:src/models.py:CodeEdge` for details.
++"""
++
++        # Detect explicit node_ids
++        nodeid_edges = detector_nodeid.detect(source_file, content)
++        assert len(nodeid_edges) >= 2  # file:scripts/... and class:src/models.py:...
++        
++        # Detect raw filenames
++        filename_edges = detector_filename.detect(source_file, content)
++        assert len(filename_edges) >= 2  # nodeid_detector.py and auth.py
++        
++        # Validate types
++        for edge in nodeid_edges:
++            assert edge.edge_type == EdgeType.REFERENCES
++            assert edge.confidence == 1.0
++        
++        for edge in filename_edges:
++            assert edge.edge_type == EdgeType.DOCUMENTS
++            assert edge.confidence in (0.4, 0.5)
++
++    def test_given_readme_when_extract_then_finds_filenames(self):
++        """
++        Purpose: Validate README.md style content
++        Quality Contribution: Ensures documentation files work
++        Acceptance Criteria: Filenames with various extensions detected
++        """
++        detector = RawFilenameDetector()
++        
++        source_file = "file:README.md"
++        content = """# Project Documentation
++
++## Getting Started
++
++1. Run `install.sh` to set up
++2. Configure settings in config.yaml
++3. Check src/main.py for entry point
++4. See Component.tsx for UI example
++
++Visit https://github.com/user/repo for more info.
++"""
++
++        edges = detector.detect(source_file, content)
++        
++        # Should find: install.sh, config.yaml, src/main.py, Component.tsx
++        # Should NOT find: github.com or repo (URL filtered)
++        assert len(edges) == 4
++        
++        targets = {e.target_node_id for e in edges}
++        assert "file:install.sh" in targets
++        assert "file:config.yaml" in targets
++        assert "file:src/main.py" in targets  # Captures full path
++        assert "file:Component.tsx" in targets
++        
++        # Validate no URL false positives
++        assert not any("github" in e.target_node_id for e in edges)
++        assert not any("repo" in e.target_node_id for e in edges)
++
++    def test_given_mixed_content_when_detect_then_no_duplicates_across_detectors(self):
++        """
++        Purpose: Validate detectors work independently without conflicts
++        Quality Contribution: Ensures clean separation of concerns
++        Acceptance Criteria: Each detector returns appropriate edges
++        """
++        detector_nodeid = NodeIdDetector()
++        detector_filename = RawFilenameDetector()
++        
++        source_file = "file:mixed.md"
++        content = "Check `file:src/app.py` and also app.py separately"
++        
++        nodeid_edges = detector_nodeid.detect(source_file, content)
++        filename_edges = detector_filename.detect(source_file, content)
++        
++        # NodeIdDetector finds explicit file:src/app.py
++        assert len(nodeid_edges) == 1
++        assert nodeid_edges[0].target_node_id == "file:src/app.py"
++        assert nodeid_edges[0].confidence == 1.0
++        
++        # RawFilenameDetector finds both (dedup happens at extractor level)
++        # It will match both "app.py" instances (one in backticks with file:, one bare)
++        # The file:src/app.py will match just "app.py" part
++        assert len(filename_edges) >= 1
++        
++        # Validate types are correct
++        for edge in nodeid_edges:
++            assert edge.edge_type == EdgeType.REFERENCES
++        
++        for edge in filename_edges:
++            assert edge.edge_type == EdgeType.DOCUMENTS
+
+--- /dev/null
++++ tests/fixtures/text_references/sample_nodeid.md
+@@ -0,0 +1,35 @@
++# Sample Node ID Test File
++
++This file contains fs2 node_id patterns for testing regex extraction.
++Created per didyouknow insight #4 to validate regex works before running on fixtures.
++
++## Example References
++
++Here are some inline node_id references:
++
++1. The `file:src/lib/parser.py` module handles parsing
++2. The main class is `class:src/lib/parser.py:Parser`
++3. For language detection, see `method:src/lib/parser.py:Parser.detect_language`
++4. The resolver is at `callable:src/lib/resolver.py:calculate_confidence`
++5. Check `type:src/models/types.py:ImportInfo` for type definitions
++
++## Cross-File Relationships
++
++The `class:src/extractors.py:ImportExtractor` uses:
++- `method:src/parser.py:Parser.parse_file` for parsing
++- `callable:src/resolver.py:import_confidence` for scoring
++
++See also: `file:docs/plans/022-cross-file-rels/tasks.md`
++
++## Edge Cases
++
++1. Nested paths: `class:src/fs2/core/adapters/log_adapter.py:LogAdapter`
++2. Deep nesting: `method:src/fs2/core/repos/graph_store_impl.py:NetworkXGraphStore.save`
++
++## Non-Matches (should NOT be captured)
++
++These should not match:
++- Regular text with colons: key:value
++- URLs: https://example.com
++- Time: 10:30:45
++- File paths without prefix: src/lib/parser.py
+

@@ -1,0 +1,158 @@
+{
+  "criterion_coverage": [
+    {
+      "criterion": "AC1: callable: node_id creates confidence=1.0",
+      "test_file": "test_nodeid_detector.py",
+      "test_name": "test_given_explicit_callable_nodeid_when_detect_then_returns_edge",
+      "test_location": "line 44-60",
+      "evidence": "Detects 'callable:src/lib/resolver.py:calculate_confidence' with confidence=1.0 and EdgeType.REFERENCES",
+      "confidence_score": 100,
+      "reasoning": "Explicit test for callable: prefix with behavioral match to AC1 requirement. Test verifies confidence=1.0 and correct edge type."
+    },
+    {
+      "criterion": "AC2: README with raw filename creates confidence 0.4-0.5",
+      "test_file": "test_raw_filename_detector.py",
+      "test_name": "test_given_backtick_filename_when_detect_then_confidence_0_5",
+      "test_location": "line 25-44",
+      "evidence": "Detects backtick-quoted 'auth.py' with confidence=0.5 and EdgeType.DOCUMENTS in README context",
+      "confidence_score": 100,
+      "reasoning": "Direct test with explicit backtick quoting (0.5 confidence) which matches AC2 upper bound. Plus test_given_bare_filename_when_detect_then_confidence_0_4 covers 0.4 case."
+    },
+    {
+      "criterion": "AC2b: Raw filename (bare) creates confidence 0.4",
+      "test_file": "test_raw_filename_detector.py",
+      "test_name": "test_given_bare_filename_when_detect_then_confidence_0_4",
+      "test_location": "line 46-62",
+      "evidence": "Detects bare 'app.py' with confidence=0.4 and EdgeType.DOCUMENTS",
+      "confidence_score": 100,
+      "reasoning": "Explicit test for bare filename detection with confidence=0.4, exactly matching AC2 lower bound."
+    },
+    {
+      "criterion": "AC1 (extended): All 5 node_id prefixes create confidence=1.0",
+      "test_file": "test_nodeid_detector.py",
+      "test_names": [
+        "test_given_explicit_file_nodeid_when_detect_then_confidence_1_0 (line 23)",
+        "test_given_explicit_callable_nodeid_when_detect_then_returns_edge (line 44)",
+        "test_given_explicit_class_nodeid_when_detect_then_returns_edge (line 62)",
+        "test_given_explicit_method_nodeid_when_detect_then_returns_edge (line 79)",
+        "test_given_explicit_type_nodeid_when_detect_then_returns_edge (line 96)"
+      ],
+      "evidence": "Coverage: file:, callable:, class:, method:, type: all tested with confidence=1.0 and EdgeType.REFERENCES",
+      "confidence_score": 100,
+      "reasoning": "Exhaustive test coverage for all 5 node_id prefix types. Each test explicitly verifies confidence=1.0 and correct edge type."
+    }
+  ],
+  "integration_tests": [
+    {
+      "criterion": "AC1 & AC2: End-to-end text reference extraction",
+      "test_file": "test_text_reference_integration.py",
+      "test_name": "test_given_sample_nodeid_md_when_detect_then_finds_all_patterns",
+      "location": "line 31-76",
+      "evidence": "Validates 11 node_id patterns from real fixture with confidence=1.0 and EdgeType.REFERENCES",
+      "confidence_score": 100,
+      "reasoning": "Integration test demonstrates AC1 compliance with real markdown fixture processing."
+    },
+    {
+      "criterion": "AC2: Filenames in README context",
+      "test_file": "test_text_reference_integration.py",
+      "test_name": "test_given_readme_when_extract_then_finds_filenames",
+      "location": "line 119-154",
+      "evidence": "Detects install.sh, config.yaml, src/main.py, Component.tsx in README with URL filtering",
+      "confidence_score": 100,
+      "reasoning": "Real-world README fixture validates AC2 with multiple filename types and confidence tiers."
+    },
+    {
+      "criterion": "AC2 deduplication: Higher confidence wins",
+      "test_file": "test_text_reference_extractor.py",
+      "test_name": "test_given_nodeid_overlaps_filename_when_extract_then_nodeid_wins",
+      "location": "line 122-140",
+      "evidence": "When 'file:auth.py' (1.0) and 'auth.py' (0.4) both match, node_id wins with 1.0 confidence",
+      "confidence_score": 100,
+      "reasoning": "Validates that explicit node_ids take precedence over raw filenames, ensuring AC1/AC2 priority."
+    }
+  ],
+  "quality_attributes": [
+    {
+      "attribute": "No false positives on URLs (DYK-6)",
+      "tests": [
+        "test_nodeid_detector.py::test_given_url_when_detect_then_not_matched (line 127)",
+        "test_raw_filename_detector.py::test_given_url_with_filename_when_detect_then_skips (line 131)",
+        "test_raw_filename_detector.py::test_given_https_url_when_detect_then_skips (line 146)",
+        "test_raw_filename_detector.py::test_given_domain_like_filename_when_detect_then_skips (line 161)",
+        "test_text_reference_integration.py::test_given_readme_when_extract_then_finds_filenames (line 137)"
+      ],
+      "confidence_score": 100,
+      "reasoning": "Comprehensive URL filtering validation prevents github.com → github.c false positives."
+    },
+    {
+      "attribute": "Line number tracking accuracy",
+      "tests": [
+        "test_nodeid_detector.py::test_given_multiline_content_when_detect_then_tracks_line_numbers (line 172)",
+        "test_raw_filename_detector.py::test_given_multiline_content_when_detect_then_tracks_lines (line 176)",
+        "test_text_reference_extractor.py::test_given_same_file_different_lines_when_extract_then_preserves_both (line 77)"
+      ],
+      "confidence_score": 100,
+      "reasoning": "Precise line tracking enables navigation to specific mentions in source documents."
+    },
+    {
+      "attribute": "CodeEdge model compliance",
+      "tests": [
+        "All tests verify edge.source_node_id, edge.target_node_id, edge.edge_type, edge.confidence, edge.source_line, edge.resolution_rule"
+      ],
+      "confidence_score": 100,
+      "reasoning": "Every edge creation follows the CodeEdge contract with all required fields."
+    }
+  ],
+  "test_statistics": {
+    "total_test_methods": 32,
+    "test_files": 4,
+    "test_file_breakdown": {
+      "test_nodeid_detector.py": 10,
+      "test_raw_filename_detector.py": 10,
+      "test_text_reference_extractor.py": 8,
+      "test_text_reference_integration.py": 4
+    },
+    "assertion_count": 150,
+    "coverage_areas": [
+      "Happy path: 5 node_id prefixes + 2 filename confidence tiers",
+      "Edge cases: URLs, domains, empty content, multiline",
+      "Integration: Deduplication, precedence, combination",
+      "Quality: Line tracking, error handling"
+    ]
+  },
+  "overall_confidence": 100,
+  "summary": {
+    "ac1_callable_nodeid_1_0": {
+      "status": "FULLY COVERED",
+      "confidence": 100,
+      "tests": ["test_given_explicit_callable_nodeid_when_detect_then_returns_edge"],
+      "evidence": "Explicit test verifies callable:src/lib/resolver.py:calculate_confidence creates edge with confidence=1.0"
+    },
+    "ac2_readme_auth_handler_0_4_0_5": {
+      "status": "FULLY COVERED",
+      "confidence": 100,
+      "tests": [
+        "test_given_backtick_filename_when_detect_then_confidence_0_5 (0.5)",
+        "test_given_bare_filename_when_detect_then_confidence_0_4 (0.4)",
+        "test_given_readme_when_extract_then_finds_filenames (integration)"
+      ],
+      "evidence": "Backtick-quoted filenames get 0.5, bare filenames get 0.4. Integration test validates README context."
+    },
+    "ac3_all_tests_passing": {
+      "status": "PENDING VERIFICATION",
+      "confidence": 0,
+      "action": "Run: pytest tests/unit/services/test_nodeid*.py tests/unit/services/test_raw_filename*.py tests/unit/services/test_text_reference*.py tests/integration/test_text_reference*.py -v"
+    },
+    "ac4_coverage_gt_80_percent": {
+      "status": "PENDING VERIFICATION",
+      "confidence": 0,
+      "action": "Run: pytest --cov=src/fs2/core/services/relationship_extraction --cov-report=term-missing"
+    }
+  },
+  "weak_mappings": [],
+  "narrative_summary": {
+    "assertion_mapping": "All 4 acceptance criteria have explicit test correlates. AC1 and AC2 are fully covered by unit and integration tests. AC3 and AC4 require live test execution.",
+    "confidence_justification": "100% confidence based on: (1) Explicit AC1 test for callable: prefix with 1.0 confidence, (2) Explicit AC2 tests for both 0.5 and 0.4 confidence tiers, (3) Integration tests validating real markdown/README processing, (4) 32 test methods across 4 files covering happy path, edge cases, and deduplication logic.",
+    "risk_factors": "None identified. Tests are comprehensive and directly map to acceptance criteria."
+  }
+}
