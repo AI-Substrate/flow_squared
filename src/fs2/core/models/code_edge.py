@@ -33,8 +33,10 @@ class CodeEdge:
                    1.0 = explicit node_id reference
                    0.9 = top-level import statement
                    0.4-0.5 = raw filename in documentation
-        source_line: Line number in source file where relationship is defined.
+        source_line: Line number in source file where relationship originates.
                      Optional - used for documentation discovery navigation.
+        target_line: Line number in target file where relationship points.
+                     Optional - used for symbol-level resolution (T016).
         resolution_rule: How this relationship was determined (for debugging).
                         Default "unknown" for backwards compatibility.
 
@@ -61,6 +63,7 @@ class CodeEdge:
     edge_type: EdgeType
     confidence: float
     source_line: int | None = None
+    target_line: int | None = None
     resolution_rule: str = "unknown"
 
     def __post_init__(self) -> None:

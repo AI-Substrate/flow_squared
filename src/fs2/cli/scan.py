@@ -72,6 +72,13 @@ def scan(
             help="Skip embedding generation (faster scans)",
         ),
     ] = False,
+    no_lsp: Annotated[
+        bool,
+        typer.Option(
+            "--no-lsp",
+            help="Skip LSP-based cross-file relationship extraction (faster scans)",
+        ),
+    ] = False,
 ) -> None:
     """Scan the codebase and build the code graph.
 
@@ -223,6 +230,35 @@ def scan(
             else:
                 console.print_info("Skipped: 0")
 
+        # Create LSP adapter if not disabled
+        lsp_adapter_instance = None
+        if no_lsp:
+            console.print_info("LSP: skipped (--no-lsp)")
+        else:
+            # Wire up real LSP adapter for cross-file relationship extraction
+            try:
+                from fs2.config.objects import LspConfig
+                from fs2.core.adapters.lsp_adapter_solidlsp import SolidLspAdapter
+
+                # Register LspConfig if not already present
+                if config.get(LspConfig) is None:
+                    config.set(LspConfig())
+
+                lsp_adapter_instance = SolidLspAdapter(config)
+
+                # Initialize for Python with cwd as project root
+                # Node IDs contain paths relative to cwd, not scan_path
+                # Phase 9 TODO: Multi-language support with auto-detection
+                project_root = Path.cwd()
+                lsp_adapter_instance.initialize("python", project_root)
+
+                console.print_info("LSP: enabled (Python cross-file detection)")
+            except Exception as e:
+                # Graceful degradation: LSP failure shouldn't stop scan
+                logger.warning(f"LSP adapter creation failed: {e}")
+                console.print_warning(f"LSP: unavailable ({e})")
+                lsp_adapter_instance = None
+
         # Create pipeline
         pipeline = ScanPipeline(
             config=config,
@@ -240,6 +276,7 @@ def scan(
             parsing_progress_callback=parsing_progress,
             parsing_complete_callback=parsing_complete,
             graph_path=graph_path,  # Per Subtask 001: Custom output path
+            lsp_adapter=lsp_adapter_instance,  # Per Phase 8: Pass LSP adapter
         )
 
         # ===== STAGE 3: PARSING =====

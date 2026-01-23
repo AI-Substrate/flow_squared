@@ -12,7 +12,6 @@ Acceptance Criteria:
 
 import pytest
 
-from fs2.core.models.code_edge import CodeEdge
 from fs2.core.models.edge_type import EdgeType
 from fs2.core.services.relationship_extraction.raw_filename_detector import (
     RawFilenameDetector,

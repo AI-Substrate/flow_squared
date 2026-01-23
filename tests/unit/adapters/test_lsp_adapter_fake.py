@@ -45,7 +45,10 @@ class TestFakeLspAdapter:
         Purpose: Proves config.require() is used
         Quality Contribution: Catches misconfigured test setups
         """
-        from fs2.config.service import FakeConfigurationService, MissingConfigurationError
+        from fs2.config.service import (
+            FakeConfigurationService,
+            MissingConfigurationError,
+        )
         from fs2.core.adapters.lsp_adapter_fake import FakeLspAdapter
 
         config = FakeConfigurationService()  # No LspConfig registered

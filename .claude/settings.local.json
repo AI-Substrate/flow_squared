@@ -51,7 +51,8 @@
       "Bash(sudo -E bash -)",
       "Bash(sudo apt-get install:*)",
       "Bash(node --version:*)",
-      "Bash(npm --version:*)"
+      "Bash(npm --version:*)",
+      "Bash(fs2 --help:*)"
     ],
     "deny": [],
     "ask": []

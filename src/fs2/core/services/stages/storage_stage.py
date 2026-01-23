@@ -63,11 +63,18 @@ class StorageStage:
         for node in context.nodes:
             context.graph_store.add_node(node)
 
-        # Create edges based on parent_node_id
+        # Create edges based on parent_node_id (hierarchy)
         for node in context.nodes:
             if node.parent_node_id is not None:
                 context.graph_store.add_edge(node.parent_node_id, node.node_id)
                 edge_count += 1
+
+        # Persist relationship edges from RelationshipExtractionStage (DYK-1)
+        # Without this loop, all LSP-extracted relationships would be silently lost!
+        if context.relationships:
+            for edge in context.relationships:
+                context.graph_store.add_relationship_edge(edge)
+            edge_count += len(context.relationships)
 
         # Record metrics
         context.metrics["storage_nodes"] = len(context.nodes)

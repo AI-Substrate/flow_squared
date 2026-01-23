@@ -21,7 +21,6 @@ import pytest
 from fs2.core.models.code_edge import CodeEdge
 from fs2.core.models.edge_type import EdgeType
 
-
 # Skip entire module if Pyright is not available
 pytestmark = pytest.mark.skipif(
     not shutil.which("pyright-langserver"),
@@ -117,7 +116,7 @@ class TestSolidLspAdapterIntegration:
 
             # Should return a list (may be empty if Pyright doesn't find refs)
             assert isinstance(edges, list)
-            
+
             # If references were found, validate their structure
             for edge in edges:
                 assert isinstance(edge, CodeEdge)

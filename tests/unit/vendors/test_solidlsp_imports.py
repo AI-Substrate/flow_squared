@@ -12,7 +12,6 @@ TDD Phase: RED - This test is expected to fail initially (ImportError)
 from __future__ import annotations
 
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -48,13 +47,13 @@ class TestSolidLspVendorImports:
 
         Tests that language-specific server configurations can be imported.
         """
-        from fs2.vendors.solidlsp.language_servers.pyright_server import PyrightServer
-        from fs2.vendors.solidlsp.language_servers.gopls import Gopls
-        from fs2.vendors.solidlsp.language_servers.typescript_language_server import (
-            TypeScriptLanguageServer,
-        )
         from fs2.vendors.solidlsp.language_servers.csharp_language_server import (
             CSharpLanguageServer,
+        )
+        from fs2.vendors.solidlsp.language_servers.gopls import Gopls
+        from fs2.vendors.solidlsp.language_servers.pyright_server import PyrightServer
+        from fs2.vendors.solidlsp.language_servers.typescript_language_server import (
+            TypeScriptLanguageServer,
         )
 
         assert PyrightServer is not None

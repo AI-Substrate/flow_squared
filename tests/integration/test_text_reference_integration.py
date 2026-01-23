@@ -10,8 +10,9 @@ Acceptance Criteria:
 - Line numbers tracked accurately
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from fs2.core.models.edge_type import EdgeType
 from fs2.core.services.relationship_extraction.nodeid_detector import NodeIdDetector
@@ -38,9 +39,9 @@ class TestTextReferenceIntegration:
         """
         detector = NodeIdDetector()
         fixture_file = fixtures_dir / "sample_nodeid.md"
-        
+
         assert fixture_file.exists(), f"Fixture not found: {fixture_file}"
-        
+
         content = fixture_file.read_text()
         source_file = f"file:{fixture_file.name}"
 
@@ -60,7 +61,7 @@ class TestTextReferenceIntegration:
         # 11. method:src/fs2/core/repos/graph_store_impl.py:NetworkXGraphStore.save
 
         assert len(edges) >= 11, f"Expected at least 11 node_id patterns, got {len(edges)}"
-        
+
         # Validate all are REFERENCES type with confidence 1.0
         for edge in edges:
             assert edge.edge_type == EdgeType.REFERENCES
@@ -83,7 +84,7 @@ class TestTextReferenceIntegration:
         """
         detector_nodeid = NodeIdDetector()
         detector_filename = RawFilenameDetector()
-        
+
         source_file = "file:execution.log.md"
         content = """## Task T003: Implement NodeIdDetector
 
@@ -102,16 +103,16 @@ All tests passing. See `class:src/models.py:CodeEdge` for details.
         # Detect explicit node_ids
         nodeid_edges = detector_nodeid.detect(source_file, content)
         assert len(nodeid_edges) >= 2  # file:scripts/... and class:src/models.py:...
-        
+
         # Detect raw filenames
         filename_edges = detector_filename.detect(source_file, content)
         assert len(filename_edges) >= 2  # nodeid_detector.py and auth.py
-        
+
         # Validate types
         for edge in nodeid_edges:
             assert edge.edge_type == EdgeType.REFERENCES
             assert edge.confidence == 1.0
-        
+
         for edge in filename_edges:
             assert edge.edge_type == EdgeType.DOCUMENTS
             assert edge.confidence in (0.4, 0.5)
@@ -123,7 +124,7 @@ All tests passing. See `class:src/models.py:CodeEdge` for details.
         Acceptance Criteria: Filenames with various extensions detected
         """
         detector = RawFilenameDetector()
-        
+
         source_file = "file:README.md"
         content = """# Project Documentation
 
@@ -138,17 +139,17 @@ Visit https://github.com/user/repo for more info.
 """
 
         edges = detector.detect(source_file, content)
-        
+
         # Should find: install.sh, config.yaml, src/main.py, Component.tsx
         # Should NOT find: github.com or repo (URL filtered)
         assert len(edges) == 4
-        
+
         targets = {e.target_node_id for e in edges}
         assert "file:install.sh" in targets
         assert "file:config.yaml" in targets
         assert "file:src/main.py" in targets  # Captures full path
         assert "file:Component.tsx" in targets
-        
+
         # Validate no URL false positives
         assert not any("github" in e.target_node_id for e in edges)
         assert not any("repo" in e.target_node_id for e in edges)
@@ -161,26 +162,26 @@ Visit https://github.com/user/repo for more info.
         """
         detector_nodeid = NodeIdDetector()
         detector_filename = RawFilenameDetector()
-        
+
         source_file = "file:mixed.md"
         content = "Check `file:src/app.py` and also app.py separately"
-        
+
         nodeid_edges = detector_nodeid.detect(source_file, content)
         filename_edges = detector_filename.detect(source_file, content)
-        
+
         # NodeIdDetector finds explicit file:src/app.py
         assert len(nodeid_edges) == 1
         assert nodeid_edges[0].target_node_id == "file:src/app.py"
         assert nodeid_edges[0].confidence == 1.0
-        
+
         # RawFilenameDetector finds both (dedup happens at extractor level)
         # It will match both "app.py" instances (one in backticks with file:, one bare)
         # The file:src/app.py will match just "app.py" part
         assert len(filename_edges) >= 1
-        
+
         # Validate types are correct
         for edge in nodeid_edges:
             assert edge.edge_type == EdgeType.REFERENCES
-        
+
         for edge in filename_edges:
             assert edge.edge_type == EdgeType.DOCUMENTS

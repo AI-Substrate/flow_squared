@@ -810,3 +810,165 @@ class TestScanPipelinePriorNodesLoading:
         assert "callable:a.py:foo" in ctx.prior_nodes
         assert ctx.prior_nodes["file:a.py"] == node1
         assert ctx.prior_nodes["callable:a.py:foo"] == node2
+
+
+class TestScanPipelineRelationshipExtractionStage:
+    """Tests for RelationshipExtractionStage integration (Phase 8 T006/T007).
+
+    Per Alignment Brief:
+    - RelationshipExtractionStage must be included in default stages
+    - Position: After ParsingStage, before SmartContentStage
+    - Pipeline order: Discovery → Parsing → RelExtract → SmartContent → Embedding → Storage
+    """
+
+    def test_given_default_pipeline_when_running_then_includes_relationship_extraction_stage(
+        self, test_graph_path: Path
+    ):
+        """
+        Purpose: Verifies RelationshipExtractionStage is in default pipeline.
+        Quality Contribution: Ensures relationship extraction runs automatically.
+        Acceptance Criteria: Stage with name 'relationship_extraction' in stages list.
+        """
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            graph_path=test_graph_path,
+        )
+
+        # Check that relationship_extraction stage is in the pipeline
+        stage_names = [stage.name for stage in pipeline._stages]
+        assert "relationship_extraction" in stage_names
+
+    def test_given_default_pipeline_when_running_then_relationship_stage_after_parsing(
+        self, test_graph_path: Path
+    ):
+        """
+        Purpose: Verifies RelationshipExtractionStage runs after ParsingStage.
+        Quality Contribution: Ensures stage has access to parsed nodes.
+        Acceptance Criteria: relationship_extraction index > parsing index.
+        """
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            graph_path=test_graph_path,
+        )
+
+        stage_names = [stage.name for stage in pipeline._stages]
+        parsing_idx = stage_names.index("parsing")
+        rel_extract_idx = stage_names.index("relationship_extraction")
+
+        assert rel_extract_idx > parsing_idx, (
+            f"RelationshipExtractionStage ({rel_extract_idx}) must be after "
+            f"ParsingStage ({parsing_idx})"
+        )
+
+    def test_given_default_pipeline_when_running_then_relationship_stage_before_smart_content(
+        self, test_graph_path: Path
+    ):
+        """
+        Purpose: Verifies RelationshipExtractionStage runs before SmartContentStage.
+        Quality Contribution: Ensures stage position is correct.
+        Acceptance Criteria: relationship_extraction index < smart_content index.
+        """
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            graph_path=test_graph_path,
+        )
+
+        stage_names = [stage.name for stage in pipeline._stages]
+        rel_extract_idx = stage_names.index("relationship_extraction")
+        smart_content_idx = stage_names.index("smart_content")
+
+        assert rel_extract_idx < smart_content_idx, (
+            f"RelationshipExtractionStage ({rel_extract_idx}) must be before "
+            f"SmartContentStage ({smart_content_idx})"
+        )
+
+    def test_given_pipeline_with_file_when_running_then_relationships_populated(
+        self, test_graph_path: Path
+    ):
+        """
+        Purpose: Verifies relationships field is populated after pipeline run.
+        Quality Contribution: End-to-end verification of stage execution.
+        Acceptance Criteria: context.relationships not None after run.
+        """
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        # Set up source file with explicit node_id reference
+        content = "See `file:src/auth.py` for authentication"
+        scanner.set_results([
+            ScanResult(path=Path("README.md"), size_bytes=len(content)),
+            ScanResult(path=Path("src/auth.py"), size_bytes=10),
+        ])
+
+        source_node = CodeNode.create_file(
+            file_path="README.md",
+            language="markdown",
+            ts_kind="document",
+            start_byte=0,
+            end_byte=len(content),
+            start_line=1,
+            end_line=1,
+            content=content,
+        )
+        # Add target node for validation (target must exist for edge to be kept)
+        target_node = CodeNode.create_file(
+            file_path="src/auth.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=10,
+            start_line=1,
+            end_line=1,
+            content="# auth",
+        )
+        parser.set_results(Path("README.md"), [source_node])
+        parser.set_results(Path("src/auth.py"), [target_node])
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            graph_path=test_graph_path,
+        )
+
+        summary = pipeline.run()
+
+        # Verify relationships metric was recorded
+        assert "relationship_extraction_count" in summary.metrics
+        # Should have at least one edge from the node_id reference
+        assert summary.metrics["relationship_extraction_count"] >= 1

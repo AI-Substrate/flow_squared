@@ -481,6 +481,7 @@ class SolidLspAdapter(LspAdapter):
             edge_type=EdgeType.REFERENCES,
             confidence=1.0,
             source_line=ref_line,
+            target_line=source_line,  # Line where referenced symbol is defined
             resolution_rule="lsp:references",
         )
 
@@ -509,10 +510,8 @@ class SolidLspAdapter(LspAdapter):
         Returns:
             CodeEdge representing the call relationship.
         """
-        # The location points to WHERE the definition is (unused but kept for clarity)
-        _ = location.get("relativePath") or SolidLspAdapter._uri_to_relative(
-            location["uri"], project_root
-        )
+        # Extract target line from LSP location for symbol-level resolution (T016)
+        target_line = location["range"]["start"]["line"]
 
         # Source is the calling file, target is the definition
         source_node_id = SolidLspAdapter._source_to_node_id(
@@ -530,6 +529,7 @@ class SolidLspAdapter(LspAdapter):
             edge_type=EdgeType.CALLS,
             confidence=1.0,
             source_line=source_line,
+            target_line=target_line,  # Line where definition is located
             resolution_rule="lsp:definition",
         )
 

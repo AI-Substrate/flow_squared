@@ -9,9 +9,7 @@ Acceptance Criteria:
 - Multiple mentions on different lines preserved
 """
 
-import pytest
 
-from fs2.core.models.code_edge import CodeEdge
 from fs2.core.models.edge_type import EdgeType
 from fs2.core.services.relationship_extraction.text_reference_extractor import (
     TextReferenceExtractor,
@@ -91,7 +89,7 @@ Line 3: Review `auth.py` again"""
         # Should have 2 edges for auth.py (lines 1 and 3)
         auth_edges = [e for e in edges if e.target_node_id == "file:auth.py"]
         assert len(auth_edges) == 2
-        
+
         lines = {e.source_line for e in auth_edges}
         assert lines == {1, 3}
 
@@ -111,7 +109,7 @@ Line 3: Review `auth.py` again"""
         # But RawFilenameDetector will find both matches
         # Deduplication by (source, target, source_line) should keep only 1
         auth_edges = [e for e in edges if e.target_node_id == "file:auth.py"]
-        
+
         # Actually, they have different confidences (0.5 vs 0.4) so might be different
         # Let me check: backtick `auth.py` (0.5) and bare auth.py (0.4)
         # Both on line 1, same target → should deduplicate
@@ -128,11 +126,11 @@ Line 3: Review `auth.py` again"""
         extractor = TextReferenceExtractor()
         source_file = "file:README.md"
         content = "See file:auth.py for details"
-        
-        # Both NodeIdDetector (file:auth.py → 1.0) and 
+
+        # Both NodeIdDetector (file:auth.py → 1.0) and
         # RawFilenameDetector (auth.py → 0.4) will match
         edges = extractor.extract(source_file, content)
-        
+
         # Should have 1 edge with confidence 1.0 (node_id wins)
         auth_edges = [e for e in edges if e.target_node_id == "file:auth.py"]
         assert len(auth_edges) == 1

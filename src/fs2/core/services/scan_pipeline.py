@@ -6,7 +6,7 @@ and adapters via constructor, runs stages in order, returns ScanSummary.
 Per Alignment Brief:
 - Receives ConfigurationService, calls config.require(ScanConfig)
 - Receives adapters via constructor, injects into PipelineContext
-- Default stages: Discovery → Parsing → SmartContent → Storage
+- Default stages: Discovery → Parsing → RelExtract → SmartContent → Embedding → Storage
 - Custom stages can override defaults
 - Returns ScanSummary with success, counts, errors, metrics
 
@@ -19,7 +19,11 @@ Per Phase 6 T005 (ScanPipeline Constructor):
 - Accepts optional SmartContentService
 - Injects service into PipelineContext.smart_content_service
 - SmartContentStage placed between ParsingStage and StorageStage
-- Stage order: Discovery → Parsing → SmartContent → Storage
+
+Per Phase 8 (Pipeline Integration):
+- RelationshipExtractionStage placed after Parsing, before SmartContent
+- Stage order: Discovery → Parsing → RelExtract → SmartContent → Embedding → Storage
+- Extracts cross-file relationships via text patterns (and LSP when available)
 """
 
 import logging
@@ -34,6 +38,9 @@ from fs2.core.services.pipeline_stage import PipelineStage
 from fs2.core.services.stages.discovery_stage import DiscoveryStage
 from fs2.core.services.stages.embedding_stage import EmbeddingStage
 from fs2.core.services.stages.parsing_stage import ParsingStage
+from fs2.core.services.stages.relationship_extraction_stage import (
+    RelationshipExtractionStage,
+)
 from fs2.core.services.stages.smart_content_stage import SmartContentStage
 from fs2.core.services.stages.storage_stage import StorageStage
 
@@ -43,6 +50,7 @@ if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
     from fs2.core.adapters.ast_parser import ASTParser
     from fs2.core.adapters.file_scanner import FileScanner
+    from fs2.core.adapters.lsp_adapter import LspAdapter
     from fs2.core.models.code_node import CodeNode
     from fs2.core.repos.graph_store import GraphStore
     from fs2.core.services.embedding.embedding_service import EmbeddingService
@@ -98,6 +106,7 @@ class ScanPipeline:
         parsing_progress_callback: "Callable[[int, int], None] | None" = None,
         parsing_complete_callback: "Callable[..., None] | None" = None,
         graph_path: Path | None = None,
+        lsp_adapter: "LspAdapter | None" = None,
     ):
         """Initialize pipeline with config and adapters.
 
@@ -124,6 +133,9 @@ class ScanPipeline:
             graph_path: Path to save graph. REQUIRED to prevent accidental
                         corruption of project graph during tests. Use
                         tmp_path / "graph.pickle" in tests.
+            lsp_adapter: Optional LspAdapter for cross-file relationship
+                         extraction via LSP. If None, RelationshipExtractionStage
+                         uses text-based extraction only (DYK-4: logs WARNING).
 
         Raises:
             MissingConfigurationError: If ScanConfig not in registry.
@@ -155,15 +167,17 @@ class ScanPipeline:
         self._parsing_progress_callback = parsing_progress_callback
         self._parsing_complete_callback = parsing_complete_callback
         self._graph_path = graph_path
+        self._lsp_adapter = lsp_adapter
 
         # Default stages if not provided
-        # Order: Discovery → Parsing → SmartContent → Embedding → Storage
+        # Order: Discovery → Parsing → RelExtract → SmartContent → Embedding → Storage
         self._stages = (
             stages
             if stages is not None
             else [
                 DiscoveryStage(),
                 ParsingStage(),
+                RelationshipExtractionStage(lsp_adapter=lsp_adapter),  # Phase 8: Extract cross-file relationships
                 SmartContentStage(),
                 EmbeddingStage(),
                 StorageStage(),

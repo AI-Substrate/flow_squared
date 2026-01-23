@@ -1906,12 +1906,12 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 - [~] Phase 3: SolidLspAdapter Implementation - CODE REVIEW FIXES REQUIRED (2026-01-19) - 10/10 tasks, 31 tests pass, 4 blocking issues [^13][^14]
 - [x] Phase 4: Multi-Language LSP Support - COMPLETE (100%) [^16][^17][^18][^19]
 - [S] Phase 5: Python Import Extraction - **SKIPPED** (LSP resolves call sites directly; import enumeration redundant)
-- [ ] Phase 6: Node ID and Filename Detection - NOT STARTED (ported from 024 Phase 3)
+- [x] Phase 6: Node ID and Filename Detection - COMPLETE (2026-01-20) - 8/8 tasks, TextReferenceExtractor working
 - [S] Phase 7: TypeScript and Go Imports - **SKIPPED** (LSP resolves call sites directly; import enumeration redundant)
-- [ ] Phase 8: Pipeline Integration - NOT STARTED (simplified: LSP + Node ID detection only)
-- [ ] Phase 9: Documentation - NOT STARTED
+- [x] Phase 8: Pipeline Integration - COMPLETE (2026-01-21) - 22/22 tasks, LSP wired into scan, 19 tests pass
+- [x] Phase 9: Documentation - COMPLETE (2026-01-22) - 6/6 tasks, README + user guide + dev guide
 
-**Overall Progress**: 5/9 phases complete (56%) - Phase 0 + Phase 0b + Phase 1 + Phase 2 + Phase 4 (Phase 3 pending review fixes, Phases 5 & 7 skipped)
+**Overall Progress**: 8/9 phases complete (89%) - All phases complete (Phases 5 & 7 skipped by design)
 
 **Note**: 024 Phase 1 (Core Models & GraphStore Extension) is COMPLETE - foundation models (EdgeType, CodeEdge, GraphStore extensions) are already implemented and available for use.
 
@@ -2046,6 +2046,11 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
 
 [^19]: Phase 4 Task 4.4 - TypeScript fixture configuration
   - `file:tests/fixtures/lsp/typescript_multi_project/package.json`
+
+[^20]: Phase 9 - Documentation (6/6 tasks)
+  - `file:README.md` - Added LSP Integration section (~35 lines)
+  - `file:docs/how/user/lsp-guide.md` - User guide (8.3KB): Install, Enable, Verify, Troubleshoot, Languages
+  - `file:docs/how/dev/lsp-adapter-architecture.md` - Developer guide (13KB): Architecture, ABC, Testing, Extension
 
 ---
 
@@ -2246,6 +2251,7 @@ Mid-implementation detours requiring structured tracking.
 | ID | Created | Phase | Parent Task | Reason | Status | Dossier |
 |----|---------|-------|-------------|--------|--------|---------|
 | 001-subtask-validate-lsp-cross-file | 2026-01-15 | Phase 0b: Multi-Project Research | T007 | Validate that LSP servers can resolve cross-file method calls before vendoring 25K LOC of SolidLSP. | [ ] Pending | [Link](tasks/phase-0b-multi-project-research/001-subtask-validate-lsp-cross-file.md) |
+| 002-subtask-tree-sitter-call-extraction | 2026-01-23 | Phase 8: Pipeline Integration | T003, T016 | Implement tree-sitter call expression extraction for accurate LSP get_definition queries (replaces removed naive line-scanning). | [ ] Pending | [Link](tasks/phase-8-pipeline-integration/002-subtask-tree-sitter-call-extraction.md) |
 
 ---
 

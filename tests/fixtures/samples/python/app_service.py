@@ -6,7 +6,7 @@ This module demonstrates cross-file relationships for fs2 experimentation:
 - Method calls (validate_token, parse)
 """
 
-from auth_handler import AuthHandler, AuthToken, AuthRole
+from auth_handler import AuthHandler, AuthRole, AuthToken
 from data_parser import JSONParser, ParseResult
 
 

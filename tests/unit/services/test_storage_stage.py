@@ -489,3 +489,178 @@ class TestStorageStageReturnsContext:
         result = stage.process(ctx)
 
         assert result is ctx
+
+
+class TestStorageStageRelationshipPersistence:
+    """Tests for StorageStage relationship edge persistence (DYK-1).
+
+    Per Phase 8 T004/T005 (DYK-1):
+    - context.relationships must be persisted via add_relationship_edge()
+    - Without this loop, all LSP-extracted relationships would be silently lost
+    """
+
+    def test_given_relationships_when_processing_then_calls_add_relationship_edge(self):
+        """
+        Purpose: Verifies relationships are persisted via add_relationship_edge().
+        Quality Contribution: Prevents silent data loss of LSP edges (DYK-1).
+        Acceptance Criteria: add_relationship_edge called for each edge in context.relationships.
+        """
+        from fs2.core.models.code_edge import CodeEdge, EdgeType
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        config_service = FakeConfigurationService(ScanConfig())
+        store = FakeGraphStore(config_service)
+
+        # Create context with relationships
+        ctx = PipelineContext(scan_config=ScanConfig())
+        ctx.graph_store = store
+        ctx.nodes = []
+
+        # Create relationship edges
+        edge1 = CodeEdge(
+            source_node_id="file:README.md",
+            target_node_id="file:src/auth.py",
+            edge_type=EdgeType.REFERENCES,
+            confidence=1.0,
+            resolution_rule="nodeid:explicit",
+        )
+        edge2 = CodeEdge(
+            source_node_id="file:docs/api.md",
+            target_node_id="file:src/utils.py",
+            edge_type=EdgeType.REFERENCES,
+            confidence=0.5,
+            resolution_rule="filename:raw",
+        )
+        ctx.relationships = [edge1, edge2]
+
+        stage = StorageStage()
+        stage.process(ctx)
+
+        # Verify add_relationship_edge was called for each edge
+        # FakeGraphStore records these in call_history
+        add_rel_calls = [
+            call for call in store.call_history
+            if call["method"] == "add_relationship_edge"
+        ]
+        assert len(add_rel_calls) == 2
+
+    def test_given_relationships_when_processing_then_edges_in_graph(self):
+        """
+        Purpose: Verifies relationship edges are queryable from graph.
+        Quality Contribution: End-to-end verification of persistence.
+        Acceptance Criteria: get_relationships returns the edges.
+        """
+        from fs2.core.models.code_edge import CodeEdge, EdgeType
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        config_service = FakeConfigurationService(ScanConfig())
+        store = FakeGraphStore(config_service)
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+        ctx.graph_store = store
+        ctx.nodes = []
+
+        edge = CodeEdge(
+            source_node_id="file:README.md",
+            target_node_id="file:src/auth.py",
+            edge_type=EdgeType.REFERENCES,
+            confidence=1.0,
+            resolution_rule="nodeid:explicit",
+        )
+        ctx.relationships = [edge]
+
+        stage = StorageStage()
+        stage.process(ctx)
+
+        # Verify edge is in graph via get_relationships
+        outgoing = store.get_relationships("file:README.md", direction="outgoing")
+        assert len(outgoing) == 1
+        assert outgoing[0]["node_id"] == "file:src/auth.py"
+
+    def test_given_empty_relationships_when_processing_then_no_relationship_edge_calls(self):
+        """
+        Purpose: Verifies empty relationships list doesn't cause errors.
+        Quality Contribution: Edge case handling.
+        Acceptance Criteria: No add_relationship_edge calls when relationships=[].
+        """
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        config_service = FakeConfigurationService(ScanConfig())
+        store = FakeGraphStore(config_service)
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+        ctx.graph_store = store
+        ctx.nodes = []
+        ctx.relationships = []
+
+        stage = StorageStage()
+        stage.process(ctx)
+
+        # No relationship edge calls
+        add_rel_calls = [
+            call for call in store.call_history
+            if call["method"] == "add_relationship_edge"
+        ]
+        assert len(add_rel_calls) == 0
+
+    def test_given_relationships_none_when_processing_then_no_relationship_edge_calls(self):
+        """
+        Purpose: Verifies None relationships doesn't cause errors.
+        Quality Contribution: Backwards compatibility with pre-Phase 8 code.
+        Acceptance Criteria: No add_relationship_edge calls when relationships=None.
+        """
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        config_service = FakeConfigurationService(ScanConfig())
+        store = FakeGraphStore(config_service)
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+        ctx.graph_store = store
+        ctx.nodes = []
+        ctx.relationships = None  # Not set by RelationshipExtractionStage
+
+        stage = StorageStage()
+        stage.process(ctx)
+
+        # No relationship edge calls
+        add_rel_calls = [
+            call for call in store.call_history
+            if call["method"] == "add_relationship_edge"
+        ]
+        assert len(add_rel_calls) == 0
+
+    def test_given_relationships_when_processing_then_edge_count_metric_includes_relationships(
+        self,
+    ):
+        """
+        Purpose: Verifies storage_edges metric includes relationship edges.
+        Quality Contribution: Accurate metrics for monitoring.
+        Acceptance Criteria: storage_edges count includes relationship count.
+        """
+        from fs2.core.models.code_edge import CodeEdge, EdgeType
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        config_service = FakeConfigurationService(ScanConfig())
+        store = FakeGraphStore(config_service)
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+        ctx.graph_store = store
+        ctx.nodes = []  # No parent-child edges
+
+        # Add 3 relationship edges
+        ctx.relationships = [
+            CodeEdge(
+                source_node_id=f"file:src/file{i}.py",
+                target_node_id="file:src/common.py",
+                edge_type=EdgeType.REFERENCES,
+                confidence=1.0,
+                resolution_rule="nodeid:explicit",
+            )
+            for i in range(3)
+        ]
+
+        stage = StorageStage()
+        result = stage.process(ctx)
+
+        # storage_edges should include the 3 relationship edges
+        assert result.metrics["storage_edges"] == 3

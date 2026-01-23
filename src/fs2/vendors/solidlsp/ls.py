@@ -692,7 +692,8 @@ class SolidLanguageServer(ABC):
         elif response is None:
             # Some language servers return None when they cannot find a definition
             # This is expected for certain symbol types like generics or types with incomplete information
-            log.warning(f"Language server returned None for definition request at {relative_file_path}:{line}:{column}")
+            # Using DEBUG level since line-scanning approach queries many positions without definitions
+            log.debug(f"Language server returned None for definition request at {relative_file_path}:{line}:{column}")
         else:
             assert False, f"Unexpected response from Language Server: {response}"
 

@@ -65,12 +65,51 @@ fs2 --version
 
 See [Developer Setup](#developer-setup) below for contributing.
 
+## LSP Integration (Optional)
+
+Enable high-confidence cross-file analysis with Language Server Protocol. LSP provides type-aware method call resolution (confidence 1.0) compared to heuristic-based extraction (confidence 0.3-0.5).
+
+### Install LSP Servers
+
+```bash
+# Python (Pyright) - recommended
+pip install pyright
+
+# TypeScript/JavaScript
+npm install -g typescript typescript-language-server
+
+# Go
+go install golang.org/x/tools/gopls@latest
+
+# C# (Roslyn - auto-downloaded by fs2)
+# Just need .NET SDK 9+:
+# Linux: https://learn.microsoft.com/en-us/dotnet/core/install/linux
+# macOS: brew install dotnet
+```
+
+### Scan with LSP
+
+```bash
+# LSP is enabled by default when servers are installed
+fs2 scan
+
+# Verbose output shows LSP status
+fs2 scan --verbose
+# Output: "LSP: 18 call edges detected (Python/Pyright)"
+
+# Disable LSP if needed
+fs2 scan --no-lsp
+```
+
+See [LSP Guide](docs/how/user/lsp-guide.md) for troubleshooting and supported languages.
+
 ## Guides
 
 | Guide | Description |
 |-------|-------------|
 | [CLI Reference](docs/how/user/cli.md) | All commands, options, and output formats |
 | [Scanning](docs/how/user/scanning.md) | Build the code graph, configure paths, troubleshoot |
+| [LSP Integration](docs/how/user/lsp-guide.md) | High-confidence cross-file analysis with language servers |
 | [MCP Server](docs/how/user/mcp-server-guide.md) | Connect Claude, Copilot, and other AI agents |
 | [Configuration Guide](docs/how/user/configuration-guide.md) | LLM, embeddings, secrets, and all config options |
 | [Multi-Graph](docs/how/user/multi-graphs.md) | Query multiple codebases from one installation |
