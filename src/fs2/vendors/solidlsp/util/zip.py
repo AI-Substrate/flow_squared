@@ -69,17 +69,23 @@ class SafeZipExtractor:
         """
         # If include_patterns is set, only extract if it matches at least one pattern
         if self.include_patterns:
-            if not any(fnmatch.fnmatch(filename, pattern) for pattern in self.include_patterns):
+            if not any(
+                fnmatch.fnmatch(filename, pattern) for pattern in self.include_patterns
+            ):
                 return False
 
         # If exclude_patterns is set, skip if it matches any pattern
         if self.exclude_patterns:
-            if any(fnmatch.fnmatch(filename, pattern) for pattern in self.exclude_patterns):
+            if any(
+                fnmatch.fnmatch(filename, pattern) for pattern in self.exclude_patterns
+            ):
                 return False
 
         return True
 
-    def _extract_member(self, zip_ref: zipfile.ZipFile, member: zipfile.ZipInfo) -> None:
+    def _extract_member(
+        self, zip_ref: zipfile.ZipFile, member: zipfile.ZipInfo
+    ) -> None:
         """
         Extract a single member from the archive with error handling.
 

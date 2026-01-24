@@ -43,14 +43,18 @@ class LanguageServerTerminatedException(Exception):
     Exception raised when the language server process has terminated unexpectedly.
     """
 
-    def __init__(self, message: str, language: Language, cause: Exception | None = None) -> None:
+    def __init__(
+        self, message: str, language: Language, cause: Exception | None = None
+    ) -> None:
         super().__init__(message)
         self.message = message
         self.language = language
         self.cause = cause
 
     def __str__(self) -> str:
-        return f"LanguageServerTerminatedException: {self.message}" + (f"; Cause: {self.cause}" if self.cause else "")
+        return f"LanguageServerTerminatedException: {self.message}" + (
+            f"; Cause: {self.cause}" if self.cause else ""
+        )
 
 
 class Request(ToStringMixin):
@@ -191,7 +195,10 @@ class SolidLanguageServerHandler:
             # Since we are using the shell, we need to convert the command list to a single string
             # on Linux/macOS
             cmd = " ".join(map(quote_arg, cmd))
-        log.info("Starting language server process via command: %s", self.process_launch_info.cmd)
+        log.info(
+            "Starting language server process via command: %s",
+            self.process_launch_info.cmd,
+        )
         kwargs = subprocess_kwargs()
         kwargs["start_new_session"] = self.start_independent_lsp_process
         self.process = subprocess.Popen(
@@ -211,7 +218,9 @@ class SolidLanguageServerHandler:
             # Process has already terminated
             stderr_data = self.process.stderr.read() if self.process.stderr else b""
             error_message = stderr_data.decode("utf-8", errors="replace")
-            raise RuntimeError(f"Process terminated immediately with code {self.process.returncode}. Error: {error_message}")
+            raise RuntimeError(
+                f"Process terminated immediately with code {self.process.returncode}. Error: {error_message}"
+            )
 
         # start threads to read stdout and stderr of the process
         threading.Thread(
@@ -264,7 +273,9 @@ class SolidLanguageServerHandler:
         # First try to terminate the process tree gracefully
         self._signal_process_tree(process, terminate=True)
 
-    def _signal_process_tree(self, process: subprocess.Popen[bytes], terminate: bool = True) -> None:
+    def _signal_process_tree(
+        self, process: subprocess.Popen[bytes], terminate: bool = True
+    ) -> None:
         """Send signal (terminate or kill) to the process and all its children."""
         signal_method = "terminate" if terminate else "kill"
 
@@ -355,21 +366,32 @@ class SolidLanguageServerHandler:
                     line = self.process.stdout.readline()
                 if not line:
                     continue
-                body = self._read_bytes_from_process(self.process, self.process.stdout, num_bytes)
+                body = self._read_bytes_from_process(
+                    self.process, self.process.stdout, num_bytes
+                )
 
                 self._handle_body(body)
         except LanguageServerTerminatedException as e:
             exception = e
         except (BrokenPipeError, ConnectionResetError) as e:
-            exception = LanguageServerTerminatedException("Language server process terminated while reading stdout", self.language, cause=e)
+            exception = LanguageServerTerminatedException(
+                "Language server process terminated while reading stdout",
+                self.language,
+                cause=e,
+            )
         except Exception as e:
             exception = LanguageServerTerminatedException(
-                "Unexpected error while reading stdout from language server process", self.language, cause=e
+                "Unexpected error while reading stdout from language server process",
+                self.language,
+                cause=e,
             )
         log.info("Language server stdout reader thread has terminated")
         if not self._is_shutting_down:
             if exception is None:
-                exception = LanguageServerTerminatedException("Language server stdout read process terminated unexpectedly", self.language)
+                exception = LanguageServerTerminatedException(
+                    "Language server stdout read process terminated unexpectedly",
+                    self.language,
+                )
             log.error(str(exception))
             self._cancel_pending_requests(exception)
 
@@ -389,7 +411,11 @@ class SolidLanguageServerHandler:
                 level = self._determine_log_level(line_str)
                 log.log(level, line_str)
         except Exception as e:
-            log.error("Error while reading stderr from language server process: %s", e, exc_info=e)
+            log.error(
+                "Error while reading stderr from language server process: %s",
+                e,
+                exc_info=e,
+            )
         if not self._is_shutting_down:
             log.error("Language server stderr reader thread terminated unexpectedly")
         else:
@@ -451,7 +477,10 @@ class SolidLanguageServerHandler:
         Cancel all pending requests by setting their results to an error
         """
         with self._response_handlers_lock:
-            log.info("Cancelling %d pending language server requests", len(self._pending_requests))
+            log.info(
+                "Cancelling %d pending language server requests",
+                len(self._pending_requests),
+            )
             for request in self._pending_requests.values():
                 log.info("Cancelling %s", request)
                 request.on_error(exception)
@@ -479,7 +508,10 @@ class SolidLanguageServerHandler:
 
         self._log("Processing result")
         if result.is_error():
-            raise SolidLSPException(f"Error processing request {method} with params:\n{params}", cause=result.error) from result.error
+            raise SolidLSPException(
+                f"Error processing request {method} with params:\n{params}",
+                cause=result.error,
+            ) from result.error
 
         self._log(f"Returning non-error result, which is:\n{result.payload}")
         return result.payload
@@ -523,11 +555,17 @@ class SolidLanguageServerHandler:
         response_id = response["id"]
         with self._response_handlers_lock:
             request = self._pending_requests.pop(response_id, None)
-            if request is None and isinstance(response_id, str) and response_id.isdigit():
+            if (
+                request is None
+                and isinstance(response_id, str)
+                and response_id.isdigit()
+            ):
                 request = self._pending_requests.pop(int(response_id), None)
 
             if request is None:  # need to convert response_id to the right type
-                log.debug("Request interrupted by user or not found for ID %s", response_id)
+                log.debug(
+                    "Request interrupted by user or not found for ID %s", response_id
+                )
                 return
 
         if "result" in response and "error" not in response:
@@ -559,7 +597,9 @@ class SolidLanguageServerHandler:
         except LSPError as ex:
             self.send_error_response(request_id, ex)
         except Exception as ex:
-            self.send_error_response(request_id, LSPError(ErrorCodes.InternalError, str(ex)))
+            self.send_error_response(
+                request_id, LSPError(ErrorCodes.InternalError, str(ex))
+            )
 
     def _notification_handler(self, response: StringDict) -> None:
         """

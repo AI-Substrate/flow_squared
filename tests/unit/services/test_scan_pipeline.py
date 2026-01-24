@@ -929,10 +929,12 @@ class TestScanPipelineRelationshipExtractionStage:
 
         # Set up source file with explicit node_id reference
         content = "See `file:src/auth.py` for authentication"
-        scanner.set_results([
-            ScanResult(path=Path("README.md"), size_bytes=len(content)),
-            ScanResult(path=Path("src/auth.py"), size_bytes=10),
-        ])
+        scanner.set_results(
+            [
+                ScanResult(path=Path("README.md"), size_bytes=len(content)),
+                ScanResult(path=Path("src/auth.py"), size_bytes=10),
+            ]
+        )
 
         source_node = CodeNode.create_file(
             file_path="README.md",

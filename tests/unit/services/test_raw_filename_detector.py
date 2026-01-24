@@ -223,7 +223,7 @@ Line 3: Review `utils.js` last"""
         """
         detector = RawFilenameDetector()
         source_file = "file:README.md"
-        content = 'Files: `app.py`, "auth.py", and \'models.py\''
+        content = "Files: `app.py`, \"auth.py\", and 'models.py'"
 
         edges = detector.detect(source_file, content)
 

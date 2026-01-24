@@ -4,7 +4,6 @@ Per DYK-5: REUSE TextReferenceExtractor._deduplicate_edges() — don't reimpleme
 These tests verify the stage correctly delegates to the existing deduplication logic.
 """
 
-
 from fs2.core.models.code_edge import CodeEdge
 from fs2.core.models.edge_type import EdgeType
 from fs2.core.services.relationship_extraction.text_reference_extractor import (

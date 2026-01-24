@@ -29,11 +29,18 @@ class ScalaLanguageServer(SolidLanguageServer):
     Provides Scala specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Scala.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a ScalaLanguageServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
-        scala_lsp_executable_path = self._setup_runtime_dependencies(config, solidlsp_settings)
+        scala_lsp_executable_path = self._setup_runtime_dependencies(
+            config, solidlsp_settings
+        )
         super().__init__(
             config,
             repository_root_path,
@@ -51,7 +58,9 @@ class ScalaLanguageServer(SolidLanguageServer):
         ]
 
     @classmethod
-    def _setup_runtime_dependencies(cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings) -> list[str]:
+    def _setup_runtime_dependencies(
+        cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
+    ) -> list[str]:
         """
         Setup runtime dependencies for Scala Language Server and return the command to start the server.
         """
@@ -59,22 +68,35 @@ class ScalaLanguageServer(SolidLanguageServer):
 
         metals_version = "1.6.4"
 
-        metals_home = os.path.join(cls.ls_resources_dir(solidlsp_settings), "metals-lsp")
+        metals_home = os.path.join(
+            cls.ls_resources_dir(solidlsp_settings), "metals-lsp"
+        )
         os.makedirs(metals_home, exist_ok=True)
         metals_executable = os.path.join(metals_home, metals_version, "metals")
         coursier_command_path = shutil.which("coursier")
         cs_command_path = shutil.which("cs")
-        assert cs_command_path is not None or coursier_command_path is not None, "coursier is not installed or not in PATH."
+        assert cs_command_path is not None or coursier_command_path is not None, (
+            "coursier is not installed or not in PATH."
+        )
 
         if not os.path.exists(metals_executable):
             if not cs_command_path:
                 assert coursier_command_path is not None
-                log.info("'cs' command not found. Trying to install it using 'coursier'.")
+                log.info(
+                    "'cs' command not found. Trying to install it using 'coursier'."
+                )
                 try:
                     log.info("Running 'coursier setup --yes' to install 'cs'...")
-                    subprocess.run([coursier_command_path, "setup", "--yes"], check=True, capture_output=True, text=True)
+                    subprocess.run(
+                        [coursier_command_path, "setup", "--yes"],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
                 except subprocess.CalledProcessError as e:
-                    raise RuntimeError(f"Failed to set up 'cs' command with 'coursier setup'. Stderr: {e.stderr}")
+                    raise RuntimeError(
+                        f"Failed to set up 'cs' command with 'coursier setup'. Stderr: {e.stderr}"
+                    )
 
                 cs_command_path = shutil.which("cs")
                 if not cs_command_path:
@@ -83,8 +105,12 @@ class ScalaLanguageServer(SolidLanguageServer):
                     )
                 log.info("'cs' command installed successfully.")
 
-            log.info(f"metals executable not found at {metals_executable}, bootstrapping...")
-            subprocess.run(["mkdir", "-p", os.path.join(metals_home, metals_version)], check=True)
+            log.info(
+                f"metals executable not found at {metals_executable}, bootstrapping..."
+            )
+            subprocess.run(
+                ["mkdir", "-p", os.path.join(metals_home, metals_version)], check=True
+            )
             artifact = f"org.scalameta:metals_2.13:{metals_version}"
             cmd = [
                 cs_command_path,
@@ -152,7 +178,11 @@ class ScalaLanguageServer(SolidLanguageServer):
                 "copyWorksheetOutputProvider": False,
                 "doctorVisibilityProvider": False,
             },
-            "capabilities": {"textDocument": {"documentSymbol": {"hierarchicalDocumentSymbolSupport": True}}},
+            "capabilities": {
+                "textDocument": {
+                    "documentSymbol": {"hierarchicalDocumentSymbolSupport": True}
+                }
+            },
         }
         return initialize_params  # type: ignore
 
@@ -163,7 +193,9 @@ class ScalaLanguageServer(SolidLanguageServer):
         log.info("Starting Scala server process")
         self.server.start()
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
 
         initialize_params = self._get_initialize_params(self.repository_root_path)
         self.server.send.initialize(initialize_params)

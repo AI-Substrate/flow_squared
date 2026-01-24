@@ -19,8 +19,6 @@ Test Naming: Given-When-Then format
 
 from pathlib import Path
 
-import pytest
-
 from fs2.config.objects import LspConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters.lsp_adapter_fake import FakeLspAdapter
@@ -42,7 +40,7 @@ class TestSymbolLevelResolution:
         Purpose: Verifies file-level edges are upgraded to method-level.
         Quality Contribution: Core symbol resolution functionality.
         Acceptance Criteria: Edge node_ids contain method names, not just file paths.
-        
+
         Worked Example:
         - Input: edge from file:a.py (line 10) → file:b.py (line 5)
         - Context has: method:a.py:ClassA.caller at lines 8-15
@@ -58,17 +56,19 @@ class TestSymbolLevelResolution:
         adapter.initialize("python", Path("/project"))
 
         # Configure edge: caller (line 10) calls target (line 5)
-        adapter.set_definition_response([
-            CodeEdge(
-                source_node_id="file:src/a.py",  # File-level (to be upgraded)
-                target_node_id="file:src/b.py",  # File-level (to be upgraded)
-                edge_type=EdgeType.CALLS,
-                confidence=1.0,
-                source_line=10,  # Inside ClassA.caller (8-15)
-                target_line=5,   # Inside ClassB.target (3-10)
-                resolution_rule="lsp:definition",
-            )
-        ])
+        adapter.set_definition_response(
+            [
+                CodeEdge(
+                    source_node_id="file:src/a.py",  # File-level (to be upgraded)
+                    target_node_id="file:src/b.py",  # File-level (to be upgraded)
+                    edge_type=EdgeType.CALLS,
+                    confidence=1.0,
+                    source_line=10,  # Inside ClassA.caller (8-15)
+                    target_line=5,  # Inside ClassB.target (3-10)
+                    resolution_rule="lsp:definition",
+                )
+            ]
+        )
 
         # Create stage with LSP adapter
         stage = RelationshipExtractionStage(lsp_adapter=adapter)
@@ -77,7 +77,9 @@ class TestSymbolLevelResolution:
         result = stage.process(ctx)
 
         # Find the LSP-derived edge
-        lsp_edges = [e for e in result.relationships if e.resolution_rule == "lsp:definition"]
+        lsp_edges = [
+            e for e in result.relationships if e.resolution_rule == "lsp:definition"
+        ]
         assert len(lsp_edges) == 1
 
         edge = lsp_edges[0]
@@ -100,22 +102,26 @@ class TestSymbolLevelResolution:
         adapter.initialize("python", Path("/project"))
 
         # Edge without target_line
-        adapter.set_definition_response([
-            CodeEdge(
-                source_node_id="file:src/a.py",
-                target_node_id="file:src/b.py",
-                edge_type=EdgeType.CALLS,
-                confidence=1.0,
-                source_line=10,
-                target_line=None,  # No target line info
-                resolution_rule="lsp:definition",
-            )
-        ])
+        adapter.set_definition_response(
+            [
+                CodeEdge(
+                    source_node_id="file:src/a.py",
+                    target_node_id="file:src/b.py",
+                    edge_type=EdgeType.CALLS,
+                    confidence=1.0,
+                    source_line=10,
+                    target_line=None,  # No target line info
+                    resolution_rule="lsp:definition",
+                )
+            ]
+        )
 
         stage = RelationshipExtractionStage(lsp_adapter=adapter)
         result = stage.process(ctx)
 
-        lsp_edges = [e for e in result.relationships if e.resolution_rule == "lsp:definition"]
+        lsp_edges = [
+            e for e in result.relationships if e.resolution_rule == "lsp:definition"
+        ]
         assert len(lsp_edges) == 1
 
         edge = lsp_edges[0]
@@ -138,23 +144,27 @@ class TestSymbolLevelResolution:
         adapter.initialize("python", Path("/project"))
 
         # Edge to line 100 (outside any method in b.py which goes to line 10)
-        adapter.set_definition_response([
-            CodeEdge(
-                source_node_id="file:src/a.py",
-                target_node_id="file:src/b.py",
-                edge_type=EdgeType.CALLS,
-                confidence=1.0,
-                source_line=10,
-                target_line=100,  # No symbol at this line
-                resolution_rule="lsp:definition",
-            )
-        ])
+        adapter.set_definition_response(
+            [
+                CodeEdge(
+                    source_node_id="file:src/a.py",
+                    target_node_id="file:src/b.py",
+                    edge_type=EdgeType.CALLS,
+                    confidence=1.0,
+                    source_line=10,
+                    target_line=100,  # No symbol at this line
+                    resolution_rule="lsp:definition",
+                )
+            ]
+        )
 
         stage = RelationshipExtractionStage(lsp_adapter=adapter)
         result = stage.process(ctx)
 
         # Should be filtered out - target has no symbol at line 100
-        lsp_edges = [e for e in result.relationships if e.resolution_rule == "lsp:definition"]
+        lsp_edges = [
+            e for e in result.relationships if e.resolution_rule == "lsp:definition"
+        ]
         assert len(lsp_edges) == 0
 
     def test_given_class_level_target_when_processing_then_resolves_to_class(self):
@@ -169,29 +179,37 @@ class TestSymbolLevelResolution:
         adapter = FakeLspAdapter(config)
         adapter.initialize("python", Path("/project"))
 
-        # Edge from method to class (line 2 is ClassB definition)
-        adapter.set_definition_response([
-            CodeEdge(
-                source_node_id="file:src/a.py",
-                target_node_id="file:src/b.py",
-                edge_type=EdgeType.CALLS,
-                confidence=1.0,
-                source_line=10,
-                target_line=2,  # ClassB definition line (should resolve to class, not method)
-                resolution_rule="lsp:definition",
-            )
-        ])
+        # Edge from method to class (line 1 is inside ClassB but outside method target)
+        # ClassB is at lines 2-12, method target is at lines 3-10
+        # So line 2 (0-indexed=1) should resolve to class, not method
+        # But find_node_at_line uses 1-indexed, so we need target_line=1 (0-indexed)
+        # to get 1+1=2 which is ClassB start line
+        adapter.set_definition_response(
+            [
+                CodeEdge(
+                    source_node_id="file:src/a.py",
+                    target_node_id="file:src/b.py",
+                    edge_type=EdgeType.CALLS,
+                    confidence=1.0,
+                    source_line=10,
+                    target_line=1,  # 0-indexed line 1 -> 1-indexed line 2 (ClassB start)
+                    resolution_rule="lsp:definition",
+                )
+            ]
+        )
 
         stage = RelationshipExtractionStage(lsp_adapter=adapter)
         result = stage.process(ctx)
 
-        lsp_edges = [e for e in result.relationships if e.resolution_rule == "lsp:definition"]
+        lsp_edges = [
+            e for e in result.relationships if e.resolution_rule == "lsp:definition"
+        ]
         assert len(lsp_edges) == 1
 
         edge = lsp_edges[0]
-        # Should resolve to innermost node (class or method at line 2)
-        # In our fixture, line 2 is ClassB start, but method starts at 3
-        # So should resolve to class
+        # Line 2 (1-indexed) is ClassB start line but also contains method (3-10)
+        # find_node_at_line returns innermost, so this will be class since
+        # method doesn't start until line 3
         assert edge.target_node_id == "class:src/b.py:ClassB"
 
     def test_given_same_file_call_when_processing_then_both_endpoints_resolved(self):
@@ -207,22 +225,26 @@ class TestSymbolLevelResolution:
         adapter.initialize("python", Path("/project"))
 
         # Same-file call: foo() at line 5 calls bar() at line 15
-        adapter.set_definition_response([
-            CodeEdge(
-                source_node_id="file:src/utils.py",
-                target_node_id="file:src/utils.py",  # Same file
-                edge_type=EdgeType.CALLS,
-                confidence=1.0,
-                source_line=5,   # Inside foo (1-10)
-                target_line=15,  # Inside bar (11-20)
-                resolution_rule="lsp:definition",
-            )
-        ])
+        adapter.set_definition_response(
+            [
+                CodeEdge(
+                    source_node_id="file:src/utils.py",
+                    target_node_id="file:src/utils.py",  # Same file
+                    edge_type=EdgeType.CALLS,
+                    confidence=1.0,
+                    source_line=5,  # Inside foo (1-10)
+                    target_line=15,  # Inside bar (11-20)
+                    resolution_rule="lsp:definition",
+                )
+            ]
+        )
 
         stage = RelationshipExtractionStage(lsp_adapter=adapter)
         result = stage.process(ctx)
 
-        lsp_edges = [e for e in result.relationships if e.resolution_rule == "lsp:definition"]
+        lsp_edges = [
+            e for e in result.relationships if e.resolution_rule == "lsp:definition"
+        ]
         assert len(lsp_edges) == 1
 
         edge = lsp_edges[0]
@@ -242,22 +264,26 @@ class TestSymbolLevelResolution:
         adapter.initialize("python", Path("/project"))
 
         # Reference edge
-        adapter.set_references_response([
-            CodeEdge(
-                source_node_id="file:src/a.py",
-                target_node_id="file:src/b.py",
-                edge_type=EdgeType.REFERENCES,
-                confidence=1.0,
-                source_line=10,
-                target_line=5,
-                resolution_rule="lsp:references",
-            )
-        ])
+        adapter.set_references_response(
+            [
+                CodeEdge(
+                    source_node_id="file:src/a.py",
+                    target_node_id="file:src/b.py",
+                    edge_type=EdgeType.REFERENCES,
+                    confidence=1.0,
+                    source_line=10,
+                    target_line=5,
+                    resolution_rule="lsp:references",
+                )
+            ]
+        )
 
         stage = RelationshipExtractionStage(lsp_adapter=adapter)
         result = stage.process(ctx)
 
-        ref_edges = [e for e in result.relationships if e.resolution_rule == "lsp:references"]
+        ref_edges = [
+            e for e in result.relationships if e.resolution_rule == "lsp:references"
+        ]
         assert len(ref_edges) == 1
 
         edge = ref_edges[0]
@@ -300,6 +326,7 @@ def _create_context_with_methods() -> PipelineContext:
         method_name="caller",
         start_line=8,
         end_line=15,
+        call_target="target",  # Will generate "target()" call for extraction
     )
 
     # File b.py nodes
@@ -354,6 +381,7 @@ def _create_context_with_same_file_methods() -> PipelineContext:
         func_name="foo",
         start_line=1,
         end_line=10,
+        call_target="bar",  # Will generate "bar()" call for extraction
     )
     func_bar = _create_function_node(
         file_path="src/utils.py",
@@ -400,8 +428,19 @@ def _create_method_node(
     method_name: str,
     start_line: int,
     end_line: int,
+    call_target: str | None = None,
 ) -> CodeNode:
-    """Helper to create a method CodeNode."""
+    """Helper to create a method CodeNode.
+
+    Args:
+        call_target: If provided, the method content will include a call to this target.
+                     Example: "target" produces "target()" in the body.
+    """
+    if call_target:
+        content = f"def {method_name}(self):\n    {call_target}()"
+    else:
+        content = f"def {method_name}(self):\n    pass"
+
     return CodeNode(
         node_id=f"method:{file_path}:{class_name}.{method_name}",
         category="method",
@@ -415,7 +454,7 @@ def _create_method_node(
         end_line=end_line,
         start_column=0,
         end_column=0,
-        content=f"def {method_name}(self):\n    pass",
+        content=content,
         content_hash="test-hash",
         signature=f"def {method_name}(self):",
         is_named=True,
@@ -428,8 +467,18 @@ def _create_function_node(
     func_name: str,
     start_line: int,
     end_line: int,
+    call_target: str | None = None,
 ) -> CodeNode:
-    """Helper to create a function CodeNode."""
+    """Helper to create a function CodeNode.
+
+    Args:
+        call_target: If provided, the function content will include a call to this target.
+    """
+    if call_target:
+        content = f"def {func_name}():\n    {call_target}()"
+    else:
+        content = f"def {func_name}():\n    pass"
+
     return CodeNode(
         node_id=f"function:{file_path}:{func_name}",
         category="function",
@@ -443,7 +492,7 @@ def _create_function_node(
         end_line=end_line,
         start_column=0,
         end_column=0,
-        content=f"def {func_name}():\n    pass",
+        content=content,
         content_hash="test-hash",
         signature=f"def {func_name}():",
         is_named=True,

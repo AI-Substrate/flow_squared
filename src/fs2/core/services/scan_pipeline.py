@@ -177,7 +177,9 @@ class ScanPipeline:
             else [
                 DiscoveryStage(),
                 ParsingStage(),
-                RelationshipExtractionStage(lsp_adapter=lsp_adapter),  # Phase 8: Extract cross-file relationships
+                RelationshipExtractionStage(
+                    lsp_adapter=lsp_adapter
+                ),  # Phase 8: Extract cross-file relationships
                 SmartContentStage(),
                 EmbeddingStage(),
                 StorageStage(),

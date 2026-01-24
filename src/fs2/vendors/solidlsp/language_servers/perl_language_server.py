@@ -16,7 +16,10 @@ from overrides import override
 from fs2.vendors.solidlsp.ls import SolidLanguageServer
 from fs2.vendors.solidlsp.ls_config import LanguageServerConfig
 from fs2.vendors.solidlsp.ls_utils import PlatformId, PlatformUtils
-from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import DidChangeConfigurationParams, InitializeParams
+from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import (
+    DidChangeConfigurationParams,
+    InitializeParams,
+)
 from fs2.vendors.solidlsp.lsp_protocol_handler.server import ProcessLaunchInfo
 from fs2.vendors.solidlsp.settings import SolidLSPSettings
 
@@ -32,7 +35,9 @@ class PerlLanguageServer(SolidLanguageServer):
     def _get_perl_version() -> str | None:
         """Get the installed Perl version or None if not found."""
         try:
-            result = subprocess.run(["perl", "-v"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["perl", "-v"], capture_output=True, text=True, check=False
+            )
             if result.returncode == 0:
                 return result.stdout.strip()
         except FileNotFoundError:
@@ -44,7 +49,12 @@ class PerlLanguageServer(SolidLanguageServer):
         """Get the installed Perl::LanguageServer version or None if not found."""
         try:
             result = subprocess.run(
-                ["perl", "-MPerl::LanguageServer", "-e", "print $Perl::LanguageServer::VERSION"],
+                [
+                    "perl",
+                    "-MPerl::LanguageServer",
+                    "-e",
+                    "print $Perl::LanguageServer::VERSION",
+                ],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -63,7 +73,14 @@ class PerlLanguageServer(SolidLanguageServer):
         # - .carton: Carton dependency manager cache
         # - vendor: vendored dependencies
         # - _build: Module::Build output
-        return super().is_ignored_dirname(dirname) or dirname in ["blib", "local", ".carton", "vendor", "_build", "cover_db"]
+        return super().is_ignored_dirname(dirname) or dirname in [
+            "blib",
+            "local",
+            ".carton",
+            "vendor",
+            "_build",
+            "cover_db",
+        ]
 
     @classmethod
     def _setup_runtime_dependencies(cls) -> str:
@@ -81,7 +98,9 @@ class PerlLanguageServer(SolidLanguageServer):
             PlatformId.OSX_arm64,
         ]
         if platform_id not in valid_platforms:
-            raise RuntimeError(f"Platform {platform_id} is not supported for Perl at the moment")
+            raise RuntimeError(
+                f"Platform {platform_id} is not supported for Perl at the moment"
+            )
 
         perl_version = cls._get_perl_version()
         if not perl_version:
@@ -99,12 +118,21 @@ class PerlLanguageServer(SolidLanguageServer):
 
         return "perl -MPerl::LanguageServer -e 'Perl::LanguageServer::run'"
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         # Setup runtime dependencies before initializing
         perl_ls_cmd = self._setup_runtime_dependencies()
 
         super().__init__(
-            config, repository_root_path, ProcessLaunchInfo(cmd=perl_ls_cmd, cwd=repository_root_path), "perl", solidlsp_settings
+            config,
+            repository_root_path,
+            ProcessLaunchInfo(cmd=perl_ls_cmd, cwd=repository_root_path),
+            "perl",
+            solidlsp_settings,
         )
         self.request_id = 0
 
@@ -163,13 +191,24 @@ class PerlLanguageServer(SolidLanguageServer):
             perl_config = {
                 "perlInc": [self.repository_root_path, "."],
                 "fileFilter": [".pm", ".pl"],
-                "ignoreDirs": [".git", ".svn", "blib", "local", ".carton", "vendor", "_build", "cover_db"],
+                "ignoreDirs": [
+                    ".git",
+                    ".svn",
+                    "blib",
+                    "local",
+                    ".carton",
+                    "vendor",
+                    "_build",
+                    "cover_db",
+                ],
             }
 
             return [perl_config]
 
         self.server.on_request("client/registerCapability", register_capability_handler)
-        self.server.on_request("workspace/configuration", workspace_configuration_handler)
+        self.server.on_request(
+            "workspace/configuration", workspace_configuration_handler
+        )
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
@@ -178,7 +217,9 @@ class PerlLanguageServer(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
         log.info(
             "After sent initialize params",
@@ -199,11 +240,22 @@ class PerlLanguageServer(SolidLanguageServer):
                 "perl": {
                     "perlInc": [self.repository_root_path, "."],
                     "fileFilter": [".pm", ".pl"],
-                    "ignoreDirs": [".git", ".svn", "blib", "local", ".carton", "vendor", "_build", "cover_db"],
+                    "ignoreDirs": [
+                        ".git",
+                        ".svn",
+                        "blib",
+                        "local",
+                        ".carton",
+                        "vendor",
+                        "_build",
+                        "cover_db",
+                    ],
                 }
             }
         }
-        log.info(f"Sending workspace/didChangeConfiguration notification with config: {perl_config}")
+        log.info(
+            f"Sending workspace/didChangeConfiguration notification with config: {perl_config}"
+        )
         self.server.notify.workspace_did_change_configuration(perl_config)
 
         self.completions_available.set()
@@ -211,6 +263,8 @@ class PerlLanguageServer(SolidLanguageServer):
         # Perl::LanguageServer needs time to index files and resolve cross-file references
         # Without this delay, requests for definitions/references may return empty results
         settling_time = 0.5
-        log.info(f"Allowing {settling_time} seconds for Perl::LanguageServer to index files...")
+        log.info(
+            f"Allowing {settling_time} seconds for Perl::LanguageServer to index files..."
+        )
         time.sleep(settling_time)
         log.info("Perl::LanguageServer settling period complete")

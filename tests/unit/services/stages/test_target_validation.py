@@ -4,7 +4,6 @@ Target validation ensures edges pointing to non-existent nodes are filtered out
 before persistence. This prevents dangling references in the graph.
 """
 
-
 from fs2.config.objects import ScanConfig
 from fs2.core.models.code_node import CodeNode
 from fs2.core.services.pipeline_context import PipelineContext
@@ -85,7 +84,9 @@ class TestTargetValidationSymbolLevel:
         source = _make_file_node("README.md", content)
 
         # Create target with nested method node
-        target_file = _make_file_node("src/auth.py", "class Auth:\n    def login(): pass")
+        target_file = _make_file_node(
+            "src/auth.py", "class Auth:\n    def login(): pass"
+        )
 
         context = _make_context([source, target_file])
         stage = RelationshipExtractionStage()

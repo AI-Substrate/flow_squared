@@ -25,7 +25,10 @@ class TerraformLS(SolidLanguageServer):
 
     @override
     def is_ignored_dirname(self, dirname: str) -> bool:
-        return super().is_ignored_dirname(dirname) or dirname in [".terraform", "terraform.tfstate.d"]
+        return super().is_ignored_dirname(dirname) or dirname in [
+            ".terraform",
+            "terraform.tfstate.d",
+        ]
 
     @staticmethod
     def _determine_log_level(line: str) -> int:
@@ -47,7 +50,8 @@ class TerraformLS(SolidLanguageServer):
         # Note: pattern match is flexible to handle file paths between keywords
         if any(
             [
-                "loading module metadata returned error:" in line_lower and "state not changed" in line_lower,
+                "loading module metadata returned error:" in line_lower
+                and "state not changed" in line_lower,
                 "incoming notification for" in line_lower,
             ]
         ):
@@ -78,7 +82,9 @@ class TerraformLS(SolidLanguageServer):
                     terraform_binary = os.path.join(terraform_cli_path, "terraform")
                 if os.path.exists(terraform_binary):
                     terraform_cmd = terraform_binary
-                    log.debug(f"Found terraform via TERRAFORM_CLI_PATH: {terraform_cmd}")
+                    log.debug(
+                        f"Found terraform via TERRAFORM_CLI_PATH: {terraform_cmd}"
+                    )
                     return
 
         raise RuntimeError(
@@ -140,12 +146,16 @@ class TerraformLS(SolidLanguageServer):
         )
         dependency = deps.get_single_dep_for_current_platform()
 
-        terraform_ls_executable_path = deps.binary_path(cls.ls_resources_dir(solidlsp_settings))
+        terraform_ls_executable_path = deps.binary_path(
+            cls.ls_resources_dir(solidlsp_settings)
+        )
         if not os.path.exists(terraform_ls_executable_path):
             log.info(f"Downloading terraform-ls from {dependency.url}")
             deps.install(cls.ls_resources_dir(solidlsp_settings))
 
-        assert os.path.exists(terraform_ls_executable_path), f"terraform-ls executable not found at {terraform_ls_executable_path}"
+        assert os.path.exists(terraform_ls_executable_path), (
+            f"terraform-ls executable not found at {terraform_ls_executable_path}"
+        )
 
         # Make the executable file executable on Unix-like systems
         if platform_id.value != "win-x64":
@@ -153,16 +163,25 @@ class TerraformLS(SolidLanguageServer):
 
         return terraform_ls_executable_path
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a TerraformLS instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
-        terraform_ls_executable_path = self._setup_runtime_dependencies(solidlsp_settings)
+        terraform_ls_executable_path = self._setup_runtime_dependencies(
+            solidlsp_settings
+        )
 
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=f"{terraform_ls_executable_path} serve", cwd=repository_root_path),
+            ProcessLaunchInfo(
+                cmd=f"{terraform_ls_executable_path} serve", cwd=repository_root_path
+            ),
             "terraform",
             solidlsp_settings,
         )
@@ -183,7 +202,10 @@ class TerraformLS(SolidLanguageServer):
             "capabilities": {
                 "textDocument": {
                     "synchronization": {"didSave": True, "dynamicRegistration": True},
-                    "completion": {"dynamicRegistration": True, "completionItem": {"snippetSupport": True}},
+                    "completion": {
+                        "dynamicRegistration": True,
+                        "completionItem": {"snippetSupport": True},
+                    },
                     "definition": {"dynamicRegistration": True},
                     "documentSymbol": {
                         "dynamicRegistration": True,
@@ -191,7 +213,10 @@ class TerraformLS(SolidLanguageServer):
                         "symbolKind": {"valueSet": list(range(1, 27))},
                     },
                 },
-                "workspace": {"workspaceFolders": True, "didChangeConfiguration": {"dynamicRegistration": True}},
+                "workspace": {
+                    "workspaceFolders": True,
+                    "didChangeConfiguration": {"dynamicRegistration": True},
+                },
             },
             "workspaceFolders": [
                 {
@@ -223,7 +248,9 @@ class TerraformLS(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
 
         # Verify server capabilities

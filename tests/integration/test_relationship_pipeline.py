@@ -42,19 +42,23 @@ def get_all_relationship_edges(store: NetworkXGraphStore) -> list[dict]:
     for node in store.get_all_nodes():
         outgoing = store.get_relationships(node.node_id, direction="outgoing")
         for rel in outgoing:
-            edges.append({
-                "source_id": node.node_id,
-                "target_id": rel["node_id"],
-                "edge_type": rel["edge_type"],
-                "confidence": rel.get("confidence"),
-            })
+            edges.append(
+                {
+                    "source_id": node.node_id,
+                    "target_id": rel["node_id"],
+                    "edge_type": rel["edge_type"],
+                    "confidence": rel.get("confidence"),
+                }
+            )
     return edges
 
 
 @pytest.fixture
 def python_multi_project_path() -> Path:
     """Return path to python_multi_project fixture."""
-    fixture_path = Path(__file__).parent.parent / "fixtures" / "lsp" / "python_multi_project"
+    fixture_path = (
+        Path(__file__).parent.parent / "fixtures" / "lsp" / "python_multi_project"
+    )
     assert fixture_path.exists(), f"Fixture not found: {fixture_path}"
     return fixture_path
 
@@ -104,6 +108,7 @@ class TestRelationshipPipelineIntegration:
         # Initialize for Python - use cwd as project root since node IDs
         # contain paths relative to cwd (e.g., tests/fixtures/lsp/.../app.py)
         from pathlib import Path
+
         lsp_adapter.initialize("python", Path.cwd())
 
         pipeline = ScanPipeline(
@@ -119,7 +124,9 @@ class TestRelationshipPipelineIntegration:
 
         # Basic scan should succeed
         assert summary.success is True
-        assert summary.files_scanned >= 3  # app.py, auth.py, utils.py (+ possibly __init__.py)
+        assert (
+            summary.files_scanned >= 3
+        )  # app.py, auth.py, utils.py (+ possibly __init__.py)
 
         # Extract relationship edges using helper function
         all_nodes = store.get_all_nodes()
@@ -179,6 +186,7 @@ class TestRelationshipPipelineIntegration:
         lsp_adapter = SolidLspAdapter(config)
         # Initialize with cwd as project root since node IDs are relative to cwd
         from pathlib import Path
+
         lsp_adapter.initialize("python", Path.cwd())
 
         pipeline = ScanPipeline(
@@ -198,8 +206,12 @@ class TestRelationshipPipelineIntegration:
         # Check for cross-file edges (source and target in different files)
         cross_file_edges = []
         for edge in call_edges:
-            source_file = edge["source_id"].split(":")[1] if ":" in edge["source_id"] else ""
-            target_file = edge["target_id"].split(":")[1] if ":" in edge["target_id"] else ""
+            source_file = (
+                edge["source_id"].split(":")[1] if ":" in edge["source_id"] else ""
+            )
+            target_file = (
+                edge["target_id"].split(":")[1] if ":" in edge["target_id"] else ""
+            )
             if source_file and target_file and source_file != target_file:
                 cross_file_edges.append(edge)
 
@@ -255,7 +267,9 @@ class TestRelationshipPipelineGracefulDegradation:
 
         # Should still succeed
         assert summary.success is True
-        assert summary.files_scanned >= 3  # app.py, auth.py, utils.py (+ possibly __init__.py)
+        assert (
+            summary.files_scanned >= 3
+        )  # app.py, auth.py, utils.py (+ possibly __init__.py)
 
         # Without LSP, minimal call edges should be detected (text-based only)
         edges = get_all_relationship_edges(store)

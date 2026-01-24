@@ -107,9 +107,7 @@ class LspAdapter(ABC):
         ...
 
     @abstractmethod
-    def get_references(
-        self, file_path: str, line: int, column: int
-    ) -> list[CodeEdge]:
+    def get_references(self, file_path: str, line: int, column: int) -> list[CodeEdge]:
         """Find all references to the symbol at the given location.
 
         Args:
@@ -132,9 +130,7 @@ class LspAdapter(ABC):
         ...
 
     @abstractmethod
-    def get_definition(
-        self, file_path: str, line: int, column: int
-    ) -> list[CodeEdge]:
+    def get_definition(self, file_path: str, line: int, column: int) -> list[CodeEdge]:
         """Find the definition of the symbol at the given location.
 
         Args:

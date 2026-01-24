@@ -19,6 +19,8 @@ Per Critical Insights:
 import logging
 from typing import TYPE_CHECKING, Any
 
+from tree_sitter_language_pack import get_parser
+
 from fs2.core.models.code_edge import CodeEdge
 from fs2.core.services.relationship_extraction.symbol_resolver import find_node_at_line
 from fs2.core.services.relationship_extraction.text_reference_extractor import (
@@ -31,6 +33,201 @@ if TYPE_CHECKING:
     from fs2.core.services.pipeline_context import PipelineContext
 
 logger = logging.getLogger(__name__)
+
+
+# ==============================================================================
+# Call Expression Extraction (Phase 8 Subtask 001)
+# ==============================================================================
+
+# Call node types by language
+# Per research dossier: each language has specific node type for function/method calls
+CALL_NODE_TYPES: dict[str, str] = {
+    "python": "call",
+    "typescript": "call_expression",
+    "javascript": "call_expression",
+    "tsx": "call_expression",
+    "go": "call_expression",
+    "csharp": "invocation_expression",  # tree-sitter-language-pack uses 'csharp'
+}
+
+# Method/attribute access node types by language
+# These are the nodes that represent obj.method access patterns
+METHOD_ACCESS_TYPES: dict[str, str] = {
+    "python": "attribute",
+    "typescript": "member_expression",
+    "javascript": "member_expression",
+    "tsx": "member_expression",
+    "go": "selector_expression",
+    "csharp": "member_access_expression",  # tree-sitter-language-pack uses 'csharp'
+}
+
+# Stdlib/external package path patterns by language
+# Used to filter out calls to standard library and external packages
+STDLIB_PATTERNS: dict[str, list[str]] = {
+    "python": ["typeshed", "site-packages", ".pyenv", "/python3.", "builtins.pyi"],
+    "typescript": ["node_modules", "@types/", "typescript/lib/"],
+    "javascript": ["node_modules", "@types/"],
+    "tsx": ["node_modules", "@types/", "typescript/lib/"],
+    "go": ["/go/src/", "pkg/mod/", "GOROOT"],
+    "csharp": [".nuget", "dotnet/shared", "Program Files"],
+}
+
+
+def extract_call_positions(content: str, language: str) -> list[tuple[int, int]]:
+    """Extract all call expression positions from source code.
+
+    Uses tree-sitter to parse the AST and find call nodes.
+    For method calls (obj.method()), returns the method name position,
+    not the receiver position. This is critical because:
+    - LSP at receiver position → resolves to variable assignment
+    - LSP at method position → resolves to method definition
+
+    Args:
+        content: Source code content
+        language: Tree-sitter language name (python, typescript, go, c_sharp, etc.)
+
+    Returns:
+        List of (line, column) tuples - both 0-indexed
+        For method calls, position points to method name, not receiver
+
+    Example:
+        >>> extract_call_positions("auth.login()", "python")
+        [(0, 5)]  # Position at "login", not "auth"
+
+        >>> extract_call_positions("foo(bar())", "python")
+        [(0, 0), (0, 4)]  # Both calls
+    """
+    if not content or language not in CALL_NODE_TYPES:
+        return []
+
+    call_type = CALL_NODE_TYPES[language]
+    method_type = METHOD_ACCESS_TYPES.get(language)
+
+    try:
+        parser = get_parser(language)  # type: ignore[arg-type]
+    except Exception:
+        # Language not supported by tree-sitter-language-pack
+        logger.debug("No parser available for language: %s", language)
+        return []
+
+    content_bytes = content.encode("utf-8")
+    tree = parser.parse(content_bytes)
+
+    positions: list[tuple[int, int]] = []
+
+    def get_query_position(call_node: "Node") -> tuple[int, int]:  # type: ignore[name-defined]  # noqa: F821
+        """Get position to query LSP for a call node.
+
+        For method calls (obj.method()), returns method name position.
+        For simple calls (func()), returns function name position.
+
+        The callee is typically the first child of the call node.
+        """
+        # Find the callee child
+        callee = None
+        for child in call_node.children:
+            # Skip argument lists and parentheses
+            if child.type in ("argument_list", "arguments", "(", ")"):
+                continue
+            callee = child
+            break
+
+        if callee is None:
+            return (call_node.start_point[0], call_node.start_point[1])
+
+        # Check if callee is a method access (obj.method)
+        if method_type and callee.type == method_type:
+            # Method call: find the method name (rightmost identifier)
+            method_name = _find_method_identifier(callee, language)
+            if method_name:
+                return (method_name.start_point[0], method_name.start_point[1])
+
+        # Simple call or unknown pattern: use callee start
+        return (callee.start_point[0], callee.start_point[1])
+
+    def visit(node: "Node") -> None:  # type: ignore[name-defined]  # noqa: F821
+        """Recursively visit nodes to find calls."""
+        if node.type == call_type and node.is_named:
+            pos = get_query_position(node)
+            positions.append(pos)
+
+        # Recurse into children
+        for child in node.children:
+            visit(child)
+
+    visit(tree.root_node)
+    return positions
+
+
+def _find_method_identifier(access_node: "Node", language: str) -> "Node | None":  # type: ignore[name-defined]  # noqa: F821
+    """Find the method/field identifier in a method access node.
+
+    For different languages, the method name is stored differently:
+    - Python attribute: .name field or second identifier child
+    - TypeScript member_expression: property child
+    - Go selector_expression: field child
+    - C# member_access_expression: name child
+
+    Args:
+        access_node: The method access node (attribute, member_expression, etc.)
+        language: Language name
+
+    Returns:
+        The identifier node for the method name, or None if not found
+    """
+    # Try common patterns across languages
+
+    # Pattern 1: Python attribute - has "attribute" field
+    if language == "python":
+        # Python attribute node: attribute.name is the method identifier
+        # But tree-sitter Python doesn't expose field names the same way
+        # The structure is: attribute > [object, ".", name]
+        # So we find the last identifier
+        for child in reversed(access_node.children):
+            if child.type == "identifier":
+                return child
+
+    # Pattern 2: TypeScript/JS member_expression
+    elif language in ("typescript", "javascript", "tsx"):
+        # member_expression > [object, ".", property_identifier]
+        for child in reversed(access_node.children):
+            if child.type in ("property_identifier", "identifier"):
+                return child
+
+    # Pattern 3: Go selector_expression
+    elif language == "go":
+        # selector_expression > [operand, ".", field_identifier]
+        for child in reversed(access_node.children):
+            if child.type == "field_identifier":
+                return child
+
+    # Pattern 4: C# member_access_expression
+    elif language == "csharp":
+        # member_access_expression > [expression, ".", name (identifier)]
+        for child in reversed(access_node.children):
+            if child.type == "identifier":
+                return child
+
+    # Fallback: return last identifier child
+    for child in reversed(access_node.children):
+        if "identifier" in child.type:
+            return child
+
+    return None
+
+
+def is_stdlib_target(target_path: str, language: str) -> bool:
+    """Check if an LSP definition target is a stdlib or external package.
+
+    Args:
+        target_path: Path from LSP response (may be absolute)
+        language: Language name for pattern lookup
+
+    Returns:
+        True if target is stdlib/external (should be filtered), False otherwise
+    """
+    patterns = STDLIB_PATTERNS.get(language, [])
+    return any(pattern in target_path for pattern in patterns)
 
 
 class RelationshipExtractionStage:
@@ -227,18 +424,16 @@ class RelationshipExtractionStage:
         """Extract relationships using LSP adapter with symbol-level resolution.
 
         Per T016: Uses find_node_at_line() to upgrade file-level edges to symbol-level.
+        Per Subtask 001: Now uses tree-sitter call extraction for get_definition.
 
         Process:
         1. Skip non-callable nodes (only methods/functions can be referenced)
         2. Extract file path from node_id
         3. Call LSP get_references to find "who calls me"
-        4. Upgrade edges to symbol-level using find_node_at_line()
-
-        NOTE: We only use get_references (who calls me), not get_definition (what do I call).
-        The naive line-scanning approach for get_definition was removed because:
-        - It generated hundreds of thousands of useless LSP queries
-        - 99%+ returned None (querying random column positions)
-        - Proper "what do I call" detection requires tree-sitter call expression analysis
+        4. Extract call positions from node.content using tree-sitter
+        5. Call LSP get_definition at each call position to find "what do I call"
+        6. Filter stdlib/external package targets
+        7. Upgrade edges to symbol-level using find_node_at_line()
 
         Args:
             node: CodeNode to extract relationships from.
@@ -261,19 +456,83 @@ class RelationshipExtractionStage:
         file_path = parts[1]
 
         raw_edges: list[CodeEdge] = []
+
+        # =====================================================================
+        # Part 1: get_references (who calls me?)
+        # =====================================================================
         try:
-            # Get references to this symbol (who calls me?)
             # Query at definition line to find callers
+            # Note: LSP expects 0-indexed lines, CodeNode.start_line is 1-indexed
             reference_edges = self._lsp_adapter.get_references(
                 file_path=file_path,
-                line=node.start_line,
+                line=node.start_line - 1,  # Convert 1-indexed to 0-indexed
                 column=0,
             )
             raw_edges.extend(reference_edges)
+        except Exception as e:
+            logger.debug("LSP get_references failed for %s: %s", node.node_id, e)
+
+        # =====================================================================
+        # Part 2: get_definition at call sites (what do I call?)
+        # Per Subtask 001: Extract call positions from tree-sitter AST
+        # =====================================================================
+        try:
+            # Extract call positions from node content using tree-sitter
+            # Returns list of (rel_line, col) tuples, 0-indexed relative to content
+            call_positions = extract_call_positions(node.content, node.language)
+
+            for rel_line, col in call_positions:
+                # Convert relative position to file-level position
+                # node.start_line is 1-indexed, rel_line is 0-indexed
+                # LSP expects 0-indexed: file_line = (node.start_line - 1) + rel_line
+                file_line = (node.start_line - 1) + rel_line
+
+                try:
+                    # Query LSP for definition at call site
+                    definition_edges = self._lsp_adapter.get_definition(
+                        file_path=file_path,
+                        line=file_line,
+                        column=col,
+                    )
+
+                    # Filter stdlib/external package targets
+                    for edge in definition_edges:
+                        target_path = edge.target_node_id
+                        if is_stdlib_target(target_path, node.language):
+                            logger.debug("Filtering stdlib target: %s", target_path)
+                            continue
+
+                        # Update source to be this node (the caller)
+                        # The edge from get_definition has source as the file where
+                        # we queried, but we want source to be the node doing the calling
+                        updated_edge = CodeEdge(
+                            source_node_id=node.node_id,
+                            target_node_id=edge.target_node_id,
+                            edge_type=edge.edge_type,
+                            confidence=edge.confidence,
+                            source_line=node.start_line + rel_line,  # 1-indexed
+                            target_line=edge.target_line,
+                            resolution_rule="lsp:definition",
+                        )
+                        raw_edges.append(updated_edge)
+                        logger.debug(
+                            "Added get_definition edge: %s -> %s (target_line=%s)",
+                            updated_edge.source_node_id,
+                            updated_edge.target_node_id,
+                            updated_edge.target_line,
+                        )
+
+                except Exception as e:
+                    logger.debug(
+                        "LSP get_definition failed at %s:%d:%d: %s",
+                        file_path,
+                        file_line,
+                        col,
+                        e,
+                    )
 
         except Exception as e:
-            logger.debug("LSP query failed for %s: %s", node.node_id, e)
-            return []
+            logger.debug("Call extraction failed for %s: %s", node.node_id, e)
 
         # Upgrade edges to symbol-level using find_node_at_line
         upgraded_edges: list[CodeEdge] = []
@@ -298,35 +557,41 @@ class RelationshipExtractionStage:
         Returns:
             Upgraded edge with symbol-level node_ids, or None if resolution fails.
         """
-        # Extract source file from source_node_id
-        source_parts = edge.source_node_id.split(":", 2)
-        if len(source_parts) < 2:
-            return None
-        source_file = source_parts[1]
-
         # Extract target file from target_node_id
         target_parts = edge.target_node_id.split(":", 2)
         if len(target_parts) < 2:
             return None
         target_file = target_parts[1]
 
-        # Resolve source to symbol-level
+        # Resolve source to symbol-level (only if file-level)
         source_node_id = edge.source_node_id  # Default to original
-        if edge.source_line is not None:
-            source_symbol = find_node_at_line(all_nodes, edge.source_line, source_file)
-            if source_symbol is not None:
-                source_node_id = source_symbol.node_id
+        source_parts = edge.source_node_id.split(":", 2)
+        if len(source_parts) >= 2 and source_parts[0] == "file":
+            # Only re-resolve file-level sources (from get_references)
+            source_file = source_parts[1]
+            if edge.source_line is not None:
+                # edge.source_line from LSP is 0-indexed; find_node_at_line expects 1-indexed
+                source_line_1idx = edge.source_line + 1
+                source_symbol = find_node_at_line(
+                    all_nodes, source_line_1idx, source_file
+                )
+                if source_symbol is not None:
+                    source_node_id = source_symbol.node_id
+        # else: source is already symbol-level (from get_definition), keep it
 
         # Resolve target to symbol-level
         target_node_id = edge.target_node_id  # Default to original
         if edge.target_line is not None:
-            target_symbol = find_node_at_line(all_nodes, edge.target_line, target_file)
+            # edge.target_line from LSP is 0-indexed; find_node_at_line expects 1-indexed
+            target_line_1idx = edge.target_line + 1
+            target_symbol = find_node_at_line(all_nodes, target_line_1idx, target_file)
             if target_symbol is not None:
                 target_node_id = target_symbol.node_id
             else:
                 # Target line has no symbol - filter out this edge
                 logger.debug(
-                    "No symbol at target line %d in %s, filtering edge",
+                    "No symbol at target line %d (0-idx=%d) in %s, filtering edge",
+                    target_line_1idx,
                     edge.target_line,
                     target_file,
                 )

@@ -23,7 +23,12 @@ class JediServer(SolidLanguageServer):
     Provides Python specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Python.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a JediServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
@@ -63,7 +68,10 @@ class JediServer(SolidLanguageServer):
                         "changeAnnotationSupport": {"groupsOnLabel": True},
                     },
                     "configuration": True,
-                    "didChangeWatchedFiles": {"dynamicRegistration": True, "relativePatternSupport": True},
+                    "didChangeWatchedFiles": {
+                        "dynamicRegistration": True,
+                        "relativePatternSupport": True,
+                    },
                     "symbol": {
                         "dynamicRegistration": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
@@ -92,8 +100,16 @@ class JediServer(SolidLanguageServer):
                         "codeDescriptionSupport": True,
                         "dataSupport": True,
                     },
-                    "synchronization": {"dynamicRegistration": True, "willSave": True, "willSaveWaitUntil": True, "didSave": True},
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "synchronization": {
+                        "dynamicRegistration": True,
+                        "willSave": True,
+                        "willSaveWaitUntil": True,
+                        "didSave": True,
+                    },
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "signatureHelp": {
                         "dynamicRegistration": True,
                         "signatureInformation": {
@@ -113,9 +129,18 @@ class JediServer(SolidLanguageServer):
                         "tagSupport": {"valueSet": [1]},
                         "labelSupport": True,
                     },
-                    "documentLink": {"dynamicRegistration": True, "tooltipSupport": True},
-                    "typeDefinition": {"dynamicRegistration": True, "linkSupport": True},
-                    "implementation": {"dynamicRegistration": True, "linkSupport": True},
+                    "documentLink": {
+                        "dynamicRegistration": True,
+                        "tooltipSupport": True,
+                    },
+                    "typeDefinition": {
+                        "dynamicRegistration": True,
+                        "linkSupport": True,
+                    },
+                    "implementation": {
+                        "dynamicRegistration": True,
+                        "linkSupport": True,
+                    },
                     "declaration": {"dynamicRegistration": True, "linkSupport": True},
                     "selectionRange": {"dynamicRegistration": True},
                     "callHierarchy": {"dynamicRegistration": True},
@@ -124,11 +149,27 @@ class JediServer(SolidLanguageServer):
                     "inlineValue": {"dynamicRegistration": True},
                     "inlayHint": {
                         "dynamicRegistration": True,
-                        "resolveSupport": {"properties": ["tooltip", "textEdits", "label.tooltip", "label.location", "label.command"]},
+                        "resolveSupport": {
+                            "properties": [
+                                "tooltip",
+                                "textEdits",
+                                "label.tooltip",
+                                "label.location",
+                                "label.command",
+                            ]
+                        },
                     },
-                    "diagnostic": {"dynamicRegistration": True, "relatedDocumentSupport": False},
+                    "diagnostic": {
+                        "dynamicRegistration": True,
+                        "relatedDocumentSupport": False,
+                    },
                 },
-                "notebookDocument": {"synchronization": {"dynamicRegistration": True, "executionSummarySupport": True}},
+                "notebookDocument": {
+                    "synchronization": {
+                        "dynamicRegistration": True,
+                        "executionSummarySupport": True,
+                    }
+                },
                 "experimental": {
                     "serverStatusNotification": True,
                     "openServerLogs": True,
@@ -138,7 +179,16 @@ class JediServer(SolidLanguageServer):
             # We use the default options except for maxSymbols, where 0 means no limit
             "initializationOptions": {
                 "workspace": {
-                    "symbols": {"ignoreFolders": [".nox", ".tox", ".venv", "__pycache__", "venv"], "maxSymbols": 0},
+                    "symbols": {
+                        "ignoreFolders": [
+                            ".nox",
+                            ".tox",
+                            ".venv",
+                            "__pycache__",
+                            "venv",
+                        ],
+                        "maxSymbols": 0,
+                    },
                 },
             },
             "trace": "verbose",
@@ -172,17 +222,23 @@ class JediServer(SolidLanguageServer):
         self.server.on_request("client/registerCapability", do_nothing)
         self.server.on_notification("language/status", do_nothing)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
-        self.server.on_notification("experimental/serverStatus", check_experimental_status)
+        self.server.on_notification(
+            "experimental/serverStatus", check_experimental_status
+        )
 
         log.info("Starting jedi-language-server server process")
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
         assert init_response["capabilities"]["textDocumentSync"]["change"] == 2  # type: ignore
         assert "completionProvider" in init_response["capabilities"]

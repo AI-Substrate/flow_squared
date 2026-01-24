@@ -31,11 +31,18 @@ class VtsLanguageServer(SolidLanguageServer):
     Contains various configurations and settings specific to TypeScript via vtsls wrapper.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a VtsLanguageServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
-        vts_lsp_executable_path = self._setup_runtime_dependencies(config, solidlsp_settings)
+        vts_lsp_executable_path = self._setup_runtime_dependencies(
+            config, solidlsp_settings
+        )
         super().__init__(
             config,
             repository_root_path,
@@ -56,7 +63,9 @@ class VtsLanguageServer(SolidLanguageServer):
         ]
 
     @classmethod
-    def _setup_runtime_dependencies(cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings) -> str:
+    def _setup_runtime_dependencies(
+        cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
+    ) -> str:
         """
         Setup runtime dependencies for VTS Language Server and return the command to start the server.
         """
@@ -71,7 +80,9 @@ class VtsLanguageServer(SolidLanguageServer):
             PlatformId.WIN_x64,
             PlatformId.WIN_arm64,
         ]
-        assert platform_id in valid_platforms, f"Platform {platform_id} is not supported for vtsls at the moment"
+        assert platform_id in valid_platforms, (
+            f"Platform {platform_id} is not supported for vtsls at the moment"
+        )
 
         deps = RuntimeDependencyCollection(
             [
@@ -88,9 +99,13 @@ class VtsLanguageServer(SolidLanguageServer):
 
         # Verify both node and npm are installed
         is_node_installed = shutil.which("node") is not None
-        assert is_node_installed, "node is not installed or isn't in PATH. Please install NodeJS and try again."
+        assert is_node_installed, (
+            "node is not installed or isn't in PATH. Please install NodeJS and try again."
+        )
         is_npm_installed = shutil.which("npm") is not None
-        assert is_npm_installed, "npm is not installed or isn't in PATH. Please install npm and try again."
+        assert is_npm_installed, (
+            "npm is not installed or isn't in PATH. Please install npm and try again."
+        )
 
         # Install vtsls if not already installed
         if not os.path.exists(vts_ls_dir):
@@ -99,7 +114,9 @@ class VtsLanguageServer(SolidLanguageServer):
 
         vts_executable_path = os.path.join(vts_ls_dir, "node_modules", ".bin", "vtsls")
 
-        assert os.path.exists(vts_executable_path), "vtsls executable not found. Please install @vtsls/language-server and try again."
+        assert os.path.exists(vts_executable_path), (
+            "vtsls executable not found. Please install @vtsls/language-server and try again."
+        )
         return f"{vts_executable_path} --stdio"
 
     @staticmethod
@@ -120,7 +137,10 @@ class VtsLanguageServer(SolidLanguageServer):
                         "hierarchicalDocumentSymbolSupport": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "signatureHelp": {"dynamicRegistration": True},
                     "codeAction": {"dynamicRegistration": True},
                 },
@@ -190,17 +210,25 @@ class VtsLanguageServer(SolidLanguageServer):
 
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
-        self.server.on_request("workspace/configuration", workspace_configuration_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
+        self.server.on_request(
+            "workspace/configuration", workspace_configuration_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
-        self.server.on_notification("experimental/serverStatus", check_experimental_status)
+        self.server.on_notification(
+            "experimental/serverStatus", check_experimental_status
+        )
 
         log.info("Starting VTS server process")
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
 
         # VTS-specific capability checks
@@ -212,14 +240,20 @@ class VtsLanguageServer(SolidLanguageServer):
         assert "completionProvider" in init_response["capabilities"]
 
         # Log the actual values for debugging
-        log.debug(f"textDocumentSync: {init_response['capabilities']['textDocumentSync']}")
-        log.debug(f"completionProvider: {init_response['capabilities']['completionProvider']}")
+        log.debug(
+            f"textDocumentSync: {init_response['capabilities']['textDocumentSync']}"
+        )
+        log.debug(
+            f"completionProvider: {init_response['capabilities']['completionProvider']}"
+        )
 
         self.server.notify.initialized({})
         if self.server_ready.wait(timeout=1.0):
             log.info("VTS server is ready")
         else:
-            log.info("Timeout waiting for VTS server to become ready, proceeding anyway")
+            log.info(
+                "Timeout waiting for VTS server to become ready, proceeding anyway"
+            )
             # Fallback: assume server is ready after timeout
             self.server_ready.set()
         self.completions_available.set()

@@ -154,7 +154,9 @@ class SolidLspAdapter(LspAdapter):
         binary_name = server_config.get("binary")
 
         if binary_name and not shutil.which(binary_name):
-            install_commands = server_config.get("install", {"default": f"Install {binary_name}"})
+            install_commands = server_config.get(
+                "install", {"default": f"Install {binary_name}"}
+            )
             raise LspServerNotFoundError(binary_name, install_commands)
 
         try:
@@ -226,9 +228,7 @@ class SolidLspAdapter(LspAdapter):
         self._language = None
         self._project_root = None
 
-    def get_references(
-        self, file_path: str, line: int, column: int
-    ) -> list[CodeEdge]:
+    def get_references(self, file_path: str, line: int, column: int) -> list[CodeEdge]:
         """Find all references to the symbol at the given location.
 
         Per DYK-4: No adapter-level wait needed - SolidLSP handles indexing delay.
@@ -285,9 +285,7 @@ class SolidLspAdapter(LspAdapter):
             # Re-raise as generic adapter error
             raise LspAdapterError(f"References request failed: {e}") from e
 
-    def get_definition(
-        self, file_path: str, line: int, column: int
-    ) -> list[CodeEdge]:
+    def get_definition(self, file_path: str, line: int, column: int) -> list[CodeEdge]:
         """Find the definition of the symbol at the given location.
 
         Per DYK-3: Uses EdgeType.CALLS (semantically correct for call-site → definition).

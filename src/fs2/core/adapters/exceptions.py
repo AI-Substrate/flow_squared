@@ -479,7 +479,12 @@ class LspTimeoutError(LspAdapterError):
         timeout_seconds: Configured timeout value in seconds.
     """
 
-    def __init__(self, message: str, operation: str | None = None, timeout_seconds: float | None = None):
+    def __init__(
+        self,
+        message: str,
+        operation: str | None = None,
+        timeout_seconds: float | None = None,
+    ):
         """Initialize with message and optional operation details.
 
         Args:

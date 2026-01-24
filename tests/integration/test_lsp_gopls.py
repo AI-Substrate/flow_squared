@@ -30,7 +30,7 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 def go_project() -> Path:
     """Use existing go_project fixture for LSP testing.
-    
+
     Structure:
     - cmd/server/main.go: calls auth.Validate() from internal/auth
     - internal/auth/auth.go: defines Validate() function
@@ -53,7 +53,7 @@ def config_service():
 @pytest.mark.integration
 class TestGoplsIntegration:
     """Integration tests for SolidLspAdapter with real gopls server.
-    
+
     Per AC12: These tests use real gopls server to validate
     the adapter works end-to-end with Go projects.
     """
@@ -62,11 +62,11 @@ class TestGoplsIntegration:
         self, go_project: Path, config_service
     ):
         """AC12: gopls server starts successfully.
-        
+
         Why: Validates that gopls can be initialized and becomes ready.
         Contract: initialize("go", project_root) -> is_ready() == True
         Quality Contribution: Catches gopls initialization errors.
-        
+
         Worked Example:
             Input: go_project with go.mod
             Output: is_ready() returns True
@@ -85,7 +85,7 @@ class TestGoplsIntegration:
         self, go_project: Path, config_service
     ):
         """Lifecycle: shutdown() stops gopls server.
-        
+
         Why: Validates shutdown lifecycle is correct.
         Contract: shutdown() sets is_ready() to False.
         Quality Contribution: Ensures cleanup happens correctly.
@@ -105,11 +105,11 @@ class TestGoplsIntegration:
         self, go_project: Path, config_service
     ):
         """AC12: get_definition returns CodeEdge with EdgeType.CALLS.
-        
+
         Why: Validates definition lookups work for Go code.
         Contract: get_definition(file, line, col) -> list[CodeEdge] with CALLS type
         Quality Contribution: Catches Go definition resolution errors.
-        
+
         Worked Example:
             Input: cmd/server/main.go:9:12 (auth.Validate call site)
             Output: CodeEdge pointing to internal/auth/auth.go:Validate with EdgeType.CALLS
@@ -125,9 +125,7 @@ class TestGoplsIntegration:
             # Get definition of 'Validate' call in main.go
             # Line 9 (0-indexed): `isValid := auth.Validate("testuser")`
             # 'Validate' starts around column 20
-            edges = adapter.get_definition(
-                "cmd/server/main.go", line=9, column=20
-            )
+            edges = adapter.get_definition("cmd/server/main.go", line=9, column=20)
 
             # Should find definition in internal/auth/auth.go
             assert isinstance(edges, list)
@@ -147,14 +145,14 @@ class TestGoplsIntegration:
         self, go_project: Path, config_service
     ):
         """AC12: get_references returns CodeEdge list with confidence=1.0.
-        
+
         Why: Validates that LSP references are correctly translated to CodeEdge.
         Contract: get_references(file, line, col) -> list[CodeEdge] with confidence=1.0
         Quality Contribution: Catches LSP→CodeEdge translation errors for Go.
-        
+
         Note: gopls may return empty list for references in small test fixtures.
         The primary validation is that the call succeeds and returns proper types.
-        
+
         Worked Example:
             Input: internal/auth/auth.go:5:5 (Validate function)
             Output: CodeEdge from main.go to auth.go with EdgeType.REFERENCES (if found)
@@ -169,9 +167,7 @@ class TestGoplsIntegration:
 
             # Get references to 'Validate' function definition
             # Line 5 (0-indexed): `func Validate(username string) bool {`
-            edges = adapter.get_references(
-                "internal/auth/auth.go", line=5, column=5
-            )
+            edges = adapter.get_references("internal/auth/auth.go", line=5, column=5)
 
             # Should return a list (may be empty if gopls doesn't find refs)
             assert isinstance(edges, list)
@@ -190,11 +186,11 @@ class TestGoplsIntegration:
         self, go_project: Path, config_service
     ):
         """CRITICAL: Cross-file definition resolution works.
-        
+
         Why: Validates gopls can resolve cross-file function calls.
         Contract: Definition lookup crosses file boundaries.
         Quality Contribution: Catches cross-file resolution failures.
-        
+
         Worked Example:
             Input: cmd/server/main.go:9 (call to auth.Validate)
             Output: CodeEdge pointing to internal/auth/auth.go
@@ -208,9 +204,7 @@ class TestGoplsIntegration:
             assert adapter.is_ready() is True
 
             # Get definition of cross-file call: auth.Validate
-            edges = adapter.get_definition(
-                "cmd/server/main.go", line=9, column=20
-            )
+            edges = adapter.get_definition("cmd/server/main.go", line=9, column=20)
 
             assert len(edges) >= 1
 
@@ -227,7 +221,7 @@ class TestGoplsIntegration:
         self, go_project: Path, config_service
     ):
         """shutdown() is idempotent - can be called multiple times.
-        
+
         Why: Per Invariants, shutdown() must be idempotent.
         Contract: Multiple shutdown() calls do not raise.
         Quality Contribution: Prevents resource cleanup bugs.
@@ -248,7 +242,7 @@ class TestGoplsIntegration:
 @pytest.mark.integration
 class TestGoplsErrorHandling:
     """Tests for SolidLspAdapter error handling with gopls.
-    
+
     Per AC05: SolidLspAdapter wraps SolidLSP with exception translation.
     """
 
@@ -256,7 +250,7 @@ class TestGoplsErrorHandling:
         self, config_service
     ):
         """RuntimeError raised when calling methods before initialize().
-        
+
         Why: Validates adapter enforces initialization lifecycle.
         Contract: get_references() on uninitialized adapter -> RuntimeError
         Quality Contribution: Catches lifecycle bugs early.
@@ -269,6 +263,4 @@ class TestGoplsErrorHandling:
         assert adapter.is_ready() is False
 
         with pytest.raises(RuntimeError, match="not initialized"):
-            adapter.get_references(
-                "cmd/server/main.go", line=0, column=0
-            )
+            adapter.get_references("cmd/server/main.go", line=0, column=0)

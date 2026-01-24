@@ -15,7 +15,10 @@ from overrides import override
 
 from fs2.vendors.solidlsp.ls import SolidLanguageServer
 from fs2.vendors.solidlsp.ls_config import LanguageServerConfig
-from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import InitializeParams, InitializeResult
+from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import (
+    InitializeParams,
+    InitializeResult,
+)
 from fs2.vendors.solidlsp.lsp_protocol_handler.server import ProcessLaunchInfo
 from fs2.vendors.solidlsp.settings import SolidLSPSettings
 
@@ -28,14 +31,25 @@ class RubyLsp(SolidLanguageServer):
     Contains various configurations and settings specific to Ruby with modern LSP features.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a RubyLsp instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
         """
-        ruby_lsp_executable = self._setup_runtime_dependencies(config, repository_root_path)
+        ruby_lsp_executable = self._setup_runtime_dependencies(
+            config, repository_root_path
+        )
         super().__init__(
-            config, repository_root_path, ProcessLaunchInfo(cmd=ruby_lsp_executable, cwd=repository_root_path), "ruby", solidlsp_settings
+            config,
+            repository_root_path,
+            ProcessLaunchInfo(cmd=ruby_lsp_executable, cwd=repository_root_path),
+            "ruby",
+            solidlsp_settings,
         )
         self.analysis_complete = threading.Event()
         self.service_ready_event = threading.Event()
@@ -92,7 +106,9 @@ class RubyLsp(SolidLanguageServer):
             return shutil.which(executable_name)
 
     @staticmethod
-    def _setup_runtime_dependencies(config: LanguageServerConfig, repository_root_path: str) -> list[str]:
+    def _setup_runtime_dependencies(
+        config: LanguageServerConfig, repository_root_path: str
+    ) -> list[str]:
         """
         Setup runtime dependencies for ruby-lsp and return the command list to start the server.
         Installation strategy: Bundler project > global ruby-lsp > gem install ruby-lsp
@@ -114,7 +130,9 @@ class RubyLsp(SolidLanguageServer):
         # - System bundler version is incompatible with Gemfile.lock
         # - Project gems aren't installed in system Ruby
         ruby_version_file = os.path.join(repository_root_path, ".ruby-version")
-        use_rbenv = os.path.exists(ruby_version_file) and shutil.which("rbenv") is not None
+        use_rbenv = (
+            os.path.exists(ruby_version_file) and shutil.which("rbenv") is not None
+        )
 
         if use_rbenv:
             ruby_cmd = ["rbenv", "exec", "ruby"]
@@ -133,7 +151,13 @@ class RubyLsp(SolidLanguageServer):
 
         # Check if Ruby is installed
         try:
-            result = subprocess.run(ruby_cmd + ["--version"], check=True, capture_output=True, cwd=repository_root_path, text=True)
+            result = subprocess.run(
+                ruby_cmd + ["--version"],
+                check=True,
+                capture_output=True,
+                cwd=repository_root_path,
+                text=True,
+            )
             ruby_version = result.stdout.strip()
             log.info(f"Ruby version: {ruby_version}")
 
@@ -144,10 +168,18 @@ class RubyLsp(SolidLanguageServer):
             if version_match:
                 major, minor, patch = map(int, version_match.groups())
                 if major < 2 or (major == 2 and minor < 6):
-                    log.warning(f"Warning: Ruby {major}.{minor}.{patch} detected. ruby-lsp works best with Ruby 2.6+")
+                    log.warning(
+                        f"Warning: Ruby {major}.{minor}.{patch} detected. ruby-lsp works best with Ruby 2.6+"
+                    )
 
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if isinstance(e.stderr, str) else e.stderr.decode() if e.stderr else "Unknown error"
+            error_msg = (
+                e.stderr
+                if isinstance(e.stderr, str)
+                else e.stderr.decode()
+                if e.stderr
+                else "Unknown error"
+            )
             raise RuntimeError(
                 f"Error checking Ruby installation: {error_msg}. Please ensure Ruby is properly installed and in PATH."
             ) from e
@@ -169,17 +201,27 @@ class RubyLsp(SolidLanguageServer):
             log.info("Detected Bundler project (Gemfile found)")
 
             # Check if bundle command is available using Windows-compatible search
-            bundle_path = RubyLsp._find_executable_with_extensions(bundle_cmd[0] if len(bundle_cmd) == 1 else "bundle")
+            bundle_path = RubyLsp._find_executable_with_extensions(
+                bundle_cmd[0] if len(bundle_cmd) == 1 else "bundle"
+            )
             if not bundle_path:
                 # Try common bundle executables
                 for bundle_executable in ["bin/bundle", "bundle"]:
                     bundle_full_path: str | None
                     if bundle_executable.startswith("bin/"):
-                        bundle_full_path = os.path.join(repository_root_path, bundle_executable)
+                        bundle_full_path = os.path.join(
+                            repository_root_path, bundle_executable
+                        )
                     else:
-                        bundle_full_path = RubyLsp._find_executable_with_extensions(bundle_executable)
+                        bundle_full_path = RubyLsp._find_executable_with_extensions(
+                            bundle_executable
+                        )
                     if bundle_full_path and os.path.exists(bundle_full_path):
-                        bundle_path = bundle_full_path if bundle_executable.startswith("bin/") else bundle_executable
+                        bundle_path = (
+                            bundle_full_path
+                            if bundle_executable.startswith("bin/")
+                            else bundle_executable
+                        )
                         break
 
             if not bundle_path:
@@ -215,20 +257,33 @@ class RubyLsp(SolidLanguageServer):
         # Try to install ruby-lsp globally
         log.info("ruby-lsp not found, attempting to install globally...")
         try:
-            subprocess.run(["gem", "install", "ruby-lsp"], check=True, capture_output=True, cwd=repository_root_path)
+            subprocess.run(
+                ["gem", "install", "ruby-lsp"],
+                check=True,
+                capture_output=True,
+                cwd=repository_root_path,
+            )
             log.info("Successfully installed ruby-lsp globally")
             # Find the newly installed ruby-lsp executable
             ruby_lsp_path = RubyLsp._find_executable_with_extensions("ruby-lsp")
             return [ruby_lsp_path] if ruby_lsp_path else ["ruby-lsp"]
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if isinstance(e.stderr, str) else e.stderr.decode() if e.stderr else str(e)
+            error_msg = (
+                e.stderr
+                if isinstance(e.stderr, str)
+                else e.stderr.decode()
+                if e.stderr
+                else str(e)
+            )
             if is_bundler_project:
                 raise RuntimeError(
                     f"Failed to install ruby-lsp globally: {error_msg}\n"
                     "For Bundler projects, please add 'gem \"ruby-lsp\"' to your Gemfile and run 'bundle install'.\n"
                     "Alternatively, install globally: gem install ruby-lsp"
                 ) from e
-            raise RuntimeError(f"Failed to install ruby-lsp: {error_msg}\nPlease try installing manually: gem install ruby-lsp") from e
+            raise RuntimeError(
+                f"Failed to install ruby-lsp: {error_msg}\nPlease try installing manually: gem install ruby-lsp"
+            ) from e
 
     @staticmethod
     def _detect_rails_project(repository_root_path: str) -> bool:
@@ -394,16 +449,22 @@ class RubyLsp(SolidLanguageServer):
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("language/status", lang_status_handler)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_notification("$/progress", progress_handler)
-        self.server.on_request("window/workDoneProgress/create", window_work_done_progress_create)
+        self.server.on_request(
+            "window/workDoneProgress/create", window_work_done_progress_create
+        )
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
 
         log.info("Starting ruby-lsp server process")
         self.server.start()
         initialize_params = self._get_initialize_params()
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         log.info(f"Sending init params: {json.dumps(initialize_params, indent=4)}")
         init_response = self.server.send.initialize(initialize_params)
         log.info(f"Received init response: {init_response}")
@@ -412,10 +473,14 @@ class RubyLsp(SolidLanguageServer):
         # Note: ruby-lsp may return textDocumentSync in different formats (number or object)
         text_document_sync = init_response["capabilities"].get("textDocumentSync")
         if isinstance(text_document_sync, int):
-            assert text_document_sync in [1, 2], f"Unexpected textDocumentSync value: {text_document_sync}"
+            assert text_document_sync in [1, 2], (
+                f"Unexpected textDocumentSync value: {text_document_sync}"
+            )
         elif isinstance(text_document_sync, dict):
             # ruby-lsp returns an object with change property
-            assert "change" in text_document_sync, "textDocumentSync object should have 'change' property"
+            assert "change" in text_document_sync, (
+                "textDocumentSync object should have 'change' property"
+            )
 
         assert "completionProvider" in init_response["capabilities"]
 
@@ -426,7 +491,9 @@ class RubyLsp(SolidLanguageServer):
         if self.analysis_complete.wait(timeout=30.0):
             log.info("ruby-lsp initial indexing complete, server ready")
         else:
-            log.warning("Timeout waiting for ruby-lsp indexing completion, proceeding anyway")
+            log.warning(
+                "Timeout waiting for ruby-lsp indexing completion, proceeding anyway"
+            )
             # Fallback: assume indexing is complete after timeout
             self.analysis_complete.set()
             self.completions_available.set()
@@ -441,10 +508,14 @@ class RubyLsp(SolidLanguageServer):
             # Validate textDocumentSync (ruby-lsp may return different formats)
             text_document_sync = capabilities.get("textDocumentSync")
             if isinstance(text_document_sync, int):
-                assert text_document_sync in [1, 2], f"Unexpected textDocumentSync value: {text_document_sync}"
+                assert text_document_sync in [1, 2], (
+                    f"Unexpected textDocumentSync value: {text_document_sync}"
+                )
             elif isinstance(text_document_sync, dict):
                 # ruby-lsp returns an object with change property
-                assert "change" in text_document_sync, "textDocumentSync object should have 'change' property"
+                assert "change" in text_document_sync, (
+                    "textDocumentSync object should have 'change' property"
+                )
 
             # Log important capabilities
             important_capabilities = [

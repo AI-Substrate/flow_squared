@@ -483,9 +483,7 @@ class TestNetworkXGraphStoreGetRelationships:
 
         Task: T010
         """
-        rels = store_with_edges.get_relationships(
-            "file:src/a.py", direction="outgoing"
-        )
+        rels = store_with_edges.get_relationships("file:src/a.py", direction="outgoing")
         assert len(rels) == 1
         assert rels[0]["node_id"] == "file:src/b.py"
 
@@ -497,9 +495,7 @@ class TestNetworkXGraphStoreGetRelationships:
 
         Task: T010
         """
-        rels = store_with_edges.get_relationships(
-            "file:src/b.py", direction="incoming"
-        )
+        rels = store_with_edges.get_relationships("file:src/b.py", direction="incoming")
         assert len(rels) == 1
         assert rels[0]["node_id"] == "file:src/a.py"
 
@@ -539,9 +535,7 @@ class TestNetworkXGraphStoreGetRelationships:
 
         Task: T010
         """
-        rels = store_with_edges.get_relationships(
-            "file:src/c.py", direction="outgoing"
-        )
+        rels = store_with_edges.get_relationships("file:src/c.py", direction="outgoing")
         assert rels == []
 
     def test_get_relationships_includes_source_line(self, store_with_edges):
@@ -552,9 +546,7 @@ class TestNetworkXGraphStoreGetRelationships:
 
         Task: T010
         """
-        rels = store_with_edges.get_relationships(
-            "file:src/a.py", direction="outgoing"
-        )
+        rels = store_with_edges.get_relationships("file:src/a.py", direction="outgoing")
         assert len(rels) == 1
         assert "source_line" in rels[0]
         assert rels[0]["source_line"] == 1
@@ -567,9 +559,7 @@ class TestNetworkXGraphStoreGetRelationships:
 
         Task: T010
         """
-        rels = store_with_edges.get_relationships(
-            "file:src/a.py", direction="outgoing"
-        )
+        rels = store_with_edges.get_relationships("file:src/a.py", direction="outgoing")
         assert len(rels) == 1
         rel = rels[0]
         assert set(rel.keys()) == {"node_id", "edge_type", "confidence", "source_line"}

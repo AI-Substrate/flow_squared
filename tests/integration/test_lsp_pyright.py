@@ -31,7 +31,7 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 def python_project(tmp_path: Path) -> Path:
     """Create a minimal Python project for LSP testing.
-    
+
     Creates:
     - app.py: calls function from lib.py
     - lib.py: defines function that app.py uses
@@ -80,7 +80,7 @@ def config_service():
 @pytest.mark.integration
 class TestSolidLspAdapterIntegration:
     """Integration tests for SolidLspAdapter with real Pyright server.
-    
+
     Per AC17: These tests use real Pyright server to validate
     the adapter works end-to-end with actual LSP protocol.
     """
@@ -89,15 +89,15 @@ class TestSolidLspAdapterIntegration:
         self, python_project: Path, config_service
     ):
         """AC08: get_references returns CodeEdge list with confidence=1.0.
-        
+
         Why: Validates that LSP references are correctly translated to CodeEdge.
         Contract: get_references(file, line, col) -> list[CodeEdge] with confidence=1.0
         Quality Contribution: Catches LSP→CodeEdge translation errors.
-        
+
         Note: Pyright may return empty list for references in small test fixtures.
         The primary validation is that the call succeeds and returns proper types.
         The get_definition test validates actual LSP communication works.
-        
+
         Worked Example:
             Input: lib.py:1:4 (greet function)
             Output: CodeEdge from app.py to lib.py with EdgeType.REFERENCES (if found)
@@ -131,11 +131,11 @@ class TestSolidLspAdapterIntegration:
         self, python_project: Path, config_service
     ):
         """AC09: get_definition returns CodeEdge with EdgeType.CALLS.
-        
+
         Why: Validates definition lookups translate to correct edge type.
         Contract: get_definition(file, line, col) -> list[CodeEdge] with CALLS type
         Quality Contribution: Catches edge type mapping errors.
-        
+
         Worked Example:
             Input: app.py:4:15 (greet call site)
             Output: CodeEdge pointing to lib.py:greet with EdgeType.CALLS
@@ -170,7 +170,7 @@ class TestSolidLspAdapterIntegration:
         self, config_service
     ):
         """RuntimeError raised when calling methods before initialize().
-        
+
         Why: Validates adapter enforces initialization lifecycle.
         Contract: get_references() on uninitialized adapter -> RuntimeError
         Quality Contribution: Catches lifecycle bugs early.
@@ -189,7 +189,7 @@ class TestSolidLspAdapterIntegration:
         self, python_project: Path, config_service
     ):
         """After shutdown(), is_ready() returns False.
-        
+
         Why: Validates shutdown lifecycle is correct.
         Contract: shutdown() sets is_ready() to False.
         Quality Contribution: Ensures cleanup happens correctly.
@@ -209,7 +209,7 @@ class TestSolidLspAdapterIntegration:
         self, python_project: Path, config_service
     ):
         """shutdown() is idempotent - can be called multiple times.
-        
+
         Why: Per Invariants, shutdown() must be idempotent.
         Contract: Multiple shutdown() calls do not raise.
         Quality Contribution: Prevents resource cleanup bugs.
@@ -230,7 +230,7 @@ class TestSolidLspAdapterIntegration:
 @pytest.mark.integration
 class TestSolidLspAdapterErrorHandling:
     """Tests for SolidLspAdapter error handling.
-    
+
     Per AC05: SolidLspAdapter wraps SolidLSP with exception translation.
     Per Discovery 04: Actionable error messages with platform-specific install commands.
     """
@@ -239,7 +239,7 @@ class TestSolidLspAdapterErrorHandling:
         self, python_project: Path, config_service
     ):
         """LspInitializationError raised for unknown language.
-        
+
         Why: Validates graceful handling of unsupported languages.
         Contract: initialize() with unknown language -> LspInitializationError
         Quality Contribution: Catches initialization errors with actionable message.
@@ -256,11 +256,11 @@ class TestSolidLspAdapterErrorHandling:
         self, python_project: Path, config_service
     ):
         """LspServerNotFoundError raised when server binary not found.
-        
+
         Why: Validates pre-check for server binary (DYK-1 decision).
         Contract: Missing server binary -> LspServerNotFoundError with install command
         Quality Contribution: Provides actionable error message.
-        
+
         Note: This test may need adjustment based on available servers.
         For Pyright, this would only fail if pyright is not installed,
         but we skip the module in that case. We test with a hypothetical

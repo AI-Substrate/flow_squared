@@ -218,7 +218,7 @@ class UnifiedSymbolInformation(TypedDict):
     user interface purposes (e.g. to render a qualifier in the user interface
     if necessary). It can't be used to re-infer a hierarchy for the document
     symbols. 
-    
+
     Note: within Serena, the parent attribute was added and should be used instead. 
     Most LS don't provide containerName.
     """

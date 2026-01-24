@@ -35,15 +35,19 @@ pytestmark = pytest.mark.skipif(
 @pytest.fixture
 def typescript_project() -> Path:
     """Use existing typescript_multi_project fixture for LSP testing.
-    
+
     Structure:
     - packages/client/index.tsx: calls formatDate() from utils.ts
     - packages/client/utils.ts: defines formatDate() function
     - tsconfig.json: TypeScript project configuration
     - package.json: npm package metadata
     """
-    fixture_path = Path(__file__).parent.parent / "fixtures" / "lsp" / "typescript_multi_project"
-    assert fixture_path.exists(), f"TypeScript project fixture not found at {fixture_path}"
+    fixture_path = (
+        Path(__file__).parent.parent / "fixtures" / "lsp" / "typescript_multi_project"
+    )
+    assert fixture_path.exists(), (
+        f"TypeScript project fixture not found at {fixture_path}"
+    )
     return fixture_path
 
 
@@ -59,7 +63,7 @@ def config_service():
 @pytest.mark.integration
 class TestTypeScriptIntegration:
     """Integration tests for SolidLspAdapter with real TypeScript server.
-    
+
     Per AC13: These tests use real typescript-language-server to validate
     the adapter works end-to-end with TypeScript projects.
     """
@@ -68,11 +72,11 @@ class TestTypeScriptIntegration:
         self, typescript_project: Path, config_service
     ):
         """AC13: typescript-language-server starts successfully.
-        
+
         Why: Validates that TypeScript server can be initialized and becomes ready.
         Contract: initialize("typescript", project_root) -> is_ready() == True
         Quality Contribution: Catches TypeScript server initialization errors.
-        
+
         Worked Example:
             Input: typescript_project with tsconfig.json
             Output: is_ready() returns True
@@ -91,7 +95,7 @@ class TestTypeScriptIntegration:
         self, typescript_project: Path, config_service
     ):
         """Lifecycle: shutdown() stops TypeScript server.
-        
+
         Why: Validates shutdown lifecycle is correct.
         Contract: shutdown() sets is_ready() to False.
         Quality Contribution: Ensures cleanup happens correctly.
@@ -111,11 +115,11 @@ class TestTypeScriptIntegration:
         self, typescript_project: Path, config_service
     ):
         """AC13: get_definition returns CodeEdge with EdgeType.CALLS.
-        
+
         Why: Validates definition lookups work for TypeScript code.
         Contract: get_definition(file, line, col) -> list[CodeEdge] with CALLS type
         Quality Contribution: Catches TypeScript definition resolution errors.
-        
+
         Worked Example:
             Input: packages/client/index.tsx:8:22 (formatDate call site)
             Output: CodeEdge pointing to packages/client/utils.ts:formatDate with EdgeType.CALLS
@@ -153,16 +157,16 @@ class TestTypeScriptIntegration:
         self, typescript_project: Path, config_service
     ):
         """AC13: get_references returns CodeEdge list with confidence=1.0.
-        
+
         Why: Validates that LSP references are correctly translated to CodeEdge.
         Contract: get_references(file, line, col) -> list[CodeEdge] with confidence=1.0
         Quality Contribution: Catches LSP→CodeEdge translation errors for TypeScript.
-        
+
         NOTE: Per DYK session 2026-01-19, TypeScript LSP's request_references()
         is unreliable without workspace indexing. This test validates the API
         contract but may return empty list. The cross-file test validates
         request_definition() which DOES work reliably.
-        
+
         Worked Example:
             Input: packages/client/utils.ts:4:16 (formatDate function)
             Output: CodeEdge from index.tsx to utils.ts with EdgeType.REFERENCES (if found)
@@ -198,11 +202,11 @@ class TestTypeScriptIntegration:
         self, typescript_project: Path, config_service
     ):
         """CRITICAL: Cross-file definition resolution works.
-        
+
         Why: Validates TypeScript LSP can resolve definitions for function calls.
         Contract: Definition lookup returns valid CodeEdge with confidence 1.0.
         Quality Contribution: Catches definition resolution failures.
-        
+
         NOTE: TypeScript LSP may return the import declaration location
         instead of the actual function definition in utils.ts. This is a
         known TypeScript LSP behavior - it returns the "closest" definition
@@ -210,7 +214,7 @@ class TestTypeScriptIntegration:
         1. We GET a definition result (not empty)
         2. The result is a valid CodeEdge with confidence=1.0
         3. The edge type is CALLS
-        
+
         Worked Example:
             Input: packages/client/index.tsx:8:22 (call to formatDate)
             Output: CodeEdge with valid target (may be import or actual definition)
@@ -247,7 +251,7 @@ class TestTypeScriptIntegration:
         self, typescript_project: Path, config_service
     ):
         """shutdown() is idempotent - can be called multiple times.
-        
+
         Why: Per Invariants, shutdown() must be idempotent.
         Contract: Multiple shutdown() calls do not raise.
         Quality Contribution: Prevents resource cleanup bugs.
@@ -268,7 +272,7 @@ class TestTypeScriptIntegration:
 @pytest.mark.integration
 class TestTypeScriptErrorHandling:
     """Tests for SolidLspAdapter error handling with TypeScript.
-    
+
     Per AC05: SolidLspAdapter wraps SolidLSP with exception translation.
     """
 
@@ -276,7 +280,7 @@ class TestTypeScriptErrorHandling:
         self, config_service
     ):
         """RuntimeError raised when calling methods before initialize().
-        
+
         Why: Validates adapter enforces initialization lifecycle.
         Contract: get_references() on uninitialized adapter -> RuntimeError
         Quality Contribution: Catches lifecycle bugs early.
@@ -289,6 +293,4 @@ class TestTypeScriptErrorHandling:
         assert adapter.is_ready() is False
 
         with pytest.raises(RuntimeError, match="not initialized"):
-            adapter.get_references(
-                "packages/client/index.tsx", line=0, column=0
-            )
+            adapter.get_references("packages/client/index.tsx", line=0, column=0)

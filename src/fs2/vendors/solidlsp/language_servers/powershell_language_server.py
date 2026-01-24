@@ -60,8 +60,14 @@ class PowerShellLanguageServer(SolidLanguageServer):
         possible_paths: list[Path] = []
         if system == "Windows":
             possible_paths = [
-                Path(os.environ.get("PROGRAMFILES", "C:\\Program Files")) / "PowerShell" / "7" / "pwsh.exe",
-                Path(os.environ.get("PROGRAMFILES", "C:\\Program Files")) / "PowerShell" / "7-preview" / "pwsh.exe",
+                Path(os.environ.get("PROGRAMFILES", "C:\\Program Files"))
+                / "PowerShell"
+                / "7"
+                / "pwsh.exe",
+                Path(os.environ.get("PROGRAMFILES", "C:\\Program Files"))
+                / "PowerShell"
+                / "7-preview"
+                / "pwsh.exe",
                 home / "AppData" / "Local" / "Microsoft" / "PowerShell" / "pwsh.exe",
             ]
         elif system == "Darwin":
@@ -88,7 +94,9 @@ class PowerShellLanguageServer(SolidLanguageServer):
     def _get_pses_path(cls, solidlsp_settings: SolidLSPSettings) -> str | None:
         """Get the path to PowerShell Editor Services installation."""
         install_dir = Path(cls.ls_resources_dir(solidlsp_settings)) / "powershell"
-        start_script = install_dir / "PowerShellEditorServices" / "Start-EditorServices.ps1"
+        start_script = (
+            install_dir / "PowerShellEditorServices" / "Start-EditorServices.ps1"
+        )
 
         if start_script.exists():
             return str(start_script)
@@ -98,9 +106,7 @@ class PowerShellLanguageServer(SolidLanguageServer):
     @classmethod
     def _download_pses(cls, solidlsp_settings: SolidLSPSettings) -> str:
         """Download and install PowerShell Editor Services."""
-        download_url = (
-            f"https://github.com/PowerShell/PowerShellEditorServices/releases/download/v{PSES_VERSION}/PowerShellEditorServices.zip"
-        )
+        download_url = f"https://github.com/PowerShell/PowerShellEditorServices/releases/download/v{PSES_VERSION}/PowerShellEditorServices.zip"
 
         # Create installation directory
         install_dir = Path(cls.ls_resources_dir(solidlsp_settings)) / "powershell"
@@ -124,15 +130,21 @@ class PowerShellLanguageServer(SolidLanguageServer):
         # Clean up zip file
         zip_path.unlink()
 
-        start_script = install_dir / "PowerShellEditorServices" / "Start-EditorServices.ps1"
+        start_script = (
+            install_dir / "PowerShellEditorServices" / "Start-EditorServices.ps1"
+        )
         if not start_script.exists():
-            raise RuntimeError(f"Failed to find Start-EditorServices.ps1 after extraction at {start_script}")
+            raise RuntimeError(
+                f"Failed to find Start-EditorServices.ps1 after extraction at {start_script}"
+            )
 
         log.info(f"PowerShell Editor Services installed at: {install_dir}")
         return str(start_script)
 
     @classmethod
-    def _setup_runtime_dependency(cls, solidlsp_settings: SolidLSPSettings) -> tuple[str, str, str]:
+    def _setup_runtime_dependency(
+        cls, solidlsp_settings: SolidLSPSettings
+    ) -> tuple[str, str, str]:
         """
         Check if required PowerShell runtime dependencies are available.
         Downloads PowerShell Editor Services if not present.
@@ -160,8 +172,15 @@ class PowerShellLanguageServer(SolidLanguageServer):
 
         return pwsh_path, pses_path, bundled_modules_path
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
-        pwsh_path, pses_path, bundled_modules_path = self._setup_runtime_dependency(solidlsp_settings)
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
+        pwsh_path, pses_path, bundled_modules_path = self._setup_runtime_dependency(
+            solidlsp_settings
+        )
 
         # Create a temp directory for PSES logs and session details
         pses_temp_dir = Path(tempfile.gettempdir()) / "solidlsp_pses"
@@ -228,7 +247,10 @@ class PowerShellLanguageServer(SolidLanguageServer):
                         "hierarchicalDocumentSymbolSupport": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "signatureHelp": {
                         "dynamicRegistration": True,
                         "signatureInformation": {
@@ -302,9 +324,13 @@ class PowerShellLanguageServer(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
-        log.info(f"Received initialize response from PowerShell server: {init_response}")
+        log.info(
+            f"Received initialize response from PowerShell server: {init_response}"
+        )
 
         # Verify server capabilities - PSES uses dynamic capability registration
         # so we check for either static or dynamic capabilities

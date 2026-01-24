@@ -47,7 +47,9 @@ class RustAnalyzer(SolidLanguageServer):
     def _get_rustup_version() -> str | None:
         """Get installed rustup version or None if not found."""
         try:
-            result = subprocess.run(["rustup", "--version"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["rustup", "--version"], capture_output=True, text=True, check=False
+            )
             if result.returncode == 0:
                 return result.stdout.strip()
         except FileNotFoundError:
@@ -58,7 +60,12 @@ class RustAnalyzer(SolidLanguageServer):
     def _get_rust_analyzer_via_rustup() -> str | None:
         """Get rust-analyzer path via rustup. Returns None if not found."""
         try:
-            result = subprocess.run(["rustup", "which", "rust-analyzer"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["rustup", "which", "rust-analyzer"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
             if result.returncode == 0:
                 return result.stdout.strip()
         except FileNotFoundError:
@@ -86,7 +93,12 @@ class RustAnalyzer(SolidLanguageServer):
         # If rustup is available but rust-analyzer not installed, auto-install it BEFORE
         # checking common paths. This ensures we get the correct version matching the toolchain.
         if RustAnalyzer._get_rustup_version():
-            result = subprocess.run(["rustup", "component", "add", "rust-analyzer"], check=False, capture_output=True, text=True)
+            result = subprocess.run(
+                ["rustup", "component", "add", "rust-analyzer"],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
             if result.returncode == 0:
                 # Verify installation worked
                 rustup_path = RustAnalyzer._get_rust_analyzer_via_rustup()
@@ -106,11 +118,25 @@ class RustAnalyzer(SolidLanguageServer):
             home = pathlib.Path.home()
             common_paths.extend(
                 [
-                    str(home / ".cargo" / "bin" / binary_name),  # cargo install / rustup
-                    str(home / "scoop" / "shims" / binary_name),  # Scoop package manager
-                    str(home / "scoop" / "apps" / "rust-analyzer" / "current" / binary_name),  # Scoop direct
                     str(
-                        pathlib.Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "rust-analyzer" / binary_name
+                        home / ".cargo" / "bin" / binary_name
+                    ),  # cargo install / rustup
+                    str(
+                        home / "scoop" / "shims" / binary_name
+                    ),  # Scoop package manager
+                    str(
+                        home
+                        / "scoop"
+                        / "apps"
+                        / "rust-analyzer"
+                        / "current"
+                        / binary_name
+                    ),  # Scoop direct
+                    str(
+                        pathlib.Path(os.environ.get("LOCALAPPDATA", ""))
+                        / "Programs"
+                        / "rust-analyzer"
+                        / binary_name
                     ),  # Standalone install
                 ]
             )
@@ -131,7 +157,11 @@ class RustAnalyzer(SolidLanguageServer):
 
         # Last resort: check system PATH (can pick up incorrect aliases, hence checked last)
         path_result = shutil.which("rust-analyzer")
-        if path_result and os.path.isfile(path_result) and os.access(path_result, os.X_OK):
+        if (
+            path_result
+            and os.path.isfile(path_result)
+            and os.access(path_result, os.X_OK)
+        ):
             return path_result
 
         # Provide helpful error message with all searched locations
@@ -162,7 +192,12 @@ class RustAnalyzer(SolidLanguageServer):
             "Please install rust-analyzer via:\n" + "\n".join(install_instructions)
         )
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a RustAnalyzer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
@@ -172,7 +207,9 @@ class RustAnalyzer(SolidLanguageServer):
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=rustanalyzer_executable_path, cwd=repository_root_path),
+            ProcessLaunchInfo(
+                cmd=rustanalyzer_executable_path, cwd=repository_root_path
+            ),
             "rust",
             solidlsp_settings,
         )
@@ -192,7 +229,10 @@ class RustAnalyzer(SolidLanguageServer):
         """
         root_uri = pathlib.Path(repository_absolute_path).as_uri()
         initialize_params = {
-            "clientInfo": {"name": "Visual Studio Code - Insiders", "version": "1.82.0-insider"},
+            "clientInfo": {
+                "name": "Visual Studio Code - Insiders",
+                "version": "1.82.0-insider",
+            },
             "locale": "en",
             "capabilities": {
                 "workspace": {
@@ -205,7 +245,10 @@ class RustAnalyzer(SolidLanguageServer):
                         "changeAnnotationSupport": {"groupsOnLabel": True},
                     },
                     "configuration": True,
-                    "didChangeWatchedFiles": {"dynamicRegistration": True, "relativePatternSupport": True},
+                    "didChangeWatchedFiles": {
+                        "dynamicRegistration": True,
+                        "relativePatternSupport": True,
+                    },
                     "symbol": {
                         "dynamicRegistration": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
@@ -238,7 +281,12 @@ class RustAnalyzer(SolidLanguageServer):
                         "codeDescriptionSupport": True,
                         "dataSupport": True,
                     },
-                    "synchronization": {"dynamicRegistration": True, "willSave": True, "willSaveWaitUntil": True, "didSave": True},
+                    "synchronization": {
+                        "dynamicRegistration": True,
+                        "willSave": True,
+                        "willSaveWaitUntil": True,
+                        "didSave": True,
+                    },
                     "completion": {
                         "dynamicRegistration": True,
                         "contextSupport": True,
@@ -250,17 +298,58 @@ class RustAnalyzer(SolidLanguageServer):
                             "preselectSupport": True,
                             "tagSupport": {"valueSet": [1]},
                             "insertReplaceSupport": True,
-                            "resolveSupport": {"properties": ["documentation", "detail", "additionalTextEdits"]},
+                            "resolveSupport": {
+                                "properties": [
+                                    "documentation",
+                                    "detail",
+                                    "additionalTextEdits",
+                                ]
+                            },
                             "insertTextModeSupport": {"valueSet": [1, 2]},
                             "labelDetailsSupport": True,
                         },
                         "insertTextMode": 2,
                         "completionItemKind": {
-                            "valueSet": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+                            "valueSet": [
+                                1,
+                                2,
+                                3,
+                                4,
+                                5,
+                                6,
+                                7,
+                                8,
+                                9,
+                                10,
+                                11,
+                                12,
+                                13,
+                                14,
+                                16,
+                                17,
+                                18,
+                                19,
+                                20,
+                                21,
+                                22,
+                                23,
+                                24,
+                                25,
+                            ]
                         },
-                        "completionList": {"itemDefaults": ["commitCharacters", "editRange", "insertTextFormat", "insertTextMode"]},
+                        "completionList": {
+                            "itemDefaults": [
+                                "commitCharacters",
+                                "editRange",
+                                "insertTextFormat",
+                                "insertTextMode",
+                            ]
+                        },
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "signatureHelp": {
                         "dynamicRegistration": True,
                         "signatureInformation": {
@@ -312,15 +401,26 @@ class RustAnalyzer(SolidLanguageServer):
                         "prepareSupportDefaultBehavior": 1,
                         "honorsChangeAnnotations": True,
                     },
-                    "documentLink": {"dynamicRegistration": True, "tooltipSupport": True},
-                    "typeDefinition": {"dynamicRegistration": True, "linkSupport": True},
-                    "implementation": {"dynamicRegistration": True, "linkSupport": True},
+                    "documentLink": {
+                        "dynamicRegistration": True,
+                        "tooltipSupport": True,
+                    },
+                    "typeDefinition": {
+                        "dynamicRegistration": True,
+                        "linkSupport": True,
+                    },
+                    "implementation": {
+                        "dynamicRegistration": True,
+                        "linkSupport": True,
+                    },
                     "colorProvider": {"dynamicRegistration": True},
                     "foldingRange": {
                         "dynamicRegistration": True,
                         "rangeLimit": 5000,
                         "lineFoldingOnly": True,
-                        "foldingRangeKind": {"valueSet": ["comment", "imports", "region"]},
+                        "foldingRangeKind": {
+                            "valueSet": ["comment", "imports", "region"]
+                        },
                         "foldingRange": {"collapsedText": False},
                     },
                     "declaration": {"dynamicRegistration": True, "linkSupport": True},
@@ -377,12 +477,25 @@ class RustAnalyzer(SolidLanguageServer):
                     "inlineValue": {"dynamicRegistration": True},
                     "inlayHint": {
                         "dynamicRegistration": True,
-                        "resolveSupport": {"properties": ["tooltip", "textEdits", "label.tooltip", "label.location", "label.command"]},
+                        "resolveSupport": {
+                            "properties": [
+                                "tooltip",
+                                "textEdits",
+                                "label.tooltip",
+                                "label.location",
+                                "label.command",
+                            ]
+                        },
                     },
-                    "diagnostic": {"dynamicRegistration": True, "relatedDocumentSupport": False},
+                    "diagnostic": {
+                        "dynamicRegistration": True,
+                        "relatedDocumentSupport": False,
+                    },
                 },
                 "window": {
-                    "showMessage": {"messageActionItem": {"additionalPropertiesSupport": True}},
+                    "showMessage": {
+                        "messageActionItem": {"additionalPropertiesSupport": True}
+                    },
                     "showDocument": {"support": True},
                     "workDoneProgress": True,
                 },
@@ -432,7 +545,12 @@ class RustAnalyzer(SolidLanguageServer):
                     },
                     "positionEncodings": ["utf-16"],
                 },
-                "notebookDocument": {"synchronization": {"dynamicRegistration": True, "executionSummarySupport": True}},
+                "notebookDocument": {
+                    "synchronization": {
+                        "dynamicRegistration": True,
+                        "executionSummarySupport": True,
+                    }
+                },
                 "experimental": {
                     "snippetTextEdit": True,
                     "codeActionGroup": True,
@@ -454,18 +572,28 @@ class RustAnalyzer(SolidLanguageServer):
             },
             "initializationOptions": {
                 "cargoRunner": None,
-                "runnables": {"extraEnv": None, "problemMatcher": ["$rustc"], "command": None, "extraArgs": []},
+                "runnables": {
+                    "extraEnv": None,
+                    "problemMatcher": ["$rustc"],
+                    "command": None,
+                    "extraArgs": [],
+                },
                 "statusBar": {"clickAction": "openLogs"},
                 "server": {"path": None, "extraEnv": None},
                 "trace": {"server": "verbose", "extension": False},
                 "debug": {
                     "engine": "auto",
-                    "sourceFileMap": {"/rustc/<id>": "${env:USERPROFILE}/.rustup/toolchains/<toolchain-id>/lib/rustlib/src/rust"},
+                    "sourceFileMap": {
+                        "/rustc/<id>": "${env:USERPROFILE}/.rustup/toolchains/<toolchain-id>/lib/rustlib/src/rust"
+                    },
                     "openDebugPane": False,
                     "engineSettings": {},
                 },
                 "restartServerOnConfigChange": False,
-                "typing": {"continueCommentsOnNewline": True, "autoClosingAngleBrackets": {"enable": False}},
+                "typing": {
+                    "continueCommentsOnNewline": True,
+                    "autoClosingAngleBrackets": {"enable": False},
+                },
                 "diagnostics": {
                     "previewRustcOutput": False,
                     "useRustcErrorCode": False,
@@ -585,7 +713,13 @@ class RustAnalyzer(SolidLanguageServer):
                     },
                     "documentation": {"enable": True, "keywords": {"enable": True}},
                     "links": {"enable": True},
-                    "memoryLayout": {"alignment": "hexadecimal", "enable": True, "niches": False, "offset": "hexadecimal", "size": "both"},
+                    "memoryLayout": {
+                        "alignment": "hexadecimal",
+                        "enable": True,
+                        "niches": False,
+                        "offset": "hexadecimal",
+                        "size": "both",
+                    },
                 },
                 "imports": {
                     "granularity": {"enforce": False, "group": "crate"},
@@ -603,16 +737,32 @@ class RustAnalyzer(SolidLanguageServer):
                     "closureReturnTypeHints": {"enable": "never"},
                     "closureStyle": "impl_fn",
                     "discriminantHints": {"enable": "never"},
-                    "expressionAdjustmentHints": {"enable": "never", "hideOutsideUnsafe": False, "mode": "prefix"},
-                    "lifetimeElisionHints": {"enable": "never", "useParameterNames": False},
+                    "expressionAdjustmentHints": {
+                        "enable": "never",
+                        "hideOutsideUnsafe": False,
+                        "mode": "prefix",
+                    },
+                    "lifetimeElisionHints": {
+                        "enable": "never",
+                        "useParameterNames": False,
+                    },
                     "maxLength": 25,
                     "parameterHints": {"enable": True},
                     "reborrowHints": {"enable": "never"},
                     "renderColons": True,
-                    "typeHints": {"enable": True, "hideClosureInitialization": False, "hideNamedConstructor": False},
+                    "typeHints": {
+                        "enable": True,
+                        "hideClosureInitialization": False,
+                        "hideNamedConstructor": False,
+                    },
                 },
                 "interpret": {"tests": False},
-                "joinLines": {"joinAssignments": True, "joinElseIf": True, "removeTrailingComma": True, "unwrapTrivialBlock": True},
+                "joinLines": {
+                    "joinAssignments": True,
+                    "joinElseIf": True,
+                    "removeTrailingComma": True,
+                    "unwrapTrivialBlock": True,
+                },
                 "lens": {
                     "debug": {"enable": True},
                     "enable": True,
@@ -631,20 +781,41 @@ class RustAnalyzer(SolidLanguageServer):
                 "lru": {"capacity": None, "query": {"capacities": {}}},
                 "notifications": {"cargoTomlNotFound": True},
                 "numThreads": None,
-                "procMacro": {"attributes": {"enable": True}, "enable": True, "ignored": {}, "server": None},
+                "procMacro": {
+                    "attributes": {"enable": True},
+                    "enable": True,
+                    "ignored": {},
+                    "server": None,
+                },
                 "references": {"excludeImports": False},
                 "rust": {"analyzerTargetDir": None},
                 "rustc": {"source": None},
-                "rustfmt": {"extraArgs": [], "overrideCommand": None, "rangeFormatting": {"enable": False}},
+                "rustfmt": {
+                    "extraArgs": [],
+                    "overrideCommand": None,
+                    "rangeFormatting": {"enable": False},
+                },
                 "semanticHighlighting": {
                     "doc": {"comment": {"inject": {"enable": True}}},
                     "nonStandardTokens": True,
                     "operator": {"enable": True, "specialization": {"enable": False}},
-                    "punctuation": {"enable": False, "separate": {"macro": {"bang": False}}, "specialization": {"enable": False}},
+                    "punctuation": {
+                        "enable": False,
+                        "separate": {"macro": {"bang": False}},
+                        "specialization": {"enable": False},
+                    },
                     "strings": {"enable": True},
                 },
                 "signatureInfo": {"detail": "full", "documentation": {"enable": True}},
-                "workspace": {"symbol": {"search": {"kind": "only_types", "limit": 128, "scope": "workspace"}}},
+                "workspace": {
+                    "symbol": {
+                        "search": {
+                            "kind": "only_types",
+                            "limit": 128,
+                            "scope": "workspace",
+                        }
+                    }
+                },
             },
             "trace": "verbose",
             "processId": os.getpid(),
@@ -695,17 +866,23 @@ class RustAnalyzer(SolidLanguageServer):
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("language/status", lang_status_handler)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
-        self.server.on_notification("experimental/serverStatus", check_experimental_status)
+        self.server.on_notification(
+            "experimental/serverStatus", check_experimental_status
+        )
 
         log.info("Starting RustAnalyzer server process")
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
         assert init_response["capabilities"]["textDocumentSync"]["change"] == 2  # type: ignore
         assert "completionProvider" in init_response["capabilities"]

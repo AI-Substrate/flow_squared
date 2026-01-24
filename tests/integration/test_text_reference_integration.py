@@ -60,7 +60,9 @@ class TestTextReferenceIntegration:
         # 10. class:src/fs2/core/adapters/log_adapter.py:LogAdapter
         # 11. method:src/fs2/core/repos/graph_store_impl.py:NetworkXGraphStore.save
 
-        assert len(edges) >= 11, f"Expected at least 11 node_id patterns, got {len(edges)}"
+        assert len(edges) >= 11, (
+            f"Expected at least 11 node_id patterns, got {len(edges)}"
+        )
 
         # Validate all are REFERENCES type with confidence 1.0
         for edge in edges:

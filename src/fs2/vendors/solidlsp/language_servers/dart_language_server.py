@@ -19,13 +19,22 @@ class DartLanguageServer(SolidLanguageServer):
     Provides Dart specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Dart.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings) -> None:
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ) -> None:
         """
         Creates a DartServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
         executable_path = self._setup_runtime_dependencies(solidlsp_settings)
         super().__init__(
-            config, repository_root_path, ProcessLaunchInfo(cmd=executable_path, cwd=repository_root_path), "dart", solidlsp_settings
+            config,
+            repository_root_path,
+            ProcessLaunchInfo(cmd=executable_path, cwd=repository_root_path),
+            "dart",
+            solidlsp_settings,
         )
 
     @classmethod
@@ -135,17 +144,23 @@ class DartLanguageServer(SolidLanguageServer):
         self.server.on_request("client/registerCapability", do_nothing)
         self.server.on_notification("language/status", do_nothing)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
-        self.server.on_notification("experimental/serverStatus", check_experimental_status)
+        self.server.on_notification(
+            "experimental/serverStatus", check_experimental_status
+        )
 
         log.info("Starting dart-language-server server process")
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
         log.debug("Sending initialize request to dart-language-server")
         init_response = self.server.send_request("initialize", initialize_params)  # type: ignore
-        log.info(f"Received initialize response from dart-language-server: {init_response}")
+        log.info(
+            f"Received initialize response from dart-language-server: {init_response}"
+        )
 
         self.server.notify.initialized({})

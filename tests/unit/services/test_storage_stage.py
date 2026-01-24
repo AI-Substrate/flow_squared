@@ -539,7 +539,8 @@ class TestStorageStageRelationshipPersistence:
         # Verify add_relationship_edge was called for each edge
         # FakeGraphStore records these in call_history
         add_rel_calls = [
-            call for call in store.call_history
+            call
+            for call in store.call_history
             if call["method"] == "add_relationship_edge"
         ]
         assert len(add_rel_calls) == 2
@@ -577,7 +578,9 @@ class TestStorageStageRelationshipPersistence:
         assert len(outgoing) == 1
         assert outgoing[0]["node_id"] == "file:src/auth.py"
 
-    def test_given_empty_relationships_when_processing_then_no_relationship_edge_calls(self):
+    def test_given_empty_relationships_when_processing_then_no_relationship_edge_calls(
+        self,
+    ):
         """
         Purpose: Verifies empty relationships list doesn't cause errors.
         Quality Contribution: Edge case handling.
@@ -598,12 +601,15 @@ class TestStorageStageRelationshipPersistence:
 
         # No relationship edge calls
         add_rel_calls = [
-            call for call in store.call_history
+            call
+            for call in store.call_history
             if call["method"] == "add_relationship_edge"
         ]
         assert len(add_rel_calls) == 0
 
-    def test_given_relationships_none_when_processing_then_no_relationship_edge_calls(self):
+    def test_given_relationships_none_when_processing_then_no_relationship_edge_calls(
+        self,
+    ):
         """
         Purpose: Verifies None relationships doesn't cause errors.
         Quality Contribution: Backwards compatibility with pre-Phase 8 code.
@@ -624,7 +630,8 @@ class TestStorageStageRelationshipPersistence:
 
         # No relationship edge calls
         add_rel_calls = [
-            call for call in store.call_history
+            call
+            for call in store.call_history
             if call["method"] == "add_relationship_edge"
         ]
         assert len(add_rel_calls) == 0

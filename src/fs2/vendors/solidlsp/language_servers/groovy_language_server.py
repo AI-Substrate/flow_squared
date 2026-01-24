@@ -36,7 +36,12 @@ class GroovyLanguageServer(SolidLanguageServer):
     Contains various configurations and settings specific to Groovy.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a Groovy Language Server instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
@@ -47,14 +52,22 @@ class GroovyLanguageServer(SolidLanguageServer):
         ls_jar_options = []
 
         if solidlsp_settings.ls_specific_settings:
-            groovy_settings = solidlsp_settings.get_ls_specific_settings(Language.GROOVY)
+            groovy_settings = solidlsp_settings.get_ls_specific_settings(
+                Language.GROOVY
+            )
             jar_options_str = groovy_settings.get("ls_jar_options", "")
             if jar_options_str:
                 ls_jar_options = shlex.split(jar_options_str)
-                log.info(f"Using Groovy LS JAR options from configuration: {jar_options_str}")
+                log.info(
+                    f"Using Groovy LS JAR options from configuration: {jar_options_str}"
+                )
 
         # Create command to execute the Groovy Language Server
-        cmd = [self.runtime_dependency_paths.java_path, "-jar", self.runtime_dependency_paths.ls_jar_path]
+        cmd = [
+            self.runtime_dependency_paths.java_path,
+            "-jar",
+            self.runtime_dependency_paths.ls_jar_path,
+        ]
         cmd.extend(ls_jar_options)
 
         # Set environment variables including JAVA_HOME
@@ -71,7 +84,9 @@ class GroovyLanguageServer(SolidLanguageServer):
         log.info(f"Starting Groovy Language Server with jar options: {ls_jar_options}")
 
     @classmethod
-    def _setup_runtime_dependencies(cls, solidlsp_settings: SolidLSPSettings) -> GroovyRuntimeDependencyPaths:
+    def _setup_runtime_dependencies(
+        cls, solidlsp_settings: SolidLSPSettings
+    ) -> GroovyRuntimeDependencyPaths:
         """
         Setup runtime dependencies for Groovy Language Server and return paths.
         """
@@ -79,18 +94,26 @@ class GroovyLanguageServer(SolidLanguageServer):
 
         # Verify platform support
         assert (
-            platform_id.value.startswith("win-") or platform_id.value.startswith("linux-") or platform_id.value.startswith("osx-")
-        ), "Only Windows, Linux and macOS platforms are supported for Groovy in multilspy at the moment"
+            platform_id.value.startswith("win-")
+            or platform_id.value.startswith("linux-")
+            or platform_id.value.startswith("osx-")
+        ), (
+            "Only Windows, Linux and macOS platforms are supported for Groovy in multilspy at the moment"
+        )
 
         # Check if user specified custom Java home path
         java_home_path = None
         java_path = None
 
         if solidlsp_settings and solidlsp_settings.ls_specific_settings:
-            groovy_settings = solidlsp_settings.get_ls_specific_settings(Language.GROOVY)
+            groovy_settings = solidlsp_settings.get_ls_specific_settings(
+                Language.GROOVY
+            )
             custom_java_home = groovy_settings.get("ls_java_home_path")
             if custom_java_home:
-                log.info(f"Using custom Java home path from configuration: {custom_java_home}")
+                log.info(
+                    f"Using custom Java home path from configuration: {custom_java_home}"
+                )
                 java_home_path = custom_java_home
 
                 # Determine java executable path based on platform
@@ -139,7 +162,9 @@ class GroovyLanguageServer(SolidLanguageServer):
 
             java_dependency = runtime_dependencies["java"][platform_id.value]
 
-            static_dir = os.path.join(cls.ls_resources_dir(solidlsp_settings), "groovy_language_server")
+            static_dir = os.path.join(
+                cls.ls_resources_dir(solidlsp_settings), "groovy_language_server"
+            )
             os.makedirs(static_dir, exist_ok=True)
 
             java_dir = os.path.join(static_dir, "java")
@@ -150,16 +175,22 @@ class GroovyLanguageServer(SolidLanguageServer):
 
             if not os.path.exists(java_path):
                 log.info(f"Downloading Java for {platform_id.value}...")
-                FileUtils.download_and_extract_archive(java_dependency["url"], java_dir, java_dependency["archiveType"])
+                FileUtils.download_and_extract_archive(
+                    java_dependency["url"], java_dir, java_dependency["archiveType"]
+                )
 
                 if not platform_id.value.startswith("win-"):
                     os.chmod(java_path, 0o755)
 
-        assert java_path and os.path.exists(java_path), f"Java executable not found at {java_path}"
+        assert java_path and os.path.exists(java_path), (
+            f"Java executable not found at {java_path}"
+        )
 
         ls_jar_path = cls._find_groovy_ls_jar(solidlsp_settings)
 
-        return GroovyRuntimeDependencyPaths(java_path=java_path, java_home_path=java_home_path, ls_jar_path=ls_jar_path)
+        return GroovyRuntimeDependencyPaths(
+            java_path=java_path, java_home_path=java_home_path, ls_jar_path=ls_jar_path
+        )
 
     @classmethod
     def _find_groovy_ls_jar(cls, solidlsp_settings: SolidLSPSettings) -> str:
@@ -167,7 +198,9 @@ class GroovyLanguageServer(SolidLanguageServer):
         Find Groovy Language Server JAR file
         """
         if solidlsp_settings and solidlsp_settings.ls_specific_settings:
-            groovy_settings = solidlsp_settings.get_ls_specific_settings(Language.GROOVY)
+            groovy_settings = solidlsp_settings.get_ls_specific_settings(
+                Language.GROOVY
+            )
             config_jar_path = groovy_settings.get("ls_jar_path")
             if config_jar_path and os.path.exists(config_jar_path):
                 log.info(f"Using Groovy LS JAR from configuration: {config_jar_path}")
@@ -200,7 +233,10 @@ class GroovyLanguageServer(SolidLanguageServer):
                 "textDocument": {
                     "synchronization": {"dynamicRegistration": True, "didSave": True},
                     "completion": {"dynamicRegistration": True},
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "definition": {"dynamicRegistration": True},
                     "references": {"dynamicRegistration": True},
                     "documentSymbol": {"dynamicRegistration": True},
@@ -248,7 +284,9 @@ class GroovyLanguageServer(SolidLanguageServer):
         self.server.on_request("client/registerCapability", do_nothing)
         self.server.on_notification("language/status", do_nothing)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
@@ -257,18 +295,34 @@ class GroovyLanguageServer(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
 
         capabilities = init_response["capabilities"]
-        assert "textDocumentSync" in capabilities, "Server must support textDocumentSync"
+        assert "textDocumentSync" in capabilities, (
+            "Server must support textDocumentSync"
+        )
         assert "hoverProvider" in capabilities, "Server must support hover"
-        assert "completionProvider" in capabilities, "Server must support code completion"
-        assert "signatureHelpProvider" in capabilities, "Server must support signature help"
-        assert "definitionProvider" in capabilities, "Server must support go to definition"
-        assert "referencesProvider" in capabilities, "Server must support find references"
-        assert "documentSymbolProvider" in capabilities, "Server must support document symbols"
-        assert "workspaceSymbolProvider" in capabilities, "Server must support workspace symbols"
+        assert "completionProvider" in capabilities, (
+            "Server must support code completion"
+        )
+        assert "signatureHelpProvider" in capabilities, (
+            "Server must support signature help"
+        )
+        assert "definitionProvider" in capabilities, (
+            "Server must support go to definition"
+        )
+        assert "referencesProvider" in capabilities, (
+            "Server must support find references"
+        )
+        assert "documentSymbolProvider" in capabilities, (
+            "Server must support document symbols"
+        )
+        assert "workspaceSymbolProvider" in capabilities, (
+            "Server must support workspace symbols"
+        )
 
         self.server.notify.initialized({})
         self.completions_available.set()

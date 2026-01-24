@@ -38,10 +38,19 @@ class ElixirTools(SolidLanguageServer):
         # - .elixir_ls: ElixirLS artifacts (in case both are present)
         # - cover: coverage reports
         # - .expert: Expert artifacts
-        return super().is_ignored_dirname(dirname) or dirname in ["_build", "deps", "node_modules", ".elixir_ls", ".expert", "cover"]
+        return super().is_ignored_dirname(dirname) or dirname in [
+            "_build",
+            "deps",
+            "node_modules",
+            ".elixir_ls",
+            ".expert",
+            "cover",
+        ]
 
     @override
-    def is_ignored_path(self, relative_path: str, ignore_unsupported_files: bool = True) -> bool:
+    def is_ignored_path(
+        self, relative_path: str, ignore_unsupported_files: bool = True
+    ) -> bool:
         """Check if a path should be ignored for symbol indexing."""
         if relative_path.endswith("mix.exs"):
             # These are project configuration files, not source code with symbols to index
@@ -53,7 +62,9 @@ class ElixirTools(SolidLanguageServer):
     def _get_elixir_version(cls) -> str | None:
         """Get the installed Elixir version or None if not found."""
         try:
-            result = subprocess.run(["elixir", "--version"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["elixir", "--version"], capture_output=True, text=True, check=False
+            )
             if result.returncode == 0:
                 return result.stdout.strip()
         except FileNotFoundError:
@@ -61,7 +72,9 @@ class ElixirTools(SolidLanguageServer):
         return None
 
     @classmethod
-    def _setup_runtime_dependencies(cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings) -> str:
+    def _setup_runtime_dependencies(
+        cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
+    ) -> str:
         """
         Setup runtime dependencies for Expert.
         Downloads the Expert binary for the current platform and returns the path to the executable.
@@ -93,7 +106,9 @@ class ElixirTools(SolidLanguageServer):
             PlatformId.WIN_x64,
             PlatformId.WIN_arm64,
         ]
-        assert platform_id in valid_platforms, f"Platform {platform_id} is not supported for Expert at the moment"
+        assert platform_id in valid_platforms, (
+            f"Platform {platform_id} is not supported for Expert at the moment"
+        )
 
         expert_dir = os.path.join(cls.ls_resources_dir(solidlsp_settings), "expert")
 
@@ -153,7 +168,9 @@ class ElixirTools(SolidLanguageServer):
 
         dependency = runtime_deps[platform_id]
         # On Windows, use .exe extension
-        executable_name = "expert.exe" if platform_id.value.startswith("win") else "expert"
+        executable_name = (
+            "expert.exe" if platform_id.value.startswith("win") else "expert"
+        )
         executable_path = os.path.join(expert_dir, executable_name)
         assert dependency.binary_name is not None
         binary_path = os.path.join(expert_dir, dependency.binary_name)
@@ -165,26 +182,46 @@ class ElixirTools(SolidLanguageServer):
 
             # Make the binary executable on Unix-like systems
             if not platform_id.value.startswith("win"):
-                os.chmod(binary_path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+                os.chmod(
+                    binary_path,
+                    stat.S_IRWXU
+                    | stat.S_IRGRP
+                    | stat.S_IXGRP
+                    | stat.S_IROTH
+                    | stat.S_IXOTH,
+                )
 
             # Create a symlink with the expected name on Unix-like systems
-            if binary_path != executable_path and not platform_id.value.startswith("win"):
+            if binary_path != executable_path and not platform_id.value.startswith(
+                "win"
+            ):
                 if os.path.exists(executable_path):
                     os.remove(executable_path)
                 os.symlink(os.path.basename(binary_path), executable_path)
 
-        assert os.path.exists(executable_path), f"Expert executable not found at {executable_path}"
+        assert os.path.exists(executable_path), (
+            f"Expert executable not found at {executable_path}"
+        )
 
         log.info(f"Expert binary ready at: {executable_path}")
         return executable_path
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
-        expert_executable_path = self._setup_runtime_dependencies(config, solidlsp_settings)
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
+        expert_executable_path = self._setup_runtime_dependencies(
+            config, solidlsp_settings
+        )
 
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=f"{expert_executable_path} --stdio", cwd=repository_root_path),
+            ProcessLaunchInfo(
+                cmd=f"{expert_executable_path} --stdio", cwd=repository_root_path
+            ),
             "elixir",
             solidlsp_settings,
         )
@@ -218,7 +255,10 @@ class ElixirTools(SolidLanguageServer):
                     "synchronization": {"didSave": True, "dynamicRegistration": True},
                     "completion": {
                         "dynamicRegistration": True,
-                        "completionItem": {"snippetSupport": True, "documentationFormat": ["markdown", "plaintext"]},
+                        "completionItem": {
+                            "snippetSupport": True,
+                            "documentationFormat": ["markdown", "plaintext"],
+                        },
                     },
                     "definition": {"dynamicRegistration": True},
                     "references": {"dynamicRegistration": True},
@@ -227,7 +267,10 @@ class ElixirTools(SolidLanguageServer):
                         "hierarchicalDocumentSymbolSupport": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "formatting": {"dynamicRegistration": True},
                     "codeAction": {
                         "dynamicRegistration": True,
@@ -252,12 +295,16 @@ class ElixirTools(SolidLanguageServer):
                     "executeCommand": {"dynamicRegistration": True},
                 },
                 "window": {
-                    "showMessage": {"messageActionItem": {"additionalPropertiesSupport": True}},
+                    "showMessage": {
+                        "messageActionItem": {"additionalPropertiesSupport": True}
+                    },
                     "showDocument": {"support": True},
                     "workDoneProgress": True,
                 },
             },
-            "workspaceFolders": [{"uri": root_uri, "name": os.path.basename(repository_absolute_path)}],
+            "workspaceFolders": [
+                {"uri": root_uri, "name": os.path.basename(repository_absolute_path)}
+            ],
         }
 
         return cast(InitializeParams, initialize_params)
@@ -294,7 +341,9 @@ class ElixirTools(SolidLanguageServer):
 
             if kind == "begin":
                 # Track when building the project starts (not "Building engine")
-                if title.startswith("Building ") and not title.startswith("Building engine"):
+                if title.startswith("Building ") and not title.startswith(
+                    "Building engine"
+                ):
                     self._building_project = True
             elif kind == "end":
                 # Project build completion is the main readiness signal
@@ -314,8 +363,12 @@ class ElixirTools(SolidLanguageServer):
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_notification("$/progress", check_server_ready)
-        self.server.on_request("window/workDoneProgress/create", work_done_progress_create)
-        self.server.on_notification("textDocument/publishDiagnostics", publish_diagnostics)
+        self.server.on_request(
+            "window/workDoneProgress/create", work_done_progress_create
+        )
+        self.server.on_notification(
+            "textDocument/publishDiagnostics", publish_diagnostics
+        )
 
         log.debug("Starting Expert server process")
         self.server.start()
@@ -325,7 +378,9 @@ class ElixirTools(SolidLanguageServer):
         init_response = self.server.send.initialize(initialize_params)
 
         # Verify basic server capabilities
-        assert "textDocumentSync" in init_response["capabilities"], f"Missing textDocumentSync in {init_response['capabilities']}"
+        assert "textDocumentSync" in init_response["capabilities"], (
+            f"Missing textDocumentSync in {init_response['capabilities']}"
+        )
 
         self.server.notify.initialized({})
         self.completions_available.set()
@@ -338,5 +393,7 @@ class ElixirTools(SolidLanguageServer):
         if self.server_ready.wait(timeout=ready_timeout):
             log.debug("Expert is ready for requests")
         else:
-            log.warning(f"Expert did not signal readiness within {ready_timeout}s. Proceeding with requests anyway.")
+            log.warning(
+                f"Expert did not signal readiness within {ready_timeout}s. Proceeding with requests anyway."
+            )
             self.server_ready.set()  # Mark as ready anyway to allow requests

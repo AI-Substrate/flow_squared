@@ -37,17 +37,14 @@ class RawFilenameDetector:
 
     # URL patterns to filter out before filename detection (DYK-6)
     # Matches: http://, https://, ftp://, file://, etc.
-    URL_PATTERN = re.compile(
-        r'\b(?:https?|ftp|file)://[^\s]+',
-        re.IGNORECASE
-    )
+    URL_PATTERN = re.compile(r"\b(?:https?|ftp|file)://[^\s]+", re.IGNORECASE)
 
     # Domain-like patterns: github.com, example.org, etc.
     # Prevents "github.com" → "github.c" false positive from 022
     DOMAIN_PATTERN = re.compile(
-        r'\b(?:[\w-]+\.)+(?:com|org|net|edu|gov|io|co|dev|app|ai|'
-        r'uk|de|fr|cn|ru|jp|au|ca|br|in|info|xyz|tech|me|tv)\b',
-        re.IGNORECASE
+        r"\b(?:[\w-]+\.)+(?:com|org|net|edu|gov|io|co|dev|app|ai|"
+        r"uk|de|fr|cn|ru|jp|au|ca|br|in|info|xyz|tech|me|tv)\b",
+        re.IGNORECASE,
     )
 
     # Raw filename pattern - detects filenames with code extensions
@@ -55,9 +52,9 @@ class RawFilenameDetector:
     # Note: Longer extensions (tsx, jsx, hpp, etc.) MUST come before shorter ones (ts, js, etc.)
     RAW_FILENAME_PATTERN = re.compile(
         r'([`"\'])?'  # Optional opening quote/backtick (group 1)
-        r'((?:[\w.-]+/)*[\w.-]+\.(?:tsx|jsx|hpp|cpp|bash|yaml|toml|graphql|proto|scss|sass|html|json|java|swift|scala|ts|js|py|go|rs|c|h|rb|kt|cs|php|lua|sh|zsh|yml|xml|css|sql|md))'  # Filename with path (group 2)
+        r"((?:[\w.-]+/)*[\w.-]+\.(?:tsx|jsx|hpp|cpp|bash|yaml|toml|graphql|proto|scss|sass|html|json|java|swift|scala|ts|js|py|go|rs|c|h|rb|kt|cs|php|lua|sh|zsh|yml|xml|css|sql|md))"  # Filename with path (group 2)
         r'([`"\'])?',  # Optional closing quote/backtick (group 3)
-        re.IGNORECASE
+        re.IGNORECASE,
     )
 
     def detect(self, source_file: str, content: str) -> list[CodeEdge]:
@@ -86,9 +83,11 @@ class RawFilenameDetector:
         """
         # Validate inputs
         if not isinstance(source_file, str):
-            raise TypeError(f'source_file must be string, got {type(source_file).__name__}')
+            raise TypeError(
+                f"source_file must be string, got {type(source_file).__name__}"
+            )
         if not isinstance(content, str):
-            raise TypeError(f'content must be string, got {type(content).__name__}')
+            raise TypeError(f"content must be string, got {type(content).__name__}")
 
         edges: list[CodeEdge] = []
 
@@ -97,14 +96,14 @@ class RawFilenameDetector:
         filtered_content = self._filter_urls(content)
 
         # Split into lines for line number tracking
-        lines = filtered_content.split('\n')
+        lines = filtered_content.split("\n")
 
         for line_num, filtered_line in enumerate(lines, start=1):
             # Find all filename patterns in this line
             for match in self.RAW_FILENAME_PATTERN.finditer(filtered_line):
-                opening_quote = match.group(1) or ''
+                opening_quote = match.group(1) or ""
                 filename = match.group(2)
-                closing_quote = match.group(3) or ''
+                closing_quote = match.group(3) or ""
 
                 # Determine confidence based on quoting
                 # Backticks/quotes suggest intentional code reference
@@ -142,9 +141,9 @@ class RawFilenameDetector:
             Content with URLs and domains replaced by spaces
         """
         # Replace URLs with spaces (preserve line structure)
-        filtered = self.URL_PATTERN.sub(lambda m: ' ' * len(m.group(0)), content)
+        filtered = self.URL_PATTERN.sub(lambda m: " " * len(m.group(0)), content)
 
         # Replace domains with spaces
-        filtered = self.DOMAIN_PATTERN.sub(lambda m: ' ' * len(m.group(0)), filtered)
+        filtered = self.DOMAIN_PATTERN.sub(lambda m: " " * len(m.group(0)), filtered)
 
         return filtered

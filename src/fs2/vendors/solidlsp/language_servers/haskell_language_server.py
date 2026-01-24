@@ -48,8 +48,15 @@ class HaskellLanguageServer(SolidLanguageServer):
                     if os.path.isdir(arch_path):
                         try:
                             for ghc_dir in os.listdir(arch_path):
-                                hls_path = os.path.join(arch_path, ghc_dir, "bin", "haskell-language-server-wrapper")
-                                if os.path.isfile(hls_path) and os.access(hls_path, os.X_OK):
+                                hls_path = os.path.join(
+                                    arch_path,
+                                    ghc_dir,
+                                    "bin",
+                                    "haskell-language-server-wrapper",
+                                )
+                                if os.path.isfile(hls_path) and os.access(
+                                    hls_path, os.X_OK
+                                ):
                                     common_paths.append(hls_path)
                         except (PermissionError, OSError):
                             # Skip directories we can't read
@@ -64,7 +71,9 @@ class HaskellLanguageServer(SolidLanguageServer):
 
         raise RuntimeError(
             "haskell-language-server-wrapper is not installed or not in PATH.\n"
-            "Searched locations:\n" + "\n".join(f"  - {p}" for p in common_paths if p) + "\n"
+            "Searched locations:\n"
+            + "\n".join(f"  - {p}" for p in common_paths if p)
+            + "\n"
             "Please install HLS via:\n"
             "  - GHCup: https://www.haskell.org/ghcup/\n"
             "  - Stack: stack install haskell-language-server\n"
@@ -72,7 +81,12 @@ class HaskellLanguageServer(SolidLanguageServer):
             "  - Homebrew (macOS): brew install haskell-language-server"
         )
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a HaskellLanguageServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
@@ -82,7 +96,8 @@ class HaskellLanguageServer(SolidLanguageServer):
         # Check if there's a haskell subdirectory with Stack/Cabal project
         haskell_subdir = os.path.join(repository_root_path, "haskell")
         if os.path.exists(haskell_subdir) and (
-            os.path.exists(os.path.join(haskell_subdir, "stack.yaml")) or os.path.exists(os.path.join(haskell_subdir, "cabal.project"))
+            os.path.exists(os.path.join(haskell_subdir, "stack.yaml"))
+            or os.path.exists(os.path.join(haskell_subdir, "cabal.project"))
         ):
             working_dir = haskell_subdir
             log.info(f"Using Haskell project directory: {working_dir}")
@@ -98,14 +113,23 @@ class HaskellLanguageServer(SolidLanguageServer):
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=[hls_executable_path, "--lsp", "--cwd", working_dir], cwd=working_dir, env=env),
+            ProcessLaunchInfo(
+                cmd=[hls_executable_path, "--lsp", "--cwd", working_dir],
+                cwd=working_dir,
+                env=env,
+            ),
             "haskell",
             solidlsp_settings,
         )
 
     @override
     def is_ignored_dirname(self, dirname: str) -> bool:
-        return super().is_ignored_dirname(dirname) or dirname in ["dist", "dist-newstyle", ".stack-work", ".cabal-sandbox"]
+        return super().is_ignored_dirname(dirname) or dirname in [
+            "dist",
+            "dist-newstyle",
+            ".stack-work",
+            ".cabal-sandbox",
+        ]
 
     @staticmethod
     def _get_initialize_params(repository_absolute_path: str) -> InitializeParams:
@@ -127,7 +151,10 @@ class HaskellLanguageServer(SolidLanguageServer):
                         "changeAnnotationSupport": {"groupsOnLabel": True},
                     },
                     "configuration": True,
-                    "didChangeWatchedFiles": {"dynamicRegistration": True, "relativePatternSupport": True},
+                    "didChangeWatchedFiles": {
+                        "dynamicRegistration": True,
+                        "relativePatternSupport": True,
+                    },
                     "symbol": {
                         "dynamicRegistration": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
@@ -147,7 +174,12 @@ class HaskellLanguageServer(SolidLanguageServer):
                         "codeDescriptionSupport": True,
                         "dataSupport": True,
                     },
-                    "synchronization": {"dynamicRegistration": True, "willSave": True, "willSaveWaitUntil": True, "didSave": True},
+                    "synchronization": {
+                        "dynamicRegistration": True,
+                        "willSave": True,
+                        "willSaveWaitUntil": True,
+                        "didSave": True,
+                    },
                     "completion": {
                         "dynamicRegistration": True,
                         "contextSupport": True,
@@ -159,16 +191,50 @@ class HaskellLanguageServer(SolidLanguageServer):
                             "preselectSupport": True,
                             "tagSupport": {"valueSet": [1]},
                             "insertReplaceSupport": True,
-                            "resolveSupport": {"properties": ["documentation", "detail", "additionalTextEdits"]},
+                            "resolveSupport": {
+                                "properties": [
+                                    "documentation",
+                                    "detail",
+                                    "additionalTextEdits",
+                                ]
+                            },
                             "insertTextModeSupport": {"valueSet": [1, 2]},
                             "labelDetailsSupport": True,
                         },
                         "insertTextMode": 2,
                         "completionItemKind": {
-                            "valueSet": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+                            "valueSet": [
+                                1,
+                                2,
+                                3,
+                                4,
+                                5,
+                                6,
+                                7,
+                                8,
+                                9,
+                                10,
+                                11,
+                                12,
+                                13,
+                                14,
+                                16,
+                                17,
+                                18,
+                                19,
+                                20,
+                                21,
+                                22,
+                                23,
+                                24,
+                                25,
+                            ]
                         },
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "signatureHelp": {
                         "dynamicRegistration": True,
                         "signatureInformation": {
@@ -219,15 +285,26 @@ class HaskellLanguageServer(SolidLanguageServer):
                         "prepareSupportDefaultBehavior": 1,
                         "honorsChangeAnnotations": True,
                     },
-                    "documentLink": {"dynamicRegistration": True, "tooltipSupport": True},
-                    "typeDefinition": {"dynamicRegistration": True, "linkSupport": True},
-                    "implementation": {"dynamicRegistration": True, "linkSupport": True},
+                    "documentLink": {
+                        "dynamicRegistration": True,
+                        "tooltipSupport": True,
+                    },
+                    "typeDefinition": {
+                        "dynamicRegistration": True,
+                        "linkSupport": True,
+                    },
+                    "implementation": {
+                        "dynamicRegistration": True,
+                        "linkSupport": True,
+                    },
                     "colorProvider": {"dynamicRegistration": True},
                     "foldingRange": {
                         "dynamicRegistration": True,
                         "rangeLimit": 5000,
                         "lineFoldingOnly": True,
-                        "foldingRangeKind": {"valueSet": ["comment", "imports", "region"]},
+                        "foldingRangeKind": {
+                            "valueSet": ["comment", "imports", "region"]
+                        },
                     },
                     "declaration": {"dynamicRegistration": True, "linkSupport": True},
                     "selectionRange": {"dynamicRegistration": True},
@@ -278,12 +355,17 @@ class HaskellLanguageServer(SolidLanguageServer):
                     "linkedEditingRange": {"dynamicRegistration": True},
                 },
                 "window": {
-                    "showMessage": {"messageActionItem": {"additionalPropertiesSupport": True}},
+                    "showMessage": {
+                        "messageActionItem": {"additionalPropertiesSupport": True}
+                    },
                     "showDocument": {"support": True},
                     "workDoneProgress": True,
                 },
                 "general": {
-                    "staleRequestSupport": {"cancel": True, "retryOnContentModified": []},
+                    "staleRequestSupport": {
+                        "cancel": True,
+                        "retryOnContentModified": [],
+                    },
                     "regularExpressions": {"engine": "ECMAScript", "version": "ES2020"},
                     "markdown": {
                         "parser": "marked",
@@ -338,7 +420,10 @@ class HaskellLanguageServer(SolidLanguageServer):
             haskell_config = {
                 "formattingProvider": "ormolu",
                 "checkProject": True,
-                "plugin": {"importLens": {"codeActionsOn": False, "codeLensOn": False}, "hlint": {"codeActionsOn": False}},
+                "plugin": {
+                    "importLens": {"codeActionsOn": False, "codeLensOn": False},
+                    "hlint": {"codeActionsOn": False},
+                },
             }
 
             # HLS expects array of config items matching requested sections
@@ -360,13 +445,17 @@ class HaskellLanguageServer(SolidLanguageServer):
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_request("client/registerCapability", register_capability_handler)
-        self.server.on_request("workspace/configuration", workspace_configuration_handler)
+        self.server.on_request(
+            "workspace/configuration", workspace_configuration_handler
+        )
 
         log.info("Starting Haskell Language Server process")
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
 
         # Log capabilities returned by HLS

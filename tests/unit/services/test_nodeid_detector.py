@@ -48,13 +48,17 @@ class TestNodeIdDetector:
         """
         detector = NodeIdDetector()
         source_file = "file:docs/api.md"
-        content = "The resolver is at `callable:src/lib/resolver.py:calculate_confidence`"
+        content = (
+            "The resolver is at `callable:src/lib/resolver.py:calculate_confidence`"
+        )
 
         edges = detector.detect(source_file, content)
 
         assert len(edges) == 1
         edge = edges[0]
-        assert edge.target_node_id == "callable:src/lib/resolver.py:calculate_confidence"
+        assert (
+            edge.target_node_id == "callable:src/lib/resolver.py:calculate_confidence"
+        )
         assert edge.confidence == 1.0
         assert edge.edge_type == EdgeType.REFERENCES
 
@@ -166,7 +170,10 @@ class TestNodeIdDetector:
         edges = detector.detect(source_file, content)
 
         assert len(edges) == 1
-        assert edges[0].target_node_id == "class:src/fs2/core/adapters/log_adapter.py:LogAdapter"
+        assert (
+            edges[0].target_node_id
+            == "class:src/fs2/core/adapters/log_adapter.py:LogAdapter"
+        )
 
     def test_given_multiline_content_when_detect_then_tracks_line_numbers(self):
         """

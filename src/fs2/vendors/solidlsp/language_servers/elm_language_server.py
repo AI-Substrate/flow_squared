@@ -27,11 +27,18 @@ class ElmLanguageServer(SolidLanguageServer):
     Provides Elm specific instantiation of the LanguageServer class. Contains various configurations and settings specific to Elm.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates an ElmLanguageServer instance. This class is not meant to be instantiated directly. Use LanguageServer.create() instead.
         """
-        elm_lsp_executable_path = self._setup_runtime_dependencies(config, solidlsp_settings)
+        elm_lsp_executable_path = self._setup_runtime_dependencies(
+            config, solidlsp_settings
+        )
 
         # Resolve ELM_HOME to absolute path if it's set to a relative path
         env = {}
@@ -46,7 +53,9 @@ class ElmLanguageServer(SolidLanguageServer):
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=elm_lsp_executable_path, cwd=repository_root_path, env=env),
+            ProcessLaunchInfo(
+                cmd=elm_lsp_executable_path, cwd=repository_root_path, env=env
+            ),
             "elm",
             solidlsp_settings,
         )
@@ -62,7 +71,9 @@ class ElmLanguageServer(SolidLanguageServer):
         ]
 
     @classmethod
-    def _setup_runtime_dependencies(cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings) -> list[str]:
+    def _setup_runtime_dependencies(
+        cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
+    ) -> list[str]:
         """
         Setup runtime dependencies for Elm Language Server and return the command to start the server.
         """
@@ -74,16 +85,26 @@ class ElmLanguageServer(SolidLanguageServer):
 
         # Verify node and npm are installed
         is_node_installed = shutil.which("node") is not None
-        assert is_node_installed, "node is not installed or isn't in PATH. Please install NodeJS and try again."
+        assert is_node_installed, (
+            "node is not installed or isn't in PATH. Please install NodeJS and try again."
+        )
         is_npm_installed = shutil.which("npm") is not None
-        assert is_npm_installed, "npm is not installed or isn't in PATH. Please install npm and try again."
+        assert is_npm_installed, (
+            "npm is not installed or isn't in PATH. Please install npm and try again."
+        )
 
         deps = RuntimeDependencyCollection(
             [
                 RuntimeDependency(
                     id="elm-language-server",
                     description="@elm-tooling/elm-language-server package",
-                    command=["npm", "install", "--prefix", "./", "@elm-tooling/elm-language-server@2.8.0"],
+                    command=[
+                        "npm",
+                        "install",
+                        "--prefix",
+                        "./",
+                        "@elm-tooling/elm-language-server@2.8.0",
+                    ],
                     platform_id="any",
                 ),
             ]
@@ -91,10 +112,16 @@ class ElmLanguageServer(SolidLanguageServer):
 
         # Install elm-language-server if not already installed
         elm_ls_dir = os.path.join(cls.ls_resources_dir(solidlsp_settings), "elm-lsp")
-        elm_ls_executable_path = os.path.join(elm_ls_dir, "node_modules", ".bin", "elm-language-server")
+        elm_ls_executable_path = os.path.join(
+            elm_ls_dir, "node_modules", ".bin", "elm-language-server"
+        )
         if not os.path.exists(elm_ls_executable_path):
-            log.info(f"Elm Language Server executable not found at {elm_ls_executable_path}. Installing...")
-            with LogTime("Installation of Elm language server dependencies", logger=log):
+            log.info(
+                f"Elm Language Server executable not found at {elm_ls_executable_path}. Installing..."
+            )
+            with LogTime(
+                "Installation of Elm language server dependencies", logger=log
+            ):
                 deps.install(elm_ls_dir)
 
         if not os.path.exists(elm_ls_executable_path):
@@ -115,7 +142,10 @@ class ElmLanguageServer(SolidLanguageServer):
             "capabilities": {
                 "textDocument": {
                     "synchronization": {"didSave": True, "dynamicRegistration": True},
-                    "completion": {"dynamicRegistration": True, "completionItem": {"snippetSupport": True}},
+                    "completion": {
+                        "dynamicRegistration": True,
+                        "completionItem": {"snippetSupport": True},
+                    },
                     "definition": {"dynamicRegistration": True},
                     "references": {"dynamicRegistration": True},
                     "documentSymbol": {
@@ -123,7 +153,10 @@ class ElmLanguageServer(SolidLanguageServer):
                         "hierarchicalDocumentSymbolSupport": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "codeAction": {"dynamicRegistration": True},
                     "rename": {"dynamicRegistration": True},
                 },
@@ -177,7 +210,9 @@ class ElmLanguageServer(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
 
         # Elm-specific capability checks

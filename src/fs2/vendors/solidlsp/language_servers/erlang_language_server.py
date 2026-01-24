@@ -20,22 +20,34 @@ log = logging.getLogger(__name__)
 class ErlangLanguageServer(SolidLanguageServer):
     """Language server for Erlang using Erlang LS."""
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates an ErlangLanguageServer instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
         """
         self.erlang_ls_path = shutil.which("erlang_ls")
         if not self.erlang_ls_path:
-            raise RuntimeError("Erlang LS not found. Install from: https://github.com/erlang-ls/erlang_ls")
+            raise RuntimeError(
+                "Erlang LS not found. Install from: https://github.com/erlang-ls/erlang_ls"
+            )
 
         if not self._check_erlang_installation():
-            raise RuntimeError("Erlang/OTP not found. Install from: https://www.erlang.org/downloads")
+            raise RuntimeError(
+                "Erlang/OTP not found. Install from: https://www.erlang.org/downloads"
+            )
 
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=[self.erlang_ls_path, "--transport", "stdio"], cwd=repository_root_path),
+            ProcessLaunchInfo(
+                cmd=[self.erlang_ls_path, "--transport", "stdio"],
+                cwd=repository_root_path,
+            ),
             "erlang",
             solidlsp_settings,
         )
@@ -49,7 +61,13 @@ class ErlangLanguageServer(SolidLanguageServer):
     def _check_erlang_installation(self) -> bool:
         """Check if Erlang/OTP is available."""
         try:
-            result = subprocess.run(["erl", "-version"], check=False, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                ["erl", "-version"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
             return result.returncode == 0
         except (subprocess.SubprocessError, FileNotFoundError):
             return False
@@ -58,7 +76,13 @@ class ErlangLanguageServer(SolidLanguageServer):
     def _get_erlang_version(cls) -> str | None:
         """Get the installed Erlang/OTP version or None if not found."""
         try:
-            result = subprocess.run(["erl", "-version"], check=False, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                ["erl", "-version"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
             if result.returncode == 0:
                 return result.stderr.strip()  # erl -version outputs to stderr
         except (subprocess.SubprocessError, FileNotFoundError):
@@ -69,7 +93,13 @@ class ErlangLanguageServer(SolidLanguageServer):
     def _check_rebar3_available(cls) -> bool:
         """Check if rebar3 build tool is available."""
         try:
-            result = subprocess.run(["rebar3", "version"], check=False, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                ["rebar3", "version"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
             return result.returncode == 0
         except (subprocess.SubprocessError, FileNotFoundError):
             return False
@@ -113,7 +143,10 @@ class ErlangLanguageServer(SolidLanguageServer):
             # Check for initialization completion progress
             if value.get("kind") == "end":
                 message = value.get("message", "")
-                if any(word in message.lower() for word in ["initialized", "ready", "complete"]):
+                if any(
+                    word in message.lower()
+                    for word in ["initialized", "ready", "complete"]
+                ):
                     log.info("Erlang LS initialization progress completed")
                     # Set as fallback if no window/logMessage was received
                     if not self.server_ready.is_set():
@@ -152,7 +185,9 @@ class ErlangLanguageServer(SolidLanguageServer):
 
         # Verify server capabilities
         if "capabilities" in init_response:
-            log.info(f"Erlang LS capabilities: {list(init_response['capabilities'].keys())}")
+            log.info(
+                f"Erlang LS capabilities: {list(init_response['capabilities'].keys())}"
+            )
 
         self.server.notify.initialized({})
         self.completions_available.set()
@@ -172,24 +207,32 @@ class ErlangLanguageServer(SolidLanguageServer):
             ready_timeout = 60.0  # 1 minute for local
             env_desc = "local"
 
-        log.info(f"Waiting up to {ready_timeout} seconds for Erlang LS readiness ({env_desc} environment)...")
+        log.info(
+            f"Waiting up to {ready_timeout} seconds for Erlang LS readiness ({env_desc} environment)..."
+        )
 
         if self.server_ready.wait(timeout=ready_timeout):
             log.info("Erlang LS is ready and available for requests")
 
             # Add settling period for indexing - adjust based on environment
             settling_time = 15.0 if is_ci else 5.0
-            log.info(f"Allowing {settling_time} seconds for Erlang LS indexing to complete...")
+            log.info(
+                f"Allowing {settling_time} seconds for Erlang LS indexing to complete..."
+            )
             time.sleep(settling_time)
             log.info("Erlang LS settling period complete")
         else:
             # Set ready anyway and continue - Erlang LS might not send explicit ready messages
-            log.warning(f"Erlang LS readiness timeout reached after {ready_timeout}s, proceeding anyway (common in CI)")
+            log.warning(
+                f"Erlang LS readiness timeout reached after {ready_timeout}s, proceeding anyway (common in CI)"
+            )
             self.server_ready.set()
 
             # Still give some time for basic initialization even without explicit readiness signal
             basic_settling_time = 20.0 if is_ci else 10.0
-            log.info(f"Allowing {basic_settling_time} seconds for basic Erlang LS initialization...")
+            log.info(
+                f"Allowing {basic_settling_time} seconds for basic Erlang LS initialization..."
+            )
             time.sleep(basic_settling_time)
             log.info("Basic Erlang LS initialization period complete")
 

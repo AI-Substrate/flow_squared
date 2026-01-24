@@ -27,7 +27,12 @@ class Gopls(SolidLanguageServer):
         # - vendor: third-party dependencies vendored into the project
         # - node_modules: if the project has JavaScript components
         # - dist/build: common output directories
-        return super().is_ignored_dirname(dirname) or dirname in ["vendor", "node_modules", "dist", "build"]
+        return super().is_ignored_dirname(dirname) or dirname in [
+            "vendor",
+            "node_modules",
+            "dist",
+            "build",
+        ]
 
     @staticmethod
     def _determine_log_level(line: str) -> int:
@@ -51,7 +56,9 @@ class Gopls(SolidLanguageServer):
     def _get_go_version() -> str | None:
         """Get the installed Go version or None if not found."""
         try:
-            result = subprocess.run(["go", "version"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["go", "version"], capture_output=True, text=True, check=False
+            )
             if result.returncode == 0:
                 return result.stdout.strip()
         except FileNotFoundError:
@@ -62,7 +69,9 @@ class Gopls(SolidLanguageServer):
     def _get_gopls_version() -> str | None:
         """Get the installed gopls version or None if not found."""
         try:
-            result = subprocess.run(["gopls", "version"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["gopls", "version"], capture_output=True, text=True, check=False
+            )
             if result.returncode == 0:
                 return result.stdout.strip()
         except FileNotFoundError:
@@ -91,10 +100,21 @@ class Gopls(SolidLanguageServer):
 
         return True
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         self._setup_runtime_dependency()
 
-        super().__init__(config, repository_root_path, ProcessLaunchInfo(cmd="gopls", cwd=repository_root_path), "go", solidlsp_settings)
+        super().__init__(
+            config,
+            repository_root_path,
+            ProcessLaunchInfo(cmd="gopls", cwd=repository_root_path),
+            "go",
+            solidlsp_settings,
+        )
         self.server_ready = threading.Event()
         self.request_id = 0
 
@@ -116,7 +136,10 @@ class Gopls(SolidLanguageServer):
                         "symbolKind": {"valueSet": list(range(1, 27))},
                     },
                 },
-                "workspace": {"workspaceFolders": True, "didChangeConfiguration": {"dynamicRegistration": True}},
+                "workspace": {
+                    "workspaceFolders": True,
+                    "didChangeConfiguration": {"dynamicRegistration": True},
+                },
             },
             "processId": os.getpid(),
             "rootPath": repository_absolute_path,
@@ -151,7 +174,9 @@ class Gopls(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
 
         # Verify server capabilities

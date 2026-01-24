@@ -124,7 +124,12 @@ def make_notification(method: str, params: PayloadLike) -> StringDict:
 
 def make_request(method: str, request_id: Any, params: PayloadLike) -> StringDict:
     """Create a JSON-RPC 2.0 request message."""
-    return {"jsonrpc": "2.0", "method": method, "id": request_id, **_build_params_field(method, params)}
+    return {
+        "jsonrpc": "2.0",
+        "method": method,
+        "id": request_id,
+        **_build_params_field(method, params),
+    }
 
 
 class StopLoopException(Exception):
@@ -132,10 +137,14 @@ class StopLoopException(Exception):
 
 
 def create_message(payload: PayloadLike) -> tuple[bytes, bytes, bytes]:
-    body = json.dumps(payload, check_circular=False, ensure_ascii=False, separators=(",", ":")).encode(ENCODING)
+    body = json.dumps(
+        payload, check_circular=False, ensure_ascii=False, separators=(",", ":")
+    ).encode(ENCODING)
     return (
         f"Content-Length: {len(body)}\r\n".encode(ENCODING),
-        "Content-Type: application/vscode-jsonrpc; charset=utf-8\r\n\r\n".encode(ENCODING),
+        "Content-Type: application/vscode-jsonrpc; charset=utf-8\r\n\r\n".encode(
+            ENCODING
+        ),
         body,
     )
 

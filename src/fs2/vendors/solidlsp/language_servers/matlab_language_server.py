@@ -44,7 +44,11 @@ import requests
 
 from fs2.vendors.solidlsp.ls import LSPFileBuffer, SolidLanguageServer
 from fs2.vendors.solidlsp.ls_config import LanguageServerConfig
-from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import DocumentSymbol, InitializeParams, SymbolInformation
+from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import (
+    DocumentSymbol,
+    InitializeParams,
+    SymbolInformation,
+)
 from fs2.vendors.solidlsp.lsp_protocol_handler.server import ProcessLaunchInfo
 from fs2.vendors.solidlsp.settings import SolidLSPSettings
 
@@ -54,9 +58,7 @@ log = logging.getLogger(__name__)
 MATLAB_PATH_ENV_VAR = "MATLAB_PATH"
 
 # VS Code Marketplace URL for MATLAB extension
-MATLAB_EXTENSION_URL = (
-    "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/MathWorks/vsextensions/language-matlab/latest/vspackage"
-)
+MATLAB_EXTENSION_URL = "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/MathWorks/vsextensions/language-matlab/latest/vspackage"
 
 
 class MatlabLanguageServer(SolidLanguageServer):
@@ -94,7 +96,9 @@ class MatlabLanguageServer(SolidLanguageServer):
         # Check environment variable first
         matlab_path = os.environ.get(MATLAB_PATH_ENV_VAR)
         if matlab_path and os.path.isdir(matlab_path):
-            log.info(f"Using MATLAB from environment variable {MATLAB_PATH_ENV_VAR}: {matlab_path}")
+            log.info(
+                f"Using MATLAB from environment variable {MATLAB_PATH_ENV_VAR}: {matlab_path}"
+            )
             return matlab_path
 
         system = platform.system()
@@ -107,7 +111,9 @@ class MatlabLanguageServer(SolidLanguageServer):
                 os.path.expanduser("~/Applications/MATLAB_*.app"),
             ]
             for pattern in search_patterns:
-                matches = sorted(glob.glob(pattern), reverse=True)  # Newest version first
+                matches = sorted(
+                    glob.glob(pattern), reverse=True
+                )  # Newest version first
                 for match in matches:
                     if os.path.isdir(match):
                         log.info(f"Found MATLAB installation: {match}")
@@ -146,12 +152,19 @@ class MatlabLanguageServer(SolidLanguageServer):
             "C:\\Program Files\\MATLAB\\R2024b on Windows, or /usr/local/MATLAB/R2024b on Linux)."
         )
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a MatlabLanguageServer instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
         """
-        matlab_lsp_command, matlab_path = self._setup_runtime_dependencies(config, solidlsp_settings)
+        matlab_lsp_command, matlab_path = self._setup_runtime_dependencies(
+            config, solidlsp_settings
+        )
         self._matlab_path = matlab_path
 
         # Set environment for MATLAB
@@ -162,7 +175,9 @@ class MatlabLanguageServer(SolidLanguageServer):
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=matlab_lsp_command, cwd=repository_root_path, env=proc_env),
+            ProcessLaunchInfo(
+                cmd=matlab_lsp_command, cwd=repository_root_path, env=proc_env
+            ),
             "matlab",
             solidlsp_settings,
         )
@@ -252,10 +267,14 @@ class MatlabLanguageServer(SolidLanguageServer):
             log.debug(f"Found MATLAB extension via MATLAB_EXTENSION_PATH: {env_path}")
             return env_path
         elif env_path:
-            log.warning(f"MATLAB_EXTENSION_PATH set but directory not found: {env_path}")
+            log.warning(
+                f"MATLAB_EXTENSION_PATH set but directory not found: {env_path}"
+            )
 
         # Check default download location
-        default_path = os.path.join(cls.ls_resources_dir(solidlsp_settings), "matlab-extension", "extension")
+        default_path = os.path.join(
+            cls.ls_resources_dir(solidlsp_settings), "matlab-extension", "extension"
+        )
         if os.path.exists(default_path):
             log.debug(f"Found MATLAB extension in default location: {default_path}")
             return default_path
@@ -274,7 +293,9 @@ class MatlabLanguageServer(SolidLanguageServer):
         return None
 
     @classmethod
-    def _download_and_install_matlab_extension(cls, solidlsp_settings: SolidLSPSettings) -> str | None:
+    def _download_and_install_matlab_extension(
+        cls, solidlsp_settings: SolidLSPSettings
+    ) -> str | None:
         """
         Download and install MATLAB extension from VS Code marketplace.
 
@@ -282,7 +303,9 @@ class MatlabLanguageServer(SolidLanguageServer):
             Path to installed extension or None if download failed
 
         """
-        matlab_extension_dir = os.path.join(cls.ls_resources_dir(solidlsp_settings), "matlab-extension")
+        matlab_extension_dir = os.path.join(
+            cls.ls_resources_dir(solidlsp_settings), "matlab-extension"
+        )
 
         log.info(f"Downloading MATLAB extension from: {MATLAB_EXTENSION_URL}")
 
@@ -292,7 +315,9 @@ class MatlabLanguageServer(SolidLanguageServer):
                 log.info("MATLAB extension downloaded and installed successfully")
                 return extension_path
             else:
-                log.error(f"Download completed but extension not found at: {extension_path}")
+                log.error(
+                    f"Download completed but extension not found at: {extension_path}"
+                )
         else:
             log.error("Failed to download MATLAB extension from marketplace")
 
@@ -317,10 +342,14 @@ class MatlabLanguageServer(SolidLanguageServer):
         if os.path.exists(alt_script):
             return alt_script
 
-        raise RuntimeError(f"MATLAB language server script not found in extension at {extension_path}")
+        raise RuntimeError(
+            f"MATLAB language server script not found in extension at {extension_path}"
+        )
 
     @classmethod
-    def _setup_runtime_dependencies(cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings) -> tuple[list[str], str]:
+    def _setup_runtime_dependencies(
+        cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
+    ) -> tuple[list[str], str]:
         """
         Setup runtime dependencies for MATLAB Language Server and return the command to start the server.
 
@@ -333,18 +362,26 @@ class MatlabLanguageServer(SolidLanguageServer):
         # Verify node is installed
         node_path = shutil.which("node")
         if node_path is None:
-            raise RuntimeError("Node.js is not installed or isn't in PATH. Please install Node.js and try again.")
+            raise RuntimeError(
+                "Node.js is not installed or isn't in PATH. Please install Node.js and try again."
+            )
 
         # Get MATLAB path from settings or auto-detect
-        language_specific_config = solidlsp_settings.get_ls_specific_settings(cls.get_language_enum_instance())
+        language_specific_config = solidlsp_settings.get_ls_specific_settings(
+            cls.get_language_enum_instance()
+        )
         matlab_path = language_specific_config.get("matlab_path")
 
         if not matlab_path:
-            matlab_path = cls._find_matlab_installation()  # Raises RuntimeError if not found
+            matlab_path = (
+                cls._find_matlab_installation()
+            )  # Raises RuntimeError if not found
 
         # Verify MATLAB path exists
         if not os.path.isdir(matlab_path):
-            raise RuntimeError(f"MATLAB installation directory does not exist: {matlab_path}")
+            raise RuntimeError(
+                f"MATLAB installation directory does not exist: {matlab_path}"
+            )
 
         log.info(f"Using MATLAB installation: {matlab_path}")
 
@@ -352,7 +389,9 @@ class MatlabLanguageServer(SolidLanguageServer):
         extension_path = cls._find_matlab_extension(solidlsp_settings)
         if extension_path is None:
             log.info("MATLAB extension not found on disk, attempting to download...")
-            extension_path = cls._download_and_install_matlab_extension(solidlsp_settings)
+            extension_path = cls._download_and_install_matlab_extension(
+                solidlsp_settings
+            )
 
         if extension_path is None:
             raise RuntimeError(
@@ -366,7 +405,9 @@ class MatlabLanguageServer(SolidLanguageServer):
         server_script = cls._get_executable_path(extension_path, system)
 
         if not os.path.exists(server_script):
-            raise RuntimeError(f"MATLAB Language Server script not found at: {server_script}")
+            raise RuntimeError(
+                f"MATLAB Language Server script not found at: {server_script}"
+            )
 
         # Build the command to run the language server
         # The MATLAB language server is run via Node.js with the --stdio flag
@@ -394,7 +435,10 @@ class MatlabLanguageServer(SolidLanguageServer):
                         "hierarchicalDocumentSymbolSupport": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "signatureHelp": {"dynamicRegistration": True},
                     "codeAction": {"dynamicRegistration": True},
                     "formatting": {"dynamicRegistration": True},
@@ -435,7 +479,9 @@ class MatlabLanguageServer(SolidLanguageServer):
 
         def workspace_folders_handler(params: dict) -> list:
             """Handle workspace/workspaceFolders request from the server."""
-            return [{"uri": root_uri, "name": os.path.basename(self.repository_root_path)}]
+            return [
+                {"uri": root_uri, "name": os.path.basename(self.repository_root_path)}
+            ]
 
         def workspace_configuration_handler(params: dict) -> list:
             """Handle workspace/configuration request from the server."""
@@ -445,7 +491,12 @@ class MatlabLanguageServer(SolidLanguageServer):
                 section = item.get("section", "")
                 if section == "MATLAB":
                     # Return MATLAB configuration
-                    result.append({"installPath": self._matlab_path, "matlabConnectionTiming": "onStart"})
+                    result.append(
+                        {
+                            "installPath": self._matlab_path,
+                            "matlabConnectionTiming": "onStart",
+                        }
+                    )
                 else:
                     result.append({})
             return result
@@ -459,16 +510,23 @@ class MatlabLanguageServer(SolidLanguageServer):
             # Check for MATLAB language server ready signals
             # Wait for "MVM attach success" or "Adding workspace folder" which indicates MATLAB is fully ready
             # Note: "connected to" comes earlier but the server isn't fully ready at that point
-            if "mvm attach success" in message_text.lower() or "adding workspace folder" in message_text.lower():
+            if (
+                "mvm attach success" in message_text.lower()
+                or "adding workspace folder" in message_text.lower()
+            ):
                 log.info("MATLAB language server ready signal detected (MVM attached)")
                 self.server_ready.set()
                 self.completions_available.set()
 
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_request("workspace/workspaceFolders", workspace_folders_handler)
-        self.server.on_request("workspace/configuration", workspace_configuration_handler)
+        self.server.on_request(
+            "workspace/configuration", workspace_configuration_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
 
@@ -476,13 +534,17 @@ class MatlabLanguageServer(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
         log.debug(f"Received initialize response from MATLAB server: {init_response}")
 
         # Verify basic capabilities
         capabilities = init_response.get("capabilities", {})
-        assert capabilities.get("textDocumentSync") in [1, 2], "Expected Full or Incremental text sync"
+        assert capabilities.get("textDocumentSync") in [1, 2], (
+            "Expected Full or Incremental text sync"
+        )
 
         # Log available capabilities
         if "completionProvider" in capabilities:
@@ -502,10 +564,14 @@ class MatlabLanguageServer(SolidLanguageServer):
 
         # Wait for server readiness with timeout
         # MATLAB takes longer to start than most language servers (typically 10-30 seconds)
-        log.info("Waiting for MATLAB language server to be ready (this may take up to 60 seconds)...")
+        log.info(
+            "Waiting for MATLAB language server to be ready (this may take up to 60 seconds)..."
+        )
         if not self.server_ready.wait(timeout=60.0):
             # Fallback: assume server is ready after timeout
-            log.info("Timeout waiting for MATLAB server ready signal, proceeding anyway")
+            log.info(
+                "Timeout waiting for MATLAB server ready signal, proceeding anyway"
+            )
             self.server_ready.set()
             self.completions_available.set()
         else:
@@ -538,7 +604,9 @@ class MatlabLanguageServer(SolidLanguageServer):
         self._normalize_matlab_symbols(symbols)
         return symbols
 
-    def _normalize_matlab_symbols(self, symbols: list[SymbolInformation] | list[DocumentSymbol]) -> None:
+    def _normalize_matlab_symbols(
+        self, symbols: list[SymbolInformation] | list[DocumentSymbol]
+    ) -> None:
         """
         Normalize MATLAB symbol names in-place.
 

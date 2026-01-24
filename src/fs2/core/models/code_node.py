@@ -198,6 +198,13 @@ class CodeNode:
     # Per DYK-05: Only raw content has offsets; smart_content uses node's full range
     embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None
 
+    # === Call Site Tracking (Phase 8 LSP Integration) ===
+    # Type: tuple[tuple[int, int], ...] | None - (line, column) per call expression
+    # Positions are RELATIVE to node content (0-indexed)
+    # For method calls (obj.method()), position points to method name, not receiver
+    # Used by RelationshipExtractionStage to query LSP get_definition at exact call sites
+    call_sites: tuple[tuple[int, int], ...] | None = None
+
     # === Factory Methods ===
 
     @classmethod
@@ -389,6 +396,7 @@ class CodeNode:
         smart_content_embedding: tuple[tuple[float, ...], ...] | None = None,
         embedding_hash: str | None = None,
         embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None,
+        call_sites: tuple[tuple[int, int], ...] | None = None,
     ) -> "CodeNode":
         """Create a callable CodeNode (function, method, lambda).
 
@@ -407,6 +415,7 @@ class CodeNode:
             end_byte: 0-indexed end byte
             content: Full callable source
             signature: First line of declaration
+            call_sites: Call expression positions (line, col) relative to content, 0-indexed
             **kwargs: Optional metadata fields
 
         Returns:
@@ -441,6 +450,7 @@ class CodeNode:
             smart_content_embedding=smart_content_embedding,
             embedding_hash=embedding_hash,
             embedding_chunk_offsets=embedding_chunk_offsets,
+            call_sites=call_sites,
         )
 
     @classmethod

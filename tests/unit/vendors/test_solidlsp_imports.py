@@ -91,14 +91,10 @@ class TestSolidLspVendorImports:
 
         # Filter out _stubs directory from results
         matching_files = [
-            f
-            for f in result.stdout.strip().split("\n")
-            if f and "_stubs" not in f
+            f for f in result.stdout.strip().split("\n") if f and "_stubs" not in f
         ]
 
-        assert (
-            len(matching_files) == 0
-        ), f"Found serena imports in: {matching_files}"
+        assert len(matching_files) == 0, f"Found serena imports in: {matching_files}"
 
     def test_given_vendored_solidlsp_when_checking_csharp_fixes_then_preserved(
         self,
@@ -118,14 +114,14 @@ class TestSolidLspVendorImports:
         content = csharp_server.read_text()
 
         # Verify DOTNET_ROOT env var fix
-        assert (
-            "DOTNET_ROOT" in content
-        ), "C# fix: DOTNET_ROOT environment variable not found"
+        assert "DOTNET_ROOT" in content, (
+            "C# fix: DOTNET_ROOT environment variable not found"
+        )
 
         # Verify .NET 9+ version check (range(9, 20) or similar)
-        assert (
-            "range(9," in content or "for major in range(9" in content
-        ), "C# fix: .NET 9+ version range not found"
+        assert "range(9," in content or "for major in range(9" in content, (
+            "C# fix: .NET 9+ version range not found"
+        )
 
     def test_given_vendored_solidlsp_when_instantiating_then_stubs_compatible(
         self,

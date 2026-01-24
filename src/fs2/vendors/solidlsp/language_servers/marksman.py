@@ -26,7 +26,9 @@ class Marksman(SolidLanguageServer):
     Provides Markdown specific instantiation of the LanguageServer class using marksman.
     """
 
-    marksman_releases = "https://github.com/artempyanykh/marksman/releases/download/2024-12-18"
+    marksman_releases = (
+        "https://github.com/artempyanykh/marksman/releases/download/2024-12-18"
+    )
     runtime_dependencies = RuntimeDependencyCollection(
         [
             RuntimeDependency(
@@ -68,7 +70,9 @@ class Marksman(SolidLanguageServer):
     )
 
     @classmethod
-    def _setup_runtime_dependencies(cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings) -> str:
+    def _setup_runtime_dependencies(
+        cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
+    ) -> str:
         """Setup runtime dependencies for marksman and return the command to start the server."""
         deps = cls.runtime_dependencies
         dependency = deps.get_single_dep_for_current_platform()
@@ -81,21 +85,32 @@ class Marksman(SolidLanguageServer):
             )
             deps.install(marksman_ls_dir)
         if not os.path.exists(marksman_executable_path):
-            raise FileNotFoundError(f"Download failed? Could not find marksman executable at {marksman_executable_path}")
+            raise FileNotFoundError(
+                f"Download failed? Could not find marksman executable at {marksman_executable_path}"
+            )
         os.chmod(marksman_executable_path, 0o755)
         return marksman_executable_path
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a Marksman instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
         """
-        marksman_executable_path = self._setup_runtime_dependencies(config, solidlsp_settings)
+        marksman_executable_path = self._setup_runtime_dependencies(
+            config, solidlsp_settings
+        )
 
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=f"{marksman_executable_path} server", cwd=repository_root_path),
+            ProcessLaunchInfo(
+                cmd=f"{marksman_executable_path} server", cwd=repository_root_path
+            ),
             "markdown",
             solidlsp_settings,
         )
@@ -103,7 +118,12 @@ class Marksman(SolidLanguageServer):
 
     @override
     def is_ignored_dirname(self, dirname: str) -> bool:
-        return super().is_ignored_dirname(dirname) or dirname in ["node_modules", ".obsidian", ".vitepress", ".vuepress"]
+        return super().is_ignored_dirname(dirname) or dirname in [
+            "node_modules",
+            ".obsidian",
+            ".vitepress",
+            ".vuepress",
+        ]
 
     @staticmethod
     def _get_initialize_params(repository_absolute_path: str) -> InitializeParams:
@@ -119,7 +139,10 @@ class Marksman(SolidLanguageServer):
             "capabilities": {
                 "textDocument": {
                     "synchronization": {"didSave": True, "dynamicRegistration": True},
-                    "completion": {"dynamicRegistration": True, "completionItem": {"snippetSupport": True}},
+                    "completion": {
+                        "dynamicRegistration": True,
+                        "completionItem": {"snippetSupport": True},
+                    },
                     "definition": {"dynamicRegistration": True},
                     "references": {"dynamicRegistration": True},
                     "documentSymbol": {
@@ -127,7 +150,10 @@ class Marksman(SolidLanguageServer):
                         "hierarchicalDocumentSymbolSupport": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},  # type: ignore[arg-type]
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},  # type: ignore[list-item]
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },  # type: ignore[list-item]
                     "codeAction": {"dynamicRegistration": True},
                 },
                 "workspace": {
@@ -168,7 +194,9 @@ class Marksman(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to marksman server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to marksman server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
         log.debug(f"Received initialize response from marksman server: {init_response}")
 

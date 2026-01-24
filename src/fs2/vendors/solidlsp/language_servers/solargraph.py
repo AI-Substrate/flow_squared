@@ -29,16 +29,25 @@ class Solargraph(SolidLanguageServer):
     Contains various configurations and settings specific to Ruby.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a Solargraph instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
         """
-        solargraph_executable_path = self._setup_runtime_dependencies(config, repository_root_path)
+        solargraph_executable_path = self._setup_runtime_dependencies(
+            config, repository_root_path
+        )
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=f"{solargraph_executable_path} stdio", cwd=repository_root_path),
+            ProcessLaunchInfo(
+                cmd=f"{solargraph_executable_path} stdio", cwd=repository_root_path
+            ),
             "ruby",
             solidlsp_settings,
         )
@@ -71,13 +80,21 @@ class Solargraph(SolidLanguageServer):
         return super().is_ignored_dirname(dirname) or dirname in ruby_ignored_dirs
 
     @staticmethod
-    def _setup_runtime_dependencies(config: LanguageServerConfig, repository_root_path: str) -> str:
+    def _setup_runtime_dependencies(
+        config: LanguageServerConfig, repository_root_path: str
+    ) -> str:
         """
         Setup runtime dependencies for Solargraph and return the command to start the server.
         """
         # Check if Ruby is installed
         try:
-            result = subprocess.run(["ruby", "--version"], check=True, capture_output=True, cwd=repository_root_path, text=True)
+            result = subprocess.run(
+                ["ruby", "--version"],
+                check=True,
+                capture_output=True,
+                cwd=repository_root_path,
+                text=True,
+            )
             ruby_version = result.stdout.strip()
             log.info(f"Ruby version: {ruby_version}")
 
@@ -86,7 +103,9 @@ class Solargraph(SolidLanguageServer):
             if version_match:
                 major, minor, patch = map(int, version_match.groups())
                 if major < 2 or (major == 2 and minor < 6):
-                    log.warning(f"Warning: Ruby {major}.{minor}.{patch} detected. Solargraph works best with Ruby 2.6+")
+                    log.warning(
+                        f"Warning: Ruby {major}.{minor}.{patch} detected. Solargraph works best with Ruby 2.6+"
+                    )
 
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr.decode() if e.stderr else "Unknown error"
@@ -130,11 +149,17 @@ class Solargraph(SolidLanguageServer):
                 # Try common bundle executables
                 for bundle_cmd in ["bin/bundle", "bundle"]:
                     if bundle_cmd.startswith("bin/"):
-                        bundle_full_path = os.path.join(repository_root_path, bundle_cmd)
+                        bundle_full_path = os.path.join(
+                            repository_root_path, bundle_cmd
+                        )
                     else:
                         bundle_full_path = find_executable_with_extensions(bundle_cmd)  # type: ignore[assignment]
                     if bundle_full_path and os.path.exists(bundle_full_path):
-                        bundle_path = bundle_full_path if bundle_cmd.startswith("bin/") else bundle_cmd
+                        bundle_path = (
+                            bundle_full_path
+                            if bundle_cmd.startswith("bin/")
+                            else bundle_cmd
+                        )
                         break
 
             if not bundle_path:
@@ -185,11 +210,20 @@ class Solargraph(SolidLanguageServer):
             dependency = runtime_dependencies[0]
             try:
                 result = subprocess.run(
-                    ["gem", "list", "^solargraph$", "-i"], check=False, capture_output=True, text=True, cwd=repository_root_path
+                    ["gem", "list", "^solargraph$", "-i"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    cwd=repository_root_path,
                 )
                 if result.stdout.strip() == "false":
                     log.info("Installing Solargraph...")
-                    subprocess.run(dependency["installCommand"].split(), check=True, capture_output=True, cwd=repository_root_path)
+                    subprocess.run(
+                        dependency["installCommand"].split(),
+                        check=True,
+                        capture_output=True,
+                        cwd=repository_root_path,
+                    )
 
                 return "gem exec solargraph"
             except subprocess.CalledProcessError as e:
@@ -272,7 +306,9 @@ class Solargraph(SolidLanguageServer):
         Returns the initialize params for the Solargraph Language Server.
         """
         root_uri = pathlib.Path(repository_absolute_path).as_uri()
-        exclude_patterns = Solargraph._get_ruby_exclude_patterns(repository_absolute_path)
+        exclude_patterns = Solargraph._get_ruby_exclude_patterns(
+            repository_absolute_path
+        )
 
         initialize_params: InitializeParams = {  # type: ignore
             "processId": os.getpid(),
@@ -317,7 +353,10 @@ class Solargraph(SolidLanguageServer):
 
         def lang_status_handler(params: dict) -> None:
             log.info(f"LSP: language/status: {params}")
-            if params.get("type") == "ServiceReady" and params.get("message") == "Service is ready.":
+            if (
+                params.get("type") == "ServiceReady"
+                and params.get("message") == "Service is ready."
+            ):
                 log.info("Solargraph service is ready.")
                 self.analysis_complete.set()
                 self.completions_available.set()
@@ -334,7 +373,9 @@ class Solargraph(SolidLanguageServer):
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("language/status", lang_status_handler)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
@@ -343,7 +384,9 @@ class Solargraph(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         log.info(f"Sending init params: {json.dumps(initialize_params, indent=4)}")
         init_response = self.server.send.initialize(initialize_params)
         log.info(f"Received init response: {init_response}")
@@ -361,7 +404,9 @@ class Solargraph(SolidLanguageServer):
         if self.analysis_complete.wait(timeout=60.0):
             log.info("Solargraph initial analysis complete, server ready")
         else:
-            log.warning("Timeout waiting for Solargraph analysis completion, proceeding anyway")
+            log.warning(
+                "Timeout waiting for Solargraph analysis completion, proceeding anyway"
+            )
             # Fallback: assume analysis is complete after timeout
             self.analysis_complete.set()
             self.completions_available.set()

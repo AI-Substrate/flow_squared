@@ -102,7 +102,9 @@ class FortranLanguageServer(SolidLanguageServer):
             identifier_start = match.start(1)
         else:
             # Try standard keywords pattern
-            standard_pattern = r"^\s*(function|subroutine|module|program|interface)\s+([a-zA-Z_]\w*)"
+            standard_pattern = (
+                r"^\s*(function|subroutine|module|program|interface)\s+([a-zA-Z_]\w*)"
+            )
             match = re.match(standard_pattern, line, re.IGNORECASE)
 
             if not match:
@@ -121,14 +123,19 @@ class FortranLanguageServer(SolidLanguageServer):
             # Create corrected selectionRange
             new_sel_range = {
                 "start": {"line": start_line, "character": identifier_start},
-                "end": {"line": start_line, "character": identifier_start + len(identifier_name)},
+                "end": {
+                    "line": start_line,
+                    "character": identifier_start + len(identifier_name),
+                },
             }
 
             # Create modified symbol with corrected selectionRange
             corrected_symbol = symbol.copy()
             corrected_symbol["selectionRange"] = new_sel_range  # type: ignore[typeddict-item]
 
-            log.debug(f"Fixed fortls selectionRange for {identifier_name}: char {start_char} -> {identifier_start}")
+            log.debug(
+                f"Fixed fortls selectionRange for {identifier_name}: char {start_char} -> {identifier_start}"
+            )
 
             return corrected_symbol
 
@@ -136,7 +143,9 @@ class FortranLanguageServer(SolidLanguageServer):
         return symbol
 
     @override
-    def request_document_symbols(self, relative_file_path: str, file_buffer: LSPFileBuffer | None = None) -> DocumentSymbols:
+    def request_document_symbols(
+        self, relative_file_path: str, file_buffer: LSPFileBuffer | None = None
+    ) -> DocumentSymbols:
         # Override to fix fortls's incorrect selectionRange bug.
         #
         # fortls returns selectionRange pointing to line start (character 0) instead of the
@@ -149,25 +158,33 @@ class FortranLanguageServer(SolidLanguageServer):
         # 4. Returns corrected symbols
 
         # Get symbols from fortls (with incorrect selectionRange)
-        document_symbols = super().request_document_symbols(relative_file_path, file_buffer=file_buffer)
+        document_symbols = super().request_document_symbols(
+            relative_file_path, file_buffer=file_buffer
+        )
 
         # Get file content for parsing
         with self.open_file(relative_file_path) as file_data:
             file_content = file_data.contents
 
         # Fix selectionRange recursively for all symbols
-        def fix_symbol_and_children(symbol: ls_types.UnifiedSymbolInformation) -> ls_types.UnifiedSymbolInformation:
+        def fix_symbol_and_children(
+            symbol: ls_types.UnifiedSymbolInformation,
+        ) -> ls_types.UnifiedSymbolInformation:
             # Fix this symbol's selectionRange
             fixed = self._fix_fortls_selection_range(symbol, file_content)
 
             # Fix children recursively
             if fixed.get("children"):
-                fixed["children"] = [fix_symbol_and_children(child) for child in fixed["children"]]
+                fixed["children"] = [
+                    fix_symbol_and_children(child) for child in fixed["children"]
+                ]
 
             return fixed
 
         # Apply fix to all symbols
-        fixed_root_symbols = [fix_symbol_and_children(sym) for sym in document_symbols.root_symbols]
+        fixed_root_symbols = [
+            fix_symbol_and_children(sym) for sym in document_symbols.root_symbols
+        ]
 
         return DocumentSymbols(fixed_root_symbols)
 
@@ -176,10 +193,17 @@ class FortranLanguageServer(SolidLanguageServer):
         """Check if fortls is available."""
         fortls_path = shutil.which("fortls")
         if fortls_path is None:
-            raise RuntimeError("fortls is not installed or not in PATH.\nInstall it with: pip install fortls")
+            raise RuntimeError(
+                "fortls is not installed or not in PATH.\nInstall it with: pip install fortls"
+            )
         return fortls_path
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         # Check fortls installation
         fortls_path = self._check_fortls_installation()
 
@@ -188,7 +212,11 @@ class FortranLanguageServer(SolidLanguageServer):
         fortls_cmd = f"{fortls_path}"
 
         super().__init__(
-            config, repository_root_path, ProcessLaunchInfo(cmd=fortls_cmd, cwd=repository_root_path), "fortran", solidlsp_settings
+            config,
+            repository_root_path,
+            ProcessLaunchInfo(cmd=fortls_cmd, cwd=repository_root_path),
+            "fortran",
+            solidlsp_settings,
         )
         self.server_ready = threading.Event()
 
@@ -211,7 +239,10 @@ class FortranLanguageServer(SolidLanguageServer):
                             "preselectSupport": True,
                         },
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "definition": {"dynamicRegistration": True},
                     "references": {"dynamicRegistration": True},
                     "documentSymbol": {

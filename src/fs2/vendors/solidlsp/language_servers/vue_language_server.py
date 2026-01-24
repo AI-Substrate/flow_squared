@@ -15,7 +15,10 @@ from typing import Any
 from overrides import override
 
 from fs2.vendors.solidlsp import ls_types
-from fs2.vendors.solidlsp.language_servers.common import RuntimeDependency, RuntimeDependencyCollection
+from fs2.vendors.solidlsp.language_servers.common import (
+    RuntimeDependency,
+    RuntimeDependencyCollection,
+)
 from fs2.vendors.solidlsp.language_servers.typescript_language_server import (
     TypeScriptLanguageServer,
     prefer_non_node_modules_definition,
@@ -26,7 +29,12 @@ from fs2.vendors.solidlsp.ls_exceptions import SolidLSPException
 from fs2.vendors.solidlsp.ls_types import Location
 from fs2.vendors.solidlsp.ls_utils import PathUtils
 from fs2.vendors.solidlsp.lsp_protocol_handler import lsp_types
-from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import DocumentSymbol, ExecuteCommandParams, InitializeParams, SymbolInformation
+from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import (
+    DocumentSymbol,
+    ExecuteCommandParams,
+    InitializeParams,
+    SymbolInformation,
+)
 from fs2.vendors.solidlsp.lsp_protocol_handler.server import ProcessLaunchInfo
 from fs2.vendors.solidlsp.settings import SolidLSPSettings
 
@@ -51,7 +59,9 @@ class VueTypeScriptServer(TypeScriptLanguageServer):
 
     @classmethod
     @override
-    def _setup_runtime_dependencies(cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings) -> list[str]:
+    def _setup_runtime_dependencies(
+        cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
+    ) -> list[str]:
         if cls._pending_ts_ls_executable is not None:
             return cls._pending_ts_ls_executable
         return ["typescript-language-server", "--stdio"]
@@ -107,7 +117,9 @@ class VueTypeScriptServer(TypeScriptLanguageServer):
         }
 
         if "workspace" in params["capabilities"]:
-            params["capabilities"]["workspace"]["executeCommand"] = {"dynamicRegistration": True}
+            params["capabilities"]["workspace"]["executeCommand"] = {
+                "dynamicRegistration": True
+            }
 
         return params
 
@@ -117,7 +129,9 @@ class VueTypeScriptServer(TypeScriptLanguageServer):
             items = params.get("items", [])
             return [{} for _ in items]
 
-        self.server.on_request("workspace/configuration", workspace_configuration_handler)
+        self.server.on_request(
+            "workspace/configuration", workspace_configuration_handler
+        )
         super()._start_server()
 
 
@@ -138,9 +152,18 @@ class VueLanguageServer(SolidLanguageServer):
     # Windows requires more time due to slower I/O and process operations.
     VUE_INDEXING_WAIT_TIME = 4.0 if os.name == "nt" else 2.0
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
-        vue_lsp_executable_path, self.tsdk_path, self._ts_ls_cmd = self._setup_runtime_dependencies(config, solidlsp_settings)
-        self._vue_ls_dir = os.path.join(self.ls_resources_dir(solidlsp_settings), "vue-lsp")
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
+        vue_lsp_executable_path, self.tsdk_path, self._ts_ls_cmd = (
+            self._setup_runtime_dependencies(config, solidlsp_settings)
+        )
+        self._vue_ls_dir = os.path.join(
+            self.ls_resources_dir(solidlsp_settings), "vue-lsp"
+        )
         super().__init__(
             config,
             repository_root_path,
@@ -189,7 +212,9 @@ class VueLanguageServer(SolidLanguageServer):
         for vue_file in repo_path.rglob("*.vue"):
             try:
                 relative_path = str(vue_file.relative_to(repo_path))
-                if "node_modules" not in relative_path and not relative_path.startswith("."):
+                if "node_modules" not in relative_path and not relative_path.startswith(
+                    "."
+                ):
                     vue_files.append(relative_path)
             except Exception as e:
                 log.debug(f"Error processing Vue file {vue_file}: {e}")
@@ -222,8 +247,12 @@ class VueLanguageServer(SolidLanguageServer):
     def _get_vue_indexing_wait_time(self) -> float:
         return self.VUE_INDEXING_WAIT_TIME
 
-    def _send_references_request(self, relative_file_path: str, line: int, column: int) -> list[lsp_types.Location] | None:
-        uri = PathUtils.path_to_uri(os.path.join(self.repository_root_path, relative_file_path))
+    def _send_references_request(
+        self, relative_file_path: str, line: int, column: int
+    ) -> list[lsp_types.Location] | None:
+        uri = PathUtils.path_to_uri(
+            os.path.join(self.repository_root_path, relative_file_path)
+        )
         request_params = {
             "textDocument": {"uri": uri},
             "position": {"line": line, "character": column},
@@ -232,9 +261,13 @@ class VueLanguageServer(SolidLanguageServer):
 
         return self.server.send.references(request_params)  # type: ignore[arg-type]
 
-    def _send_ts_references_request(self, relative_file_path: str, line: int, column: int) -> list[ls_types.Location]:
+    def _send_ts_references_request(
+        self, relative_file_path: str, line: int, column: int
+    ) -> list[ls_types.Location]:
         assert self._ts_server is not None
-        uri = PathUtils.path_to_uri(os.path.join(self.repository_root_path, relative_file_path))
+        uri = PathUtils.path_to_uri(
+            os.path.join(self.repository_root_path, relative_file_path)
+        )
         request_params = {
             "textDocument": {"uri": uri},
             "position": {"line": line, "character": column},
@@ -249,7 +282,9 @@ class VueLanguageServer(SolidLanguageServer):
             for item in response:
                 abs_path = PathUtils.uri_to_path(item["uri"])
                 if not Path(abs_path).is_relative_to(self.repository_root_path):
-                    log.debug(f"Found reference outside repository: {abs_path}, skipping")
+                    log.debug(
+                        f"Found reference outside repository: {abs_path}, skipping"
+                    )
                     continue
 
                 rel_path = Path(abs_path).relative_to(self.repository_root_path)
@@ -275,16 +310,22 @@ class VueLanguageServer(SolidLanguageServer):
 
         request_params = {"textDocument": {"uri": uri}}
 
-        log.info(f"Sending volar/client/findFileReference request for {relative_file_path}")
+        log.info(
+            f"Sending volar/client/findFileReference request for {relative_file_path}"
+        )
         log.info(f"Request URI: {uri}")
         log.info(f"Request params: {request_params}")
 
         try:
             with self.open_file(relative_file_path):
-                log.debug(f"Sending volar/client/findFileReference for {relative_file_path}")
+                log.debug(
+                    f"Sending volar/client/findFileReference for {relative_file_path}"
+                )
                 log.debug(f"Request params: {request_params}")
 
-                response = self.server.send_request("volar/client/findFileReference", request_params)
+                response = self.server.send_request(
+                    "volar/client/findFileReference", request_params
+                )
 
                 log.debug(f"Received response type: {type(response)}")
 
@@ -297,7 +338,9 @@ class VueLanguageServer(SolidLanguageServer):
 
             # Response should be an array of Location objects
             if not isinstance(response, list):
-                log.warning(f"Unexpected response format from volar/client/findFileReference: {type(response)}")
+                log.warning(
+                    f"Unexpected response format from volar/client/findFileReference: {type(response)}"
+                )
                 return []
 
             ret: list[Location] = []
@@ -308,7 +351,9 @@ class VueLanguageServer(SolidLanguageServer):
 
                 abs_path = PathUtils.uri_to_path(item["uri"])  # type: ignore[arg-type]
                 if not Path(abs_path).is_relative_to(self.repository_root_path):
-                    log.warning(f"Found file reference outside repository: {abs_path}, skipping")
+                    log.warning(
+                        f"Found file reference outside repository: {abs_path}, skipping"
+                    )
                     continue
 
                 rel_path = Path(abs_path).relative_to(self.repository_root_path)
@@ -326,11 +371,15 @@ class VueLanguageServer(SolidLanguageServer):
             return ret
 
         except Exception as e:
-            log.warning(f"Error requesting file references for {relative_file_path}: {e}")
+            log.warning(
+                f"Error requesting file references for {relative_file_path}: {e}"
+            )
             return []
 
     @override
-    def request_references(self, relative_file_path: str, line: int, column: int) -> list[ls_types.Location]:
+    def request_references(
+        self, relative_file_path: str, line: int, column: int
+    ) -> list[ls_types.Location]:
         if not self.server_started:
             log.error("request_references called before Language Server started")
             raise SolidLSPException("Language Server not started")
@@ -340,30 +389,46 @@ class VueLanguageServer(SolidLanguageServer):
             self._has_waited_for_cross_file_references = True
 
         self._ensure_vue_files_indexed_on_ts_server()
-        symbol_refs = self._send_ts_references_request(relative_file_path, line=line, column=column)
+        symbol_refs = self._send_ts_references_request(
+            relative_file_path, line=line, column=column
+        )
 
         if relative_file_path.endswith(".vue"):
-            log.info(f"Attempting to find file-level references for Vue component {relative_file_path}")
+            log.info(
+                f"Attempting to find file-level references for Vue component {relative_file_path}"
+            )
             file_refs = self.request_file_references(relative_file_path)
             log.info(f"file_refs result: {len(file_refs)} references found")
 
             seen = set()
             for ref in symbol_refs:
-                key = (ref["uri"], ref["range"]["start"]["line"], ref["range"]["start"]["character"])
+                key = (
+                    ref["uri"],
+                    ref["range"]["start"]["line"],
+                    ref["range"]["start"]["character"],
+                )
                 seen.add(key)
 
             for file_ref in file_refs:
-                key = (file_ref["uri"], file_ref["range"]["start"]["line"], file_ref["range"]["start"]["character"])
+                key = (
+                    file_ref["uri"],
+                    file_ref["range"]["start"]["line"],
+                    file_ref["range"]["start"]["character"],
+                )
                 if key not in seen:
                     symbol_refs.append(file_ref)
                     seen.add(key)
 
-            log.info(f"Total references for {relative_file_path}: {len(symbol_refs)} (symbol refs + file refs, deduplicated)")
+            log.info(
+                f"Total references for {relative_file_path}: {len(symbol_refs)} (symbol refs + file refs, deduplicated)"
+            )
 
         return symbol_refs
 
     @override
-    def request_definition(self, relative_file_path: str, line: int, column: int) -> list[ls_types.Location]:
+    def request_definition(
+        self, relative_file_path: str, line: int, column: int
+    ) -> list[ls_types.Location]:
         if not self.server_started:
             log.error("request_definition called before Language Server started")
             raise SolidLSPException("Language Server not started")
@@ -373,43 +438,71 @@ class VueLanguageServer(SolidLanguageServer):
             return self._ts_server.request_definition(relative_file_path, line, column)
 
     @override
-    def request_rename_symbol_edit(self, relative_file_path: str, line: int, column: int, new_name: str) -> ls_types.WorkspaceEdit | None:
+    def request_rename_symbol_edit(
+        self, relative_file_path: str, line: int, column: int, new_name: str
+    ) -> ls_types.WorkspaceEdit | None:
         if not self.server_started:
-            log.error("request_rename_symbol_edit called before Language Server started")
+            log.error(
+                "request_rename_symbol_edit called before Language Server started"
+            )
             raise SolidLSPException("Language Server not started")
 
         assert self._ts_server is not None
         with self._ts_server.open_file(relative_file_path):
-            return self._ts_server.request_rename_symbol_edit(relative_file_path, line, column, new_name)
+            return self._ts_server.request_rename_symbol_edit(
+                relative_file_path, line, column, new_name
+            )
 
     @classmethod
     def _setup_runtime_dependencies(
         cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
     ) -> tuple[list[str], str, list[str]]:
         is_node_installed = shutil.which("node") is not None
-        assert is_node_installed, "node is not installed or isn't in PATH. Please install NodeJS and try again."
+        assert is_node_installed, (
+            "node is not installed or isn't in PATH. Please install NodeJS and try again."
+        )
         is_npm_installed = shutil.which("npm") is not None
-        assert is_npm_installed, "npm is not installed or isn't in PATH. Please install npm and try again."
+        assert is_npm_installed, (
+            "npm is not installed or isn't in PATH. Please install npm and try again."
+        )
 
         # Get TypeScript version settings from TypeScript language server settings
-        typescript_config = solidlsp_settings.get_ls_specific_settings(Language.TYPESCRIPT)
+        typescript_config = solidlsp_settings.get_ls_specific_settings(
+            Language.TYPESCRIPT
+        )
         typescript_version = typescript_config.get("typescript_version", "5.9.3")
-        typescript_language_server_version = typescript_config.get("typescript_language_server_version", "5.1.3")
+        typescript_language_server_version = typescript_config.get(
+            "typescript_language_server_version", "5.1.3"
+        )
         vue_config = solidlsp_settings.get_ls_specific_settings(Language.VUE)
-        vue_language_server_version = vue_config.get("vue_language_server_version", "3.1.5")
+        vue_language_server_version = vue_config.get(
+            "vue_language_server_version", "3.1.5"
+        )
 
         deps = RuntimeDependencyCollection(
             [
                 RuntimeDependency(
                     id="vue-language-server",
                     description="Vue language server package (Volar)",
-                    command=["npm", "install", "--prefix", "./", f"@vue/language-server@{vue_language_server_version}"],
+                    command=[
+                        "npm",
+                        "install",
+                        "--prefix",
+                        "./",
+                        f"@vue/language-server@{vue_language_server_version}",
+                    ],
                     platform_id="any",
                 ),
                 RuntimeDependency(
                     id="typescript",
                     description="TypeScript (required for tsdk)",
-                    command=["npm", "install", "--prefix", "./", f"typescript@{typescript_version}"],
+                    command=[
+                        "npm",
+                        "install",
+                        "--prefix",
+                        "./",
+                        f"typescript@{typescript_version}",
+                    ],
                     platform_id="any",
                 ),
                 RuntimeDependency(
@@ -428,8 +521,12 @@ class VueLanguageServer(SolidLanguageServer):
         )
 
         vue_ls_dir = os.path.join(cls.ls_resources_dir(solidlsp_settings), "vue-lsp")
-        vue_executable_path = os.path.join(vue_ls_dir, "node_modules", ".bin", "vue-language-server")
-        ts_ls_executable_path = os.path.join(vue_ls_dir, "node_modules", ".bin", "typescript-language-server")
+        vue_executable_path = os.path.join(
+            vue_ls_dir, "node_modules", ".bin", "vue-language-server"
+        )
+        ts_ls_executable_path = os.path.join(
+            vue_ls_dir, "node_modules", ".bin", "typescript-language-server"
+        )
 
         if os.name == "nt":
             vue_executable_path += ".cmd"
@@ -442,7 +539,9 @@ class VueLanguageServer(SolidLanguageServer):
         expected_version = f"{vue_language_server_version}_{typescript_version}_{typescript_language_server_version}"
 
         needs_install = False
-        if not os.path.exists(vue_executable_path) or not os.path.exists(ts_ls_executable_path):
+        if not os.path.exists(vue_executable_path) or not os.path.exists(
+            ts_ls_executable_path
+        ):
             log.info("Vue/TypeScript Language Server executables not found.")
             needs_install = True
         elif os.path.exists(version_file):
@@ -455,7 +554,9 @@ class VueLanguageServer(SolidLanguageServer):
                 needs_install = True
         else:
             # No version file exists, assume old installation needs refresh
-            log.info("Vue Language Server version file not found. Reinstalling to ensure correct version...")
+            log.info(
+                "Vue Language Server version file not found. Reinstalling to ensure correct version..."
+            )
             needs_install = True
 
         if needs_install:
@@ -476,7 +577,11 @@ class VueLanguageServer(SolidLanguageServer):
                 f"typescript-language-server executable not found at {ts_ls_executable_path}, something went wrong with the installation."
             )
 
-        return [vue_executable_path, "--stdio"], tsdk_path, [ts_ls_executable_path, "--stdio"]
+        return (
+            [vue_executable_path, "--stdio"],
+            tsdk_path,
+            [ts_ls_executable_path, "--stdio"],
+        )
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         root_uri = pathlib.Path(repository_absolute_path).as_uri()
@@ -485,7 +590,10 @@ class VueLanguageServer(SolidLanguageServer):
             "capabilities": {
                 "textDocument": {
                     "synchronization": {"didSave": True, "dynamicRegistration": True},
-                    "completion": {"dynamicRegistration": True, "completionItem": {"snippetSupport": True}},
+                    "completion": {
+                        "dynamicRegistration": True,
+                        "completionItem": {"snippetSupport": True},
+                    },
                     "definition": {"dynamicRegistration": True, "linkSupport": True},
                     "references": {"dynamicRegistration": True},
                     "documentSymbol": {
@@ -493,7 +601,10 @@ class VueLanguageServer(SolidLanguageServer):
                         "hierarchicalDocumentSymbolSupport": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "signatureHelp": {"dynamicRegistration": True},
                     "codeAction": {"dynamicRegistration": True},
                     "rename": {"dynamicRegistration": True, "prepareSupport": True},
@@ -526,7 +637,9 @@ class VueLanguageServer(SolidLanguageServer):
 
     def _start_typescript_server(self) -> None:
         try:
-            vue_ts_plugin_path = os.path.join(self._vue_ls_dir, "node_modules", "@vue", "typescript-plugin")
+            vue_ts_plugin_path = os.path.join(
+                self._vue_ls_dir, "node_modules", "@vue", "typescript-plugin"
+            )
 
             ts_config = LanguageServerConfig(
                 code_language=Language.TYPESCRIPT,
@@ -547,7 +660,9 @@ class VueLanguageServer(SolidLanguageServer):
             self._ts_server.start()
 
             log.info("Waiting for companion TypeScript server to be ready...")
-            if not self._ts_server.server_ready.wait(timeout=self.TS_SERVER_READY_TIMEOUT):
+            if not self._ts_server.server_ready.wait(
+                timeout=self.TS_SERVER_READY_TIMEOUT
+            ):
                 log.warning(
                     f"Timeout waiting for companion TypeScript server to be ready after {self.TS_SERVER_READY_TIMEOUT} seconds, proceeding anyway"
                 )
@@ -593,7 +708,9 @@ class VueLanguageServer(SolidLanguageServer):
                     file_buffer.ref_count -= 1
 
                     if file_buffer.ref_count == 0:
-                        self._ts_server.server.notify.did_close_text_document({"textDocument": {"uri": uri}})
+                        self._ts_server.server.notify.did_close_text_document(
+                            {"textDocument": {"uri": uri}}
+                        )
                         del self._ts_server.open_file_buffers[uri]
                         log.debug(f"Closed indexed Vue file: {uri}")
             except Exception as e:
@@ -644,19 +761,29 @@ class VueLanguageServer(SolidLanguageServer):
                     request_id = params[0][0]
                     method = params[0][1]
                     method_params = params[0][2] if len(params[0]) > 2 else {}
-                    log.debug(f"Received tsserver/request: id={request_id}, method={method}")
+                    log.debug(
+                        f"Received tsserver/request: id={request_id}, method={method}"
+                    )
 
                     if method == "_vue:projectInfo":
                         file_path = method_params.get("file", "")
                         tsconfig_path = self._find_tsconfig_for_file(file_path)
-                        result = {"configFileName": tsconfig_path} if tsconfig_path else None
+                        result = (
+                            {"configFileName": tsconfig_path} if tsconfig_path else None
+                        )
                         response = [[request_id, result]]
-                        self.server.notify.send_notification("tsserver/response", response)
-                        log.debug(f"Sent tsserver/response for projectInfo: {tsconfig_path}")
+                        self.server.notify.send_notification(
+                            "tsserver/response", response
+                        )
+                        log.debug(
+                            f"Sent tsserver/response for projectInfo: {tsconfig_path}"
+                        )
                     else:
                         result = self._forward_tsserver_request(method, method_params)
                         response = [[request_id, result]]
-                        self.server.notify.send_notification("tsserver/response", response)
+                        self.server.notify.send_notification(
+                            "tsserver/response", response
+                        )
                         log.debug(f"Forwarded tsserver/response for {method}: {result}")
                 else:
                     log.warning(f"Unexpected tsserver/request params format: {params}")
@@ -665,7 +792,9 @@ class VueLanguageServer(SolidLanguageServer):
 
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_request("workspace/configuration", configuration_handler)
-        self.server.on_notification("tsserver/request", tsserver_request_notification_handler)
+        self.server.on_notification(
+            "tsserver/request", tsserver_request_notification_handler
+        )
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
@@ -674,7 +803,9 @@ class VueLanguageServer(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
         log.debug(f"Received initialize response from Vue server: {init_response}")
 
@@ -721,7 +852,9 @@ class VueLanguageServer(SolidLanguageServer):
         super().stop(shutdown_timeout)
 
     @override
-    def _get_preferred_definition(self, definitions: list[ls_types.Location]) -> ls_types.Location:
+    def _get_preferred_definition(
+        self, definitions: list[ls_types.Location]
+    ) -> ls_types.Location:
         return prefer_non_node_modules_definition(definitions)
 
     @override

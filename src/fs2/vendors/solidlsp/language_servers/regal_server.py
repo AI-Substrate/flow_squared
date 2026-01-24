@@ -29,7 +29,12 @@ class RegalLanguageServer(SolidLanguageServer):
     def is_ignored_dirname(self, dirname: str) -> bool:
         return super().is_ignored_dirname(dirname) or dirname in [".regal", ".opa"]
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a RegalLanguageServer instance.
 
@@ -49,7 +54,9 @@ class RegalLanguageServer(SolidLanguageServer):
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd=f"{regal_executable_path} language-server", cwd=repository_root_path),
+            ProcessLaunchInfo(
+                cmd=f"{regal_executable_path} language-server", cwd=repository_root_path
+            ),
             "rego",
             solidlsp_settings,
         )
@@ -72,7 +79,10 @@ class RegalLanguageServer(SolidLanguageServer):
             "capabilities": {
                 "textDocument": {
                     "synchronization": {"didSave": True, "dynamicRegistration": True},
-                    "completion": {"dynamicRegistration": True, "completionItem": {"snippetSupport": True}},
+                    "completion": {
+                        "dynamicRegistration": True,
+                        "completionItem": {"snippetSupport": True},
+                    },
                     "definition": {"dynamicRegistration": True},
                     "references": {"dynamicRegistration": True},
                     "documentSymbol": {
@@ -80,7 +90,10 @@ class RegalLanguageServer(SolidLanguageServer):
                         "hierarchicalDocumentSymbolSupport": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},  # type: ignore[arg-type]
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},  # type: ignore[list-item]
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },  # type: ignore[list-item]
                     "codeAction": {"dynamicRegistration": True},
                     "formatting": {"dynamicRegistration": True},
                 },

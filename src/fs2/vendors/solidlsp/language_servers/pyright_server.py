@@ -26,7 +26,12 @@ class PyrightServer(SolidLanguageServer):
     Contains various configurations and settings specific to Python.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a PyrightServer instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
@@ -34,7 +39,9 @@ class PyrightServer(SolidLanguageServer):
         super().__init__(
             config,
             repository_root_path,
-            ProcessLaunchInfo(cmd="python -m pyright.langserver --stdio", cwd=repository_root_path),
+            ProcessLaunchInfo(
+                cmd="python -m pyright.langserver --stdio", cwd=repository_root_path
+            ),
             "python",
             solidlsp_settings,
         )
@@ -80,8 +87,16 @@ class PyrightServer(SolidLanguageServer):
                     "executeCommand": {"dynamicRegistration": True},
                 },
                 "textDocument": {
-                    "synchronization": {"dynamicRegistration": True, "willSave": True, "willSaveWaitUntil": True, "didSave": True},
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "synchronization": {
+                        "dynamicRegistration": True,
+                        "willSave": True,
+                        "willSaveWaitUntil": True,
+                        "didSave": True,
+                    },
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "signatureHelp": {
                         "dynamicRegistration": True,
                         "signatureInformation": {
@@ -100,7 +115,10 @@ class PyrightServer(SolidLanguageServer):
                 },
             },
             "workspaceFolders": [
-                {"uri": pathlib.Path(repository_absolute_path).as_uri(), "name": os.path.basename(repository_absolute_path)}
+                {
+                    "uri": pathlib.Path(repository_absolute_path).as_uri(),
+                    "name": os.path.basename(repository_absolute_path),
+                }
             ],
         }
 
@@ -160,11 +178,15 @@ class PyrightServer(SolidLanguageServer):
         self.server.on_request("client/registerCapability", do_nothing)
         self.server.on_notification("language/status", do_nothing)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
         self.server.on_notification("language/actionableNotification", do_nothing)
-        self.server.on_notification("experimental/serverStatus", check_experimental_status)
+        self.server.on_notification(
+            "experimental/serverStatus", check_experimental_status
+        )
 
         log.info("Starting pyright-langserver server process")
         self.server.start()
@@ -172,7 +194,9 @@ class PyrightServer(SolidLanguageServer):
         # Send proper initialization parameters
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to pyright server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to pyright server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
         log.info(f"Received initialize response from pyright server: {init_response}")
 
@@ -190,7 +214,9 @@ class PyrightServer(SolidLanguageServer):
         if self.analysis_complete.wait(timeout=5.0):
             log.info("Pyright initial analysis complete, server ready")
         else:
-            log.warning("Timeout waiting for Pyright analysis completion, proceeding anyway")
+            log.warning(
+                "Timeout waiting for Pyright analysis completion, proceeding anyway"
+            )
             # Fallback: assume analysis is complete after timeout
             self.analysis_complete.set()
             self.completions_available.set()

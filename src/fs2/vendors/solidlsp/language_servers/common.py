@@ -33,36 +33,57 @@ class RuntimeDependency:
 class RuntimeDependencyCollection:
     """Utility to handle installation of runtime dependencies."""
 
-    def __init__(self, dependencies: Sequence[RuntimeDependency], overrides: Iterable[Mapping[str, Any]] = ()) -> None:
+    def __init__(
+        self,
+        dependencies: Sequence[RuntimeDependency],
+        overrides: Iterable[Mapping[str, Any]] = (),
+    ) -> None:
         """Initialize the collection with a list of dependencies and optional overrides.
 
         :param dependencies: List of base RuntimeDependency instances. The combination of 'id' and 'platform_id' must be unique.
         :param overrides: List of dictionaries which represent overrides or additions to the base dependencies.
             Each entry must contain at least the 'id' key, and optionally 'platform_id' to uniquely identify the dependency to override.
         """
-        self._id_and_platform_id_to_dep: dict[tuple[str, str | None], RuntimeDependency] = {}
+        self._id_and_platform_id_to_dep: dict[
+            tuple[str, str | None], RuntimeDependency
+        ] = {}
         for dep in dependencies:
             dep_key = (dep.id, dep.platform_id)
             if dep_key in self._id_and_platform_id_to_dep:
-                raise ValueError(f"Duplicate runtime dependency with id '{dep.id}' and platform_id '{dep.platform_id}':\n{dep}")
+                raise ValueError(
+                    f"Duplicate runtime dependency with id '{dep.id}' and platform_id '{dep.platform_id}':\n{dep}"
+                )
             self._id_and_platform_id_to_dep[dep_key] = dep
 
         for dep_values_override in overrides:
-            override_key = cast(tuple[str, str | None], (dep_values_override["id"], dep_values_override.get("platform_id")))
+            override_key = cast(
+                tuple[str, str | None],
+                (dep_values_override["id"], dep_values_override.get("platform_id")),
+            )
             base_dep = self._id_and_platform_id_to_dep.get(override_key)
             if base_dep is None:
                 new_runtime_dep = RuntimeDependency(**dep_values_override)
                 self._id_and_platform_id_to_dep[override_key] = new_runtime_dep
             else:
-                self._id_and_platform_id_to_dep[override_key] = replace(base_dep, **dep_values_override)
+                self._id_and_platform_id_to_dep[override_key] = replace(
+                    base_dep, **dep_values_override
+                )
 
-    def get_dependencies_for_platform(self, platform_id: str) -> list[RuntimeDependency]:
-        return [d for d in self._id_and_platform_id_to_dep.values() if d.platform_id in (platform_id, "any", "platform-agnostic", None)]
+    def get_dependencies_for_platform(
+        self, platform_id: str
+    ) -> list[RuntimeDependency]:
+        return [
+            d
+            for d in self._id_and_platform_id_to_dep.values()
+            if d.platform_id in (platform_id, "any", "platform-agnostic", None)
+        ]
 
     def get_dependencies_for_current_platform(self) -> list[RuntimeDependency]:
         return self.get_dependencies_for_platform(PlatformUtils.get_platform_id().value)
 
-    def get_single_dep_for_current_platform(self, dependency_id: str | None = None) -> RuntimeDependency:
+    def get_single_dep_for_current_platform(
+        self, dependency_id: str | None = None
+    ) -> RuntimeDependency:
         deps = self.get_dependencies_for_current_platform()
         if dependency_id is not None:
             deps = [d for d in deps if d.id == dependency_id]
@@ -110,7 +131,11 @@ class RuntimeDependencyCollection:
             # on Linux/macOS
             command = " ".join(command)
 
-        log.info("Running command %s in '%s'", f"'{command}'" if isinstance(command, str) else command, cwd)
+        log.info(
+            "Running command %s in '%s'",
+            f"'{command}'" if isinstance(command, str) else command,
+            cwd,
+        )
 
         completed_process = subprocess.run(
             command,
@@ -122,7 +147,11 @@ class RuntimeDependencyCollection:
             **kwargs,
         )  # type: ignore
         if completed_process.returncode != 0:
-            log.warning("Command '%s' failed with return code %d", command, completed_process.returncode)
+            log.warning(
+                "Command '%s' failed with return code %d",
+                command,
+                completed_process.returncode,
+            )
             log.warning("Command output:\n%s", completed_process.stdout)
         else:
             log.info(
@@ -138,7 +167,9 @@ class RuntimeDependencyCollection:
             dest = os.path.join(target_dir, dep.binary_name)
             FileUtils.download_and_extract_archive(dep.url, dest, dep.archive_type)
         else:
-            FileUtils.download_and_extract_archive(dep.url, target_dir, dep.archive_type or "zip")
+            FileUtils.download_and_extract_archive(
+                dep.url, target_dir, dep.archive_type or "zip"
+            )
 
 
 def quote_windows_path(path: str) -> str:

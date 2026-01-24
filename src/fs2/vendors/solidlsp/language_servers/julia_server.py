@@ -22,14 +22,26 @@ class JuliaLanguageServer(SolidLanguageServer):
     Language server implementation for Julia using LanguageServer.jl.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         julia_executable = self._setup_runtime_dependency()  # PASS LOGGER
         julia_code = "using LanguageServer; runserver()"
 
         julia_ls_cmd: str | list[str]
         if platform.system() == "Windows":
             # On Windows, pass as list (Serena handles shell=True differently)
-            julia_ls_cmd = [julia_executable, "--startup-file=no", "--history-file=no", "-e", julia_code, repository_root_path]
+            julia_ls_cmd = [
+                julia_executable,
+                "--startup-file=no",
+                "--history-file=no",
+                "-e",
+                julia_code,
+                repository_root_path,
+            ]
         else:
             # On Linux/macOS, build shell-escaped string
             import shlex
@@ -45,7 +57,11 @@ class JuliaLanguageServer(SolidLanguageServer):
         log.info(f"[JULIA DEBUG] Command: {julia_ls_cmd}")
 
         super().__init__(
-            config, repository_root_path, ProcessLaunchInfo(cmd=julia_ls_cmd, cwd=repository_root_path), "julia", solidlsp_settings
+            config,
+            repository_root_path,
+            ProcessLaunchInfo(cmd=julia_ls_cmd, cwd=repository_root_path),
+            "julia",
+            solidlsp_settings,
         )
 
     @staticmethod
@@ -81,7 +97,9 @@ class JuliaLanguageServer(SolidLanguageServer):
         # Check if LanguageServer.jl is installed
         check_cmd = [julia_path, "-e", "using LanguageServer"]
         try:
-            result = subprocess.run(check_cmd, check=False, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                check_cmd, check=False, capture_output=True, text=True, timeout=10
+            )
             if result.returncode != 0:
                 # LanguageServer.jl not found, install it
                 JuliaLanguageServer._install_language_server(julia_path)
@@ -99,12 +117,16 @@ class JuliaLanguageServer(SolidLanguageServer):
         install_cmd = [julia_path, "-e", 'using Pkg; Pkg.add("LanguageServer")']
 
         try:
-            result = subprocess.run(install_cmd, check=False, capture_output=True, text=True, timeout=300)  # 5 minutes for installation
+            result = subprocess.run(
+                install_cmd, check=False, capture_output=True, text=True, timeout=300
+            )  # 5 minutes for installation
 
             if result.returncode == 0:
                 log.info("LanguageServer.jl installed successfully!")
             else:
-                raise RuntimeError(f"Failed to install LanguageServer.jl: {result.stderr}")
+                raise RuntimeError(
+                    f"Failed to install LanguageServer.jl: {result.stderr}"
+                )
         except subprocess.TimeoutExpired:
             raise RuntimeError(
                 "LanguageServer.jl installation timed out. Please install manually: julia -e 'using Pkg; Pkg.add(\"LanguageServer\")'"
@@ -113,7 +135,11 @@ class JuliaLanguageServer(SolidLanguageServer):
     @override
     def is_ignored_dirname(self, dirname: str) -> bool:
         """Define language-specific directories to ignore for Julia projects."""
-        return super().is_ignored_dirname(dirname) or dirname in [".julia", "build", "dist"]
+        return super().is_ignored_dirname(dirname) or dirname in [
+            ".julia",
+            "build",
+            "dist",
+        ]
 
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """

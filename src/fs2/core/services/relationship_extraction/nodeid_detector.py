@@ -35,7 +35,7 @@ class NodeIdDetector:
     # Word boundaries (\b) prevent matching URLs or other colon-separated text
     # Path segment includes hyphens for package names like my-cool-lib
     NODE_ID_PATTERN = re.compile(
-        r'\b(file|callable|type|class|method):[\w./-]+(?::[\w.]+)?\b'
+        r"\b(file|callable|type|class|method):[\w./-]+(?::[\w.]+)?\b"
     )
 
     def detect(self, source_file: str, content: str) -> list[CodeEdge]:
@@ -64,14 +64,16 @@ class NodeIdDetector:
         """
         # Validate inputs
         if not isinstance(source_file, str):
-            raise TypeError(f'source_file must be string, got {type(source_file).__name__}')
+            raise TypeError(
+                f"source_file must be string, got {type(source_file).__name__}"
+            )
         if not isinstance(content, str):
-            raise TypeError(f'content must be string, got {type(content).__name__}')
+            raise TypeError(f"content must be string, got {type(content).__name__}")
 
         edges: list[CodeEdge] = []
 
         # Split content into lines for line number tracking
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         for line_num, line in enumerate(lines, start=1):
             # Find all node_id patterns in this line

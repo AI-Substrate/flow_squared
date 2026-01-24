@@ -65,7 +65,9 @@ class TextUtils:
         return idx
 
     @staticmethod
-    def _get_updated_position_from_line_and_column_and_edit(l: int, c: int, text_to_be_inserted: str) -> tuple[int, int]:
+    def _get_updated_position_from_line_and_column_and_edit(
+        l: int, c: int, text_to_be_inserted: str
+    ) -> tuple[int, int]:
         """
         Utility function to get the position of the cursor after inserting text at a given line and column.
         """
@@ -78,7 +80,9 @@ class TextUtils:
         return (l, c)
 
     @staticmethod
-    def delete_text_between_positions(text: str, start_line: int, start_col: int, end_line: int, end_col: int) -> tuple[str, str]:
+    def delete_text_between_positions(
+        text: str, start_line: int, start_col: int, end_line: int, end_col: int
+    ) -> tuple[str, str]:
         """
         Deletes the text between the given start and end positions.
         Returns the modified text and the deleted text.
@@ -91,7 +95,9 @@ class TextUtils:
         return new_text, deleted_text
 
     @staticmethod
-    def insert_text_at_position(text: str, line: int, col: int, text_to_be_inserted: str) -> tuple[str, int, int]:
+    def insert_text_at_position(
+        text: str, line: int, col: int, text_to_be_inserted: str
+    ) -> tuple[str, int, int]:
         """
         Inserts the given text at the given line and column.
         Returns the modified text and the new line and column.
@@ -101,14 +107,18 @@ class TextUtils:
         except InvalidTextLocationError:
             num_lines_in_text = text.count("\n") + 1
             max_line = num_lines_in_text - 1
-            if line == max_line + 1 and col == 0:  # trying to insert at new line after full text
+            if (
+                line == max_line + 1 and col == 0
+            ):  # trying to insert at new line after full text
                 # insert at end, adding missing newline
                 change_index = len(text)
                 text_to_be_inserted = "\n" + text_to_be_inserted
             else:
                 raise
         new_text = text[:change_index] + text_to_be_inserted + text[change_index:]
-        new_l, new_c = TextUtils._get_updated_position_from_line_and_column_and_edit(line, col, text_to_be_inserted)
+        new_l, new_c = TextUtils._get_updated_position_from_line_and_column_and_edit(
+            line, col, text_to_be_inserted
+        )
         return new_text, new_l, new_c
 
 
@@ -181,7 +191,9 @@ class FileUtils:
         """
         if not os.path.exists(file_path):
             log.error(f"Failed to read '{file_path}': File does not exist.")
-            raise FileNotFoundError(f"File read '{file_path}' failed: File does not exist.")
+            raise FileNotFoundError(
+                f"File read '{file_path}' failed: File does not exist."
+            )
         try:
             try:
                 with open(file_path, encoding=encoding) as inp_file:
@@ -208,7 +220,9 @@ class FileUtils:
         try:
             response = requests.get(url, stream=True, timeout=60)
             if response.status_code != 200:
-                log.error(f"Error downloading file '{url}': {response.status_code} {response.text}")
+                log.error(
+                    f"Error downloading file '{url}': {response.status_code} {response.text}"
+                )
                 raise SolidLSPException("Error downloading file.")
             with open(target_path, "wb") as f:
                 shutil.copyfileobj(response.raw, f)
@@ -217,13 +231,17 @@ class FileUtils:
             raise SolidLSPException("Error downloading file.") from None
 
     @staticmethod
-    def download_and_extract_archive(url: str, target_path: str, archive_type: str) -> None:
+    def download_and_extract_archive(
+        url: str, target_path: str, archive_type: str
+    ) -> None:
         """
         Downloads the archive from the given URL having format {archive_type} and extracts it to the given {target_path}
         """
         try:
             tmp_files = []
-            tmp_file_name = str(PurePath(os.path.expanduser("~"), "solidlsp_tmp", uuid.uuid4().hex))
+            tmp_file_name = str(
+                PurePath(os.path.expanduser("~"), "solidlsp_tmp", uuid.uuid4().hex)
+            )
             tmp_files.append(tmp_file_name)
             os.makedirs(os.path.dirname(tmp_file_name), exist_ok=True)
             FileUtils.download_file(url, tmp_file_name)
@@ -247,11 +265,17 @@ class FileUtils:
                 os.makedirs(target_path, exist_ok=True)
                 tmp_file_name_ungzipped = tmp_file_name + ".zip"
                 tmp_files.append(tmp_file_name_ungzipped)
-                with gzip.open(tmp_file_name, "rb") as f_in, open(tmp_file_name_ungzipped, "wb") as f_out:
+                with (
+                    gzip.open(tmp_file_name, "rb") as f_in,
+                    open(tmp_file_name_ungzipped, "wb") as f_out,
+                ):
                     shutil.copyfileobj(f_in, f_out)
                 shutil.unpack_archive(tmp_file_name_ungzipped, target_path, "zip")
             elif archive_type == "gz":
-                with gzip.open(tmp_file_name, "rb") as f_in, open(target_path, "wb") as f_out:
+                with (
+                    gzip.open(tmp_file_name, "rb") as f_in,
+                    open(target_path, "wb") as f_out,
+                ):
                     shutil.copyfileobj(f_in, f_out)
             elif archive_type == "binary":
                 # For single binary files, just move to target without extraction
@@ -260,7 +284,9 @@ class FileUtils:
                 log.error(f"Unknown archive type '{archive_type}' for extraction")
                 raise SolidLSPException(f"Unknown archive type '{archive_type}'")
         except Exception as exc:
-            log.error(f"Error extracting archive '{tmp_file_name}' obtained from '{url}': {exc}")
+            log.error(
+                f"Error extracting archive '{tmp_file_name}' obtained from '{url}': {exc}"
+            )
             raise SolidLSPException("Error extracting archive.") from exc
         finally:
             for tmp_file_name in tmp_files:
@@ -328,7 +354,9 @@ class PlatformUtils:
                     platform_id = f"{system_map[system]}-{libc}-{machine_map[machine]}"
             return PlatformId(platform_id)
         else:
-            raise SolidLSPException(f"Unknown platform: {system=}, {machine=}, {bitness=}")
+            raise SolidLSPException(
+                f"Unknown platform: {system=}, {machine=}, {bitness=}"
+            )
 
     @staticmethod
     def _determine_windows_machine_type() -> str:
@@ -338,7 +366,10 @@ class PlatformUtils:
         class SYSTEM_INFO(ctypes.Structure):
             class _U(ctypes.Union):
                 class _S(ctypes.Structure):
-                    _fields_ = [("wProcessorArchitecture", wintypes.WORD), ("wReserved", wintypes.WORD)]
+                    _fields_ = [
+                        ("wProcessorArchitecture", wintypes.WORD),
+                        ("wReserved", wintypes.WORD),
+                    ]
 
                 _fields_ = [("dwOemId", wintypes.DWORD), ("s", _S)]
                 _anonymous_ = ("s",)
@@ -368,7 +399,10 @@ class PlatformUtils:
             0: "i386",
         }
 
-        return arch_map.get(sys_info.wProcessorArchitecture, f"Unknown ({sys_info.wProcessorArchitecture})")
+        return arch_map.get(
+            sys_info.wProcessorArchitecture,
+            f"Unknown ({sys_info.wProcessorArchitecture})",
+        )
 
     @staticmethod
     def get_dotnet_version() -> DotnetVersion:
@@ -376,7 +410,9 @@ class PlatformUtils:
         Returns the dotnet version for the current system
         """
         try:
-            result = subprocess.run(["dotnet", "--list-runtimes"], capture_output=True, check=True)
+            result = subprocess.run(
+                ["dotnet", "--list-runtimes"], capture_output=True, check=True
+            )
             available_version_cmd_output = []
             for line in result.stdout.decode("utf-8").split("\n"):
                 if line.startswith("Microsoft.NETCore.App"):
@@ -405,7 +441,9 @@ class PlatformUtils:
             )
         except (FileNotFoundError, subprocess.CalledProcessError):
             try:
-                result = subprocess.run(["mono", "--version"], capture_output=True, check=True)
+                result = subprocess.run(
+                    ["mono", "--version"], capture_output=True, check=True
+                )
                 return DotnetVersion.VMONO
             except (FileNotFoundError, subprocess.CalledProcessError):
                 raise SolidLSPException("dotnet or mono not found on the system")
@@ -413,7 +451,9 @@ class PlatformUtils:
 
 class SymbolUtils:
     @staticmethod
-    def symbol_tree_contains_name(roots: list[UnifiedSymbolInformation], name: str) -> bool:
+    def symbol_tree_contains_name(
+        roots: list[UnifiedSymbolInformation], name: str
+    ) -> bool:
         for symbol in roots:
             if symbol["name"] == name:
                 return True

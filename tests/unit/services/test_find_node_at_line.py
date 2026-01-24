@@ -10,7 +10,6 @@ The find_node_at_line() function finds the innermost CodeNode that contains
 a given line number, enabling symbol-level resolution from LSP locations.
 """
 
-
 from fs2.core.models.code_node import CodeNode
 
 

@@ -226,7 +226,7 @@ class TestNoLspFlag:
 
 class TestNoLspFlagPipelineIntegration:
     """Tests for --no-lsp flag effect on pipeline behavior.
-    
+
     These tests verify the flag correctly disables LSP processing
     in the RelationshipExtractionStage.
     """

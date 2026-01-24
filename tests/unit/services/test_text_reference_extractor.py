@@ -9,7 +9,6 @@ Acceptance Criteria:
 - Multiple mentions on different lines preserved
 """
 
-
 from fs2.core.models.edge_type import EdgeType
 from fs2.core.services.relationship_extraction.text_reference_extractor import (
     TextReferenceExtractor,

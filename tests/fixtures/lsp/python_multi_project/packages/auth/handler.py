@@ -1,4 +1,5 @@
 """Authentication handler using User model."""
+
 from .models import User
 
 

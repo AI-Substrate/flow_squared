@@ -54,7 +54,10 @@ class NixLanguageServer(SolidLanguageServer):
         # Check if there's a semicolon immediately after the current range end
         if end_char < len(line) and line[end_char] == ";":
             # Extend range to include the semicolon
-            new_range = {"start": range_info["start"], "end": {"line": end_line, "character": end_char + 1}}
+            new_range = {
+                "start": range_info["start"],
+                "end": {"line": end_line, "character": end_char + 1},
+            }
 
             # Create modified symbol with extended range
             extended_symbol = symbol.copy()
@@ -72,30 +75,44 @@ class NixLanguageServer(SolidLanguageServer):
         return symbol
 
     @override
-    def request_document_symbols(self, relative_file_path: str, file_buffer: LSPFileBuffer | None = None) -> DocumentSymbols:
+    def request_document_symbols(
+        self, relative_file_path: str, file_buffer: LSPFileBuffer | None = None
+    ) -> DocumentSymbols:
         # Override to extend Nix symbol ranges to include trailing semicolons.
         # nixd provides expression-level ranges (excluding semicolons) but serena needs
         # statement-level ranges (including semicolons) for proper symbol replacement.
 
         # Get symbols from parent implementation
-        document_symbols = super().request_document_symbols(relative_file_path, file_buffer=file_buffer)
+        document_symbols = super().request_document_symbols(
+            relative_file_path, file_buffer=file_buffer
+        )
 
         # Get file content for range extension
-        file_content = self.language_server.retrieve_full_file_content(relative_file_path)
+        file_content = self.language_server.retrieve_full_file_content(
+            relative_file_path
+        )
 
         # Extend ranges for all symbols recursively
-        def extend_symbol_and_children(symbol: ls_types.UnifiedSymbolInformation) -> ls_types.UnifiedSymbolInformation:
+        def extend_symbol_and_children(
+            symbol: ls_types.UnifiedSymbolInformation,
+        ) -> ls_types.UnifiedSymbolInformation:
             # Extend this symbol's range
-            extended = self._extend_nix_symbol_range_to_include_semicolon(symbol, file_content)
+            extended = self._extend_nix_symbol_range_to_include_semicolon(
+                symbol, file_content
+            )
 
             # Extend children recursively
             if extended.get("children"):
-                extended["children"] = [extend_symbol_and_children(child) for child in extended["children"]]
+                extended["children"] = [
+                    extend_symbol_and_children(child) for child in extended["children"]
+                ]
 
             return extended
 
         # Apply range extension to all symbols
-        extended_root_symbols = [extend_symbol_and_children(sym) for sym in document_symbols.root_symbols]
+        extended_root_symbols = [
+            extend_symbol_and_children(sym) for sym in document_symbols.root_symbols
+        ]
 
         return DocumentSymbols(extended_root_symbols)
 
@@ -105,13 +122,19 @@ class NixLanguageServer(SolidLanguageServer):
         # - result: nix build output symlinks
         # - result-*: multiple build outputs
         # - .direnv: direnv cache
-        return super().is_ignored_dirname(dirname) or dirname in ["result", ".direnv"] or dirname.startswith("result-")
+        return (
+            super().is_ignored_dirname(dirname)
+            or dirname in ["result", ".direnv"]
+            or dirname.startswith("result-")
+        )
 
     @staticmethod
     def _get_nixd_version():
         """Get the installed nixd version or None if not found."""
         try:
-            result = subprocess.run(["nixd", "--version"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["nixd", "--version"], capture_output=True, text=True, check=False
+            )
             if result.returncode == 0:
                 # nixd outputs version like: nixd 2.0.0
                 return result.stdout.strip()
@@ -214,8 +237,12 @@ class NixLanguageServer(SolidLanguageServer):
         """
         # First check if Nix is available (nixd needs it at runtime)
         if not shutil.which("nix"):
-            print("WARNING: Nix is not installed. nixd requires Nix to function properly.")
-            raise RuntimeError("Nix is required for nixd. Please install Nix from https://nixos.org/download.html")
+            print(
+                "WARNING: Nix is not installed. nixd requires Nix to function properly."
+            )
+            raise RuntimeError(
+                "Nix is required for nixd. Please install Nix from https://nixos.org/download.html"
+            )
 
         nixd_path = NixLanguageServer._get_nixd_path()
 
@@ -237,7 +264,13 @@ class NixLanguageServer(SolidLanguageServer):
 
         # Verify nixd works
         try:
-            result = subprocess.run([nixd_path, "--version"], capture_output=True, text=True, check=False, timeout=5)
+            result = subprocess.run(
+                [nixd_path, "--version"],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=5,
+            )
             if result.returncode != 0:
                 raise RuntimeError(f"nixd failed to run: {result.stderr}")
         except Exception as e:
@@ -245,10 +278,21 @@ class NixLanguageServer(SolidLanguageServer):
 
         return nixd_path
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         nixd_path = self._setup_runtime_dependency()
 
-        super().__init__(config, repository_root_path, ProcessLaunchInfo(cmd=nixd_path, cwd=repository_root_path), "nix", solidlsp_settings)
+        super().__init__(
+            config,
+            repository_root_path,
+            ProcessLaunchInfo(cmd=nixd_path, cwd=repository_root_path),
+            "nix",
+            solidlsp_settings,
+        )
         self.server_ready = threading.Event()
         self.request_id = 0
 
@@ -332,7 +376,9 @@ class NixLanguageServer(SolidLanguageServer):
             "initializationOptions": {
                 # nixd specific options
                 "nixpkgs": {"expr": "import <nixpkgs> { }"},
-                "formatting": {"command": ["nixpkgs-fmt"]},  # or ["alejandra"] or ["nixfmt"]
+                "formatting": {
+                    "command": ["nixpkgs-fmt"]
+                },  # or ["alejandra"] or ["nixfmt"]
                 "options": {
                     "enable": True,
                     "target": {
@@ -364,7 +410,9 @@ class NixLanguageServer(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
 
         # Verify server capabilities

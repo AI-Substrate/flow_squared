@@ -21,7 +21,11 @@ import pathlib
 import shutil
 import threading
 
-from fs2.vendors.solidlsp.language_servers.common import RuntimeDependency, RuntimeDependencyCollection, quote_windows_path
+from fs2.vendors.solidlsp.language_servers.common import (
+    RuntimeDependency,
+    RuntimeDependencyCollection,
+    quote_windows_path,
+)
 from fs2.vendors.solidlsp.ls import SolidLanguageServer
 from fs2.vendors.solidlsp.ls_config import LanguageServerConfig
 from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import InitializeParams
@@ -38,9 +42,16 @@ class PascalLanguageServer(SolidLanguageServer):
     """
 
     PASLS_VERSION = "0.1.0"
-    PASLS_RELEASES_URL = "https://github.com/zen010101/pascal-language-server/releases/download"
+    PASLS_RELEASES_URL = (
+        "https://github.com/zen010101/pascal-language-server/releases/download"
+    )
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a PascalLanguageServer instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
@@ -124,7 +135,9 @@ class PascalLanguageServer(SolidLanguageServer):
             log.info(f"Downloading pasls to {pasls_dir}...")
             deps.install(pasls_dir)
 
-        assert os.path.exists(pasls_executable_path), f"pasls executable not found at {pasls_executable_path}"
+        assert os.path.exists(pasls_executable_path), (
+            f"pasls executable not found at {pasls_executable_path}"
+        )
         os.chmod(pasls_executable_path, 0o755)
         log.info(f"Using pasls at: {pasls_executable_path}")
 
@@ -266,14 +279,18 @@ class PascalLanguageServer(SolidLanguageServer):
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_notification("window/showMessage", window_log_message)
-        self.server.on_notification("textDocument/publishDiagnostics", publish_diagnostics)
+        self.server.on_notification(
+            "textDocument/publishDiagnostics", publish_diagnostics
+        )
         self.server.on_notification("$/progress", do_nothing)
 
         log.info("Starting Pascal server process")
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
         log.debug(f"Received initialize response from Pascal server: {init_response}")
 
@@ -297,7 +314,9 @@ class PascalLanguageServer(SolidLanguageServer):
         log.info("Waiting for Pascal language server to be ready...")
         if not self.server_ready.wait(timeout=5.0):
             # pasls may not send explicit ready signals, so we proceed after timeout
-            log.info("Timeout waiting for Pascal server ready signal, assuming server is ready")
+            log.info(
+                "Timeout waiting for Pascal server ready signal, assuming server is ready"
+            )
             self.server_ready.set()
             self.completions_available.set()
         else:

@@ -141,9 +141,7 @@ class TestRelationshipExtractionStageHappyPath:
         )
 
         stage = RelationshipExtractionStage()
-        ctx = _create_context_with_node(
-            content="Reference to `file:src/other.py` here"
-        )
+        ctx = _create_context_with_node(content="Reference to `file:src/other.py` here")
 
         result = stage.process(ctx)
 
@@ -287,7 +285,9 @@ def _create_context_with_node(
     ctx = PipelineContext(scan_config=ScanConfig())
     # Use factory method which handles all required fields
     node = CodeNode.create_file(
-        file_path=source_file.replace("file:", "") if source_file.startswith("file:") else "README.md",
+        file_path=source_file.replace("file:", "")
+        if source_file.startswith("file:")
+        else "README.md",
         language="markdown",
         ts_kind="document",
         start_byte=0,

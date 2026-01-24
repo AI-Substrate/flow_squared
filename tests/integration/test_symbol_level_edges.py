@@ -47,27 +47,84 @@ class ExpectedEdge(NamedTuple):
 # Python fixture expected edges from EXPECTED_CALLS.md
 # Cross-file edges
 PYTHON_CROSS_FILE_EDGES = [
-    ExpectedEdge("PY-CF-001", "src/app.py", "main", "src/auth.py", "AuthService.create", "calls"),
-    ExpectedEdge("PY-CF-002", "src/app.py", "main", "src/auth.py", "AuthService.login", "calls"),
-    ExpectedEdge("PY-CF-003", "src/app.py", "main", "src/utils.py", "format_date", "calls"),
-    ExpectedEdge("PY-CF-004", "src/app.py", "process_user", "src/auth.py", "AuthService.__init__", "calls"),
-    ExpectedEdge("PY-CF-005", "src/app.py", "process_user", "src/auth.py", "AuthService.login", "calls"),
-    ExpectedEdge("PY-CF-006", "src/auth.py", "AuthService._validate", "src/utils.py", "validate_string", "calls"),
+    ExpectedEdge(
+        "PY-CF-001", "src/app.py", "main", "src/auth.py", "AuthService.create", "calls"
+    ),
+    ExpectedEdge(
+        "PY-CF-002", "src/app.py", "main", "src/auth.py", "AuthService.login", "calls"
+    ),
+    ExpectedEdge(
+        "PY-CF-003", "src/app.py", "main", "src/utils.py", "format_date", "calls"
+    ),
+    ExpectedEdge(
+        "PY-CF-004",
+        "src/app.py",
+        "process_user",
+        "src/auth.py",
+        "AuthService.__init__",
+        "calls",
+    ),
+    ExpectedEdge(
+        "PY-CF-005",
+        "src/app.py",
+        "process_user",
+        "src/auth.py",
+        "AuthService.login",
+        "calls",
+    ),
+    ExpectedEdge(
+        "PY-CF-006",
+        "src/auth.py",
+        "AuthService._validate",
+        "src/utils.py",
+        "validate_string",
+        "calls",
+    ),
 ]
 
 # Same-file edges
 PYTHON_SAME_FILE_EDGES = [
-    ExpectedEdge("PY-SF-001", "src/auth.py", "AuthService.__init__", "src/auth.py", "AuthService._setup", "calls"),
-    ExpectedEdge("PY-SF-002", "src/auth.py", "AuthService.login", "src/auth.py", "AuthService._validate", "calls"),
-    ExpectedEdge("PY-SF-003", "src/auth.py", "AuthService._validate", "src/auth.py", "AuthService._check_token", "calls"),
-    ExpectedEdge("PY-SF-004", "src/auth.py", "AuthService.create", "src/auth.py", "AuthService.__init__", "calls"),
+    ExpectedEdge(
+        "PY-SF-001",
+        "src/auth.py",
+        "AuthService.__init__",
+        "src/auth.py",
+        "AuthService._setup",
+        "calls",
+    ),
+    ExpectedEdge(
+        "PY-SF-002",
+        "src/auth.py",
+        "AuthService.login",
+        "src/auth.py",
+        "AuthService._validate",
+        "calls",
+    ),
+    ExpectedEdge(
+        "PY-SF-003",
+        "src/auth.py",
+        "AuthService._validate",
+        "src/auth.py",
+        "AuthService._check_token",
+        "calls",
+    ),
+    ExpectedEdge(
+        "PY-SF-004",
+        "src/auth.py",
+        "AuthService.create",
+        "src/auth.py",
+        "AuthService.__init__",
+        "calls",
+    ),
 ]
 
 
 @pytest.fixture
 def python_fixture_path() -> Path:
     """Return path to python_multi_project fixture."""
-    fixture_path = Path(__file__).parent.parent / "fixtures" / "lsp" / "python_multi_project"
+    fixture_path = (
+        Path(__file__).parent.parent / "fixtures" / "lsp" / "python_multi_project"
+    )
     assert fixture_path.exists(), f"Fixture not found: {fixture_path}"
     return fixture_path
 
@@ -91,6 +148,7 @@ def scan_python_fixture(python_fixture_path: Path, tmp_path: Path):
     lsp_adapter = SolidLspAdapter(config)
     # Initialize with cwd as project root since node IDs are relative to cwd
     from pathlib import Path as PathLib
+
     lsp_adapter.initialize("python", PathLib.cwd())
 
     pipeline = ScanPipeline(
@@ -110,12 +168,14 @@ def scan_python_fixture(python_fixture_path: Path, tmp_path: Path):
     for node in store.get_all_nodes():
         outgoing = store.get_relationships(node.node_id, direction="outgoing")
         for rel in outgoing:
-            all_edges.append({
-                "source_id": node.node_id,
-                "target_id": rel["node_id"],
-                "edge_type": rel["edge_type"],
-                "confidence": rel.get("confidence"),
-            })
+            all_edges.append(
+                {
+                    "source_id": node.node_id,
+                    "target_id": rel["node_id"],
+                    "edge_type": rel["edge_type"],
+                    "confidence": rel.get("confidence"),
+                }
+            )
 
     call_edges = [e for e in all_edges if e["edge_type"] == "calls"]
 
@@ -158,18 +218,27 @@ def edge_matches(edge: dict, expected: ExpectedEdge) -> bool:
         target_path = ""
 
     # Check source matches
-    source_file_match = expected.source_file.replace("src/", "") in source_path or source_path.endswith(expected.source_file.split("/")[-1])
+    source_file_match = expected.source_file.replace(
+        "src/", ""
+    ) in source_path or source_path.endswith(expected.source_file.split("/")[-1])
     source_symbol_match = expected.source_symbol.split(".")[-1] in source_id
 
     # Check target matches - allow class-level when method expected
     # e.g., expected="AuthService.create" should match detected="AuthService"
-    target_file_match = expected.target_file.replace("src/", "") in target_path or target_path.endswith(expected.target_file.split("/")[-1])
+    target_file_match = expected.target_file.replace(
+        "src/", ""
+    ) in target_path or target_path.endswith(expected.target_file.split("/")[-1])
 
     # Target symbol matching: accept method name OR class name
     target_parts_expected = expected.target_symbol.split(".")
     target_symbol_match = any(part in target_id for part in target_parts_expected)
 
-    return source_file_match and source_symbol_match and target_file_match and target_symbol_match
+    return (
+        source_file_match
+        and source_symbol_match
+        and target_file_match
+        and target_symbol_match
+    )
 
 
 class TestPythonSymbolLevelEdges:
@@ -207,11 +276,15 @@ class TestPythonSymbolLevelEdges:
             if not found:
                 missing.append(expected)
 
-        print(f"\nDetected cross-file edges ({len(detected)}/{len(PYTHON_CROSS_FILE_EDGES)}):")
+        print(
+            f"\nDetected cross-file edges ({len(detected)}/{len(PYTHON_CROSS_FILE_EDGES)}):"
+        )
         for e in detected:
             print(f"  ✓ {e.id}: {e.source_symbol} -> {e.target_symbol}")
 
-        print(f"\nMissing cross-file edges ({len(missing)}/{len(PYTHON_CROSS_FILE_EDGES)}):")
+        print(
+            f"\nMissing cross-file edges ({len(missing)}/{len(PYTHON_CROSS_FILE_EDGES)}):"
+        )
         for e in missing:
             print(f"  ✗ {e.id}: {e.source_symbol} -> {e.target_symbol}")
 
@@ -258,11 +331,15 @@ class TestPythonSymbolLevelEdges:
             if not found:
                 missing.append(expected)
 
-        print(f"\nDetected same-file edges ({len(detected)}/{len(PYTHON_SAME_FILE_EDGES)}):")
+        print(
+            f"\nDetected same-file edges ({len(detected)}/{len(PYTHON_SAME_FILE_EDGES)}):"
+        )
         for e in detected:
             print(f"  ✓ {e.id}: {e.source_symbol} -> {e.target_symbol}")
 
-        print(f"\nMissing same-file edges ({len(missing)}/{len(PYTHON_SAME_FILE_EDGES)}):")
+        print(
+            f"\nMissing same-file edges ({len(missing)}/{len(PYTHON_SAME_FILE_EDGES)}):"
+        )
         for e in missing:
             print(f"  ✗ {e.id}: {e.source_symbol} -> {e.target_symbol}")
 
@@ -331,7 +408,7 @@ class TestEdgeValidationUtilities:
             source_symbol="main",
             target_file="src/auth.py",
             target_symbol="AuthService.login",
-            edge_type="calls"
+            edge_type="calls",
         )
 
         assert edge_matches(edge, expected) is True
@@ -350,7 +427,7 @@ class TestEdgeValidationUtilities:
             source_symbol="main",
             target_file="src/auth.py",
             target_symbol="AuthService.login",
-            edge_type="calls"
+            edge_type="calls",
         )
 
         assert edge_matches(edge, expected) is False

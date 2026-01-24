@@ -76,8 +76,8 @@ class TestGracefulDegradationNoLspAdapter:
 
 class TestGracefulDegradationPipeline:
     """Tests for graceful degradation at the pipeline level.
-    
-    Note: These tests use the RelationshipExtractionStage directly 
+
+    Note: These tests use the RelationshipExtractionStage directly
     rather than full pipeline to avoid complex setup. The stage-level
     tests above verify the core graceful degradation behavior.
     """
@@ -163,14 +163,16 @@ class TestGracefulDegradationWarningContent:
             stage.process(ctx)
 
         # Find the LSP warning
-        lsp_warnings = [
-            r for r in caplog.records if "lsp" in r.message.lower()
-        ]
+        lsp_warnings = [r for r in caplog.records if "lsp" in r.message.lower()]
         assert len(lsp_warnings) >= 1
 
         # Warning should mention text-based extraction
         warning_msg = lsp_warnings[0].message.lower()
-        assert "text" in warning_msg or "pattern" in warning_msg or "filename" in warning_msg
+        assert (
+            "text" in warning_msg
+            or "pattern" in warning_msg
+            or "filename" in warning_msg
+        )
 
 
 # ============ Helper Functions ============
@@ -195,9 +197,7 @@ def _create_minimal_context() -> PipelineContext:
     return ctx
 
 
-def _create_context_with_reference(
-    content: str, target_path: str
-) -> PipelineContext:
+def _create_context_with_reference(content: str, target_path: str) -> PipelineContext:
     """Create PipelineContext with a node that references another file."""
     from fs2.core.models.code_node import CodeNode
 

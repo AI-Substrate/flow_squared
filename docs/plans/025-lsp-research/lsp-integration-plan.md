@@ -2052,6 +2052,13 @@ lychee README.md docs/how/user/lsp-guide.md 2>/dev/null || echo "Link checker no
   - `file:docs/how/user/lsp-guide.md` - User guide (8.3KB): Install, Enable, Verify, Troubleshoot, Languages
   - `file:docs/how/dev/lsp-adapter-architecture.md` - Developer guide (13KB): Architecture, ABC, Testing, Extension
 
+[^21]: Phase 8 Subtask 001 - Tree-Sitter Call Extraction (2026-01-24)
+  - `function:src/fs2/core/services/stages/relationship_extraction_stage.py:extract_call_positions` - AST call position extraction
+  - `function:src/fs2/core/services/stages/relationship_extraction_stage.py:_find_method_identifier` - Method name position helper
+  - `function:src/fs2/core/services/stages/relationship_extraction_stage.py:is_stdlib_target` - Stdlib filtering
+  - `file:tests/unit/services/stages/test_call_extraction.py` - 17 unit tests
+  - `file:tests/integration/test_call_extraction_integration.py` - 3 integration tests
+
 ---
 
 ## Deviation Ledger
@@ -2251,7 +2258,7 @@ Mid-implementation detours requiring structured tracking.
 | ID | Created | Phase | Parent Task | Reason | Status | Dossier |
 |----|---------|-------|-------------|--------|--------|---------|
 | 001-subtask-validate-lsp-cross-file | 2026-01-15 | Phase 0b: Multi-Project Research | T007 | Validate that LSP servers can resolve cross-file method calls before vendoring 25K LOC of SolidLSP. | [ ] Pending | [Link](tasks/phase-0b-multi-project-research/001-subtask-validate-lsp-cross-file.md) |
-| 002-subtask-tree-sitter-call-extraction | 2026-01-23 | Phase 8: Pipeline Integration | T003, T016 | Implement tree-sitter call expression extraction for accurate LSP get_definition queries (replaces removed naive line-scanning). | [ ] Pending | [Link](tasks/phase-8-pipeline-integration/002-subtask-tree-sitter-call-extraction.md) |
+| 001-subtask-tree-sitter-call-extraction | 2026-01-23 | Phase 8: Pipeline Integration | T003, T016 | Implement tree-sitter call expression extraction for accurate LSP get_definition queries (replaces removed naive line-scanning). | [ ] Pending | [Link](tasks/phase-8-pipeline-integration/001-subtask-tree-sitter-call-extraction.md) |
 
 ---
 

@@ -167,9 +167,7 @@ class FakeLspAdapter(LspAdapter):
         )
         self._is_ready = False
 
-    def get_references(
-        self, file_path: str, line: int, column: int
-    ) -> list[CodeEdge]:
+    def get_references(self, file_path: str, line: int, column: int) -> list[CodeEdge]:
         """Return configured references response.
 
         Args:
@@ -198,9 +196,7 @@ class FakeLspAdapter(LspAdapter):
 
         return self._references_response
 
-    def get_definition(
-        self, file_path: str, line: int, column: int
-    ) -> list[CodeEdge]:
+    def get_definition(self, file_path: str, line: int, column: int) -> list[CodeEdge]:
         """Return configured definition response.
 
         Args:

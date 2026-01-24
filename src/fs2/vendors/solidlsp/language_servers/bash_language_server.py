@@ -9,7 +9,10 @@ import pathlib
 import shutil
 import threading
 
-from fs2.vendors.solidlsp.language_servers.common import RuntimeDependency, RuntimeDependencyCollection
+from fs2.vendors.solidlsp.language_servers.common import (
+    RuntimeDependency,
+    RuntimeDependencyCollection,
+)
 from fs2.vendors.solidlsp.ls import DocumentSymbols, LSPFileBuffer, SolidLanguageServer
 from fs2.vendors.solidlsp.ls_config import LanguageServerConfig
 from fs2.vendors.solidlsp.lsp_protocol_handler.lsp_types import InitializeParams
@@ -25,12 +28,19 @@ class BashLanguageServer(SolidLanguageServer):
     Contains various configurations and settings specific to Bash scripting.
     """
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         """
         Creates a BashLanguageServer instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
         """
-        bash_lsp_executable_path = self._setup_runtime_dependencies(config, solidlsp_settings)
+        bash_lsp_executable_path = self._setup_runtime_dependencies(
+            config, solidlsp_settings
+        )
         super().__init__(
             config,
             repository_root_path,
@@ -42,15 +52,21 @@ class BashLanguageServer(SolidLanguageServer):
         self.initialize_searcher_command_available = threading.Event()
 
     @classmethod
-    def _setup_runtime_dependencies(cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings) -> str:
+    def _setup_runtime_dependencies(
+        cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
+    ) -> str:
         """
         Setup runtime dependencies for Bash Language Server and return the command to start the server.
         """
         # Verify both node and npm are installed
         is_node_installed = shutil.which("node") is not None
-        assert is_node_installed, "node is not installed or isn't in PATH. Please install NodeJS and try again."
+        assert is_node_installed, (
+            "node is not installed or isn't in PATH. Please install NodeJS and try again."
+        )
         is_npm_installed = shutil.which("npm") is not None
-        assert is_npm_installed, "npm is not installed or isn't in PATH. Please install npm and try again."
+        assert is_npm_installed, (
+            "npm is not installed or isn't in PATH. Please install npm and try again."
+        )
 
         deps = RuntimeDependencyCollection(
             [
@@ -65,14 +81,18 @@ class BashLanguageServer(SolidLanguageServer):
 
         # Install bash-language-server if not already installed
         bash_ls_dir = os.path.join(cls.ls_resources_dir(solidlsp_settings), "bash-lsp")
-        bash_executable_path = os.path.join(bash_ls_dir, "node_modules", ".bin", "bash-language-server")
+        bash_executable_path = os.path.join(
+            bash_ls_dir, "node_modules", ".bin", "bash-language-server"
+        )
 
         # Handle Windows executable extension
         if os.name == "nt":
             bash_executable_path += ".cmd"
 
         if not os.path.exists(bash_executable_path):
-            log.info(f"Bash Language Server executable not found at {bash_executable_path}. Installing...")
+            log.info(
+                f"Bash Language Server executable not found at {bash_executable_path}. Installing..."
+            )
             deps.install(bash_ls_dir)
             log.info("Bash language server dependencies installed successfully")
 
@@ -93,7 +113,10 @@ class BashLanguageServer(SolidLanguageServer):
             "capabilities": {
                 "textDocument": {
                     "synchronization": {"didSave": True, "dynamicRegistration": True},
-                    "completion": {"dynamicRegistration": True, "completionItem": {"snippetSupport": True}},
+                    "completion": {
+                        "dynamicRegistration": True,
+                        "completionItem": {"snippetSupport": True},
+                    },
                     "definition": {"dynamicRegistration": True},
                     "references": {"dynamicRegistration": True},
                     "documentSymbol": {
@@ -101,7 +124,10 @@ class BashLanguageServer(SolidLanguageServer):
                         "hierarchicalDocumentSymbolSupport": True,
                         "symbolKind": {"valueSet": list(range(1, 27))},
                     },
-                    "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
+                    "hover": {
+                        "dynamicRegistration": True,
+                        "contentFormat": ["markdown", "plaintext"],
+                    },
                     "signatureHelp": {"dynamicRegistration": True},
                     "codeAction": {"dynamicRegistration": True},
                 },
@@ -145,14 +171,19 @@ class BashLanguageServer(SolidLanguageServer):
             log.info(f"LSP: window/logMessage: {msg}")
             # Check for bash-language-server ready signals
             message_text = msg.get("message", "")
-            if "Analyzing" in message_text or "analysis complete" in message_text.lower():
+            if (
+                "Analyzing" in message_text
+                or "analysis complete" in message_text.lower()
+            ):
                 log.info("Bash language server analysis signals detected")
                 self.server_ready.set()
                 self.completions_available.set()
 
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("window/logMessage", window_log_message)
-        self.server.on_request("workspace/executeClientCommand", execute_client_command_handler)
+        self.server.on_request(
+            "workspace/executeClientCommand", execute_client_command_handler
+        )
         self.server.on_notification("$/progress", do_nothing)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
 
@@ -160,12 +191,17 @@ class BashLanguageServer(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
         log.debug(f"Received initialize response from bash server: {init_response}")
 
         # Enhanced capability checks for bash-language-server 5.6.0
-        assert init_response["capabilities"]["textDocumentSync"] in [1, 2]  # Full or Incremental
+        assert init_response["capabilities"]["textDocumentSync"] in [
+            1,
+            2,
+        ]  # Full or Incremental
         assert "completionProvider" in init_response["capabilities"]
 
         # Verify document symbol support is available
@@ -187,7 +223,9 @@ class BashLanguageServer(SolidLanguageServer):
         else:
             log.info("Bash server initialization complete")
 
-    def request_document_symbols(self, relative_file_path: str, file_buffer: LSPFileBuffer | None = None) -> DocumentSymbols:
+    def request_document_symbols(
+        self, relative_file_path: str, file_buffer: LSPFileBuffer | None = None
+    ) -> DocumentSymbols:
         # Uses the standard LSP documentSymbol request which provides reliable function detection
         # for all bash function syntaxes including:
         # - function name() { ... } (with function keyword)
@@ -198,10 +236,14 @@ class BashLanguageServer(SolidLanguageServer):
         log.debug(f"Requesting document symbols via LSP for {relative_file_path}")
 
         # Use the standard LSP approach - bash-language-server handles all function syntaxes correctly
-        document_symbols = super().request_document_symbols(relative_file_path, file_buffer=file_buffer)
+        document_symbols = super().request_document_symbols(
+            relative_file_path, file_buffer=file_buffer
+        )
 
         # Log detection results for debugging
         functions = [s for s in document_symbols.iter_symbols() if s.get("kind") == 12]
-        log.info(f"LSP function detection for {relative_file_path}: Found {len(functions)} functions")
+        log.info(
+            f"LSP function detection for {relative_file_path}: Found {len(functions)} functions"
+        )
 
         return document_symbols

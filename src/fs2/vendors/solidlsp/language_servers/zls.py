@@ -33,13 +33,22 @@ class ZigLanguageServer(SolidLanguageServer):
         # - zig-out: default build output directory
         # - .zig-cache: alternative cache location
         # - node_modules: if the project has JavaScript components
-        return super().is_ignored_dirname(dirname) or dirname in ["zig-cache", "zig-out", ".zig-cache", "node_modules", "build", "dist"]
+        return super().is_ignored_dirname(dirname) or dirname in [
+            "zig-cache",
+            "zig-out",
+            ".zig-cache",
+            "node_modules",
+            "build",
+            "dist",
+        ]
 
     @staticmethod
     def _get_zig_version() -> str | None:
         """Get the installed Zig version or None if not found."""
         try:
-            result = subprocess.run(["zig", "version"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["zig", "version"], capture_output=True, text=True, check=False
+            )
             if result.returncode == 0:
                 return result.stdout.strip()
         except FileNotFoundError:
@@ -50,7 +59,9 @@ class ZigLanguageServer(SolidLanguageServer):
     def _get_zls_version() -> str | None:
         """Get the installed ZLS version or None if not found."""
         try:
-            result = subprocess.run(["zls", "--version"], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                ["zls", "--version"], capture_output=True, text=True, check=False
+            )
             if result.returncode == 0:
                 return result.stdout.strip()
         except FileNotFoundError:
@@ -96,10 +107,21 @@ class ZigLanguageServer(SolidLanguageServer):
 
         return True
 
-    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
+    def __init__(
+        self,
+        config: LanguageServerConfig,
+        repository_root_path: str,
+        solidlsp_settings: SolidLSPSettings,
+    ):
         self._setup_runtime_dependency()
 
-        super().__init__(config, repository_root_path, ProcessLaunchInfo(cmd="zls", cwd=repository_root_path), "zig", solidlsp_settings)
+        super().__init__(
+            config,
+            repository_root_path,
+            ProcessLaunchInfo(cmd="zls", cwd=repository_root_path),
+            "zig",
+            solidlsp_settings,
+        )
         self.server_ready = threading.Event()
         self.request_id = 0
 
@@ -203,7 +225,9 @@ class ZigLanguageServer(SolidLanguageServer):
         self.server.start()
         initialize_params = self._get_initialize_params(self.repository_root_path)
 
-        log.info("Sending initialize request from LSP client to LSP server and awaiting response")
+        log.info(
+            "Sending initialize request from LSP client to LSP server and awaiting response"
+        )
         init_response = self.server.send.initialize(initialize_params)
 
         # Verify server capabilities
