@@ -5,6 +5,20 @@
 
 documents:
   # === Getting Started ===
+  - id: agents-start-here
+    title: "Getting Started with fs2"
+    summary: "Step-by-step setup guide for AI agents and new users. Covers the full journey from installation to MCP connection. Start here if you're new to fs2."
+    category: how-to
+    tags:
+      - getting-started
+      - onboarding
+      - setup
+      - init
+      - mcp
+      - agents
+      - config
+    path: agents-start-here.md
+
   - id: agents
     title: "AI Agent Guidance"
     summary: "Best practices for AI agents using fs2 tools. Read this FIRST when starting to use fs2 MCP server to understand tool selection, search strategies, and common workflows."

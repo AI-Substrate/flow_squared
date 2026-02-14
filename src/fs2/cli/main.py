@@ -8,6 +8,8 @@ Commands:
 - get-node: Retrieve a single node by ID as JSON
 - install: Install fs2 permanently via uv tool
 - upgrade: Upgrade fs2 (alias for install)
+- docs: Browse bundled documentation via CLI
+- agents-start-here: Orientation for AI agents and new users
 
 Global Options:
 - --graph-file: Override graph file path (applies to all graph commands)
@@ -20,6 +22,8 @@ from typing import Annotated
 
 import typer
 
+from fs2.cli.agents_start_here import agents_start_here
+from fs2.cli.docs_cmd import docs
 from fs2.cli.doctor import doctor_app
 from fs2.cli.get_node import get_node
 from fs2.cli.guard import require_init
@@ -108,6 +112,10 @@ app.command(name="watch")(require_init(watch))
 
 # Commands that always work (not guarded)
 app.command(name="init")(init)
+app.command(name="docs")(docs)  # Per Plan 026: Agent onboarding
+app.command(name="agents-start-here")(
+    agents_start_here
+)  # Per Plan 026: Agent onboarding
 app.command(name="list-graphs")(list_graphs)  # Per subtask 001: diagnostic command
 app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
 app.command(name="install")(install)
