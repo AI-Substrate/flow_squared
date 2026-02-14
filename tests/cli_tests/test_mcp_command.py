@@ -17,6 +17,8 @@ from typer.testing import CliRunner
 
 from fs2.cli.main import app
 
+pytestmark = pytest.mark.slow  # Real CLI invocations via CliRunner
+
 runner = CliRunner()
 
 

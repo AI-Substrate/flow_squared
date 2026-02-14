@@ -1,6 +1,5 @@
 """Sample Python file for tree-sitter exploration."""
 
-from typing import List, Optional
 import asyncio
 
 
@@ -72,7 +71,7 @@ def decorated_function():
 squares = [x**2 for x in range(10)]
 square_dict = {x: x**2 for x in range(5)}
 evens = {x for x in range(10) if x % 2 == 0}
-double = lambda x: x * 2
+def double(x): return x * 2
 
 
 # Context manager

@@ -6,7 +6,10 @@ Full TDD tests for the CLI guard covering:
 - T017: error shows PWD and .git warning
 """
 
+import pytest
 from typer.testing import CliRunner
+
+pytestmark = pytest.mark.slow
 
 runner = CliRunner()
 

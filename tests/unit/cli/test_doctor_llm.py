@@ -8,7 +8,10 @@ Test Plan (Minimal):
 - Real validation happens via manual testing (ST005) with actual credentials
 """
 
+import pytest
 from typer.testing import CliRunner
+
+pytestmark = pytest.mark.slow
 
 runner = CliRunner()
 

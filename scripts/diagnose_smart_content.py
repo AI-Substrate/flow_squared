@@ -13,7 +13,6 @@ Run after `fs2 scan` to diagnose why smart content re-processes.
 import pickle
 import sys
 from collections import Counter, defaultdict
-from dataclasses import fields
 from pathlib import Path
 
 
@@ -27,7 +26,7 @@ def load_graph(graph_path: Path) -> tuple[dict, object]:
         data = pickle.load(f)
 
     if not isinstance(data, tuple) or len(data) != 2:
-        print(f"ERROR: Invalid graph format - expected (metadata, graph) tuple")
+        print("ERROR: Invalid graph format - expected (metadata, graph) tuple")
         sys.exit(1)
 
     return data[0], data[1]
@@ -155,7 +154,7 @@ def analyze_graph(graph_path: Path):
     print("Hash comparison (smart_content_hash vs content_hash):")
     print(f"  Matches: {hash_matches}")
     print(f"  Mismatches: {hash_mismatches}")
-    print(f"  (Only applicable when smart_content_hash is set)")
+    print("  (Only applicable when smart_content_hash is set)")
     print()
 
     # === SECTION 4: BY CATEGORY BREAKDOWN ===
@@ -253,7 +252,7 @@ def analyze_graph(graph_path: Path):
         else:
             would_need_regeneration += 1
 
-    print(f"On next scan (assuming no file changes):")
+    print("On next scan (assuming no file changes):")
     print(f"  Would be PRESERVED (skip LLM): {would_be_preserved}/{len(nodes)} ({100*would_be_preserved/len(nodes):.1f}%)")
     print(f"  Would need REGENERATION: {would_need_regeneration}/{len(nodes)} ({100*would_need_regeneration/len(nodes):.1f}%)")
     print()

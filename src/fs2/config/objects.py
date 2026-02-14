@@ -467,7 +467,7 @@ class AzureEmbeddingConfig(BaseModel):
     """
 
     endpoint: str
-    api_key: str
+    api_key: str | None = None
     deployment_name: str = "text-embedding-3-small"
     api_version: str = "2024-02-01"
 
@@ -481,10 +481,10 @@ class AzureEmbeddingConfig(BaseModel):
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: str) -> str:
-        """Validate api_key is not empty."""
-        if not v or not v.strip():
-            raise ValueError("api_key must not be empty")
+    def validate_api_key(cls, v: str | None) -> str | None:
+        """Validate api_key is not empty when provided."""
+        if v is not None and not v.strip():
+            raise ValueError("api_key must not be empty when provided")
         return v
 
 

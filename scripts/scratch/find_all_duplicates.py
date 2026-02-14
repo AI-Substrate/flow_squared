@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Find all duplicate node_ids across the codebase."""
 
-import pickle
 import sys
 from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from fs2.config.objects import ScanConfig, GraphConfig
+from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters import FileSystemScanner, TreeSitterParser
 

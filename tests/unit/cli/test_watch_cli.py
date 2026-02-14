@@ -9,6 +9,8 @@ Per Finding 01: CLI Registration uses app.command(name="X")(require_init(X)).
 import pytest
 from typer.testing import CliRunner
 
+pytestmark = pytest.mark.slow
+
 runner = CliRunner()
 
 

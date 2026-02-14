@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from fs2.config.objects import ScanConfig, GraphConfig
+from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters import TreeSitterParser
 
@@ -48,7 +48,7 @@ def main():
     ids_2 = set(by_id_2.keys())
 
     if ids_1 != ids_2:
-        print(f"\nWARNING: Node IDs differ between parses!")
+        print("\nWARNING: Node IDs differ between parses!")
         print(f"  Only in parse 1: {ids_1 - ids_2}")
         print(f"  Only in parse 2: {ids_2 - ids_1}")
 
@@ -80,7 +80,7 @@ def main():
 
     # Show unstable nodes
     if unstable_nodes:
-        print(f"\n--- UNSTABLE NODES ---")
+        print("\n--- UNSTABLE NODES ---")
         for item in unstable_nodes[:3]:
             n1 = item["n1"]
             n2 = item["n2"]
@@ -95,16 +95,16 @@ def main():
             content2 = n2.content
 
             if content1 == content2:
-                print(f"  CONTENT IDENTICAL but hash differs!")
+                print("  CONTENT IDENTICAL but hash differs!")
                 print(f"    len1: {len(content1)}")
                 print(f"    len2: {len(content2)}")
                 # Check byte-level
                 if content1.encode() == content2.encode():
-                    print(f"    Bytes also identical - hash function issue?")
+                    print("    Bytes also identical - hash function issue?")
                 else:
-                    print(f"    Bytes differ!")
+                    print("    Bytes differ!")
             else:
-                print(f"  CONTENT DIFFERS:")
+                print("  CONTENT DIFFERS:")
                 print(f"    len1: {len(content1)}")
                 print(f"    len2: {len(content2)}")
 
@@ -136,7 +136,7 @@ def main():
     else:
         print("Node order DIFFERS between parses!")
         # Find first difference
-        for i, (id1, id2) in enumerate(zip(order1, order2)):
+        for i, (id1, id2) in enumerate(zip(order1, order2, strict=False)):
             if id1 != id2:
                 print(f"  First difference at index {i}:")
                 print(f"    parse1: {id1}")

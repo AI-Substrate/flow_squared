@@ -152,7 +152,7 @@ def main() -> int:
     # Delete existing fixture to force fresh embedding generation
     # This prevents merging of prior embeddings that may lack chunk offsets
     if OUTPUT_PATH.exists():
-        logger.info(f"Removing existing fixture to force fresh embeddings...")
+        logger.info("Removing existing fixture to force fresh embeddings...")
         OUTPUT_PATH.unlink()
 
     # Create configuration
@@ -232,10 +232,9 @@ def main() -> int:
 
             # Re-add edges if parent exists
             if node.parent_node_id:
-                try:
-                    graph_store.add_edge(node.parent_node_id, node.node_id)
-                except Exception:
-                    pass  # Parent may not exist
+                import contextlib
+                with contextlib.suppress(Exception):
+                    graph_store.add_edge(node.parent_node_id, node.node_id)  # Parent may not exist
 
         with_smart = sum(1 for n in enriched_nodes if n.smart_content is not None)
         logger.info(f"Nodes with smart_content: {with_smart}")

@@ -1,5 +1,7 @@
 # fs2 MCP Integration for AI Agents
 
+> **New to fs2?** Run `fs2 agents-start-here` for setup guidance, or read `fs2 docs agents-start-here` for the full getting-started guide. This document covers tool usage after setup is complete.
+
 This document provides guidance for AI coding assistants on how to effectively use the fs2 MCP server for code exploration and understanding.
 
 ## Overview

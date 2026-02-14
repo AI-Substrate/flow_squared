@@ -6,7 +6,10 @@ Full TDD tests for the init command covering:
 - T015: Enhanced init tests (local + global, .git warning, .gitignore)
 """
 
+import pytest
 from typer.testing import CliRunner
+
+pytestmark = pytest.mark.slow
 
 runner = CliRunner()
 
@@ -461,3 +464,98 @@ class TestEnhancedInitLocalAndGlobal:
         stdout_lower = result.stdout.lower()
         # Check for absence of warning about .git specifically
         assert not ("no .git" in stdout_lower and "warning" in stdout_lower)
+
+
+# =============================================================================
+# CONFIG TEMPLATE CONTENT TESTS (Plan 025)
+# =============================================================================
+
+
+class TestDefaultConfigTemplate:
+    """Tests for DEFAULT_CONFIG template content (AC1-AC6)."""
+
+    def test_given_default_config_when_checked_then_contains_azure_key_llm_example(
+        self,
+    ):
+        """
+        Purpose: Proves template has Azure API key LLM example.
+        Quality Contribution: New users see Azure key-based auth path.
+        Acceptance Criteria: AC1 — commented section includes provider: azure + api_key.
+        """
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert "# llm:" in DEFAULT_CONFIG
+        assert "#   provider: azure" in DEFAULT_CONFIG
+        assert "#   api_key: ${AZURE_OPENAI_API_KEY}" in DEFAULT_CONFIG
+
+    def test_given_default_config_when_checked_then_contains_azure_ad_llm_example(
+        self,
+    ):
+        """
+        Purpose: Proves template has Azure AD (az login) LLM example.
+        Quality Contribution: Keyless auth shown as first-class option.
+        Acceptance Criteria: AC3 — Azure AD section present with install instructions.
+        """
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert "az login" in DEFAULT_CONFIG
+        assert "pip install fs2[azure-ad]" in DEFAULT_CONFIG
+
+    def test_given_default_config_when_checked_then_contains_openai_llm_example(self):
+        """
+        Purpose: Proves template has OpenAI LLM example.
+        Quality Contribution: OpenAI users can configure quickly.
+        Acceptance Criteria: AC1 — OpenAI provider section with API key placeholder.
+        """
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert "#   provider: openai" in DEFAULT_CONFIG
+        assert "#   api_key: ${OPENAI_API_KEY}" in DEFAULT_CONFIG
+
+    def test_given_default_config_when_checked_then_contains_embedding_examples(self):
+        """
+        Purpose: Proves template has embedding configuration examples.
+        Quality Contribution: Users see how to enable semantic search.
+        Acceptance Criteria: AC2 — Azure and OpenAI-compatible embedding sections present.
+        """
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert "# embedding:" in DEFAULT_CONFIG
+        assert "#   mode: azure" in DEFAULT_CONFIG
+        assert "#   mode: openai_compatible" in DEFAULT_CONFIG
+
+    def test_given_default_config_when_checked_then_api_versions_are_quoted(self):
+        """
+        Purpose: Proves all api_version values are quoted strings.
+        Quality Contribution: Prevents YAML date-parsing gotcha.
+        Acceptance Criteria: AC4 — api_version lines use quoted values.
+        """
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        for line in DEFAULT_CONFIG.splitlines():
+            stripped = line.lstrip("# ").strip()
+            if "api_version" in stripped and ":" in stripped:
+                value = stripped.split(":", 1)[1].strip()
+                assert value.startswith('"') and value.endswith('"'), (
+                    f"api_version not quoted: {line.strip()}"
+                )
+
+    def test_given_default_config_when_scan_section_parsed_then_valid_yaml_with_defaults(
+        self,
+    ):
+        """
+        Purpose: Proves active scan section is valid YAML with expected defaults.
+        Quality Contribution: Config won't fail on first use.
+        Acceptance Criteria: AC6 — scan section parses and has same defaults as before.
+        """
+        import yaml
+
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        parsed = yaml.safe_load(DEFAULT_CONFIG)
+        assert parsed is not None
+        assert "scan" in parsed
+        assert parsed["scan"]["scan_paths"] == ["."]
+        assert parsed["scan"]["respect_gitignore"] is True
+        assert parsed["scan"]["max_file_size_kb"] == 500
+        assert parsed["scan"]["follow_symlinks"] is False

@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from fs2.config.objects import ScanConfig, GraphConfig
+from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters import TreeSitterParser
 
@@ -40,7 +40,7 @@ def main():
             by_category[cat] = []
         by_category[cat].append(node)
 
-    print(f"\nBy category:")
+    print("\nBy category:")
     for cat, cat_nodes in sorted(by_category.items()):
         print(f"  {cat}: {len(cat_nodes)}")
 

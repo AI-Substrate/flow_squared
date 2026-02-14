@@ -11,10 +11,9 @@ Usage:
     python scripts/scratch/investigate_embedding_reprocessing.py
 """
 
-import pickle
+import hashlib
 import subprocess
 import sys
-import hashlib
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime

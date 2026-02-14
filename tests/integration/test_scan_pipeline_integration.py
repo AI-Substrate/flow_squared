@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.slow  # Real TreeSitter parsing + filesystem scanning
+
 from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters.ast_parser_impl import TreeSitterParser

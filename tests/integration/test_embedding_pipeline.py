@@ -18,6 +18,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.slow  # Real TreeSitter parsing + embedding pipeline
+
 from fs2.config.objects import (
     ChunkConfig,
     EmbeddingConfig,

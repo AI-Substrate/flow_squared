@@ -2,12 +2,37 @@
 
 T020-T021: End-to-end CLI integration tests.
 Tests use subprocess to verify real CLI behavior.
+
+Note: These tests require all CLI dependencies (typer, openai, etc.)
+to be installed in the venv. They are skipped when deps are missing.
 """
 
 import subprocess
 import sys
 
+import pytest
 
+pytestmark = pytest.mark.slow  # Real subprocess CLI invocations
+
+
+def _cli_deps_available() -> bool:
+    """Check if CLI dependencies are importable."""
+    try:
+        import typer  # noqa: F401
+        from openai import AsyncAzureOpenAI  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
+_skip_no_cli_deps = pytest.mark.skipif(
+    not _cli_deps_available(),
+    reason="CLI dependencies (typer/openai) not installed",
+)
+
+
+@_skip_no_cli_deps
 class TestCLIEndToEnd:
     """T020: Full scan via CLI subprocess."""
 
@@ -63,6 +88,7 @@ class TestCLIEndToEnd:
         assert "init" in scan_result.stdout.lower()
 
 
+@_skip_no_cli_deps
 class TestCLIHelpOutput:
     """T021: CLI help and version output."""
 
@@ -101,6 +127,7 @@ class TestCLIHelpOutput:
         assert "--no-progress" in result.stdout
 
 
+@_skip_no_cli_deps
 class TestCLIWithRealProject:
     """Integration tests with actual code structure."""
 

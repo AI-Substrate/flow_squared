@@ -7,6 +7,8 @@ Uses session-scoped scanned_fixtures_graph fixture for high-fidelity testing.
 import pytest
 from typer.testing import CliRunner
 
+pytestmark = pytest.mark.slow  # Real CLI invocations with scanned graph
+
 runner = CliRunner()
 
 

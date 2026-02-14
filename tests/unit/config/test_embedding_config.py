@@ -618,6 +618,50 @@ class TestAzureEmbeddingConfigValidation:
 
 
 @pytest.mark.unit
+class TestAzureEmbeddingConfigOptionalApiKey:
+    """Tests for AzureEmbeddingConfig accepting api_key=None (AC4)."""
+
+    def test_given_no_api_key_when_constructed_then_defaults_to_none(self):
+        """
+        Purpose: Proves api_key defaults to None when omitted.
+        Quality Contribution: Enables Azure AD auth path.
+        Acceptance Criteria: api_key is None.
+        """
+        from fs2.config.objects import AzureEmbeddingConfig
+
+        config = AzureEmbeddingConfig(endpoint="https://test.openai.azure.com")
+        assert config.api_key is None
+
+    def test_given_explicit_none_api_key_when_constructed_then_accepts(self):
+        """
+        Purpose: Proves explicit None is accepted.
+        Quality Contribution: Validates config model change.
+        Acceptance Criteria: No ValidationError raised.
+        """
+        from fs2.config.objects import AzureEmbeddingConfig
+
+        config = AzureEmbeddingConfig(
+            endpoint="https://test.openai.azure.com",
+            api_key=None,
+        )
+        assert config.api_key is None
+
+    def test_given_empty_string_api_key_when_constructed_then_rejects(self):
+        """
+        Purpose: Proves empty string still rejected (existing behavior).
+        Quality Contribution: Prevents accidental empty key auth.
+        Acceptance Criteria: ValidationError raised.
+        """
+        from fs2.config.objects import AzureEmbeddingConfig
+
+        with pytest.raises(ValidationError, match="api_key"):
+            AzureEmbeddingConfig(
+                endpoint="https://test.openai.azure.com",
+                api_key="",
+            )
+
+
+@pytest.mark.unit
 class TestEmbeddingConfigAzureNested:
     """T001: Tests for azure nested config in EmbeddingConfig per DYK-1."""
 

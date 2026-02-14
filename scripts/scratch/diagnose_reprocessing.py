@@ -17,7 +17,7 @@ from pathlib import Path
 # Ensure fs2 is importable
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from fs2.config.objects import ScanConfig, GraphConfig
+from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters import TreeSitterParser
 
@@ -94,7 +94,7 @@ def main():
         else:
             states["ok"].append(node_id)
 
-    print(f"\nFixture node states:")
+    print("\nFixture node states:")
     for state, node_ids in sorted(states.items()):
         print(f"  {state}: {len(node_ids)}")
 
@@ -152,17 +152,17 @@ def main():
         print(f"  In both: {len(both)}")
 
         if only_fresh:
-            print(f"\n  NEW node_ids (not in saved graph):")
+            print("\n  NEW node_ids (not in saved graph):")
             for nid in list(only_fresh)[:5]:
                 print(f"    {nid}")
 
         if only_saved:
-            print(f"\n  ORPHANED node_ids (not in fresh parse):")
+            print("\n  ORPHANED node_ids (not in fresh parse):")
             for nid in list(only_saved)[:5]:
                 print(f"    {nid}")
 
         # For nodes in both, compare content_hash
-        print(f"\n  Comparing content_hash for nodes in both:")
+        print("\n  Comparing content_hash for nodes in both:")
         fresh_by_id = {n.node_id: n for n in fresh_nodes}
         hash_matches = 0
         hash_mismatches = []
@@ -184,7 +184,7 @@ def main():
         print(f"    Hash mismatches: {len(hash_mismatches)}")
 
         if hash_mismatches:
-            print(f"\n  HASH MISMATCHES (content changed between parses):")
+            print("\n  HASH MISMATCHES (content changed between parses):")
             for m in hash_mismatches[:5]:
                 print(f"    {m['node_id']}")
                 print(f"      fresh: {m['fresh_hash']}...")
@@ -211,7 +211,7 @@ def main():
         else:
             embedding_states["ok"].append(node_id)
 
-    print(f"\nFixture embedding states:")
+    print("\nFixture embedding states:")
     for state, node_ids in sorted(embedding_states.items()):
         print(f"  {state}: {len(node_ids)}")
 

@@ -262,8 +262,6 @@ def _validate_embedding_config(config: dict[str, Any]) -> tuple[bool, bool, list
         azure = embedding.get("azure", {})
         if not azure.get("endpoint"):
             issues.append("azure.endpoint is required when mode=azure")
-        if not azure.get("api_key"):
-            issues.append("azure.api_key is required when mode=azure")
 
     if issues:
         return False, True, issues
@@ -663,16 +661,6 @@ def validate_provider_requirements() -> list[dict[str, Any]]:
                     "docs_url": EMBEDDING_DOCS_URL,
                 }
             )
-        if not azure.get("api_key"):
-            errors.append(
-                {
-                    "type": "provider_requirement",
-                    "field": "embedding.azure.api_key",
-                    "message": "azure.api_key is required for Azure embeddings",
-                    "docs_url": EMBEDDING_DOCS_URL,
-                }
-            )
-
     return errors
 
 
