@@ -63,7 +63,7 @@ class AzureEmbeddingAdapter(EmbeddingAdapter):
         if self._embedding_config.azure is None:
             raise EmbeddingAdapterError(
                 "Azure config is required for mode='azure'. "
-                "Set embedding.azure.endpoint and embedding.azure.api_key."
+                "Set embedding.azure.endpoint."
             )
 
         self._azure_config = self._embedding_config.azure
@@ -76,15 +76,41 @@ class AzureEmbeddingAdapter(EmbeddingAdapter):
     def _get_client(self) -> AsyncAzureOpenAI:
         """Get or create the Azure OpenAI client.
 
+        Auth: key present → api_key; key absent → Azure AD via DefaultAzureCredential.
+
         Returns:
             AsyncAzureOpenAI client configured for the deployment.
         """
         if self._client is None:
-            self._client = AsyncAzureOpenAI(
-                api_key=self._azure_config.api_key,
-                azure_endpoint=self._azure_config.endpoint,
-                api_version=self._azure_config.api_version,
-            )
+            if self._azure_config.api_key:
+                # Key-based auth
+                self._client = AsyncAzureOpenAI(
+                    api_key=self._azure_config.api_key,
+                    azure_endpoint=self._azure_config.endpoint,
+                    api_version=self._azure_config.api_version,
+                )
+            else:
+                # Azure AD auth (az login / DefaultAzureCredential)
+                try:
+                    from azure.identity import (
+                        DefaultAzureCredential,
+                        get_bearer_token_provider,
+                    )
+                except ImportError:
+                    raise EmbeddingAdapterError(
+                        "azure-identity package is required for Azure AD authentication. "
+                        "Install it with: pip install fs2[azure-ad]"
+                    )
+                credential = DefaultAzureCredential()
+                token_provider = get_bearer_token_provider(
+                    credential,
+                    "https://cognitiveservices.azure.com/.default",  # Public Azure; sovereign clouds need different scope
+                )
+                self._client = AsyncAzureOpenAI(
+                    azure_ad_token_provider=token_provider,
+                    azure_endpoint=self._azure_config.endpoint,
+                    api_version=self._azure_config.api_version,
+                )
         return self._client
 
     def _extract_retry_after(self, error: Exception) -> float | None:

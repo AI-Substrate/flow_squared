@@ -598,3 +598,132 @@ class TestAzureEmbeddingAdapterDimensionsMismatch:
         assert "dimension" in caplog.text.lower() or "mismatch" in caplog.text.lower()
         # Still returns the embedding (warn, don't error)
         assert len(result) == 3072
+
+
+# Azure AD Authentication Tests (AC2, AC3, AC7)
+
+
+@pytest.mark.unit
+class TestAzureEmbeddingAdapterAzureADAuth:
+    """Tests for Azure AD credential support in _get_client()."""
+
+    def test_given_no_api_key_and_azure_identity_when_get_client_then_uses_token_provider(
+        self,
+    ):
+        """
+        Purpose: Proves Azure AD auth path when api_key absent.
+        Quality Contribution: Core AC2 — DefaultAzureCredential flow.
+        Acceptance Criteria: AsyncAzureOpenAI called with azure_ad_token_provider, NOT api_key.
+        """
+        from fs2.config.objects import AzureEmbeddingConfig, EmbeddingConfig
+        from fs2.config.service import ConfigurationService
+        from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
+
+        mock_config = MagicMock(spec=ConfigurationService)
+        mock_config.require.return_value = EmbeddingConfig(
+            mode="azure",
+            azure=AzureEmbeddingConfig(
+                endpoint="https://test.openai.azure.com",
+                api_key=None,
+            ),
+        )
+
+        adapter = AzureEmbeddingAdapter(mock_config)
+
+        mock_credential = MagicMock()
+        mock_token_provider = MagicMock()
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "azure": MagicMock(),
+                "azure.identity": MagicMock(
+                    DefaultAzureCredential=MagicMock(
+                        return_value=mock_credential
+                    ),
+                    get_bearer_token_provider=MagicMock(
+                        return_value=mock_token_provider
+                    ),
+                ),
+            },
+        ):
+            with patch(
+                "fs2.core.adapters.embedding_adapter_azure.AsyncAzureOpenAI"
+            ) as mock_client_cls:
+                adapter._client = None
+                adapter._get_client()
+
+                mock_client_cls.assert_called_once()
+                call_kwargs = mock_client_cls.call_args[1]
+                assert "api_key" not in call_kwargs
+                assert call_kwargs["azure_ad_token_provider"] is mock_token_provider
+
+                # Verify correct scope (per didyouknow #1)
+                import sys
+
+                azure_identity = sys.modules["azure.identity"]
+                azure_identity.get_bearer_token_provider.assert_called_once_with(
+                    mock_credential,
+                    "https://cognitiveservices.azure.com/.default",
+                )
+
+    def test_given_no_api_key_and_no_azure_identity_when_get_client_then_raises_error(
+        self,
+    ):
+        """
+        Purpose: Proves actionable error when azure-identity not installed.
+        Quality Contribution: Core AC3 — clear install instructions.
+        Acceptance Criteria: EmbeddingAdapterError with 'pip install fs2[azure-ad]' message.
+        """
+        from fs2.config.objects import AzureEmbeddingConfig, EmbeddingConfig
+        from fs2.config.service import ConfigurationService
+        from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
+        from fs2.core.adapters.exceptions import EmbeddingAdapterError
+
+        mock_config = MagicMock(spec=ConfigurationService)
+        mock_config.require.return_value = EmbeddingConfig(
+            mode="azure",
+            azure=AzureEmbeddingConfig(
+                endpoint="https://test.openai.azure.com",
+                api_key=None,
+            ),
+        )
+
+        adapter = AzureEmbeddingAdapter(mock_config)
+
+        with patch.dict("sys.modules", {"azure.identity": None}):
+            with pytest.raises(EmbeddingAdapterError, match="azure-identity"):
+                adapter._client = None
+                adapter._get_client()
+
+    def test_given_api_key_when_get_client_then_uses_key_not_token_provider(self):
+        """
+        Purpose: Proves mutual exclusivity (AC7) — key present means no token provider.
+        Quality Contribution: Prevents undefined AsyncAzureOpenAI behavior.
+        Acceptance Criteria: api_key passed, azure_ad_token_provider NOT passed.
+        """
+        from fs2.config.objects import AzureEmbeddingConfig, EmbeddingConfig
+        from fs2.config.service import ConfigurationService
+        from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
+
+        mock_config = MagicMock(spec=ConfigurationService)
+        mock_config.require.return_value = EmbeddingConfig(
+            mode="azure",
+            azure=AzureEmbeddingConfig(
+                endpoint="https://test.openai.azure.com",
+                api_key="test-key",
+            ),
+        )
+
+        adapter = AzureEmbeddingAdapter(mock_config)
+
+        with patch(
+            "fs2.core.adapters.embedding_adapter_azure.AsyncAzureOpenAI"
+        ) as mock_client_cls:
+            adapter._client = None
+            adapter._get_client()
+
+            mock_client_cls.assert_called_once()
+            call_kwargs = mock_client_cls.call_args[1]
+            assert call_kwargs["api_key"] == "test-key"
+            assert "azure_ad_token_provider" not in call_kwargs

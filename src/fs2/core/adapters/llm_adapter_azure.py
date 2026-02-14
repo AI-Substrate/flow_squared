@@ -99,17 +99,43 @@ class AzureOpenAIAdapter(LLMAdapter):
         """Get or create the Azure OpenAI client.
 
         Note: Per Insight 02, base_url is mapped to azure_endpoint.
+        Auth: key present → api_key; key absent → Azure AD via DefaultAzureCredential.
 
         Returns:
             AsyncAzureOpenAI client configured for the deployment.
         """
         if self._client is None:
-            self._client = AsyncAzureOpenAI(
-                api_key=self._llm_config.api_key,
-                azure_endpoint=self._llm_config.base_url,  # Maps base_url → azure_endpoint
-                api_version=self._llm_config.azure_api_version,
-                timeout=self._llm_config.timeout,
-            )
+            if self._llm_config.api_key:
+                # Key-based auth
+                self._client = AsyncAzureOpenAI(
+                    api_key=self._llm_config.api_key,
+                    azure_endpoint=self._llm_config.base_url,
+                    api_version=self._llm_config.azure_api_version,
+                    timeout=self._llm_config.timeout,
+                )
+            else:
+                # Azure AD auth (az login / DefaultAzureCredential)
+                try:
+                    from azure.identity import (
+                        DefaultAzureCredential,
+                        get_bearer_token_provider,
+                    )
+                except ImportError:
+                    raise LLMAdapterError(
+                        "azure-identity package is required for Azure AD authentication. "
+                        "Install it with: pip install fs2[azure-ad]"
+                    )
+                credential = DefaultAzureCredential()
+                token_provider = get_bearer_token_provider(
+                    credential,
+                    "https://cognitiveservices.azure.com/.default",  # Public Azure; sovereign clouds need different scope
+                )
+                self._client = AsyncAzureOpenAI(
+                    azure_ad_token_provider=token_provider,
+                    azure_endpoint=self._llm_config.base_url,
+                    api_version=self._llm_config.azure_api_version,
+                    timeout=self._llm_config.timeout,
+                )
         return self._client
 
     def _is_content_filter_error(self, error: Exception) -> bool:

@@ -26,6 +26,9 @@ dependencies = [
 fs2 = "fs2.cli.main:app"
 
 [project.optional-dependencies]
+azure-ad = [
+    "azure-identity>=1.18.0,<2",
+]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.23",
