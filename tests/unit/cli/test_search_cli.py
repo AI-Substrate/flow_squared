@@ -15,6 +15,8 @@ import json
 import pytest
 from typer.testing import CliRunner
 
+pytestmark = pytest.mark.slow
+
 runner = CliRunner()
 
 

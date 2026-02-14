@@ -54,7 +54,7 @@ async def test_llm_azure_ad():
     print("=== LLM Azure AD Auth Test ===")
     print(f"Endpoint: {LLM_ENDPOINT}")
     print(f"Deployment: {LLM_DEPLOYMENT}")
-    print(f"Auth: Azure AD (az login)")
+    print("Auth: Azure AD (az login)")
     print()
 
     config = AzureADConfigService()
@@ -95,7 +95,7 @@ async def test_embedding_azure_ad():
     print("=== Embedding Azure AD Auth Test ===")
     print(f"Endpoint: {EMBEDDING_ENDPOINT}")
     print(f"Deployment: {EMBEDDING_DEPLOYMENT}")
-    print(f"Auth: Azure AD (az login)")
+    print("Auth: Azure AD (az login)")
     print()
 
     config = AzureADEmbeddingConfigService()

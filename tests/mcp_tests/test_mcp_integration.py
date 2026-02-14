@@ -17,6 +17,8 @@ import pytest
 from fastmcp.client import Client
 from fastmcp.client.transports import StdioTransport
 
+pytestmark = pytest.mark.slow  # Spawns real MCP subprocess via StdioTransport
+
 
 @pytest.mark.integration
 class TestMCPSubprocessIntegration:

@@ -16,6 +16,9 @@ from pathlib import Path
 
 import pytest
 
+# Dynamic project root resolution (works in devcontainer and local)
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
 # Allowed imports for ABC files: stdlib + fs2 internal
 ALLOWED_MODULES = {
     "abc",
@@ -82,8 +85,8 @@ class TestImportBoundaries:
         Purpose: Proves log_adapter.py contains no external SDK imports
         Quality Contribution: Enforces Clean Architecture boundaries
         """
-        file_path = Path(
-            "/workspaces/flow_squared/src/fs2/core/adapters/log_adapter.py"
+        file_path = (
+            _PROJECT_ROOT / "src" / "fs2" / "core" / "adapters" / "log_adapter.py"
         )
         forbidden = check_no_sdk_imports(file_path)
         assert forbidden == [], f"Forbidden imports in log_adapter.py: {forbidden}"
@@ -93,8 +96,8 @@ class TestImportBoundaries:
         Purpose: Proves console_adapter.py contains no external SDK imports
         Quality Contribution: Enforces Clean Architecture boundaries
         """
-        file_path = Path(
-            "/workspaces/flow_squared/src/fs2/core/adapters/console_adapter.py"
+        file_path = (
+            _PROJECT_ROOT / "src" / "fs2" / "core" / "adapters" / "console_adapter.py"
         )
         forbidden = check_no_sdk_imports(file_path)
         assert forbidden == [], f"Forbidden imports in console_adapter.py: {forbidden}"
@@ -104,8 +107,8 @@ class TestImportBoundaries:
         Purpose: Proves sample_adapter.py contains no external SDK imports
         Quality Contribution: Enforces Clean Architecture boundaries
         """
-        file_path = Path(
-            "/workspaces/flow_squared/src/fs2/core/adapters/sample_adapter.py"
+        file_path = (
+            _PROJECT_ROOT / "src" / "fs2" / "core" / "adapters" / "sample_adapter.py"
         )
         forbidden = check_no_sdk_imports(file_path)
         assert forbidden == [], f"Forbidden imports in sample_adapter.py: {forbidden}"
@@ -115,7 +118,7 @@ class TestImportBoundaries:
         Purpose: Proves repos protocols.py contains no external SDK imports
         Quality Contribution: Enforces Clean Architecture boundaries
         """
-        file_path = Path("/workspaces/flow_squared/src/fs2/core/repos/protocols.py")
+        file_path = _PROJECT_ROOT / "src" / "fs2" / "core" / "repos" / "protocols.py"
         forbidden = check_no_sdk_imports(file_path)
         assert forbidden == [], f"Forbidden imports in repos/protocols.py: {forbidden}"
 
@@ -124,7 +127,7 @@ class TestImportBoundaries:
         Purpose: Proves domain models don't import from services/adapters/repos
         Quality Contribution: Enforces dependency flow rules
         """
-        file_path = Path("/workspaces/flow_squared/src/fs2/core/models/log_level.py")
+        file_path = _PROJECT_ROOT / "src" / "fs2" / "core" / "models" / "log_level.py"
         violations = check_no_forbidden_model_imports(file_path)
         assert violations == [], f"Forbidden imports in log_level.py: {violations}"
 
@@ -133,6 +136,6 @@ class TestImportBoundaries:
         Purpose: Proves LogEntry doesn't import from services/adapters/repos
         Quality Contribution: Enforces dependency flow rules
         """
-        file_path = Path("/workspaces/flow_squared/src/fs2/core/models/log_entry.py")
+        file_path = _PROJECT_ROOT / "src" / "fs2" / "core" / "models" / "log_entry.py"
         violations = check_no_forbidden_model_imports(file_path)
         assert violations == [], f"Forbidden imports in log_entry.py: {violations}"

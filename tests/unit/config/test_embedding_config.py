@@ -629,9 +629,7 @@ class TestAzureEmbeddingConfigOptionalApiKey:
         """
         from fs2.config.objects import AzureEmbeddingConfig
 
-        config = AzureEmbeddingConfig(
-            endpoint="https://test.openai.azure.com"
-        )
+        config = AzureEmbeddingConfig(endpoint="https://test.openai.azure.com")
         assert config.api_key is None
 
     def test_given_explicit_none_api_key_when_constructed_then_accepts(self):

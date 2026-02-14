@@ -13,6 +13,8 @@ import os
 import pytest
 from typer.testing import CliRunner
 
+pytestmark = pytest.mark.slow  # Real CLI scan invocations (~10s each)
+
 runner = CliRunner()
 
 # T001: App structure tests - verify imports work and app exists

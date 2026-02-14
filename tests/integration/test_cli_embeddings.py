@@ -3,6 +3,10 @@
 import subprocess
 import sys
 
+import pytest
+
+pytestmark = pytest.mark.slow  # Real subprocess CLI invocations
+
 
 class TestCLIEmbeddingsFlag:
     """Tests for --no-embeddings flag behavior."""

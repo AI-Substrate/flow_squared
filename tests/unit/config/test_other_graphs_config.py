@@ -576,6 +576,11 @@ class TestOtherGraphsConfigYAMLLoading:
         from fs2.config.objects import OtherGraphsConfig
         from fs2.config.service import FS2ConfigurationService
 
+        # Setup user config directory (empty — prevents picking up real ~/.config/fs2)
+        user_config_dir = tmp_path / "user_config"
+        user_config_dir.mkdir()
+        (user_config_dir / "config.yaml").write_text("scan:\n  scan_paths:\n    - '.'")
+
         # Setup project config
         config_dir = tmp_path / ".fs2"
         config_dir.mkdir()
@@ -594,6 +599,9 @@ other_graphs:
         )
 
         monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(
+            "fs2.config.service.get_user_config_dir", lambda: user_config_dir
+        )
 
         service = FS2ConfigurationService()
         config = service.get(OtherGraphsConfig)

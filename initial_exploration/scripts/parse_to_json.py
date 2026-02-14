@@ -11,7 +11,6 @@ Usage:
 """
 
 import argparse
-import glob
 import json
 import sys
 from pathlib import Path
@@ -190,10 +189,9 @@ def node_to_dict(node, source: bytes, include_text: bool = True) -> dict[str, An
     if include_text:
         text_length = node.end_byte - node.start_byte
         if text_length <= 200:  # Only include text for reasonably short nodes
-            try:
+            import contextlib
+            with contextlib.suppress(Exception):
                 result['text'] = source[node.start_byte:node.end_byte].decode('utf-8', errors='replace')
-            except Exception:
-                pass
 
     # Include children with field names
     children = []
@@ -239,7 +237,7 @@ def parse_file(file_path: Path, language: str | None = None) -> dict[str, Any]:
     try:
         parser = get_parser(language)
     except Exception as e:
-        raise ValueError(f"Failed to get parser for language '{language}': {e}")
+        raise ValueError(f"Failed to get parser for language '{language}': {e}") from e
 
     # Parse
     tree = parser.parse(source)

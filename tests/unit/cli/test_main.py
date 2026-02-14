@@ -9,9 +9,12 @@ TDD RED tests for:
 Per Testing Philosophy: Full TDD with targeted mocks.
 """
 
+import pytest
 from typer.testing import CliRunner
 
 from fs2.cli.main import CLIContext, app
+
+pytestmark = pytest.mark.slow
 
 
 class TestCLIContextGraphName:

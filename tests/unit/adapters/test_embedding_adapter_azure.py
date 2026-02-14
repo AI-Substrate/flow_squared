@@ -633,39 +633,39 @@ class TestAzureEmbeddingAdapterAzureADAuth:
         mock_credential = MagicMock()
         mock_token_provider = MagicMock()
 
-        with patch.dict(
-            "sys.modules",
-            {
-                "azure": MagicMock(),
-                "azure.identity": MagicMock(
-                    DefaultAzureCredential=MagicMock(
-                        return_value=mock_credential
+        with (
+            patch.dict(
+                "sys.modules",
+                {
+                    "azure": MagicMock(),
+                    "azure.identity": MagicMock(
+                        DefaultAzureCredential=MagicMock(return_value=mock_credential),
+                        get_bearer_token_provider=MagicMock(
+                            return_value=mock_token_provider
+                        ),
                     ),
-                    get_bearer_token_provider=MagicMock(
-                        return_value=mock_token_provider
-                    ),
-                ),
-            },
-        ):
-            with patch(
+                },
+            ),
+            patch(
                 "fs2.core.adapters.embedding_adapter_azure.AsyncAzureOpenAI"
-            ) as mock_client_cls:
-                adapter._client = None
-                adapter._get_client()
+            ) as mock_client_cls,
+        ):
+            adapter._client = None
+            adapter._get_client()
 
-                mock_client_cls.assert_called_once()
-                call_kwargs = mock_client_cls.call_args[1]
-                assert "api_key" not in call_kwargs
-                assert call_kwargs["azure_ad_token_provider"] is mock_token_provider
+            mock_client_cls.assert_called_once()
+            call_kwargs = mock_client_cls.call_args[1]
+            assert "api_key" not in call_kwargs
+            assert call_kwargs["azure_ad_token_provider"] is mock_token_provider
 
-                # Verify correct scope (per didyouknow #1)
-                import sys
+            # Verify correct scope (per didyouknow #1)
+            import sys
 
-                azure_identity = sys.modules["azure.identity"]
-                azure_identity.get_bearer_token_provider.assert_called_once_with(
-                    mock_credential,
-                    "https://cognitiveservices.azure.com/.default",
-                )
+            azure_identity = sys.modules["azure.identity"]
+            azure_identity.get_bearer_token_provider.assert_called_once_with(
+                mock_credential,
+                "https://cognitiveservices.azure.com/.default",
+            )
 
     def test_given_no_api_key_and_no_azure_identity_when_get_client_then_raises_error(
         self,
@@ -691,10 +691,12 @@ class TestAzureEmbeddingAdapterAzureADAuth:
 
         adapter = AzureEmbeddingAdapter(mock_config)
 
-        with patch.dict("sys.modules", {"azure.identity": None}):
-            with pytest.raises(EmbeddingAdapterError, match="azure-identity"):
-                adapter._client = None
-                adapter._get_client()
+        with (
+            patch.dict("sys.modules", {"azure.identity": None}),
+            pytest.raises(EmbeddingAdapterError, match="azure-identity"),
+        ):
+            adapter._client = None
+            adapter._get_client()
 
     def test_given_api_key_when_get_client_then_uses_key_not_token_provider(self):
         """

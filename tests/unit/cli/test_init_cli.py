@@ -6,7 +6,10 @@ Full TDD tests for the init command covering:
 - T015: Enhanced init tests (local + global, .git warning, .gitignore)
 """
 
+import pytest
 from typer.testing import CliRunner
+
+pytestmark = pytest.mark.slow
 
 runner = CliRunner()
 

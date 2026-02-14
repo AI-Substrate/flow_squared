@@ -17,7 +17,7 @@ from pathlib import Path
 # Ensure fs2 is importable
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from fs2.config.objects import ScanConfig, GraphConfig
+from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters import FileSystemScanner, TreeSitterParser
 from fs2.core.repos import NetworkXGraphStore
@@ -67,10 +67,9 @@ def simulate_fresh_scan(scan_paths: list[str], graph_path: Path) -> list:
         for node in nodes:
             graph_store.add_node(node)
             if node.parent_node_id:
-                try:
+                import contextlib
+                with contextlib.suppress(Exception):
                     graph_store.add_edge(node.parent_node_id, node.node_id)
-                except:
-                    pass
         fresh_nodes.extend(nodes)
 
     print(f"Parsed {len(fresh_nodes)} fresh nodes")
@@ -243,14 +242,14 @@ def main():
     )
     would_be_preserved = len(results["would_be_preserved"])
 
-    print(f"\nOn next scan (based on current graph):")
+    print("\nOn next scan (based on current graph):")
     print(f"  Total nodes to process: {total_fresh}")
     print(f"  Would need LLM calls: {would_need_llm} ({100*would_need_llm/total_fresh:.1f}%)")
     print(f"  Would be preserved: {would_be_preserved} ({100*would_be_preserved/total_fresh:.1f}%)")
 
     if len(results["prior_smart_content_empty"]) > 0:
         print(f"\n  WARNING: {len(results['prior_smart_content_empty'])} nodes have empty string smart_content!")
-        print(f"           These pass 'is not None' check but have no useful content.")
+        print("           These pass 'is not None' check but have no useful content.")
 
     # Check for orphaned prior nodes
     fresh_ids = {n.node_id for n in fresh_nodes}

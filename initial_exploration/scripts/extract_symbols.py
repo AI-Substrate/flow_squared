@@ -13,7 +13,6 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any
 
 # Script directory for resolving relative paths
 SCRIPT_DIR = Path(__file__).parent
@@ -85,9 +84,8 @@ def get_category(node_type: str, language: str) -> str | None:
         return 'block'
 
     # Dockerfile instructions
-    if language == 'dockerfile':
-        if node_type == 'from_instruction':
-            return 'block'
+    if language == 'dockerfile' and node_type == 'from_instruction':
+        return 'block'
 
     # Check code symbol patterns
     for pattern in CODE_SYMBOL_PATTERNS:
@@ -409,10 +407,7 @@ def process_markdown(
                 break
 
             # Build qualified name
-            if parent_qname:
-                qname = f"{parent_qname}/{h['name']}"
-            else:
-                qname = h['name']
+            qname = f"{parent_qname}/{h['name']}" if parent_qname else h['name']
 
             # Get content for this section
             content_start = h['start_byte']

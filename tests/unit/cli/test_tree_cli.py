@@ -13,6 +13,8 @@ Full TDD tests for the tree CLI command covering:
 import pytest
 from typer.testing import CliRunner
 
+pytestmark = pytest.mark.slow  # Real CLI scan invocations (~10s each)
+
 runner = CliRunner()
 
 

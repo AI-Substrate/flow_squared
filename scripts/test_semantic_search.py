@@ -6,7 +6,6 @@ Runs semantic queries for obscure concepts and saves results for analysis.
 
 import json
 import subprocess
-import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -144,7 +143,7 @@ def main():
 
             if quality["found_in_top_1"]:
                 output["summary"]["found_in_top_1"] += 1
-                print(f"  Result: FOUND at rank 1")
+                print("  Result: FOUND at rank 1")
             elif quality["found_in_top_3"]:
                 output["summary"]["found_in_top_3"] += 1
                 print(f"  Result: FOUND at rank {quality['found_at_rank']}")
@@ -152,7 +151,7 @@ def main():
                 output["summary"]["found_in_top_5"] += 1
                 print(f"  Result: FOUND at rank {quality['found_at_rank']}")
             else:
-                print(f"  Result: NOT FOUND in top 5")
+                print("  Result: NOT FOUND in top 5")
 
             # Show top result
             if results:

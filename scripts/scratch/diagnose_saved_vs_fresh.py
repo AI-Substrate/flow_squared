@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from fs2.config.objects import ScanConfig, GraphConfig
+from fs2.config.objects import GraphConfig, ScanConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.adapters import TreeSitterParser
 
@@ -75,7 +75,7 @@ def main():
 
         if fresh is None:
             print(f"\n{node_id}")
-            print(f"  NOT in fresh parse (orphaned)")
+            print("  NOT in fresh parse (orphaned)")
             continue
 
         if saved.content_hash != fresh.content_hash:
@@ -91,7 +91,7 @@ def main():
             print(f"  fresh_len: {len(fresh_content)}")
 
             if saved_content == fresh_content:
-                print(f"  CONTENT IDENTICAL - hash algorithm issue?")
+                print("  CONTENT IDENTICAL - hash algorithm issue?")
 
                 # Debug: check the actual hash computation
                 import hashlib
@@ -101,10 +101,10 @@ def main():
                 print(f"  fresh content rehashed: {fresh_recomputed[:32]}...")
 
             else:
-                print(f"  CONTENT DIFFERS:")
+                print("  CONTENT DIFFERS:")
 
                 # Show first difference
-                for i, (c1, c2) in enumerate(zip(saved_content, fresh_content)):
+                for i, (c1, c2) in enumerate(zip(saved_content, fresh_content, strict=False)):
                     if c1 != c2:
                         print(f"    First diff at char {i}:")
                         print(f"      saved: {repr(saved_content[max(0,i-20):i+20])}")
@@ -113,7 +113,7 @@ def main():
                 else:
                     # One is prefix of other
                     if len(saved_content) != len(fresh_content):
-                        print(f"    One is prefix of other")
+                        print("    One is prefix of other")
 
                 # Show unified diff (first few lines)
                 diff = list(difflib.unified_diff(
