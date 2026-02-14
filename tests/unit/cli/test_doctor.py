@@ -1199,3 +1199,65 @@ class TestProviderValidation:
 
         llm_errors = [e for e in errors if "llm" in e.get("field", "").lower()]
         assert len(llm_errors) == 0
+
+    def test_given_azure_ad_embedding_no_api_key_when_doctor_then_no_error(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Azure AD embedding config (no api_key) must not be flagged.
+        Quality Contribution: Prevents false positive when using az login.
+        Acceptance Criteria: api_key is optional for Azure embeddings.
+        """
+        from fs2.cli.doctor import validate_provider_requirements
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        fs2_dir = project_dir / ".fs2"
+        fs2_dir.mkdir()
+        (fs2_dir / "config.yaml").write_text(
+            """embedding:
+  mode: azure
+  dimensions: 1024
+  azure:
+    endpoint: https://test.openai.azure.com
+    deployment_name: text-embedding-3-small
+    api_version: 2024-02-01
+"""
+        )
+
+        monkeypatch.chdir(project_dir)
+
+        errors = validate_provider_requirements()
+
+        embedding_errors = [
+            e for e in errors if "embedding" in e.get("field", "").lower()
+        ]
+        assert len(embedding_errors) == 0
+
+    def test_given_azure_ad_embedding_no_api_key_when_validate_then_configured(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: _validate_embedding_config treats Azure AD config as valid.
+        Quality Contribution: No false misconfigured status for az login users.
+        Acceptance Criteria: is_configured=True, is_misconfigured=False.
+        """
+        from fs2.cli.doctor import _validate_embedding_config
+
+        config = {
+            "embedding": {
+                "mode": "azure",
+                "dimensions": 1024,
+                "azure": {
+                    "endpoint": "https://test.openai.azure.com",
+                    "deployment_name": "text-embedding-3-small",
+                    "api_version": "2024-02-01",
+                },
+            }
+        }
+
+        is_configured, is_misconfigured, issues = _validate_embedding_config(config)
+
+        assert is_configured is True
+        assert is_misconfigured is False
+        assert issues == []

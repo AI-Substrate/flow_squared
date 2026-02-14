@@ -214,7 +214,7 @@ The `llm` section configures the Large Language Model used for smart content gen
 | `openai` | OpenAI API | `api_key` |
 | `fake` | Mock provider for testing | None |
 
-### Azure OpenAI Configuration
+### Azure OpenAI Configuration (API Key)
 
 ```yaml
 llm:
@@ -229,6 +229,31 @@ llm:
   timeout: 30                     # Request timeout (1-120 seconds)
   max_retries: 3                  # Retry count for transient errors
 ```
+
+### Azure OpenAI Configuration (Azure AD / `az login`)
+
+If you don't want to manage API keys, you can authenticate using your Azure AD identity. Simply omit the `api_key` field and fs2 will use `DefaultAzureCredential` from the `azure-identity` package.
+
+**Prerequisites:**
+1. Install the Azure AD dependency: `pip install fs2[azure-ad]`
+2. Sign in: `az login`
+3. Ensure your Azure AD identity has the **Cognitive Services OpenAI User** role on the Azure OpenAI resource
+
+```yaml
+llm:
+  provider: azure
+  # No api_key — uses az login / DefaultAzureCredential
+  base_url: https://your-instance.openai.azure.com/
+  azure_deployment_name: gpt-4
+  azure_api_version: 2024-12-01-preview
+  model: gpt-4
+  temperature: 0.1
+  max_tokens: 1024
+  timeout: 30
+  max_retries: 3
+```
+
+**How it works:** When `api_key` is absent, the adapter lazily imports `azure.identity`, creates a `DefaultAzureCredential`, and obtains a bearer token for the `https://cognitiveservices.azure.com/.default` scope. The credential chain tries managed identity, Azure CLI (`az login`), and other sources automatically.
 
 ### OpenAI Configuration
 
@@ -316,7 +341,7 @@ The `embedding` section configures vector embeddings for semantic search.
 | `openai_compatible` | OpenAI-compatible API | Depends on provider |
 | `fake` | Mock embeddings for testing | None |
 
-### Azure Embedding Configuration
+### Azure Embedding Configuration (API Key)
 
 ```yaml
 embedding:
@@ -347,6 +372,27 @@ embedding:
   smart_content:
     max_tokens: 8000
     overlap_tokens: 0
+```
+
+### Azure Embedding Configuration (Azure AD / `az login`)
+
+Same as above, but omit `api_key` to use Azure AD authentication:
+
+**Prerequisites** (same as LLM):
+1. Install: `pip install fs2[azure-ad]`
+2. Sign in: `az login`
+3. Ensure **Cognitive Services OpenAI User** role on the Azure OpenAI resource
+
+```yaml
+embedding:
+  mode: azure
+  dimensions: 1024
+  batch_size: 16
+  azure:
+    endpoint: https://your-instance.openai.azure.com
+    # No api_key — uses az login / DefaultAzureCredential
+    deployment_name: text-embedding-3-small
+    api_version: 2024-02-01
 ```
 
 ### Fake Embedding (Testing)
@@ -688,6 +734,9 @@ scan:
 | "Missing configuration: LLMConfig" | No llm section in config | Add llm configuration to config.yaml |
 | "base_url is required when provider=azure" | Azure config incomplete | Add all required Azure fields |
 | "Timeout must be 1-120 seconds" | Invalid timeout value | Use value between 1 and 120 |
+| "azure-identity package is required..." | Missing Azure AD dependency | Run `pip install fs2[azure-ad]` |
+| `DefaultAzureCredential` / token errors | Azure AD session expired or wrong identity | Run `az login` to refresh, check RBAC role |
+| 401 Unauthorized (with Azure AD) | Missing RBAC role | Assign **Cognitive Services OpenAI User** role to your identity on the Azure OpenAI resource |
 
 ### Validation Behavior
 
@@ -727,5 +776,8 @@ env | grep FS2_
 1. **Using `.env` in `.fs2/` directory** — Should be `secrets.env`
 2. **Forgetting to add `.env` to `.gitignore`** — Secrets may be committed
 3. **Using literal API keys** — Use `${VAR}` placeholders instead
-4. **Missing Azure fields** — All three Azure fields are required when `provider: azure`
+4. **Missing Azure fields** — `base_url`, `azure_deployment_name`, and `azure_api_version` are required when `provider: azure`
 5. **Wrong embedding dimensions** — Must match your model (1024 for text-embedding-3-small)
+6. **Using Azure AD without the package** — Run `pip install fs2[azure-ad]` before omitting `api_key`
+7. **Expired `az login` session** — Run `az login` to refresh your credentials
+8. **Missing RBAC role for Azure AD** — Your identity needs **Cognitive Services OpenAI User** on the Azure OpenAI resource (not just Contributor)
