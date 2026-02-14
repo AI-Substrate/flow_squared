@@ -376,11 +376,12 @@ ruff check src/ tests/
 
 ## Phase Footnote Stubs
 
-_To be populated during implementation by plan-6a._
-
 | Footnote | Task | Summary | FlowSpace Node IDs |
 |----------|------|---------|-------------------|
-| | | | |
+| [^1] | T002 | Made AzureEmbeddingConfig.api_key optional | `file:src/fs2/config/objects.py` |
+| [^2] | T004 | Added Azure AD auth branch to LLM adapter | `callable:src/fs2/core/adapters/llm_adapter_azure.py:AzureOpenAIAdapter._get_client` |
+| [^3] | T006 | Added Azure AD auth branch to Embedding adapter | `callable:src/fs2/core/adapters/embedding_adapter_azure.py:AzureEmbeddingAdapter._get_client` |
+| [^4] | T007 | Added azure-ad optional dependency group | `file:pyproject.toml` |
 
 ---
 

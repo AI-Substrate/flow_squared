@@ -100,7 +100,7 @@ class AzureEmbeddingAdapter(EmbeddingAdapter):
                     raise EmbeddingAdapterError(
                         "azure-identity package is required for Azure AD authentication. "
                         "Install it with: pip install fs2[azure-ad]"
-                    )
+                    ) from None
                 credential = DefaultAzureCredential()
                 token_provider = get_bearer_token_provider(
                     credential,

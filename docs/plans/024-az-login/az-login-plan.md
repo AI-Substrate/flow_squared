@@ -6,7 +6,7 @@
 **Spec**: [./az-login-spec.md](./az-login-spec.md)
 **Workshop**: [./workshops/az-login-changes.md](./workshops/az-login-changes.md)
 **Research**: [./research-dossier.md](./research-dossier.md)
-**Status**: DRAFT
+**Status**: COMPLETE
 
 ## Table of Contents
 
@@ -212,10 +212,17 @@ class TestAzureAdapterAzureADAuth:
 
 ## Change Footnotes Ledger
 
-[^1]: [To be added during implementation via plan-6a]
-[^2]: [To be added during implementation via plan-6a]
-[^3]: [To be added during implementation via plan-6a]
-[^4]: [To be added during implementation via plan-6a]
+[^1]: Task T002 - Made AzureEmbeddingConfig.api_key optional
+  - `file:src/fs2/config/objects.py`
+
+[^2]: Task T004 - Added Azure AD auth branch to LLM adapter
+  - `callable:src/fs2/core/adapters/llm_adapter_azure.py:AzureOpenAIAdapter._get_client`
+
+[^3]: Task T006 - Added Azure AD auth branch to Embedding adapter
+  - `callable:src/fs2/core/adapters/embedding_adapter_azure.py:AzureEmbeddingAdapter._get_client`
+
+[^4]: Task T007 - Added azure-ad optional dependency group
+  - `file:pyproject.toml`
 
 ---
 
