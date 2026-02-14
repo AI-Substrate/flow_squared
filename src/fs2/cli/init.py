@@ -17,21 +17,73 @@ console = Console()
 
 DEFAULT_CONFIG = """\
 # fs2 configuration file
-# See docs/how/scanning.md for all options
+# Full docs: https://github.com/AI-Substrate/flow_squared
 
 scan:
-  # Directories to scan (relative to project root)
   scan_paths:
     - "."
-
-  # Respect .gitignore patterns
   respect_gitignore: true
-
-  # Maximum file size to parse (in KB)
   max_file_size_kb: 500
-
-  # Follow symbolic links
   follow_symlinks: false
+
+# ─── LLM (for smart content) ───────────────────────────────────────
+# Uncomment ONE block below. Required for: fs2 scan --smart-content
+#
+# Azure AI Foundry (API key):
+# llm:
+#   provider: azure
+#   api_key: ${AZURE_OPENAI_API_KEY}
+#   base_url: https://YOUR-RESOURCE.openai.azure.com/
+#   azure_deployment_name: gpt-4o
+#   azure_api_version: "2024-12-01-preview"
+#   model: gpt-4o
+#
+# Azure AI Foundry (az login — no API key needed):
+# llm:
+#   provider: azure
+#   base_url: https://YOUR-RESOURCE.openai.azure.com/
+#   azure_deployment_name: gpt-4o
+#   azure_api_version: "2024-12-01-preview"
+#   model: gpt-4o
+#   # Requires: pip install fs2[azure-ad] && az login
+#
+# OpenAI:
+# llm:
+#   provider: openai
+#   api_key: ${OPENAI_API_KEY}
+#   model: gpt-4o
+
+# ─── Embedding (for semantic search) ──────────────────────────────
+# Uncomment ONE block below. Required for: fs2 scan --embed
+#
+# Azure AI Foundry (API key):
+# embedding:
+#   mode: azure
+#   dimensions: 1024
+#   azure:
+#     endpoint: https://YOUR-RESOURCE.openai.azure.com/
+#     api_key: ${AZURE_EMBEDDING_API_KEY}
+#     deployment_name: text-embedding-3-small
+#     api_version: "2024-02-01"
+#
+# Azure AI Foundry (az login — no API key needed):
+# embedding:
+#   mode: azure
+#   dimensions: 1024
+#   azure:
+#     endpoint: https://YOUR-RESOURCE.openai.azure.com/
+#     deployment_name: text-embedding-3-small
+#     api_version: "2024-02-01"
+#   # Requires: pip install fs2[azure-ad] && az login
+#
+# OpenAI-compatible:
+# embedding:
+#   mode: openai_compatible
+#   dimensions: 1024
+#   openai_compatible:
+#     endpoint: https://api.openai.com/v1
+#     api_key: ${OPENAI_API_KEY}
+#     model: text-embedding-3-small
 """
 
 # .gitignore for .fs2 directory - ignores everything except config.yaml
