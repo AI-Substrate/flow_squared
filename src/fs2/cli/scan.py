@@ -524,6 +524,10 @@ def _create_smart_content_service(config, console: ConsoleAdapter):
         # Create adapter based on provider
         if llm_config.provider == "azure":
             llm_adapter = AzureOpenAIAdapter(config)
+        elif llm_config.provider == "openai":
+            from fs2.core.adapters.llm_adapter_openai import OpenAIAdapter
+
+            llm_adapter = OpenAIAdapter(config)
         elif llm_config.provider == "fake":
             from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
 

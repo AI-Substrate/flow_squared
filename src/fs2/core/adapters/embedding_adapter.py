@@ -139,6 +139,19 @@ def create_embedding_adapter_from_config(config) -> EmbeddingAdapter | None:
         from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
 
         return AzureEmbeddingAdapter(config)
+    elif embedding_config.mode == "openai_compatible":
+        if embedding_config.openai is None:
+            return None
+        from fs2.core.adapters.embedding_adapter_openai import (
+            OpenAICompatibleEmbeddingAdapter,
+        )
+
+        return OpenAICompatibleEmbeddingAdapter(
+            config,
+            api_key=embedding_config.openai.api_key,
+            base_url=embedding_config.openai.base_url,
+            model=embedding_config.openai.model,
+        )
     elif embedding_config.mode == "fake":
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
 
