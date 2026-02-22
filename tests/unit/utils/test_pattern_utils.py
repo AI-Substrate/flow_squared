@@ -73,15 +73,17 @@ class TestPatternNormalizationConversion:
             normalize_filter_pattern(pattern)
 
     def test_fnmatch_format_assumption(self) -> None:
-        """Verify fnmatch output format hasn't changed (DYK-003).
+        """Verify fnmatch output format matches expected patterns (DYK-003).
 
-        If this test fails after a Python upgrade, the _convert_glob_to_regex
-        function needs to be updated to handle the new format.
+        Python <3.14 uses \\Z, Python 3.14+ uses \\z. Both are handled
+        by _convert_glob_to_regex.
         """
         import fnmatch
 
         result = fnmatch.translate("*.py")
-        assert result == r"(?s:.*\.py)\Z", f"fnmatch format changed! Got: {result}"
+        assert result in (r"(?s:.*\.py)\Z", r"(?s:.*\.py)\z"), (
+            f"fnmatch format changed! Got: {result}"
+        )
 
 
 @pytest.mark.unit

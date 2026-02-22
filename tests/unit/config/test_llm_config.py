@@ -95,24 +95,20 @@ class TestLLMConfigApiKeyValidation:
     """Tests for API key security validation (two-layer model)."""
 
     @pytest.mark.unit
-    def test_llm_config_rejects_sk_prefix_literal(self):
-        """Reject API keys with sk- prefix (OpenAI format).
+    def test_llm_config_accepts_sk_prefix_after_expansion(self):
+        """Accept API keys with sk- prefix (expanded from placeholder).
 
-        Purpose: Proves sk-* prefix secrets are rejected in config
-        Quality Contribution: Prevents secrets from being committed to config files
-        Acceptance Criteria:
-        - api_key: sk-1234567890 in config raises ValueError
-        - Error message suggests using placeholder
+        Purpose: Proves sk-* keys are accepted after ${VAR} expansion
+        Quality Contribution: Ensures real API keys work after config loading
+
+        Note: The sk-* literal check was removed because ${VAR} placeholders
+        are expanded before config objects are created, so expanded keys
+        (e.g., sk-proj-...) would be incorrectly rejected.
         """
-        from pydantic import ValidationError
-
         from fs2.config.objects import LLMConfig
 
-        with pytest.raises(ValidationError) as exc_info:
-            LLMConfig(provider="openai", api_key="sk-1234567890abcdef")
-
-        error_msg = str(exc_info.value).lower()
-        assert "placeholder" in error_msg or "${" in str(exc_info.value)
+        config = LLMConfig(provider="openai", api_key="sk-1234567890abcdef")
+        assert config.api_key == "sk-1234567890abcdef"
 
     @pytest.mark.unit
     def test_llm_config_accepts_long_azure_key(self):

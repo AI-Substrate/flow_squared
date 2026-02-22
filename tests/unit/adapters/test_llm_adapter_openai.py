@@ -68,26 +68,23 @@ def test_openai_adapter_rejects_unexpanded_placeholder():
 
 @pytest.mark.unit
 def test_openai_adapter_rejects_empty_api_key():
-    """OpenAIAdapter rejects empty API key.
+    """Empty API key is rejected at config validation layer.
 
     Purpose: Proves empty key validation per Insight 04
     Quality Contribution: Catches empty env var before cryptic 401
+
+    Note: Pydantic validates api_key before the adapter sees it,
+    so ValidationError is raised during LLMConfig construction.
     """
+    from pydantic import ValidationError
+
     from fs2.config.objects import LLMConfig
-    from fs2.config.service import ConfigurationService
-    from fs2.core.adapters.exceptions import LLMAdapterError
-    from fs2.core.adapters.llm_adapter_openai import OpenAIAdapter
 
-    mock_config = MagicMock(spec=ConfigurationService)
-    mock_config.require.return_value = LLMConfig(
-        provider="openai",
-        api_key="",  # Empty!
-    )
-
-    with pytest.raises(LLMAdapterError) as exc_info:
-        OpenAIAdapter(mock_config)
-
-    assert "empty" in str(exc_info.value).lower()
+    with pytest.raises(ValidationError, match="empty"):
+        LLMConfig(
+            provider="openai",
+            api_key="",  # Empty - rejected by Pydantic validator
+        )
 
 
 @pytest.mark.unit

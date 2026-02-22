@@ -321,29 +321,19 @@ class LLMConfig(BaseModel):
     @field_validator("api_key")
     @classmethod
     def validate_api_key(cls, v: str | None) -> str | None:
-        """Validate API key is not a literal secret.
+        """Validate API key is not empty when provided.
 
-        Rejects:
-        - Keys starting with 'sk-' (OpenAI format) - these are always literal
-
-        Allows:
-        - ${ENV_VAR} placeholder syntax (will be expanded at runtime)
-        - Azure keys (can be 64+ chars, that's legitimate)
-        - Short tokens
-        - None (optional field)
-
-        Note: The 64+ char check was removed because Azure keys are legitimately
-        long and after ${VAR} expansion they would fail validation. The sk-*
-        check is sufficient to catch accidentally committed OpenAI keys.
+        Note: The sk-* literal check was removed because ${VAR} placeholders
+        are expanded before config objects are created, so expanded keys
+        (e.g., sk-proj-...) would be incorrectly rejected. The real protection
+        is that YAML files use ${ENV_VAR} syntax and secrets.env is gitignored.
         """
         if v is None:
             return v
 
-        # Check for sk- prefix (OpenAI literal key)
-        if v.startswith("sk-"):
+        if not v.strip():
             raise ValueError(
-                "API key appears to be a literal secret (sk-* prefix). "
-                "Use ${ENV_VAR} placeholder syntax instead, e.g., ${OPENAI_API_KEY}"
+                "API key is empty. Check that the environment variable is set."
             )
 
         return v
@@ -488,6 +478,39 @@ class AzureEmbeddingConfig(BaseModel):
         return v
 
 
+class OpenAIEmbeddingConfig(BaseModel):
+    """OpenAI embedding configuration.
+
+    Nested configuration for OpenAI-compatible embedding settings.
+
+    Attributes:
+        api_key: OpenAI API key.
+        base_url: API base URL (default: https://api.openai.com/v1).
+        model: Embedding model name (default: text-embedding-3-small).
+
+    YAML example:
+        ```yaml
+        embedding:
+          mode: openai_compatible
+          openai:
+            api_key: ${OPENAI_API_KEY}
+            model: text-embedding-3-small
+        ```
+    """
+
+    api_key: str
+    base_url: str = "https://api.openai.com/v1"
+    model: str = "text-embedding-3-small"
+
+    @field_validator("api_key")
+    @classmethod
+    def validate_api_key(cls, v: str) -> str:
+        """Validate api_key is not empty."""
+        if not v or not v.strip():
+            raise ValueError("api_key must not be empty")
+        return v
+
+
 class ChunkConfig(BaseModel):
     """Chunking parameters for a specific content type.
 
@@ -606,6 +629,9 @@ class EmbeddingConfig(BaseModel):
 
     # Azure-specific configuration (per DYK-1)
     azure: AzureEmbeddingConfig | None = None
+
+    # OpenAI-compatible configuration
+    openai: OpenAIEmbeddingConfig | None = None
 
     # Per-content-type chunking configuration (Finding 04)
     code: ChunkConfig = Field(

@@ -142,13 +142,24 @@ class EmbeddingService:
             if embedding_config.azure is None:
                 raise ValueError("EmbeddingConfig.azure must be set for azure mode")
             embedding_adapter = AzureEmbeddingAdapter(config)
+        elif embedding_config.mode == "openai_compatible":
+            if embedding_config.openai is None:
+                raise ValueError(
+                    "EmbeddingConfig.openai must be set for openai_compatible mode"
+                )
+            from fs2.core.adapters.embedding_adapter_openai import (
+                OpenAICompatibleEmbeddingAdapter,
+            )
+
+            embedding_adapter = OpenAICompatibleEmbeddingAdapter(
+                config,
+                api_key=embedding_config.openai.api_key,
+                base_url=embedding_config.openai.base_url,
+                model=embedding_config.openai.model,
+            )
         elif embedding_config.mode == "fake":
             embedding_adapter = FakeEmbeddingAdapter(
                 dimensions=embedding_config.dimensions
-            )
-        elif embedding_config.mode == "openai_compatible":
-            raise ValueError(
-                "openai_compatible embeddings require explicit api_key/base_url/model"
             )
         else:
             raise ValueError(f"Unsupported embedding mode: {embedding_config.mode}")

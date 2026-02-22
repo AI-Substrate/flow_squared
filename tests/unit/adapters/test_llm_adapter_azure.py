@@ -43,29 +43,26 @@ def test_azure_adapter_receives_config_service():
 
 @pytest.mark.unit
 def test_azure_adapter_rejects_empty_api_key():
-    """AzureOpenAIAdapter rejects empty API key.
+    """Empty API key is rejected at config validation layer.
 
     Purpose: Proves empty key validation per Insight 04
     Quality Contribution: Catches empty env var before cryptic 401
+
+    Note: Pydantic validates api_key before the adapter sees it,
+    so ValidationError is raised during LLMConfig construction.
     """
+    from pydantic import ValidationError
+
     from fs2.config.objects import LLMConfig
-    from fs2.config.service import ConfigurationService
-    from fs2.core.adapters.exceptions import LLMAdapterError
-    from fs2.core.adapters.llm_adapter_azure import AzureOpenAIAdapter
 
-    mock_config = MagicMock(spec=ConfigurationService)
-    mock_config.require.return_value = LLMConfig(
-        provider="azure",
-        api_key="",  # Empty!
-        base_url="https://test.openai.azure.com/",
-        azure_deployment_name="gpt-4",
-        azure_api_version="2024-12-01-preview",
-    )
-
-    with pytest.raises(LLMAdapterError) as exc_info:
-        AzureOpenAIAdapter(mock_config)
-
-    assert "empty" in str(exc_info.value).lower()
+    with pytest.raises(ValidationError, match="empty"):
+        LLMConfig(
+            provider="azure",
+            api_key="",  # Empty - rejected by Pydantic validator
+            base_url="https://test.openai.azure.com/",
+            azure_deployment_name="gpt-4",
+            azure_api_version="2024-12-01-preview",
+        )
 
 
 @pytest.mark.unit

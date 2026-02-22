@@ -79,16 +79,15 @@ def _convert_glob_to_regex(pattern: str) -> str:
     """
     translated = fnmatch.translate(pattern)
 
-    # fnmatch.translate returns (?s:CORE)\Z - extract core pattern
+    # fnmatch.translate returns (?s:CORE)\Z (Python <3.14) or (?s:CORE)\z (Python 3.14+)
     # Use regex for safer extraction in case format changes
-    match = re.match(r"^\(\?s:(.*)\)\\Z$", translated)
+    match = re.match(r"^\(\?s:(.*)\)\\[Zz]$", translated)
     if match:
         core = match.group(1)
     else:
-        # Format changed - fall back to string manipulation with warning
-        # Strip \Z ending and outer wrapper if present
+        # Format changed - fall back to string manipulation
         core = translated
-        if core.endswith(r"\Z"):
+        if core.endswith(r"\Z") or core.endswith(r"\z"):
             core = core[:-2]
         if core.startswith("(?s:") and core.endswith(")"):
             core = core[4:-1]
