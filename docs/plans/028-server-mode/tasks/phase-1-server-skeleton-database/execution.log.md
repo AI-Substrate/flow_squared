@@ -33,7 +33,31 @@
 ## Test Results
 
 ```
-15 passed, 2 deselected (slow) in 0.68s
+16 passed, 2 deselected (slow) in 0.68s
 Full suite: 1553 passed, 25 skipped, 343 deselected in 47.64s
 Lint: All checks passed (ruff)
+```
+
+### AC22 Evidence
+
+```bash
+$ docker compose config --services
+db
+redis
+server
+# All 3 services defined: FastAPI + PostgreSQL + Redis
+```
+
+### AC23 Evidence
+
+```bash
+# Via httpx test transport (FakeDatabase):
+$ uv run pytest tests/server/test_health.py::test_health_connected_payload -v
+PASSED
+# Asserts: status="ok", db="connected", graphs=<int>
+
+# Degraded path:
+$ uv run pytest tests/server/test_health.py::test_health_disconnected_db -v
+PASSED
+# Asserts: status="degraded", db="disconnected", graphs=None
 ```

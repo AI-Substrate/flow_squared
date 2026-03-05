@@ -131,6 +131,7 @@ Primary: `src/fs2/core/repos/` + `src/fs2/core/models/` + `src/fs2/core/services
 - **search** — SearchService consumes GraphStore for node retrieval and parent traversal
 - **cli-presentation** (informal) — CLI commands and MCP tools consume GraphService
 - **indexing** (informal) — ScanPipeline creates and writes to GraphStore
+- **server** — PostgreSQLGraphStore implements GraphStore for DB-backed queries; server domain owns schema bootstrap while graph-storage owns query/storage contracts
 
 ## History
 
@@ -139,3 +140,4 @@ Primary: `src/fs2/core/repos/` + `src/fs2/core/models/` + `src/fs2/core/services
 | 003-fs2-base | Initial GraphStore ABC + NetworkXGraphStore | 2024 |
 | 023-multi-graphs | GraphService, OtherGraphsConfig, named graph resolution | 2025 |
 | *(extracted)* | Domain extracted from existing codebase | 2026-03-05 |
+| 028-server-mode (Phase 1) | Documented schema ownership boundary: server owns DDL bootstrap, graph-storage owns data contracts | 2026-03-05 |

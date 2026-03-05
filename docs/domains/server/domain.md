@@ -51,10 +51,13 @@ The HTTP server application that receives graph uploads, stores data in PostgreS
 - **graph-storage** — PostgreSQLGraphStore for data access
 - **search** — SearchService + PgvectorSemanticMatcher for queries
 - **configuration** — ServerDatabaseConfig, ServerStorageConfig
-- **auth** — AuthService, middleware for tenant context
+- **auth** — AuthService, middleware for request validation
 
 ### Domains That Depend On This
 - **cli-presentation** — RemoteGraphStore makes HTTP calls to server endpoints
+
+### Ownership Boundary: Schema vs Graph-Storage
+The **server** domain owns operational schema bootstrap (`schema.py` — DDL execution, extension creation, index management). The **graph-storage** domain owns query/storage contracts (GraphStore ABC, CodeNode model). Schema changes must stay aligned with graph-storage data contracts to prevent drift.
 
 ## Source Location
 

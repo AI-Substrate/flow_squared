@@ -33,14 +33,15 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | `src/fs2/server/routes/query.py` | server | internal | Tree, search, get-node query endpoints |
 | `src/fs2/server/routes/health.py` | server | internal | Health + metrics endpoints |
 | `src/fs2/server/ingestion.py` | server | internal | Pickle → PostgreSQL pipeline |
-| `src/fs2/server/database.py` | server | contract | Connection pool, session factory, RLS middleware |
+| `src/fs2/server/database.py` | server | contract | Connection pool, session factory |
 | `src/fs2/server/schema.py` | server | internal | SQL schema creation + migration |
+| `src/fs2/server/routes/__init__.py` | server | internal | Routes package init |
 | `src/fs2/server/dashboard/__init__.py` | server | internal | HTMX dashboard views |
 | `src/fs2/server/dashboard/templates/` | server | internal | Jinja2 templates |
 | `src/fs2/auth/__init__.py` | auth | internal | Auth package init |
 | `src/fs2/auth/models.py` | auth | contract | Tenant, APIKey Pydantic models |
 | `src/fs2/auth/service.py` | auth | contract | AuthService: key validation, tenant resolution |
-| `src/fs2/auth/middleware.py` | auth | contract | FastAPI middleware for auth + RLS context |
+| `src/fs2/auth/middleware.py` | auth | contract | FastAPI middleware for API key validation |
 | `src/fs2/auth/fake.py` | auth | internal | FakeAuthService test double |
 | `src/fs2/core/repos/graph_store_pg.py` | graph-storage | contract | PostgreSQLGraphStore implementation |
 | `src/fs2/core/repos/graph_store_pg_fake.py` | graph-storage | internal | Fake for PostgreSQL store |
@@ -54,6 +55,11 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | `docs/domains/auth/domain.md` | auth | internal | Domain definition |
 | `docs/domains/registry.md` | — | cross-domain | Update registry with new domains |
 | `docs/domains/domain-map.md` | — | cross-domain | Update map with new domains |
+| `Dockerfile` | server | internal | Server container runtime |
+| `tests/server/test_health.py` | server | internal | Phase 1 server health test coverage |
+| `tests/server/test_database.py` | server | internal | Phase 1 DB connection tests |
+| `tests/server/test_schema.py` | server | internal | Phase 1 schema DDL tests |
+| `tests/server/__init__.py` | server | internal | Test package init |
 
 ## Key Findings
 

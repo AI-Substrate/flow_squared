@@ -3,6 +3,10 @@
 Uses httpx.AsyncClient with FastAPI test transport — no real database needed.
 """
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -14,13 +18,13 @@ from fs2.server.database import Database
 class FakeDatabase(Database):
     """Fake database for unit tests — no real PostgreSQL connection.
 
-    Simulates a connected pool that returns canned results.
+    Simulates a connected pool that returns canned query results.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, graph_count: int = 0) -> None:
         super().__init__(ServerDatabaseConfig())
         self._connected = False
-        self._graph_count = 0
+        self._graph_count = graph_count
 
     async def connect(self) -> None:
         self._connected = True
@@ -31,6 +35,24 @@ class FakeDatabase(Database):
     @property
     def is_connected(self) -> bool:
         return self._connected
+
+    @asynccontextmanager
+    async def connection(self) -> AsyncGenerator:
+        """Return a fake connection that responds to health-check queries."""
+        conn = AsyncMock()
+
+        async def fake_execute(sql, *args, **kwargs):
+            result = MagicMock()
+            if "SELECT 1" in sql:
+                result.fetchone = AsyncMock(return_value=(1,))
+            elif "count(*)" in sql:
+                result.fetchone = AsyncMock(return_value=(self._graph_count,))
+            else:
+                result.fetchone = AsyncMock(return_value=None)
+            return result
+
+        conn.execute = fake_execute
+        yield conn
 
 
 class FakeDatabaseDisconnected(FakeDatabase):
@@ -73,6 +95,15 @@ async def test_health_json_shape(client: AsyncClient):
     assert "status" in data
     assert "db" in data
     assert "graphs" in data
+
+
+async def test_health_connected_payload(client: AsyncClient):
+    """AC23: Health endpoint returns correct connected success payload."""
+    response = await client.get("/health")
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["db"] == "connected"
+    assert isinstance(data["graphs"], int)
 
 
 async def test_health_disconnected_db():

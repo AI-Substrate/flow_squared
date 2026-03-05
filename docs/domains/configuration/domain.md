@@ -18,6 +18,8 @@ Owns the typed configuration registry — loading settings from multiple sources
 | Optional configuration | `config.get(MyConfig)` | Retrieve config or None if not set |
 | Multi-source loading | `FS2ConfigurationService()` | Load secrets → YAML → env vars with deep merge and placeholder expansion |
 | Test configuration | `FakeConfigurationService(configs...)` | Pre-wire configs for testing without files or env vars |
+| Server database config | `config.require(ServerDatabaseConfig)` | PostgreSQL connection settings (host, port, pool) for server mode |
+| Server storage config | `config.require(ServerStorageConfig)` | Upload staging directory and max upload size for server mode |
 
 ### Get typed configuration
 
@@ -86,6 +88,8 @@ config = FakeConfigurationService(
 | `SmartContentConfig` | Pydantic Model | smart content service | max_workers, token limits |
 | `OtherGraphsConfig` | Pydantic Model | graph-storage domain | External graph list |
 | `WatchConfig` | Pydantic Model | watch service | debounce, timeout |
+| `ServerDatabaseConfig` | Pydantic Model | server domain | DB host, port, pool settings, conninfo |
+| `ServerStorageConfig` | Pydantic Model | server domain | Upload staging directory, max upload size |
 | `MissingConfigurationError` | Exception | All consumers | Actionable error with sources |
 
 ## Composition (Internal)
@@ -97,7 +101,7 @@ config = FakeConfigurationService(
 | `FakeConfigurationService` | Test impl | ConfigurationService ABC |
 | `loaders.py` | Multi-source loading | yaml, os, pathlib |
 | `paths.py` | Path resolution | XDG spec, pathlib |
-| `objects.py` | 12 config models | Pydantic BaseModel |
+| `objects.py` | 14 config models | Pydantic BaseModel |
 | `models.py` | Legacy settings | Pydantic BaseSettings |
 | `exceptions.py` | Error types | — |
 | `docs_registry.py` | Doc registry | Pydantic BaseModel |
@@ -139,3 +143,4 @@ Primary: `src/fs2/config/`
 | 024-az-login | Azure credential config | 2025 |
 | 027-openrouter-provider | OpenAI-compatible config | 2025 |
 | *(extracted)* | Domain extracted from existing codebase | 2026-03-05 |
+| 028-server-mode (Phase 1) | Added ServerDatabaseConfig + ServerStorageConfig for server mode | 2026-03-05 |

@@ -18,7 +18,7 @@ flowchart LR
     search["🔍 search\nSearchService\nQuerySpec · SearchResult"]:::business
 
     %% NEW planned domains (028-server-mode)
-    server["🌐 server\nFastAPI · Ingestion\nDashboard · REST API"]:::planned
+    server["🌐 server\nFastAPI · Ingestion\nDashboard · REST API"]:::infra
     auth["🔑 auth\nAuthService · RLS\nTenants · API Keys"]:::planned
 
     %% Informal domains (not yet extracted)
@@ -42,7 +42,7 @@ flowchart LR
     server -->|PostgreSQLGraphStore| graphstore
     server -->|SearchService + PgvectorMatcher| search
     server -->|ServerDatabaseConfig| config
-    server -->|AuthService + RLS middleware| auth
+    server -->|AuthService + API key middleware| auth
     auth -->|ConfigurationService| config
     cli -.->|RemoteGraphStore HTTP| server
 ```
@@ -63,5 +63,5 @@ flowchart LR
 | configuration | ConfigurationService, FakeConfigurationService, 12 config models | graph-storage, search, cli, indexing, embedding, server, auth | — | — | ✅ Healthy |
 | graph-storage | GraphStore, GraphService, CodeNode, ContentType | search, cli, indexing, server | ConfigurationService | configuration | ✅ Healthy |
 | search | SearchService, QuerySpec, SearchResult, SearchMode | cli, server | GraphStoreProtocol, ConfigurationService, EmbeddingAdapter | graph-storage, configuration, embedding | ✅ Healthy |
-| server | FastAPI app, REST API, Database session | cli (via RemoteGraphStore) | PostgreSQLGraphStore, SearchService, AuthService, ServerDatabaseConfig | graph-storage, search, auth, configuration | 🟡 Planned |
+| server | FastAPI app, REST API, Database session | cli (via RemoteGraphStore) | PostgreSQLGraphStore, SearchService, AuthService, ServerDatabaseConfig | graph-storage, search, auth, configuration | ✅ Active |
 | auth | AuthService, Auth middleware, Tenant/APIKey models, FakeAuthService | server | ConfigurationService | configuration | 🟡 Planned |
