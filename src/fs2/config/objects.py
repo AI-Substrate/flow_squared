@@ -934,6 +934,114 @@ class SearchConfig(BaseModel):
         return v
 
 
+class ServerDatabaseConfig(BaseModel):
+    """Configuration for fs2 server PostgreSQL database.
+
+    Loaded from YAML or environment variables.
+    Path: server.database (e.g., FS2_SERVER__DATABASE__HOST)
+
+    Controls the PostgreSQL + pgvector connection used by the server.
+
+    Attributes:
+        host: Database hostname (default: localhost).
+        port: Database port (default: 5432).
+        database: Database name (default: fs2).
+        user: Database user (default: postgres).
+        password: Database password (default: empty string).
+        pool_min: Minimum pool connections (default: 2).
+        pool_max: Maximum pool connections (default: 10).
+        pool_timeout: Connection timeout in seconds (default: 30).
+
+    YAML example:
+        ```yaml
+        server:
+          database:
+            host: "localhost"
+            port: 5432
+            database: "fs2"
+            user: "postgres"
+            password: "secret"
+            pool_min: 2
+            pool_max: 10
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "server.database"
+
+    host: str = "localhost"
+    port: int = 5432
+    database: str = "fs2"
+    user: str = "postgres"
+    password: str = ""
+    pool_min: int = 2
+    pool_max: int = 10
+    pool_timeout: int = 30
+
+    @field_validator("pool_min")
+    @classmethod
+    def validate_pool_min(cls, v: int) -> int:
+        """Validate pool_min is positive."""
+        if v < 1:
+            raise ValueError("pool_min must be at least 1")
+        return v
+
+    @field_validator("pool_max")
+    @classmethod
+    def validate_pool_max(cls, v: int) -> int:
+        """Validate pool_max is positive."""
+        if v < 1:
+            raise ValueError("pool_max must be at least 1")
+        return v
+
+    @property
+    def conninfo(self) -> str:
+        """Build psycopg connection string."""
+        parts = [
+            f"host={self.host}",
+            f"port={self.port}",
+            f"dbname={self.database}",
+            f"user={self.user}",
+        ]
+        if self.password:
+            parts.append(f"password={self.password}")
+        return " ".join(parts)
+
+
+class ServerStorageConfig(BaseModel):
+    """Configuration for fs2 server file storage.
+
+    Loaded from YAML or environment variables.
+    Path: server.storage (e.g., FS2_SERVER__STORAGE__UPLOAD_DIR)
+
+    Controls where uploaded graph files are staged on disk.
+
+    Attributes:
+        upload_dir: Directory for staging uploaded graph files (default: /tmp/fs2-uploads).
+        max_upload_bytes: Maximum upload size in bytes (default: 500MB).
+
+    YAML example:
+        ```yaml
+        server:
+          storage:
+            upload_dir: "/var/lib/fs2/uploads"
+            max_upload_bytes: 524288000
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "server.storage"
+
+    upload_dir: str = "/tmp/fs2-uploads"
+    max_upload_bytes: int = 524_288_000  # 500MB
+
+    @field_validator("max_upload_bytes")
+    @classmethod
+    def validate_max_upload_bytes(cls, v: int) -> int:
+        """Validate max_upload_bytes is positive."""
+        if v <= 0:
+            raise ValueError("max_upload_bytes must be positive")
+        return v
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -949,4 +1057,6 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     SearchConfig,
     WatchConfig,
     OtherGraphsConfig,
+    ServerDatabaseConfig,
+    ServerStorageConfig,
 ]

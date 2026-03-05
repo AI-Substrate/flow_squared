@@ -18,7 +18,6 @@ Per Clean Architecture:
 
 import asyncio
 import logging
-import shutil
 import signal
 import sys
 from pathlib import Path
@@ -80,12 +79,11 @@ class SubprocessScanRunner:
         Returns:
             Exit code from subprocess (0 = success, 1 = error, 124 = timeout).
         """
-        # Build command
-        # Try uv run first (uses local project), fall back to sys.executable
-        if shutil.which("uv"):
-            cmd = ["uv", "run", "fs2", "scan"] + self._scan_args
-        else:
-            cmd = [sys.executable, "-m", "fs2", "scan"] + self._scan_args
+        # Build command using the same Python that started this process.
+        # Avoids `uv run` which resolves to the local .venv and may lack
+        # optional dependencies (e.g., azure-identity) present in the
+        # globally-installed fs2 tool environment.
+        cmd = [sys.executable, "-m", "fs2", "scan"] + self._scan_args
 
         # Display what triggered the scan
         if triggered_by:

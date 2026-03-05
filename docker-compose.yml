@@ -1,0 +1,52 @@
+# fs2 Server — Development Stack
+#
+# Usage:
+#   docker compose up        # Start both services
+#   docker compose down -v   # Stop and remove volumes
+#
+# The FastAPI app connects to PostgreSQL via the 'db' service name.
+# Config is passed via environment variables matching ServerDatabaseConfig.
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: fs2
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: fs2dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      uvicorn fs2.server.app:create_app --factory
+      --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      FS2_SERVER__DATABASE__HOST: db
+      FS2_SERVER__DATABASE__PORT: "5432"
+      FS2_SERVER__DATABASE__DATABASE: fs2
+      FS2_SERVER__DATABASE__USER: postgres
+      FS2_SERVER__DATABASE__PASSWORD: fs2dev
+      FS2_SERVER__STORAGE__UPLOAD_DIR: /var/lib/fs2/uploads
+    volumes:
+      - ./src:/app/src
+      - uploads:/var/lib/fs2/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:
