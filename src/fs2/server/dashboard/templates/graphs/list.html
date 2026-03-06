@@ -13,14 +13,7 @@
 </div>
 
 {% if graphs %}
-<div id="graph-table-container"
-     {% if has_pending %}
-     hx-get="/dashboard/graphs/table"
-     hx-trigger="every 5s"
-     hx-swap="innerHTML"
-     {% endif %}>
-    {% include "graphs/_table.html" %}
-</div>
+{% include "graphs/_table_container.html" %}
 {% else %}
 <article>
     <p>No graphs uploaded yet. <a href="/dashboard/graphs/upload">Upload your first graph →</a></p>

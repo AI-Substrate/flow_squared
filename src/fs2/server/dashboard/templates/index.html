@@ -5,6 +5,12 @@
 {% block content %}
 <h1>Dashboard</h1>
 
+{% if db_error %}
+<div class="flash flash-error">
+    <strong>⚠ Database Error:</strong> {{ db_error }}
+</div>
+{% endif %}
+
 <div class="grid">
     <article>
         <header>Graphs</header>

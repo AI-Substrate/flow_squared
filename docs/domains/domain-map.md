@@ -42,7 +42,7 @@ flowchart LR
     server -->|PostgreSQLGraphStore| graphstore
     server -->|SearchService + PgvectorMatcher| search
     server -->|ServerDatabaseConfig| config
-    server -->|AuthService + API key middleware| auth
+    server -.->|planned AuthService extraction| auth
     auth -->|ConfigurationService| config
     cli -.->|RemoteClient HTTP| server
 ```
@@ -63,5 +63,5 @@ flowchart LR
 | configuration | ConfigurationService, FakeConfigurationService, 12 config models | graph-storage, search, cli, indexing, embedding, server, auth | — | — | ✅ Healthy |
 | graph-storage | GraphStore, GraphService, CodeNode, ContentType | search, cli, indexing, server | ConfigurationService | configuration | ✅ Healthy |
 | search | SearchService, QuerySpec, SearchResult, SearchMode | cli, server | GraphStoreProtocol, ConfigurationService, EmbeddingAdapter | graph-storage, configuration, embedding | ✅ Healthy |
-| server | FastAPI app, REST API, Database session | cli (via RemoteClient) | PostgreSQLGraphStore, SearchService, AuthService, ServerDatabaseConfig | graph-storage, search, auth, configuration | ✅ Active |
-| auth | AuthService, Auth middleware, Tenant/APIKey models, FakeAuthService | server | ConfigurationService | configuration | 🟡 Planned |
+| server | FastAPI app, REST API, Database session | cli (via RemoteClient) | PostgreSQLGraphStore, SearchService, ServerDatabaseConfig | graph-storage, search, configuration | ✅ Active |
+| auth | AuthService, Auth middleware, Tenant/APIKey models, FakeAuthService | server | ConfigurationService | configuration | 🟡 Planned (server owns minimal API key CRUD until auth lands) |

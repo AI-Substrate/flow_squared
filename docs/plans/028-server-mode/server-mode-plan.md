@@ -314,13 +314,13 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | 6.3 | Graph upload view: file picker + chunked upload with progress | server | 128MB pickle uploads with visible progress bar | AC19 |
 | 6.4 | Ingestion status: SSE/polling for real-time progress | server | Upload → ingesting → ready visible in UI | AC5, AC20 |
 | 6.5 | Graph delete: confirmation dialog + DELETE cascade | server | Graph and all associated data removed | AC21 |
-| 6.6 | Tenant management: create tenant, generate API keys | auth | Operator can create tenant + key via dashboard | AC18 |
+| 6.6 | API key management: generate and revoke API keys | server | Operator can generate + revoke keys via dashboard | AC18 (tenant creation deferred) |
 | 6.7 | Structured request logging: latency, status, tenant, graph | server | Logs parseable by standard log aggregators | AC24 |
 | 6.8 | Tests: upload flow, delete flow, key generation | server | Dashboard functional tests | Lightweight — not visual |
 
 ### Acceptance Criteria
 - [ ] AC5: Dashboard shows ingestion progress
-- [ ] AC18: Operator can create tenants + API keys
+- [ ] AC18: Operator can generate API keys (tenant creation deferred to auth phase)
 - [ ] AC19: Tenant can upload graph pickles via dashboard
 - [ ] AC20: Tenant can view graphs + ingestion progress
 - [ ] AC21: Tenant can delete graphs

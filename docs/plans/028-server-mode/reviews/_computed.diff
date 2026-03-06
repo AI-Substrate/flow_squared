@@ -1,1405 +1,2141 @@
-diff --git a/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.fltplan.md b/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.fltplan.md
-index df65f0f..602352c 100644
---- a/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.fltplan.md
-+++ b/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.fltplan.md
-@@ -43,7 +43,7 @@ stateDiagram-v2
-     classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
+diff --git a/docs/domains/server/domain.md b/docs/domains/server/domain.md
+index 624869e..1a37cd4 100644
+--- a/docs/domains/server/domain.md
++++ b/docs/domains/server/domain.md
+@@ -17,7 +17,9 @@ The HTTP server application that receives graph uploads, stores data in PostgreS
+ | Serve query requests | FastAPI routes | HTTP endpoints for tree, search, get-node, list-graphs |
+ | Ingest graph uploads | Ingestion pipeline | Pickle → RestrictedUnpickler → COPY to PostgreSQL |
+ | Manage database connections | Database module | Async connection pool, session factory, RLS context |
+-| Dashboard administration | HTMX views | Upload graphs, manage sites, view status |
++| Dashboard administration | HTMX dashboard | Upload graphs, manage sites, view status, generate API keys |
++| Log request metrics | AccessLogMiddleware | Structured JSON access logging for all HTTP requests |
++| Manage API keys | Dashboard routes | Generate, list, revoke API keys (SHA-256 hashed) |
  
-     state "1: Config models" as S1
--    state "2: RemoteGraphStore" as S2
-+    state "2: RemoteClient" as S2
-     state "3: CLI --remote + resolve" as S3
-     state "4: list-remotes + MCP" as S4
-     state "5: Tests" as S5
-@@ -64,9 +64,9 @@ stateDiagram-v2
+ ## Boundary
  
- ## Stages
+@@ -66,14 +68,18 @@ Primary: `src/fs2/server/`
+ | File | Role | Notes |
+ |------|------|-------|
+ | `src/fs2/server/__init__.py` | Public exports | Exports `create_app` |
+-| `src/fs2/server/app.py` | App factory | `create_app()` with lifespan |
++| `src/fs2/server/app.py` | App factory | `create_app()` with lifespan, CORS, access logging |
+ | `src/fs2/server/database.py` | Connection pool (**contract**) | `Database` class — consumed by other domains via DI |
+-| `src/fs2/server/schema.py` | Schema DDL | `create_schema()` — 6 tables, 17 indexes |
++| `src/fs2/server/schema.py` | Schema DDL | `create_schema()` — 7 tables, 19 indexes |
+ | `src/fs2/server/ingestion.py` | Ingestion pipeline | `IngestionPipeline` — pickle → COPY to PostgreSQL |
++| `src/fs2/server/middleware.py` | Access logging | `AccessLogMiddleware` — structured request logging |
+ | `src/fs2/server/routes/__init__.py` | Routes package | |
+ | `src/fs2/server/routes/health.py` | Health endpoint | `GET /health` |
+ | `src/fs2/server/routes/graphs.py` | Graph management | Upload, list (with status filter), status, delete |
+ | `src/fs2/server/routes/query.py` | Query endpoints | Tree, search, get-node, multi-graph search |
++| `src/fs2/server/dashboard/__init__.py` | Dashboard package | Exports dashboard router |
++| `src/fs2/server/dashboard/routes.py` | Dashboard routes | Graph list/upload/delete, API key management |
++| `src/fs2/server/dashboard/templates/` | Jinja2 templates | HTMX + Alpine.js + Pico CSS server-rendered UI |
  
--- [ ] **Stage 1: Config + CLI flag** — Add `RemotesConfig` model and `--remote` flag to CLIContext (`config/objects.py`, `cli/main.py`)
--- [ ] **Stage 2: RemoteClient** — HTTP client returning raw server JSON with error handling (`cli/remote_client.py` — new file)
--- [ ] **Stage 3: Remote branches** — `resolve_remote_client()` helper + `if remote_client:` branches in tree/search/get-node/list-graphs (`cli/utils.py`, `cli/*.py`)
-+- [x] **Stage 1: Config + CLI flag** — Add `RemotesConfig` model and `--remote` flag to CLIContext (`config/objects.py`, `cli/main.py`)
-+- [x] **Stage 2: RemoteClient** — HTTP client returning raw server JSON with error handling (`cli/remote_client.py` — new file)
-+- [x] **Stage 3: Remote branches** — `resolve_remote_client()` helper + `if remote_client:` branches in tree/search/get-node/list-graphs (`cli/utils.py`, `cli/*.py`)
- - [ ] **Stage 4: Commands + MCP** — `list-remotes` command, MCP `--remote` flag, multi-remote support (`cli/list_remotes.py`, `mcp/server.py`)
- - [ ] **Stage 5: Tests** — RemoteClient, resolve_remotes, list-remotes, CLI branches, error handling (`tests/`)
+ ## History
  
-@@ -137,12 +137,12 @@ flowchart LR
- 
- ## Checklist
- 
--- [ ] T001: RemoteServer + RemotesConfig models
--- [ ] T002: --remote flag + CLIContext
--- [ ] T003: RemoteGraphStore (httpx client)
--- [ ] T004: resolve_graph_from_context remote switching
-+- [x] T001: RemoteServer + RemotesConfig models
-+- [x] T002: --remote flag + CLIContext
-+- [x] T003: RemoteClient (httpx → raw JSON)
-+- [x] T004: resolve_remote_client + CLI branches
- - [ ] T005: list-remotes command
--- [ ] T006: MultiRemoteGraphStore + resolve_remotes
-+- [ ] T006: MultiRemoteClient + resolve_remotes
- - [ ] T007: MCP --remote flag
- - [ ] T008: Error handling
- - [ ] T009: Test suite
-diff --git a/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.md b/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.md
-index 1010eac..da9f218 100644
---- a/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.md
-+++ b/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.md
-@@ -163,17 +163,16 @@ flowchart TD
- 
- | Status | ID | Task | Domain | Path(s) | Done When | Notes |
- |--------|-----|------|--------|---------|-----------|-------|
--| [ ] | T001 | Add `RemoteServer` and `RemotesConfig` Pydantic models to config registry | configuration | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/config/objects.py` | `config.get(RemotesConfig)` returns valid config from YAML; `RemotesConfig` in `YAML_CONFIG_TYPES`. | **Workshop R5**: Path `remotes` in YAML. `RemoteServer` has `name`, `url`, `api_key`, `description`. URL must start with `http://` or `https://`. Follow `OtherGraphsConfig` pattern (list of named items). User + project configs concatenated (R6). |
--| [ ] | T002 | Add `--remote` global flag to CLI main.py + extend CLIContext | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/main.py` | `fs2 tree --remote work` propagates remote value via `CLIContext.remote` to all subcommands. | **Workshop R1-R3**: Flag is `--remote` / `-r`. Also reads `FS2_REMOTE` env var. Accepts name or URL (detection: starts with `http://` = URL). Comma-separated for multi-remote (R4). CLIContext gets new `remote: str | None = None` field. |
--| [ ] | T003 | Create `RemoteClient`: sync httpx client calling server REST API directly | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | `RemoteClient(url).search("auth", mode="auto")` returns raw server JSON dict. | **DYK #1/#2**: Does NOT implement GraphStore ABC. Returns raw server JSON dicts, not CodeNode objects. Methods: `tree(graph, pattern, max_depth)` → dict, `search(pattern, mode, graph, limit, ...)` → dict, `get_node(graph, node_id, detail)` → dict, `list_graphs()` → dict. Sync `httpx.Client` (R9). Takes `base_url`, `api_key`. |
--| [ ] | T004 | Add `resolve_remote_client()` helper + remote branches in CLI commands | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py`, `cli/tree.py`, `cli/search.py`, `cli/get_node.py`, `cli/list_graphs.py` | All 4 commands detect `CLIContext.remote` and branch to RemoteClient path. `resolve_graph_from_context()` is NOT modified. | **DYK #4**: Don't modify `resolve_graph_from_context()`. Add `resolve_remote_client(ctx) → RemoteClient | None` helper. Each CLI command adds `if remote_client: ... else: <existing local path>`. Remote path calls RemoteClient methods → gets raw JSON → prints (or passes to Rich formatter). |
-+| [x] | T001 | Add `RemoteServer` and `RemotesConfig` Pydantic models to config registry | configuration | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/config/objects.py` | `config.get(RemotesConfig)` returns valid config from YAML; `RemotesConfig` in `YAML_CONFIG_TYPES`. | **Workshop R5**: Path `remotes` in YAML. `RemoteServer` has `name`, `url`, `api_key`, `description`. URL must start with `http://` or `https://`. Follow `OtherGraphsConfig` pattern (list of named items). User + project configs concatenated (R6). |
-+| [x] | T002 | Add `--remote` global flag to CLI main.py + extend CLIContext | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/main.py` | `fs2 tree --remote work` propagates remote value via `CLIContext.remote` to all subcommands. | **Workshop R1-R3**: Flag is `--remote` / `-r`. Also reads `FS2_REMOTE` env var. Accepts name or URL (detection: starts with `http://` = URL). Comma-separated for multi-remote (R4). CLIContext gets new `remote: str | None = None` field. |
-+| [x] | T003 | Create `RemoteClient`: async httpx client calling server REST API directly | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | `RemoteClient(url).search("auth", mode="auto")` returns raw server JSON dict. | **DYK #1/#2**: Does NOT implement GraphStore ABC. Returns raw server JSON dicts, not CodeNode objects. Methods: `tree(graph, pattern, max_depth)` → dict, `search(pattern, mode, graph, limit, ...)` → dict, `get_node(graph, node_id, detail)` → dict, `list_graphs()` → dict. Async `httpx.AsyncClient` (DYK-P5-01: sync blocks MCP event loop). CLI wraps with `asyncio.run()`. Takes `base_url`, `api_key`. |
-+| [x] | T004 | Add `resolve_remote_client()` helper + remote branches in CLI commands | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py`, `cli/tree.py`, `cli/search.py`, `cli/get_node.py`, `cli/list_graphs.py` | All 4 commands detect `CLIContext.remote` and branch to RemoteClient path. `resolve_graph_from_context()` is NOT modified. | **DYK #4**: Don't modify `resolve_graph_from_context()`. Add `resolve_remote_client(ctx) → RemoteClient | None` helper. Each CLI command adds `if remote_client: ... else: <existing local path>`. **DYK-P5-02**: Remote tree requests `format=text` from server and prints pre-rendered text directly (no TreeNode reconstruction). Search/get-node already output JSON envelopes that map cleanly. CLI wraps async calls with `asyncio.run()`. |
- | [ ] | T005 | Create `list-remotes` CLI command | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/list_remotes.py` | `fs2 list-remotes` shows all configured remotes with name, URL, description. Supports `--json` output. | Reads `RemotesConfig` from config. Rich table output (name, URL, description). Register in `cli/main.py`. Config-only — no HTTP. |
--| [ ] | T006 | Implement `MultiRemoteClient` for multi-remote fan-out + `resolve_remotes()` helper | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py` | `fs2 search --remote work,oss "pattern"` searches across both remotes, merges results. Partial failure: warn + continue (R8). | **DYK #1, Workshop R4/R8**: `MultiRemoteClient` wraps N `RemoteClient` instances, fans out `search()` calls, merges result dicts, re-sorts by score. `resolve_remotes(remote_str, config)` splits by comma, looks up names or creates inline URLs. Partial failure warns on stderr, continues with successful remotes. |
--| [ ] | T007 | Add `--remote` flag to MCP server startup | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/mcp/server.py` | `fs2 mcp --remote work` starts MCP backed by remote. MCP tools return same format. | **DYK #3**: MCP tools detect remote mode → use `RemoteClient` directly, bypassing TreeService/SearchService/GraphStore entirely. `RemoteClient` returns raw JSON which MCP tools return as-is. |
--| [ ] | T008 | Network error handling: actionable CLI messages for all failure modes | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | Connection refused → "Remote 'work' unreachable at URL". 404 → "Graph not found". 401 → "Auth failed". Timeout → "Request timed out". | Workshop error table. `RemoteClientError` exception with actionable messages. Include remote name and URL in all errors. |
-+| [ ] | T006 | Implement `MultiRemoteClient` for multi-remote fan-out + `resolve_remotes()` helper | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py` | `fs2 search --remote work,oss "pattern"` searches across both remotes, merges results. Partial failure: warn + continue (R8). | **DYK #1, Workshop R4/R8**: `MultiRemoteClient` wraps N `RemoteClient` instances, fans out `search()` calls, merges result dicts, re-sorts by score. `resolve_remotes(remote_str, config)` splits by comma, looks up names or creates inline URLs. Partial failure warns on stderr, continues with successful remotes. **DYK-P5-04**: Cross-remote score comparability is a known v1 limitation — text/regex substring scores are consistent; semantic cosine similarity is comparable across graph sizes; but mixed-model semantics may diverge. Document this. Per-remote weighting is a future enhancement. |
-+| [ ] | T007 | MCP mixed local+remote mode | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/mcp/server.py` | MCP `list_graphs()` returns local AND remote graphs merged. `graph_name` routes to local GraphStore or RemoteClient automatically. | **DYK-P5-05**: MCP supports mixed mode — no `--remote` flag needed. If `RemotesConfig` is configured, MCP `list_graphs()` merges local graphs (from GraphService) with remote graphs (from each RemoteClient). When user passes `graph_name`, check local first, then remote. If `graph_name` omitted → default local graph (existing behavior). If `graph_name` not found locally or remotely → ToolError listing all available graphs. RemoteClient returns raw JSON which MCP tools return as-is. |
-+| [ ] | T008 | Network error handling: actionable CLI messages for all failure modes | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | Connection refused → "Remote 'work' unreachable at URL". 404 → "Graph not found". 401 → "Auth failed". Timeout → "Request timed out". | Workshop error table. `RemoteClientError` exception with actionable messages. Include remote name and URL in all errors. **DYK-P5-03**: Server auto-mode must fallback to text when no embeddings (not 503). Only explicit `mode=semantic` should 503. Verify Phase 4 query route handles this. All errors must be helpful and actionable — never expose raw HTTP status codes to users. |
- | [ ] | T009 | Create test suite: RemoteClient, resolve_remotes, list-remotes, remote CLI branches | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/cli/test_remote_client.py`, `tests/unit/cli/test_list_remotes.py`, `tests/unit/cli/test_remote_integration.py` | `pytest tests/unit/ -m "not slow"` passes including new tests | **Fakes over mocks** (project convention). Tests: (1) RemoteClient constructs correct URLs + returns raw dicts, (2) resolve_remotes splits comma/URL/name, (3) list-remotes output, (4) CLIContext.remote propagates, (5) error handling for connection/404/timeout, (6) MultiRemoteClient merges + sorts results. Use `httpx.MockTransport` for HTTP faking. |
--| [ ] | T008 | Network error handling: actionable CLI messages for all failure modes | graph-storage | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/core/repos/graph_store_remote.py` | Connection refused → "Remote 'work' unreachable at URL". 404 → "Graph not found". 401 → "Auth failed". Timeout → "Request timed out". | Workshop error table. Wrap httpx exceptions in `RemoteGraphStoreError` with actionable messages. Include remote name and URL in all errors. |
--| [ ] | T009 | Create test suite: RemoteGraphStore, resolve_remotes, list-remotes, remote e2e | cli-presentation, graph-storage | `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/repos/test_graph_store_remote.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/cli/test_list_remotes.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/cli/test_remote_integration.py` | `pytest tests/unit/ -m "not slow"` passes including new tests | **Fakes over mocks** (project convention). Tests: (1) RemoteGraphStore constructs correct URLs, (2) resolve_remotes splits comma/URL/name, (3) list-remotes output, (4) CLIContext.remote propagates, (5) error handling for connection/404/timeout, (6) MultiRemoteGraphStore aggregates. Use `httpx.MockTransport` or `respx` for HTTP faking. |
-+| [ ] | T010 | Update built-in docs: remotes configuration, --remote usage, MCP mixed mode | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/docs/` | `fs2 docs remotes` and MCP `docs_get("remotes")` return comprehensive guide. Existing config guide and MCP guide updated to mention remotes. | New `remotes.md` doc covering: named remotes YAML config (`~/.config/fs2/config.yaml` and `.fs2/config.yaml`), `--remote` CLI flag + `FS2_REMOTE` env var, inline URL support, multi-remote comma syntax, MCP mixed mode (local+remote graphs), `list-remotes` command, error troubleshooting. Update `configuration-guide.md` with remotes section. Update `mcp-server-guide.md` with mixed mode. Update `cli.md` with `--remote` and `list-remotes`. Agents must be able to discover remote features via `docs_list`. |
- 
- ---
- 
-@@ -182,22 +181,19 @@ flowchart TD
- ### Key Findings from Plan
- 
- - **Finding 06** (High): `YAML_CONFIG_TYPES` is flat list with unique `__config_path__`. Action: Register `RemotesConfig` at path `remotes`. Follow `OtherGraphsConfig` pattern.
--- **Finding 07** (High): CLI `resolve_graph_from_context()` is single injection point. Action: Add `--remote` check at top. If set, create `RemoteGraphStore`. Single point of polymorphism.
-+- **Finding 07** (High): CLI `resolve_graph_from_context()` is single injection point. Action: Do NOT modify it for remote. Add `resolve_remote_client()` helper instead. CLI commands branch early on remote mode.
- 
- ### Domain Dependencies
- 
- - `configuration`: ConfigurationService (`config.get(RemotesConfig)`) — load named remotes from YAML/env
-   - Entry: `src/fs2/config/service.py:ConfigurationService`
-   - Pattern: `config.get(RemotesConfig)` returns None if not configured (optional config)
--- `graph-storage`: GraphStore ABC — RemoteGraphStore implements this
--  - Entry: `src/fs2/core/repos/graph_store.py:GraphStore`
--  - Pattern: Same 10 abstract methods as NetworkXGraphStore
--- `graph-storage`: CodeNode frozen dataclass — reconstructed from server JSON responses
--  - Entry: `src/fs2/core/models/code_node.py:CodeNode`
- - `cli-presentation`: CLIContext + main callback — extend with `remote` field
-   - Entry: `src/fs2/cli/main.py:CLIContext`, `main()`
--- `cli-presentation`: resolve_graph_from_context — modify for remote switching
--  - Entry: `src/fs2/cli/utils.py:resolve_graph_from_context()`
-+- `cli-presentation`: `resolve_remote_client()` — new helper, does NOT modify `resolve_graph_from_context()`
-+  - Entry: `src/fs2/cli/utils.py` (new function)
-+- `server` (Phase 4): REST query API endpoints — consumed by `RemoteClient` via HTTP
-+  - Endpoints: `/api/v1/graphs`, `/api/v1/graphs/{name}/tree|search|nodes/*`, `/api/v1/search`
- 
- ### Domain Constraints
- 
-@@ -219,14 +215,14 @@ flowchart TD
- 
- ```mermaid
- flowchart LR
--    A[fs2 CLI] -->|--remote work| B[resolve_graph_from_context]
-+    A[fs2 CLI] -->|--remote work| B[CLIContext.remote]
-     B --> C{remote set?}
--    C -->|yes| D[resolve_remotes]
--    C -->|no| E[local GraphStore]
--    D --> F[RemoteGraphStore]
-+    C -->|yes| D[resolve_remote_client]
-+    C -->|no| E[local GraphStore path]
-+    D --> F[RemoteClient]
-     F -->|HTTP GET| G[Server API]
--    G -->|JSON| F
--    F -->|CodeNode| A
-+    G -->|JSON dict| F
-+    F -->|raw dict| A
- ```
- 
- ### Mermaid Sequence (Remote Tree)
-@@ -235,15 +231,15 @@ flowchart LR
- sequenceDiagram
-     participant User
-     participant CLI
--    participant RemoteGraphStore
-+    participant RemoteClient
-     participant Server
- 
-     User->>CLI: fs2 tree --remote work --graph repo
--    CLI->>CLI: resolve_graph_from_context()
--    CLI->>RemoteGraphStore: get_all_nodes() / tree
--    RemoteGraphStore->>Server: GET /api/v1/graphs/repo/tree?pattern=.
--    Server-->>RemoteGraphStore: JSON tree response
--    RemoteGraphStore-->>CLI: list[CodeNode] / tree data
-+    CLI->>CLI: resolve_remote_client(ctx)
-+    CLI->>RemoteClient: tree(graph="repo", pattern=".")
-+    RemoteClient->>Server: GET /api/v1/graphs/repo/tree?pattern=.
-+    Server-->>RemoteClient: JSON tree response
-+    RemoteClient-->>CLI: raw dict
-     CLI->>User: Rich tree output
- ```
- 
-@@ -295,3 +291,13 @@ docs/plans/028-server-mode/
- | 5 | `list-graphs --remote` is just a GET request — no GraphService needed | **`RemoteClient.list_graphs()`** — pure HTTP. `list-remotes` is config-only (no HTTP). |
- 
- Action items: All captured in rewritten T003, T004, T006, T007 above. graph-storage domain no longer modified in this phase.
-+
-+## Critical Insights — DYK Session 2 (2026-03-06)
-+
-+| # | Insight | Decision |
-+|---|---------|----------|
-+| P5-01 | Sync httpx.Client in RemoteClient blocks MCP event loop — MCP search() is async | **RemoteClient uses `httpx.AsyncClient`** natively. CLI wraps with `asyncio.run()`. |
-+| P5-02 | CLI tree formatter expects TreeNode objects, not dicts — remote branch can't use `_display_tree()` | **Remote tree requests `format=text`** from server and prints pre-rendered text directly. No TreeNode reconstruction. |
-+| P5-03 | Server auto-mode returns 503 when no embeddings — locally it falls back to text silently | **Server auto-mode must fallback to text** when no embeddings (not 503). Only explicit `mode=semantic` should 503. All remote errors must be helpful and actionable. |
-+| P5-04 | Multi-remote search scores from different servers aren't directly comparable | **Known v1 limitation — documented**. Text/regex scores are consistent; cosine similarity is comparable across graph sizes. Per-remote weighting is a future enhancement. |
-+| P5-05 | MCP remote mode should coexist with local — not replace it | **MCP mixed mode**: `list_graphs()` merges local + remote graphs. `graph_name` routes to local GraphStore or RemoteClient automatically. No `--remote` flag needed on MCP if remotes are configured. |
-diff --git a/src/fs2/cli/get_node.py b/src/fs2/cli/get_node.py
-index 3c8f968..ed5bc52 100644
---- a/src/fs2/cli/get_node.py
-+++ b/src/fs2/cli/get_node.py
-@@ -57,7 +57,40 @@ def get_node(
-         2 - System error (corrupted graph)
-     """
-     try:
--        # === Composition Root ===
-+        # === Remote mode branch ===
-+        from fs2.cli.remote_client import RemoteClientError
-+        from fs2.cli.utils import resolve_remote_client
-+
-+        remote_client = resolve_remote_client(ctx)
-+        if remote_client is not None:
-+            import asyncio
-+
-+            try:
-+                graph_name = ctx.obj.graph_name if ctx.obj and ctx.obj.graph_name else None
-+                if not graph_name:
-+                    console.print(
-+                        "[red]Error:[/red] --graph-name is required for remote get-node.\n"
-+                        "  Example: fs2 --remote work --graph-name my-repo get-node \"file:src/main.py\""
-+                    )
-+                    raise typer.Exit(code=1)
-+
-+                result = asyncio.run(remote_client.get_node(graph_name, node_id))
-+                if result is None:
-+                    console.print(f"[red]Error:[/red] Node not found: {node_id}")
-+                    raise typer.Exit(code=1)
-+
-+                json_str = json.dumps(result, indent=2, default=str)
-+                if file:
-+                    file.write_text(json_str)
-+                    console.print(f"[green]✓[/green] Wrote {node_id} to {file}")
-+                else:
-+                    print(json_str)
-+                raise typer.Exit(code=0)
-+            except RemoteClientError as e:
-+                console.print(f"[red]Error:[/red] {e}")
-+                raise typer.Exit(code=1) from None
-+
-+        # === Local mode (existing) ===
-         # Per Phase 4: Use resolve_graph_from_context for multi-graph support
-         config, graph_store = resolve_graph_from_context(ctx)
- 
-diff --git a/src/fs2/cli/list_graphs.py b/src/fs2/cli/list_graphs.py
-index 3dd5457..a009fab 100644
---- a/src/fs2/cli/list_graphs.py
-+++ b/src/fs2/cli/list_graphs.py
-@@ -51,6 +51,51 @@ def list_graphs(
-         1 - Configuration error (no config found)
-     """
-     try:
-+        # === Remote mode branch ===
-+        from fs2.cli.remote_client import RemoteClientError
-+        from fs2.cli.utils import resolve_remote_client
-+
-+        remote_client = resolve_remote_client(ctx)
-+        if remote_client is not None:
-+            import asyncio
-+
-+            try:
-+                result = asyncio.run(remote_client.list_graphs())
-+                graphs = result.get("graphs", [])
-+
-+                if json_output:
-+                    print(json.dumps(result, indent=2))
-+                    raise typer.Exit(code=0)
-+
-+                table = Table(title="Remote Graphs")
-+                table.add_column("Name", style="cyan", no_wrap=True)
-+                table.add_column("Status", justify="center")
-+                table.add_column("Nodes", justify="right")
-+                table.add_column("Remote", style="dim")
-+                table.add_column("Description")
-+
-+                for g in graphs:
-+                    status_str = (
-+                        "[green]ready[/green]" if g.get("status") == "ready"
-+                        else f"[yellow]{g.get('status', '?')}[/yellow]"
-+                    )
-+                    remote_name = g.get("_remote", "")
-+                    table.add_row(
-+                        g.get("name", "?"),
-+                        status_str,
-+                        str(g.get("node_count", "?")),
-+                        remote_name,
-+                        g.get("description", ""),
-+                    )
-+
-+                console.print(table)
-+                console.print(f"\nTotal: {len(graphs)} graph(s)")
-+                raise typer.Exit(code=0)
-+            except RemoteClientError as e:
-+                stderr_console.print(f"[red]Error:[/red] {e}")
-+                raise typer.Exit(code=1) from None
-+
-+        # === Local mode (existing) ===
-         # Per Critical Insight #2: Wrap get_graph_service() in try/except
-         # for both MissingConfigurationError AND FileNotFoundError
-         from fs2.core.dependencies import get_graph_service
-diff --git a/src/fs2/cli/list_remotes.py b/src/fs2/cli/list_remotes.py
+@@ -83,3 +89,4 @@ Primary: `src/fs2/server/`
+ | 028-server-mode (Phase 1) | Server skeleton implemented: app factory, database pool, schema DDL, health endpoint | 2026-03-05 |
+ | 028-server-mode (Phase 3) | Ingestion pipeline, graph upload/list/status/delete endpoints, ingestion_jobs table | 2026-03-06 |
+ | 028-server-mode (Phase 4) | Query API: tree, search (text/regex/semantic/auto), get-node, multi-graph search. PgvectorSemanticMatcher. Enhanced list-graphs with status filter. | 2026-03-06 |
++| 028-server-mode (Phase 6) | Management dashboard: HTMX+Jinja2 UI for graph list/upload/delete, API key management, structured access logging middleware, api_keys table | 2026-03-06 |
+diff --git a/docs/plans/028-server-mode/tasks/phase-6-management-dashboard/execution.log.md b/docs/plans/028-server-mode/tasks/phase-6-management-dashboard/execution.log.md
 new file mode 100644
-index 0000000..6b717f5
+index 0000000..9d7739a
 --- /dev/null
-+++ b/src/fs2/cli/list_remotes.py
-@@ -0,0 +1,93 @@
-+"""fs2 list-remotes command implementation.
++++ b/docs/plans/028-server-mode/tasks/phase-6-management-dashboard/execution.log.md
+@@ -0,0 +1,121 @@
++# Phase 6: Management Dashboard — Execution Log
 +
-+Lists all configured remote servers from user and project config.
-+Config-only — no HTTP calls. For checking connectivity, use `fs2 list-graphs --remote`.
++**Phase**: Phase 6: Management Dashboard
++**Started**: 2026-03-06
++
++---
++
++## T001: Dashboard Skeleton
++
++**Status**: ✅ Complete
++
++### What Was Done
++- Created `src/fs2/server/dashboard/__init__.py` — package exports router
++- Created `src/fs2/server/dashboard/routes.py` — FastAPI router with Jinja2Templates
++- Created `src/fs2/server/dashboard/templates/base.html` — base layout with HTMX 2.0.4, Alpine.js 3.x, Pico CSS 2
++- Created `src/fs2/server/dashboard/templates/index.html` — dashboard home with graph count, ingesting count
++- Mounted dashboard router in `app.py`
++
++### Evidence
++- `uv run python -c "from fs2.server.dashboard import router"` → OK
++- 66 existing server tests pass (no breakage)
++
++---
++
++## T002: Graph List View
++
++**Status**: ✅ Complete
++
++### What Was Done
++- Created `src/fs2/server/dashboard/templates/graphs/list.html` — full page with HTMX polling container
++- Created `src/fs2/server/dashboard/templates/graphs/_table.html` — partial for HTMX swap
++- Added `_fetch_graphs()` shared helper for DB queries
++- Added `graph_list()` and `graph_table_partial()` routes
++- Status badges: ready=green, ingesting=blue-pulse, pending=yellow, error=red
++
++---
++
++## T003: Graph Upload
++
++**Status**: ✅ Complete
++
++### What Was Done
++- Created `src/fs2/server/dashboard/templates/graphs/upload.html` — form + vanilla JS XHR progress
++- Added `graph_upload_form()` GET and `graph_upload()` POST routes
++- Upload streams to temp file, calls `IngestionPipeline.ingest()` (same code path as API)
++- Added `_ensure_default_tenant()` shared helper (DYK-P6-06)
++- ~15 lines vanilla JS for `upload.onprogress` (DYK-P6-07)
++
++---
++
++## T004: Ingestion Status Polling
++
++**Status**: ✅ Complete
++
++### What Was Done
++- Polling built into graph list template: `hx-get="/dashboard/graphs/table" hx-trigger="every 5s"`
++- Single request refreshes entire table body (DYK-P6-09)
++- Polling only active when `has_pending` is true
++- `_fetch_graphs()` returns `has_pending` flag
++
++---
++
++## T005: Graph Delete
++
++**Status**: ✅ Complete
++
++### What Was Done
++- Alpine.js two-phase confirmation in `_table.html` (click → show confirm/cancel)
++- `hx-delete` with `hx-target` and `hx-swap="outerHTML"` removes row
++- Added `graph_delete()` route — returns empty 200 for HTMX
++- Reuses same DELETE logic as `routes/graphs.py`
++
++---
++
++## T006: API Key Management
++
++**Status**: ✅ Complete
++
++### What Was Done
++- Added `api_keys` table to `schema.py` — id, tenant_id, key_hash, key_prefix, name, scope, is_active, last_used_at, created_at
++- Created `src/fs2/server/dashboard/templates/settings/keys.html` — key list, generate form, warning banner
++- Added `_generate_api_key()` — `fs2_<32hex>`, SHA-256 hash (DYK-P6-10), no bcrypt
++- Added `api_keys_page()`, `api_key_generate()`, `api_key_revoke()` routes
++- Warning banner: "API key enforcement not active" (DYK-P6-08)
++- Copy to clipboard via Alpine.js
++
++---
++
++## T007: Request Logging Middleware
++
++**Status**: ✅ Complete
++
++### What Was Done
++- Created `src/fs2/server/middleware.py` — `AccessLogMiddleware`
++- Logs: method, path, status_code, duration_ms, content_length
++- Skips `/health` to avoid noise
++- Uses `logging.extra` for structured fields (compatible with JSON formatters)
++- Mounted in `app.py` after CORS middleware
++
++---
++
++## T008: Tests
++
++**Status**: ✅ Complete
++
++### What Was Done
++- Created `tests/server/test_dashboard.py` — 18 tests
++  - Dashboard home, graph list, empty state, status badges, table partial
++  - Upload form, graph delete, delete 404
++  - API key page, warning banner, key generation, key revocation
++  - Key format, uniqueness, SHA-256 hash verification
++- Created `tests/server/test_middleware.py` — 6 tests
++  - Logs API requests, dashboard requests
++  - Skips /health
++  - Captures status_code, duration_ms, method in extra
++
++### Evidence
++- 90 server tests pass (66 existing + 24 new)
++- 1679 full suite pass, 25 skipped, 343 deselected
++- Fixed Starlette TemplateResponse deprecation (new API: `TemplateResponse(request, name, context)`)
++
+diff --git a/docs/plans/028-server-mode/tasks/phase-6-management-dashboard/tasks.fltplan.md b/docs/plans/028-server-mode/tasks/phase-6-management-dashboard/tasks.fltplan.md
+new file mode 100644
+index 0000000..a179538
+--- /dev/null
++++ b/docs/plans/028-server-mode/tasks/phase-6-management-dashboard/tasks.fltplan.md
+@@ -0,0 +1,174 @@
++# Flight Plan: Phase 6 — Management Dashboard
++
++**Plan**: [server-mode-plan.md](../../server-mode-plan.md)
++**Phase**: Phase 6: Management Dashboard
++**Generated**: 2026-03-06
++**Status**: Landed
++
++---
++
++## Departure → Destination
++
++**Where we are**: The fs2 server has a complete REST API (`/api/v1/`) for graph upload, ingestion, querying (tree/search/get-node), and multi-graph search. The CLI and MCP can query remote servers. But there's no web interface — all management (upload, delete, status checks) requires `curl` or API calls. No API keys exist (Phase 2 was skipped). No structured request logging.
++
++**Where we're going**: An operator opens `/dashboard/` in their browser and sees a graph management interface. They can upload pickle files with progress feedback, watch ingestion status update in real-time, delete graphs with confirmation, generate API keys for CLI users, and all HTTP requests produce structured JSON logs for monitoring.
++
++---
++
++## Domain Context
++
++### Domains We're Changing
++
++| Domain | What Changes | Key Files |
++|--------|-------------|-----------|
++| server | New dashboard package (routes, templates), logging middleware, api_keys DDL | `src/fs2/server/dashboard/`, `src/fs2/server/middleware.py`, `src/fs2/server/schema.py`, `src/fs2/server/app.py` |
++
++### Domains We Depend On (no changes)
++
++| Domain | What We Consume | Contract |
++|--------|----------------|----------|
++| server (self) | `Database.connection()`, `IngestionPipeline.ingest()` | Connection pool + ingestion |
++| configuration | `ServerDatabaseConfig` | Already wired in app.py |
++
++---
++
++## Flight Status
++
++<!-- Updated by /plan-6-v2: pending → active → done. Use blocked for problems/input needed. -->
++
++```mermaid
++stateDiagram-v2
++    classDef pending fill:#9E9E9E,stroke:#757575,color:#fff
++    classDef active fill:#FFC107,stroke:#FFA000,color:#000
++    classDef done fill:#4CAF50,stroke:#388E3C,color:#fff
++    classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
++
++    state "1: Dashboard skeleton" as S1
++    state "2: Graph list view" as S2
++    state "3: Graph upload" as S3
++    state "4: Ingestion polling" as S4
++    state "5: Graph delete" as S5
++    state "6: API key mgmt" as S6
++    state "7: Request logging" as S7
++    state "8: Tests" as S8
++
++    [*] --> S1
++    S1 --> S2
++    S1 --> S3
++    S1 --> S6
++    S1 --> S7
++    S2 --> S4
++    S2 --> S5
++    S2 --> S8
++    S3 --> S8
++    S5 --> S8
++    S6 --> S8
++    S8 --> [*]
++
++    class S1,S2,S3,S4,S5,S6,S7,S8 done
++```
++
++**Legend**: grey = pending | yellow = active | red = blocked/needs input | green = done
++
++---
++
++## Stages
++
++<!-- Updated by /plan-6-v2 during implementation: [ ] → [~] → [x] -->
++
++- [x] **Stage 1: Dashboard skeleton** — Create Jinja2 environment, HTMX + Alpine CDN base layout, dashboard router, mount in app.py (`dashboard/`, `app.py`)
++- [x] **Stage 2: Graph list view** — Table of graphs with status badges, metadata columns, sorted by name (`dashboard/routes.py`, `graphs/list.html`)
++- [x] **Stage 3: Graph upload form** — File picker with name/description, delegates to IngestionPipeline, shows result (`graphs/upload.html`)
++- [x] **Stage 4: Ingestion status polling** — HTMX `every 5s` table body refresh (`graphs/_table.html` partial)
++- [x] **Stage 5: Graph delete** — Delete button + Alpine.js confirmation + HTMX row removal (`graphs/list.html`)
++- [x] **Stage 6: API key management** — `api_keys` table DDL, key generation, management view (`schema.py`, `settings/keys.html`)
++- [x] **Stage 7: Request logging middleware** — Structured JSON request logging, skip /health noise (`middleware.py`, `app.py`)
++- [x] **Stage 8: Tests** — Dashboard functional tests, middleware tests (`test_dashboard.py`, `test_middleware.py`)
++
++---
++
++## Architecture: Before & After
++
++```mermaid
++flowchart LR
++    classDef existing fill:#E8F5E9,stroke:#4CAF50,color:#000
++    classDef changed fill:#FFF3E0,stroke:#FF9800,color:#000
++    classDef new fill:#E3F2FD,stroke:#2196F3,color:#000
++
++    subgraph Before["Before Phase 6"]
++        B_App[app.py]:::existing
++        B_Health[/health]:::existing
++        B_Graphs[/api/v1/graphs]:::existing
++        B_Query[/api/v1/search + tree + nodes]:::existing
++        B_DB[(PostgreSQL)]:::existing
++        B_Schema[schema.py]:::existing
++
++        B_App --> B_Health
++        B_App --> B_Graphs
++        B_App --> B_Query
++        B_Graphs --> B_DB
++        B_Query --> B_DB
++    end
++
++    subgraph After["After Phase 6"]
++        A_App[app.py]:::changed
++        A_Health[/health]:::existing
++        A_Graphs[/api/v1/graphs]:::existing
++        A_Query[/api/v1/search + tree + nodes]:::existing
++        A_Dash[/dashboard/]:::new
++        A_Mid[Logging Middleware]:::new
++        A_DB[(PostgreSQL)]:::existing
++        A_Schema[schema.py + api_keys]:::changed
++        A_Tmpl[Jinja2 Templates]:::new
++
++        A_App --> A_Mid
++        A_Mid --> A_Health
++        A_Mid --> A_Graphs
++        A_Mid --> A_Query
++        A_Mid --> A_Dash
++        A_Dash --> A_Tmpl
++        A_Dash --> A_DB
++        A_Graphs --> A_DB
++        A_Query --> A_DB
++    end
++```
++
++**Legend**: existing (green, unchanged) | changed (orange, modified) | new (blue, created)
++
++---
++
++## Acceptance Criteria
++
++- [ ] AC5: Dashboard shows ingestion progress (polling status updates)
++- [ ] AC18: Operator can create tenants + API keys via dashboard
++- [ ] AC19: Tenant can upload graph pickles via dashboard with progress
++- [ ] AC20: Tenant can view graphs + real-time ingestion progress
++- [ ] AC21: Tenant can delete graphs from dashboard
++- [ ] AC24: Structured request logging for all HTTP requests
++
++## Goals & Non-Goals
++
++**Goals**:
++- Web dashboard for graph lifecycle management (upload/view/delete)
++- API key generation and management for CLI/MCP users
++- Real-time ingestion status monitoring
++- Structured request logging for observability
++
++**Non-Goals**:
++- Dashboard authentication (no login gate for v1)
++- Full multi-tenant management (single default tenant)
++- Visual design polish (HTMX functional, not beautiful)
++- API key auth middleware enforcement (deferred)
++
++---
++
++## Checklist
++
++- [x] T001: Dashboard skeleton — Jinja2 + HTMX + Alpine.js base layout, router, mount
++- [x] T002: Graph list view — status badges, metadata table
++- [x] T003: Graph upload — file picker + progress + IngestionPipeline
++- [x] T004: Ingestion status polling — HTMX auto-refresh for non-ready rows
++- [x] T005: Graph delete — confirmation dialog + row removal
++- [x] T006: API key management — schema + generation + management view
++- [x] T007: Request logging middleware — structured JSON, skip /health
++- [x] T008: Tests — dashboard routes, upload, delete, keys, middleware
+diff --git a/docs/plans/028-server-mode/tasks/phase-6-management-dashboard/tasks.md b/docs/plans/028-server-mode/tasks/phase-6-management-dashboard/tasks.md
+new file mode 100644
+index 0000000..b43044a
+--- /dev/null
++++ b/docs/plans/028-server-mode/tasks/phase-6-management-dashboard/tasks.md
+@@ -0,0 +1,325 @@
++# Phase 6: Management Dashboard — Task Dossier
++
++**Phase**: Phase 6: Management Dashboard
++**Plan**: [server-mode-plan.md](../../server-mode-plan.md)
++**Created**: 2026-03-06
++**Status**: Pending
++
++---
++
++## Executive Briefing
++
++**Purpose**: Build the web-based management dashboard that lets operators and tenants upload graph pickle files, monitor ingestion progress, manage graphs (view/delete), generate API keys, and observe server activity — completing the server-mode feature surface.
++
++**What We're Building**: An HTMX + Jinja2 + Alpine.js server-rendered dashboard mounted at `/dashboard/` on the existing FastAPI server. The dashboard reuses existing API endpoints (upload, list, delete, status) and adds a thin presentation layer with real-time ingestion polling, API key management (minimal — Phase 2 auth was skipped), and structured request logging middleware.
++
++**Goals**:
++- ✅ Operators can upload graph pickles via browser with progress feedback
++- ✅ Operators can view all graphs with status, metadata, and ingestion progress
++- ✅ Operators can delete graphs with confirmation
++- ✅ Operators can generate and manage API keys for CLI/MCP users
++- ✅ Server logs structured request metrics for monitoring
++- ✅ Dashboard is functional-first (no fancy UI — HTMX for interactivity)
++
++**Non-Goals**:
++- ❌ Dashboard authentication/login (operator-only, no login gate for v1)
++- ❌ Full multi-tenant management (Phase 2 skipped — single default tenant)
++- ❌ Per-tenant quotas or billing
++- ❌ Visual design polish (function over form)
++- ❌ API key validation middleware on API routes (deferred to separate fix when Phase 2 implemented)
++
++---
++
++## Prior Phase Context
++
++### Phase 1: Server Skeleton + Database
++
++**Deliverables**: FastAPI app factory (`app.py`), `Database` class (async psycopg3 pool), `schema.py` (5 tables + indexes), health endpoint, Docker Compose, `ServerDatabaseConfig`/`ServerStorageConfig` config models.
++
++**Dependencies Exported**: `Database.connection()` async context manager, `create_app()` factory, health endpoint at `/health`.
++
++**Gotchas**: No Alembic — schema uses `IF NOT EXISTS` DDL idempotently. pgvector pool registration requires `configure=` callback. No RLS (removed in Phase 1 DYK).
++
++**Patterns**: Lifespan context manager for startup/shutdown. Config models use `BaseModel` + `__config_path__` ClassVar. `Database` is consumed via DI.
++
++### Phase 2: Auth + Multi-Tenancy — SKIPPED
++
++**Status**: All 10 tasks remain pending. `src/fs2/auth/` package does NOT exist. No `APIKey` model, no `AuthService`, no middleware.
++
++**Impact on Phase 6**: Task 6.6 (tenant/API key management) must create a minimal API key model and generation inline within the server domain. Full AuthService migration to auth domain deferred to when Phase 2 is implemented.
++
++### Phase 3: Ingestion Pipeline + Graph Upload
++
++**Deliverables**: `IngestionPipeline` class (COPY bulk insert), upload endpoint `POST /api/v1/graphs`, `RestrictedUnpickler` extraction, `PostgreSQLGraphStore`, graph status lifecycle, `ingestion_jobs` table.
++
++**Dependencies Exported**: Upload endpoint (multipart form), list/status/delete endpoints, `IngestionPipeline.ingest()`, graph status lifecycle (pending → ingesting → ready → error).
++
++**Gotchas**: Synchronous in-process ingestion (no background tasks for v1). Full graph replace on re-upload (DELETE + COPY). Embedding round-trip is fragile with chunk regrouping.
++
++**Patterns**: `IngestionPipeline` is standalone/DI-injectable. COPY bulk insert via `cur.copy()`. Status lifecycle updates at each transition.
++
++### Phase 4: Server Query API
++
++**Deliverables**: Query routes (tree, search, get-node, multi-graph search), `PgvectorSemanticMatcher`, `PostgreSQLGraphStore` async methods, enhanced list-graphs with status filter.
++
++**Dependencies Exported**: All query endpoints (`/api/v1/graphs/{name}/tree|search|nodes/{id}`, `/api/v1/search?graph=...`, `/api/v1/graphs?status=...`). BYO embedding bypass (`query_vector` param).
++
++**Gotchas**: Tree uses virtual folder hierarchy (Python, not SQL CTE). EmbeddingAdapter wiring deferred. Search score heuristics for ILIKE. Node IDs with slashes need `{node_id:path}` param.
++
++**Patterns**: FastAPI DI for Database. `ConnectionProvider` protocol for matchers. Auto-mode routing in route handler. Reuse existing output model shapes.
++
++### Phase 5: Remote CLI + MCP Bridge
++
++**Deliverables**: `RemoteClient` + `MultiRemoteClient` (async httpx), `--remote` CLI flag, `RemotesConfig` models, MCP mixed mode, `list-remotes` command, built-in remotes documentation.
++
++**Dependencies Exported**: `RemoteClient` interface (tree/search/get_node/list_graphs), `resolve_remote_client()`, config merge for `remotes.servers`.
++
++**Gotchas**: RemoteClient ≠ GraphStore (returns raw JSON). Async httpx required for MCP. Tree requests `format=text` from server. Multi-remote score comparability is known v1 limitation.
++
++**Patterns**: Early branching (`if remote_client: ... else: <local>`). Raw JSON passthrough. Actionable error messages. `httpx.MockTransport` for test fakes.
++
++---
++
++## Pre-Implementation Check
++
++| File | Exists? | Domain Check | Notes |
++|------|---------|-------------|-------|
++| `src/fs2/server/dashboard/__init__.py` | ❌ Create | server ✅ | New package |
++| `src/fs2/server/dashboard/routes.py` | ❌ Create | server ✅ | Dashboard route handlers |
++| `src/fs2/server/dashboard/templates/base.html` | ❌ Create | server ✅ | Base layout with HTMX + Alpine CDN |
++| `src/fs2/server/dashboard/templates/index.html` | ❌ Create | server ✅ | Dashboard home page |
++| `src/fs2/server/dashboard/templates/graphs/list.html` | ❌ Create | server ✅ | Graph list table |
++| `src/fs2/server/dashboard/templates/graphs/upload.html` | ❌ Create | server ✅ | Upload form |
++| `src/fs2/server/dashboard/templates/graphs/detail.html` | ❌ Create | server ✅ | Graph detail + ingestion status |
++| `src/fs2/server/dashboard/templates/settings/keys.html` | ❌ Create | server ✅ | API key management |
++| `src/fs2/server/middleware.py` | ❌ Create | server ✅ | Request logging middleware |
++| `src/fs2/server/app.py` | ✅ Modify | server ✅ | Mount dashboard router + middleware |
++| `src/fs2/server/schema.py` | ✅ Modify | server ✅ | Add `api_keys` table DDL |
++| `tests/server/test_dashboard.py` | ❌ Create | server ✅ | Dashboard functional tests |
++| `tests/server/test_middleware.py` | ❌ Create | server ✅ | Logging middleware tests |
++
++**Concept Search**: No existing dashboard/template patterns in server package. Jinja2 is used in `core/templates/smart_content/` for code documentation rendering (different purpose, different template structure — no reuse opportunity). No API key models exist anywhere.
++
++---
++
++## Architecture Map
++
++```mermaid
++flowchart TD
++    classDef pending fill:#9E9E9E,stroke:#757575,color:#fff
++    classDef completed fill:#4CAF50,stroke:#388E3C,color:#fff
++    classDef existing fill:#E8F5E9,stroke:#4CAF50,color:#000
++
++    subgraph Phase6["Phase 6: Management Dashboard"]
++        T001["T001: Dashboard skeleton"]:::pending
++        T002["T002: Graph list view"]:::pending
++        T003["T003: Graph upload view"]:::pending
++        T004["T004: Ingestion status polling"]:::pending
++        T005["T005: Graph delete"]:::pending
++        T006["T006: API key management"]:::pending
++        T007["T007: Request logging middleware"]:::pending
++        T008["T008: Tests"]:::pending
++
++        T001 --> T002
++        T001 --> T003
++        T002 --> T004
++        T002 --> T005
++        T001 --> T006
++        T001 --> T007
++        T002 --> T008
++        T003 --> T008
++        T005 --> T008
++        T006 --> T008
++    end
++
++    subgraph Files["Files"]
++        F1["dashboard/__init__.py"]:::pending
++        F2["dashboard/routes.py"]:::pending
++        F3["dashboard/templates/"]:::pending
++        F4["middleware.py"]:::pending
++        F5["app.py"]:::existing
++        F6["schema.py"]:::existing
++        F7["test_dashboard.py"]:::pending
++        F8["test_middleware.py"]:::pending
++    end
++
++    T001 -.-> F1
++    T001 -.-> F2
++    T001 -.-> F3
++    T001 -.-> F5
++    T002 -.-> F2
++    T002 -.-> F3
++    T003 -.-> F2
++    T003 -.-> F3
++    T004 -.-> F2
++    T004 -.-> F3
++    T005 -.-> F2
++    T005 -.-> F3
++    T006 -.-> F2
++    T006 -.-> F3
++    T006 -.-> F6
++    T007 -.-> F4
++    T007 -.-> F5
++    T008 -.-> F7
++    T008 -.-> F8
++```
++
++---
++
++## Tasks
++
++| Status | ID | Task | Domain | Path(s) | Done When | Notes |
++|--------|-----|------|--------|---------|-----------|-------|
++| [ ] | T001 | Dashboard skeleton: Jinja2 + HTMX + Alpine.js base layout, dashboard router, mount in app.py | server | `src/fs2/server/dashboard/__init__.py`, `src/fs2/server/dashboard/routes.py`, `src/fs2/server/dashboard/templates/base.html`, `src/fs2/server/dashboard/templates/index.html`, `src/fs2/server/app.py` | `/dashboard/` renders HTML page with HTMX loaded; Jinja2 environment configured with template directory | Base layout includes nav, HTMX CDN, Alpine.js CDN, minimal CSS (Pico CSS or similar classless framework) |
++| [ ] | T002 | Graph list view: table of graphs with status badges, metadata columns, auto-refresh for non-ready graphs | server | `src/fs2/server/dashboard/routes.py`, `src/fs2/server/dashboard/templates/graphs/list.html` | `/dashboard/graphs` shows table: name, status (with color badge), node_count, embedding_model, updated_at; non-ready rows auto-refresh via HTMX polling | Reuses DB query from `routes/graphs.py` list_graphs. Status badges: pending=yellow, ingesting=blue-pulse, ready=green, error=red |
++| [ ] | T003 | Graph upload view: file picker form with name/description fields, small vanilla JS XHR helper for upload progress bar, delegates to IngestionPipeline | server | `src/fs2/server/dashboard/routes.py`, `src/fs2/server/dashboard/templates/graphs/upload.html` | Can upload a pickle file via `/dashboard/graphs/upload` form with progress bar; on success redirects to graph list; on error shows actionable message | Dashboard route: stream file → temp path → `pipeline.ingest()` (same as API route, no duplication). ~15-line vanilla JS XHR `upload.onprogress` for progress bar (DYK-P6-07). Extract "ensure default tenant" to shared helper (DYK-P6-06) |
++| [ ] | T004 | Ingestion status: HTMX polling — single request refreshes entire table body every 5s, stops when all graphs settled | server | `src/fs2/server/dashboard/routes.py`, `src/fs2/server/dashboard/templates/graphs/list.html` | Graph list auto-refreshes entire table body every 5s while any graph status ∈ {pending, ingesting}; stops polling once all graphs are ready/error | Single request for full table body (DYK-P6-09). `hx-trigger="every 5s"` on `<tbody>`. Alpine.js `x-data` tracks `hasPending` to conditionally stop polling. Dashboard route returns HTML fragment for table body |
++| [ ] | T005 | Graph delete: delete button per graph row with Alpine.js confirmation dialog, HTMX DELETE removes row | server | `src/fs2/server/dashboard/routes.py`, `src/fs2/server/dashboard/templates/graphs/list.html` | Clicking delete → confirmation dialog → confirmed → row removed from table; graph and all data deleted from DB | Reuses `DELETE /api/v1/graphs/{id}` logic. Alpine.js for confirm/cancel modal. HTMX swap removes row. AC21 |
++| [ ] | T006 | API key management: add `api_keys` table to schema, key generation endpoint, management view with warning banner | server | `src/fs2/server/schema.py`, `src/fs2/server/dashboard/routes.py`, `src/fs2/server/dashboard/templates/settings/keys.html` | Can generate API key via dashboard; key shown once then only prefix visible; can list active keys; can revoke a key; warning banner: "API key enforcement not active" | Minimal auth — no full AuthService (Phase 2 skipped). Table: `api_keys(id, tenant_id, key_hash, key_prefix, name, scope, is_active, created_at)`. Key format: `fs2_<32-hex>`. SHA-256 hash via `hashlib.sha256` — no bcrypt, no new deps (DYK-P6-10). Warning banner until Phase 2 middleware (DYK-P6-08). AC18 |
++| [ ] | T007 | Structured request logging: FastAPI middleware that logs method, path, status, latency, tenant context as structured JSON | server | `src/fs2/server/middleware.py`, `src/fs2/server/app.py` | Each HTTP request produces a structured log line with method, path, status_code, duration_ms, content_length; parseable by log aggregators | Mount as ASGI middleware in app.py. Use standard Python `logging` with JSON formatter. Skip /health to avoid log noise. AC24 |
++| [ ] | T008 | Tests: dashboard functional tests (HTML response, upload flow, delete flow, key generation, middleware logging) | server | `tests/server/test_dashboard.py`, `tests/server/test_middleware.py` | All dashboard routes return 200 HTML; upload via dashboard works; delete works; key generation returns key; middleware logs requests | Lightweight — use httpx.AsyncClient with ASGITransport against test app. Not visual testing. Fake database for unit tests |
++
++---
++
++## Context Brief
++
++### Key Findings from Plan
++
++- **Finding 05 (High)**: 500MB upload → OOM risk. Dashboard upload must stream to temp file, not buffer in RAM. **Action**: Dashboard upload route reuses the existing streaming upload logic from `routes/graphs.py` — do NOT add a second upload path.
++- **Finding 06 (High)**: Configuration registry supports new types cleanly via `YAML_CONFIG_TYPES`. **Action**: No new config types needed for Phase 6 — dashboard config (if any) can use app.state settings.
++- **Finding 07 (High)**: CLI `resolve_graph_from_context()` is NOT modified by server work. **Action**: Dashboard is server-side only — no CLI impact.
++
++### Domain Dependencies
++
++- **server**: This is the primary domain. Dashboard lives entirely within `src/fs2/server/dashboard/`.
++  - `Database` class — async connection pool for DB queries
++  - `IngestionPipeline` — pickle → PostgreSQL ingestion (reused for dashboard upload)
++  - `create_app()` — mount dashboard router here
++  - `schema.py` — add `api_keys` table DDL
++- **graph-storage**: `GraphStore` protocol — dashboard reads graph metadata via direct SQL (not GraphStore ABC)
++- **configuration**: `ServerDatabaseConfig` — already wired in app.py via `Database`
++
++### Domain Constraints
++
++- All new files go under `src/fs2/server/dashboard/` (server domain)
++- Dashboard routes do NOT import from `cli/` or `core/services/` — they query the DB directly via `Database.connection()`
++- API key generation stays in server domain for v1 (should migrate to auth domain when Phase 2 is implemented — note as tech debt)
++- Templates are Jinja2 HTML, not Python code — no domain boundary concerns for `.html` files
++- Middleware is `src/fs2/server/middleware.py` — server domain internal
++
++### Reusable from Prior Phases
++
++- **`Database` class** (Phase 1): async connection pool, already in `app.state.db`
++- **Upload streaming** (Phase 3): `routes/graphs.py` upload logic handles chunked streaming + size limits
++- **`IngestionPipeline`** (Phase 3): standalone class, inject `Database` via DI
++- **Graph list SQL** (Phase 3): `list_graphs` endpoint query can be adapted for dashboard
++- **Graph delete SQL** (Phase 3): `delete_graph` endpoint logic can be reused
++- **`FakeDatabase` pattern** (Phase 1): used in all server tests — reuse for dashboard tests
++- **httpx.AsyncClient + ASGITransport** (Phase 4): test pattern for FastAPI endpoint testing
++
++### Phase 2 Dependency Gap
++
++Phase 2 (Auth + Multi-Tenancy) was **skipped**. This creates a gap for T006 (API key management):
++
++| Planned (Phase 2) | Actual (Phase 6 Minimal) |
++|-------------------|--------------------------|
++| `src/fs2/auth/` package | API key logic in `server/dashboard/routes.py` |
++| `AuthService` class | Direct DB queries for key CRUD |
++| `APIKey` Pydantic model | Inline model or raw dict |
++| Auth middleware on all routes | No middleware — dashboard open, keys for CLI use |
++| FakeAuthService | Tested via dashboard functional tests |
++
++**Tech debt**: When Phase 2 is eventually implemented, migrate API key table and logic from server domain to auth domain. Dashboard routes would then consume AuthService via DI.
++
++### System Flow Diagrams
++
++```mermaid
++flowchart LR
++    subgraph Browser["Browser (Operator)"]
++        D[Dashboard UI]
++    end
++
++    subgraph Server["fs2 Server"]
++        DR[Dashboard Routes]
++        API[API Routes]
++        IP[IngestionPipeline]
++        DB[(PostgreSQL)]
++        ML[Logging Middleware]
++    end
++
++    D -->|HTMX requests| DR
++    D -->|Upload form| DR
++    DR -->|SQL queries| DB
++    DR -->|Ingest| IP
++    IP -->|COPY| DB
++    ML -->|Logs| Logs[Structured JSON logs]
++    API -->|All requests| ML
++    DR -->|All requests| ML
++```
++
++```mermaid
++sequenceDiagram
++    participant Op as Operator
++    participant Dash as Dashboard
++    participant DB as PostgreSQL
++
++    Op->>Dash: GET /dashboard/graphs
++    Dash->>DB: SELECT * FROM graphs
++    DB-->>Dash: graph rows
++    Dash-->>Op: HTML table with status badges
++
++    Op->>Dash: POST /dashboard/graphs/upload (pickle file)
++    Dash->>DB: INSERT INTO graphs (status=pending)
++    Dash->>DB: COPY nodes, edges, embeddings
++    Dash->>DB: UPDATE status=ready
++    Dash-->>Op: Redirect to graph list
++
++    Op->>Dash: DELETE /dashboard/graphs/{id}
++    Dash->>DB: DELETE FROM graphs WHERE id=...
++    Dash-->>Op: Row removed (HTMX swap)
++
++    Op->>Dash: POST /dashboard/settings/keys/generate
++    Dash->>DB: INSERT INTO api_keys
++    Dash-->>Op: Show key (once only)
++```
++
++---
++
++## Discoveries & Learnings
++
++_Populated during implementation by plan-6._
++
++| Date | Task | Type | Discovery | Resolution | References |
++|------|------|------|-----------|------------|------------|
++
++**Types**: `gotcha` | `research-needed` | `unexpected-behavior` | `workaround` | `decision` | `debt` | `insight`
++
++---
++
++## DYK Insights (Prior Sessions)
++
++| ID | Insight | Impact | Action |
++|----|---------|--------|--------|
++| DYK-P6-01 | Phase 2 (auth) skipped — API key management must be self-contained | High | T006 creates minimal api_keys table + generation inline; noted as tech debt for auth domain migration |
++| DYK-P6-02 | HTMX + Alpine.js are CDN includes, not Python packages | Low | No pip install needed; include via `<script>` tags in base.html |
++| DYK-P6-03 | Existing upload endpoint streams to temp file — DO NOT create second upload path | High | Dashboard upload route delegates to IngestionPipeline directly (same logic, different response format: HTML vs JSON) |
++| DYK-P6-04 | Current ingestion is synchronous (blocks until complete) | Medium | For v1, acceptable. Dashboard shows "uploading..." → redirect on completion. HTMX polling handles status for concurrent users |
++| DYK-P6-05 | No existing Jinja2 HTML templates in server package | Low | Create from scratch; core/templates/ is for smart_content rendering, different purpose entirely |
++| DYK-P6-06 | Upload logic shared boundary is IngestionPipeline.ingest(pickle_path) — each route handles its own file reception to temp path, then calls identical code | High | ✅ DECIDED: Extract "ensure default tenant" into shared path. Both routes: receive file → temp path → `pipeline.ingest()`. No duplication |
++| DYK-P6-07 | HTMX `hx-post` can't show file upload progress — no intermediate events for large pickles (500MB) | High | ✅ DECIDED: Small vanilla JS helper (~15 lines XHR `upload.onprogress`) for upload progress bar. HTMX for everything else |
++| DYK-P6-08 | API keys without auth middleware are security theater — generates false sense of security | High | ✅ DECIDED: Warning banner in dashboard ("API key enforcement not active"). Keys generated and ready for when Phase 2 middleware lands. No inline middleware |
++| DYK-P6-09 | HTMX polling every 2s per non-ready row = N requests/2s — hammers DB with concurrent uploads | Medium | ✅ DECIDED: Single request refreshes entire table body every 5s. Stop polling when no pending/ingesting rows. Collapses N requests → 1 |
++| DYK-P6-10 | bcrypt unnecessary for API key hashing — keys have 128 bits entropy (brute-force infeasible) | Medium | ✅ DECIDED: SHA-256 via existing `hashlib.sha256`. No new deps. Follows codebase pattern (`core/utils/hash.py`). bcrypt adds complexity for zero security gain |
++
++---
++
++## Directory Layout
++
++```
++docs/plans/028-server-mode/
++  ├── server-mode-plan.md
++  └── tasks/phase-6-management-dashboard/
++      ├── tasks.md                  ← this file
++      ├── tasks.fltplan.md          ← flight plan (next)
++      └── execution.log.md          # created by plan-6
++```
+diff --git a/src/fs2/server/app.py b/src/fs2/server/app.py
+index 6c59859..0cc098b 100644
+--- a/src/fs2/server/app.py
++++ b/src/fs2/server/app.py
+@@ -12,7 +12,9 @@ from fastapi import FastAPI
+ from fastapi.middleware.cors import CORSMiddleware
+ 
+ from fs2.config.objects import ServerDatabaseConfig
++from fs2.server.dashboard import router as dashboard_router
+ from fs2.server.database import Database
++from fs2.server.middleware import AccessLogMiddleware
+ from fs2.server.routes.graphs import router as graphs_router
+ from fs2.server.routes.health import router as health_router
+ from fs2.server.routes.query import router as query_router
+@@ -65,6 +67,7 @@ def create_app(
+         allow_methods=["*"],
+         allow_headers=["*"],
+     )
++    app.add_middleware(AccessLogMiddleware)
+ 
+     if database is not None:
+         app.state.db = database
+@@ -74,5 +77,6 @@ def create_app(
+     app.include_router(health_router)
+     app.include_router(graphs_router)
+     app.include_router(query_router)
++    app.include_router(dashboard_router)
+ 
+     return app
+diff --git a/src/fs2/server/dashboard/__init__.py b/src/fs2/server/dashboard/__init__.py
+new file mode 100644
+index 0000000..2d01242
+--- /dev/null
++++ b/src/fs2/server/dashboard/__init__.py
+@@ -0,0 +1,9 @@
++"""Dashboard package for fs2 server management UI.
++
++Provides an HTMX + Jinja2 + Alpine.js web interface for graph management,
++API key provisioning, and server monitoring. Mounted at /dashboard/.
 +"""
 +
-+import json
-+import logging
-+from typing import Annotated
++from fs2.server.dashboard.routes import router
 +
-+import typer
-+from rich.console import Console
-+from rich.table import Table
-+
-+logger = logging.getLogger("fs2.cli.list_remotes")
-+
-+console = Console()
-+stderr_console = Console(stderr=True)
-+
-+
-+def list_remotes(
-+    json_output: Annotated[
-+        bool,
-+        typer.Option("--json", help="Output JSON instead of table"),
-+    ] = False,
-+) -> None:
-+    """List all configured remote fs2 servers.
-+
-+    Shows named remotes from ~/.config/fs2/config.yaml and .fs2/config.yaml.
-+    Does NOT contact remotes — use `fs2 list-graphs --remote` to verify connectivity.
-+
-+    \\b
-+    Examples:
-+        $ fs2 list-remotes              # Show table
-+        $ fs2 list-remotes --json       # Output JSON
-+
-+    \\b
-+    Exit codes:
-+        0 - Success
-+        1 - Configuration error
-+    """
-+    from fs2.config.objects import RemotesConfig
-+    from fs2.config.service import FS2ConfigurationService
-+
-+    try:
-+        config = FS2ConfigurationService()
-+        remotes_config = config.get(RemotesConfig)
-+    except Exception:
-+        remotes_config = None
-+
-+    servers = remotes_config.servers if remotes_config else []
-+
-+    if json_output:
-+        output = {
-+            "remotes": [
-+                {
-+                    "name": s.name,
-+                    "url": s.url,
-+                    "has_api_key": s.api_key is not None,
-+                    "description": s.description,
-+                }
-+                for s in servers
-+            ],
-+            "count": len(servers),
-+        }
-+        print(json.dumps(output, indent=2))
-+        raise typer.Exit(code=0)
-+
-+    if not servers:
-+        console.print("No remotes configured.")
-+        console.print(
-+            "\n[dim]Add remotes to ~/.config/fs2/config.yaml:[/dim]\n"
-+            "  remotes:\n"
-+            "    servers:\n"
-+            '      - name: "work"\n'
-+            '        url: "https://fs2.your-company.com"\n'
-+            '        description: "Team server"'
-+        )
-+        raise typer.Exit(code=0)
-+
-+    table = Table(title="Configured Remotes")
-+    table.add_column("Name", style="cyan", no_wrap=True)
-+    table.add_column("URL")
-+    table.add_column("Auth", justify="center")
-+    table.add_column("Description")
-+
-+    for s in servers:
-+        auth = "[green]✓[/green]" if s.api_key else "[dim]—[/dim]"
-+        table.add_row(s.name, s.url, auth, s.description or "")
-+
-+    console.print(table)
-+    console.print(f"\nTotal: {len(servers)} remote(s)")
-+    console.print("[dim]Tip: Use --remote <name> with any command to query a remote.[/dim]")
-diff --git a/src/fs2/cli/main.py b/src/fs2/cli/main.py
-index 071540b..4134275 100644
---- a/src/fs2/cli/main.py
-+++ b/src/fs2/cli/main.py
-@@ -30,6 +30,7 @@ from fs2.cli.guard import require_init
- from fs2.cli.init import init
- from fs2.cli.install import get_version_string, install, upgrade
- from fs2.cli.list_graphs import list_graphs
-+from fs2.cli.list_remotes import list_remotes
- from fs2.cli.mcp import mcp
- from fs2.cli.scan import scan
- from fs2.cli.search import search
-@@ -44,10 +45,12 @@ class CLIContext:
-     Attributes:
-         graph_file: Path to graph file (overrides config). Mutually exclusive with graph_name.
-         graph_name: Name of configured graph (from other_graphs). Mutually exclusive with graph_file.
-+        remote: Remote server name, URL, or comma-separated list. None means local mode.
-     """
- 
-     graph_file: str | None = None
-     graph_name: str | None = None
-+    remote: str | None = None
- 
- 
- def _version_callback(value: bool) -> None:
-@@ -81,6 +84,15 @@ def main(
-             help="Named graph from other_graphs config (mutually exclusive with --graph-file)",
-         ),
-     ] = None,
-+    remote: Annotated[
-+        str | None,
-+        typer.Option(
-+            "--remote",
-+            "-r",
-+            help="Remote server name, URL, or comma-separated list (e.g., 'work', 'http://localhost:8000', 'work,oss')",
-+            envvar="FS2_REMOTE",
-+        ),
-+    ] = None,
-     version: Annotated[
-         bool | None,
-         typer.Option(
-@@ -98,7 +110,12 @@ def main(
-         typer.echo("Error: Cannot use both --graph-file and --graph-name", err=True)
-         raise typer.Exit(1)
- 
--    ctx.obj = CLIContext(graph_file=graph_file, graph_name=graph_name)
-+    # Remote mode is incompatible with --graph-file (local override)
-+    if remote and graph_file:
-+        typer.echo("Error: Cannot use both --remote and --graph-file", err=True)
-+        raise typer.Exit(1)
-+
-+    ctx.obj = CLIContext(graph_file=graph_file, graph_name=graph_name, remote=remote)
- 
- 
- # Register commands
-@@ -117,6 +134,7 @@ app.command(name="agents-start-here")(
-     agents_start_here
- )  # Per Plan 026: Agent onboarding
- app.command(name="list-graphs")(list_graphs)  # Per subtask 001: diagnostic command
-+app.command(name="list-remotes")(list_remotes)  # Per Phase 5: remote discovery
- app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
- app.command(name="install")(install)
- app.command(name="upgrade")(upgrade)
-diff --git a/src/fs2/cli/remote_client.py b/src/fs2/cli/remote_client.py
++__all__ = ["router"]
+diff --git a/src/fs2/server/dashboard/routes.py b/src/fs2/server/dashboard/routes.py
 new file mode 100644
-index 0000000..a5b1a9e
+index 0000000..cc834a4
 --- /dev/null
-+++ b/src/fs2/cli/remote_client.py
-@@ -0,0 +1,384 @@
-+"""Remote client for querying fs2 server endpoints.
++++ b/src/fs2/server/dashboard/routes.py
+@@ -0,0 +1,351 @@
++"""Dashboard routes for fs2 server management UI.
 +
-+Provides RemoteClient (single server) and MultiRemoteClient (fan-out across
-+multiple servers) for the CLI and MCP remote mode.
-+
-+Per DYK-P5-01: Uses async httpx.AsyncClient (not sync) to avoid blocking
-+the MCP event loop. CLI wraps calls with asyncio.run().
-+
-+Per DYK #1/#2: Does NOT implement GraphStore ABC. Returns raw server JSON
-+dicts — no CodeNode reconstruction needed.
-+
-+Usage:
-+    ```python
-+    # Single remote
-+    client = RemoteClient(base_url="https://fs2.example.com")
-+    result = await client.tree("my-graph", pattern="src/")
-+
-+    # Multi-remote
-+    multi = MultiRemoteClient([client1, client2])
-+    results = await multi.search("auth", mode="auto")
-+    ```
++HTMX-powered server-rendered views for:
++- Graph list with status monitoring
++- Graph upload with progress feedback
++- Graph deletion with confirmation
++- API key generation and management
 +"""
 +
-+from __future__ import annotations
-+
++import hashlib
 +import logging
-+from typing import Any
++import os
++import secrets
++import uuid
++from pathlib import Path
 +
-+import httpx
++from fastapi import APIRouter, File, Form, Request, UploadFile
++from fastapi.responses import HTMLResponse
++from fastapi.templating import Jinja2Templates
++
++from fs2.server.ingestion import IngestionError, IngestionPipeline
 +
 +logger = logging.getLogger(__name__)
 +
-+# Default timeout for remote requests (seconds)
-+DEFAULT_TIMEOUT = 30.0
++# Default tenant for v1 (no multi-tenancy — matches graphs.py)
++DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000000"
++
++TEMPLATES_DIR = Path(__file__).parent / "templates"
++
++templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
++
++router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 +
 +
-+class RemoteClientError(Exception):
-+    """Error communicating with a remote fs2 server.
++async def _fetch_graphs(db) -> tuple[list[dict], bool]:
++    """Fetch all graphs with display-formatted fields.
 +
-+    Always includes actionable context: remote name/URL and what to do.
++    Returns (graphs_list, has_pending) where has_pending indicates
++    whether HTMX polling should be active.
 +    """
++    async with db.connection() as conn:
++        result = await conn.execute(
++            """SELECT id, name, description, status, node_count, edge_count,
++                    embedding_model, updated_at
++                FROM graphs ORDER BY name"""
++        )
++        rows = await result.fetchall()
 +
-+    def __init__(self, message: str, remote_name: str | None = None, url: str | None = None) -> None:
-+        self.remote_name = remote_name
-+        self.url = url
-+        super().__init__(message)
++    has_pending = False
++    graphs = []
++    for row in rows:
++        status = row[3]
++        if status in ("pending", "ingesting"):
++            has_pending = True
++        updated = row[7]
++        graphs.append({
++            "id": str(row[0]),
++            "name": row[1],
++            "description": row[2],
++            "status": status,
++            "node_count": row[4],
++            "edge_count": row[5],
++            "embedding_model": row[6],
++            "updated_at_display": updated.strftime("%Y-%m-%d %H:%M") if updated else "—",
++        })
++    return graphs, has_pending
 +
 +
-+class RemoteClient:
-+    """Async HTTP client for a single fs2 server.
++@router.get("/", response_class=HTMLResponse)
++async def dashboard_home(request: Request) -> HTMLResponse:
++    """Dashboard home page — overview and navigation."""
++    db = request.app.state.db
 +
-+    Calls server REST API endpoints directly and returns raw JSON dicts.
-+    Does NOT implement GraphStore ABC (DYK #1).
++    graph_count = 0
++    ingesting_count = 0
++    try:
++        async with db.connection() as conn:
++            result = await conn.execute(
++                "SELECT count(*) FROM graphs WHERE status = 'ready'"
++            )
++            row = await result.fetchone()
++            graph_count = row[0] if row else 0
 +
-+    Attributes:
-+        base_url: Server base URL (no trailing slash).
-+        api_key: Optional API key for Bearer auth.
-+        name: Optional human-readable name (e.g., "work") for error messages.
-+        _timeout: Request timeout in seconds.
++            result = await conn.execute(
++                "SELECT count(*) FROM graphs WHERE status IN ('pending', 'ingesting')"
++            )
++            row = await result.fetchone()
++            ingesting_count = row[0] if row else 0
++    except Exception:
++        pass
++
++    return templates.TemplateResponse(request, "index.html", {
++            "graph_count": graph_count,
++            "ingesting_count": ingesting_count,
++        },
++    )
++
++
++@router.get("/graphs", response_class=HTMLResponse)
++async def graph_list(request: Request) -> HTMLResponse:
++    """Graph list view — table with status badges and metadata."""
++    db = request.app.state.db
++    graphs, has_pending = await _fetch_graphs(db)
++
++    return templates.TemplateResponse(request, "graphs/list.html", {
++            "graphs": graphs,
++            "has_pending": has_pending,
++        },
++    )
++
++
++@router.get("/graphs/table", response_class=HTMLResponse)
++async def graph_table_partial(request: Request) -> HTMLResponse:
++    """HTMX partial — returns just the table body for polling refresh."""
++    db = request.app.state.db
++    graphs, has_pending = await _fetch_graphs(db)
++
++    return templates.TemplateResponse(request, "graphs/_table.html", {
++            "graphs": graphs,
++            "has_pending": has_pending,
++        },
++    )
++
++
++async def _ensure_default_tenant(db) -> None:
++    """Create the default tenant if it doesn't exist.
++
++    Shared by dashboard upload and API upload routes (DYK-P6-06).
 +    """
++    async with db.connection() as conn:
++        await conn.execute(
++            """INSERT INTO tenants (id, name, slug)
++            VALUES (%s, 'default', 'default')
++            ON CONFLICT (id) DO NOTHING""",
++            (DEFAULT_TENANT_ID,),
++        )
++        await conn.commit()
 +
-+    def __init__(
-+        self,
-+        base_url: str,
-+        api_key: str | None = None,
-+        name: str | None = None,
-+        timeout: float = DEFAULT_TIMEOUT,
-+    ) -> None:
-+        self.base_url = base_url.rstrip("/")
-+        self.api_key = api_key
-+        self.name = name or base_url
-+        self._timeout = timeout
 +
-+    def _headers(self) -> dict[str, str]:
-+        """Build request headers with optional auth."""
-+        headers: dict[str, str] = {"Accept": "application/json"}
-+        if self.api_key:
-+            headers["Authorization"] = f"Bearer {self.api_key}"
-+        return headers
++@router.get("/graphs/upload", response_class=HTMLResponse)
++async def graph_upload_form(request: Request) -> HTMLResponse:
++    """Graph upload form — file picker with name/description fields."""
++    return templates.TemplateResponse(request, "graphs/upload.html", {"error": None, "success": None},
++    )
 +
-+    def _client(self) -> httpx.AsyncClient:
-+        """Create a fresh async client for a request."""
-+        return httpx.AsyncClient(
-+            base_url=self.base_url,
-+            headers=self._headers(),
-+            timeout=self._timeout,
++
++@router.post("/graphs/upload", response_class=HTMLResponse)
++async def graph_upload(
++    request: Request,
++    file: UploadFile = File(...),
++    name: str = Form(...),
++    description: str | None = Form(None),
++    source_url: str | None = Form(None),
++) -> HTMLResponse:
++    """Handle graph upload — stream to temp, ingest, show result.
++
++    Uses same IngestionPipeline as the API endpoint (DYK-P6-06).
++    """
++    db = request.app.state.db
++    upload_dir = getattr(request.app.state, "upload_dir", "/tmp/fs2-uploads")
++    os.makedirs(upload_dir, exist_ok=True)
++    temp_path = Path(upload_dir) / f"{uuid.uuid4()}.pickle"
++
++    try:
++        # Stream to temp file with size limit
++        max_bytes = getattr(request.app.state, "max_upload_bytes", 524_288_000)
++        bytes_written = 0
++        with open(temp_path, "wb") as f:
++            while chunk := await file.read(1024 * 1024):
++                bytes_written += len(chunk)
++                if bytes_written > max_bytes:
++                    return templates.TemplateResponse(request, "graphs/upload.html", {
++                            "error": f"File exceeds maximum size ({max_bytes // 1048576} MB)",
++                            "success": None,
++                        },
++                    )
++                f.write(chunk)
++
++        await _ensure_default_tenant(db)
++
++        pipeline = IngestionPipeline(db)
++        result = await pipeline.ingest(
++            pickle_path=temp_path,
++            graph_name=name,
++            tenant_id=DEFAULT_TENANT_ID,
++            description=description,
++            source_url=source_url,
 +        )
 +
-+    async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
-+        """Make an HTTP request and return parsed JSON.
++        logger.info("Dashboard upload: %s (%d nodes)", name, result.node_count)
 +
-+        Translates HTTP errors into actionable RemoteClientError messages.
-+        """
-+        async with self._client() as client:
-+            try:
-+                response = await client.request(method, path, **kwargs)
-+            except httpx.ConnectError:
-+                raise RemoteClientError(
-+                    f"Remote '{self.name}' unreachable at {self.base_url}. "
-+                    "Check the URL and ensure the server is running.",
-+                    remote_name=self.name,
-+                    url=self.base_url,
-+                ) from None
-+            except httpx.TimeoutException:
-+                raise RemoteClientError(
-+                    f"Request to remote '{self.name}' timed out after {self._timeout}s. "
-+                    "The server may be overloaded. Try again or increase timeout.",
-+                    remote_name=self.name,
-+                    url=self.base_url,
-+                ) from None
-+            except httpx.HTTPError as e:
-+                raise RemoteClientError(
-+                    f"Network error contacting remote '{self.name}': {e}",
-+                    remote_name=self.name,
-+                    url=self.base_url,
-+                ) from None
-+
-+        # Handle HTTP status errors
-+        if response.status_code == 401:
-+            raise RemoteClientError(
-+                f"Authentication failed for remote '{self.name}'. "
-+                "Check your API key in remotes config.",
-+                remote_name=self.name,
-+                url=self.base_url,
-+            )
-+        if response.status_code == 404:
-+            # Extract detail from JSON if possible
-+            try:
-+                detail = response.json().get("detail", "Resource not found")
-+            except Exception:
-+                detail = "Resource not found"
-+            raise RemoteClientError(
-+                f"Not found on remote '{self.name}': {detail}",
-+                remote_name=self.name,
-+                url=self.base_url,
-+            )
-+        if response.status_code == 503:
-+            try:
-+                detail = response.json().get("detail", "Service unavailable")
-+            except Exception:
-+                detail = "Service unavailable"
-+            raise RemoteClientError(
-+                f"Remote '{self.name}' service unavailable: {detail}. "
-+                "The server may be starting up or missing configuration.",
-+                remote_name=self.name,
-+                url=self.base_url,
-+            )
-+        if response.status_code >= 400:
-+            try:
-+                detail = response.json().get("detail", response.text)
-+            except Exception:
-+                detail = response.text
-+            raise RemoteClientError(
-+                f"Remote '{self.name}' returned error {response.status_code}: {detail}",
-+                remote_name=self.name,
-+                url=self.base_url,
-+            )
-+
-+        return response.json()
-+
-+    # ── Public API — returns raw server JSON dicts ──
-+
-+    async def list_graphs(self, status: str | None = "ready") -> dict:
-+        """List graphs on the remote server.
-+
-+        Args:
-+            status: Optional filter (e.g., "ready"). Default filters to ready graphs.
-+
-+        Returns:
-+            Server JSON: {"graphs": [...], "count": N}
-+        """
-+        params: dict[str, Any] = {}
-+        if status:
-+            params["status"] = status
-+        return await self._request("GET", "/api/v1/graphs", params=params)
-+
-+    async def tree(
-+        self,
-+        graph: str,
-+        pattern: str = ".",
-+        max_depth: int = 0,
-+    ) -> dict:
-+        """Get tree view from remote server.
-+
-+        Per DYK-P5-02: Returns server JSON directly. CLI uses format=text
-+        for pre-rendered output.
-+
-+        Args:
-+            graph: Graph name on the server.
-+            pattern: Filter pattern (default: ".").
-+            max_depth: Max depth (0=unlimited).
-+
-+        Returns:
-+            Server JSON tree response.
-+        """
-+        params: dict[str, Any] = {"pattern": pattern, "max_depth": max_depth}
-+        return await self._request("GET", f"/api/v1/graphs/{graph}/tree", params=params)
-+
-+    async def search(
-+        self,
-+        pattern: str,
-+        *,
-+        graph: str | None = None,
-+        mode: str = "auto",
-+        limit: int = 20,
-+        offset: int = 0,
-+        detail: str = "min",
-+        include: str | None = None,
-+        exclude: str | None = None,
-+    ) -> dict:
-+        """Search on remote server.
-+
-+        If graph is specified, searches single graph. Otherwise searches all.
-+
-+        Args:
-+            pattern: Search pattern.
-+            graph: Optional graph name (None = search all).
-+            mode: Search mode (auto/text/regex/semantic).
-+            limit: Max results.
-+            offset: Pagination offset.
-+            detail: Detail level (min/max).
-+            include: Comma-separated include patterns.
-+            exclude: Comma-separated exclude patterns.
-+
-+        Returns:
-+            Server JSON search envelope: {"meta": {...}, "results": [...]}
-+        """
-+        params: dict[str, Any] = {
-+            "pattern": pattern,
-+            "mode": mode,
-+            "limit": limit,
-+            "offset": offset,
-+            "detail": detail,
-+        }
-+        if include:
-+            params["include"] = include
-+        if exclude:
-+            params["exclude"] = exclude
-+
-+        if graph:
-+            return await self._request("GET", f"/api/v1/graphs/{graph}/search", params=params)
-+        else:
-+            params["graph"] = "all"
-+            return await self._request("GET", "/api/v1/search", params=params)
-+
-+    async def get_node(
-+        self,
-+        graph: str,
-+        node_id: str,
-+        detail: str = "min",
-+    ) -> dict | None:
-+        """Get a single node from remote server.
-+
-+        Args:
-+            graph: Graph name.
-+            node_id: Node ID (may contain / and :).
-+            detail: Detail level (min/max).
-+
-+        Returns:
-+            Server JSON node dict, or None if not found.
-+        """
-+        params: dict[str, Any] = {"detail": detail}
-+        try:
-+            return await self._request(
-+                "GET", f"/api/v1/graphs/{graph}/nodes/{node_id}", params=params,
-+            )
-+        except RemoteClientError as e:
-+            if "Not found" in str(e):
-+                return None
-+            raise
-+
-+
-+class MultiRemoteClient:
-+    """Fan-out client across multiple remote servers.
-+
-+    Merges results from N RemoteClient instances. Partial failures
-+    log warnings but don't abort the entire operation (DYK Workshop R8).
-+
-+    Per DYK-P5-04: Cross-remote score comparability is a known v1 limitation.
-+    Results are merged and sorted by score — text/regex scores are consistent;
-+    cosine similarity is comparable across graph sizes.
-+    """
-+
-+    def __init__(self, clients: list[RemoteClient]) -> None:
-+        self.clients = clients
-+
-+    async def search(
-+        self,
-+        pattern: str,
-+        *,
-+        graph: str | None = None,
-+        mode: str = "auto",
-+        limit: int = 20,
-+        offset: int = 0,
-+        detail: str = "min",
-+        include: str | None = None,
-+        exclude: str | None = None,
-+    ) -> dict:
-+        """Search across all remotes, merge results by score.
-+
-+        Partial failures warn on stderr and continue with successful remotes.
-+
-+        Returns:
-+            Merged search envelope with results re-sorted by score.
-+        """
-+        import asyncio
-+        import sys
-+
-+        tasks = [
-+            client.search(
-+                pattern,
-+                graph=graph,
-+                mode=mode,
-+                limit=limit,
-+                offset=offset,
-+                detail=detail,
-+                include=include,
-+                exclude=exclude,
-+            )
-+            for client in self.clients
-+        ]
-+
-+        results_per_remote = await asyncio.gather(*tasks, return_exceptions=True)
-+
-+        all_results: list[dict] = []
-+        for client, result in zip(self.clients, results_per_remote, strict=True):
-+            if isinstance(result, Exception):
-+                print(
-+                    f"Warning: Remote '{client.name}' failed: {result}",
-+                    file=sys.stderr,
-+                )
-+                continue
-+            if isinstance(result, dict) and "results" in result:
-+                # Tag each result with its source remote
-+                for r in result["results"]:
-+                    r["_remote"] = client.name
-+                all_results.extend(result["results"])
-+
-+        # Sort merged results by score (descending)
-+        all_results.sort(key=lambda r: r.get("score", 0), reverse=True)
-+
-+        # Apply limit to merged results
-+        limited = all_results[:limit]
-+
-+        return {
-+            "meta": {
-+                "total": len(all_results),
-+                "showing": {"from": 0, "to": len(limited), "count": len(limited)},
-+                "pagination": {"limit": limit, "offset": 0},
-+                "folders": {},
-+                "remotes": [c.name for c in self.clients],
++        return templates.TemplateResponse(request, "graphs/upload.html", {
++                "error": None,
++                "success": {
++                    "name": name,
++                    "node_count": result.node_count,
++                    "edge_count": result.edge_count,
++                },
 +            },
-+            "results": limited,
++        )
++
++    except IngestionError as e:
++        return templates.TemplateResponse(request, "graphs/upload.html", {"error": str(e), "success": None},
++        )
++    except Exception as e:
++        logger.exception("Dashboard upload failed")
++        return templates.TemplateResponse(request, "graphs/upload.html", {
++                "error": f"Unexpected error: {e}",
++                "success": None,
++            },
++        )
++    finally:
++        if temp_path.exists():
++            temp_path.unlink()
++
++
++@router.delete("/graphs/{graph_id}", response_class=HTMLResponse)
++async def graph_delete(request: Request, graph_id: str) -> HTMLResponse:
++    """Delete a graph — returns empty string for HTMX row removal."""
++    db = request.app.state.db
++
++    async with db.connection() as conn:
++        result = await conn.execute(
++            "SELECT name FROM graphs WHERE id = %s", (graph_id,)
++        )
++        row = await result.fetchone()
++        if not row:
++            return HTMLResponse(
++                content="<tr><td colspan='7'>Graph not found</td></tr>",
++                status_code=404,
++            )
++
++        graph_name = row[0]
++        await conn.execute("DELETE FROM graphs WHERE id = %s", (graph_id,))
++        await conn.commit()
++
++    logger.info("Dashboard delete: %s (%s)", graph_name, graph_id)
++    # Return empty string — HTMX outerHTML swap removes the row
++    return HTMLResponse(content="", status_code=200)
++
++
++# --- API Key Management ---
++
++
++def _generate_api_key() -> tuple[str, str, str]:
++    """Generate an API key with prefix, full key, and SHA-256 hash.
++
++    Returns (full_key, key_prefix, key_hash).
++    Key format: fs2_<32 hex chars> (128 bits of entropy).
++    Hash: SHA-256 — appropriate for high-entropy tokens (DYK-P6-10).
++    """
++    raw = secrets.token_hex(16)
++    full_key = f"fs2_{raw}"
++    key_prefix = full_key[:12]
++    key_hash = hashlib.sha256(full_key.encode()).hexdigest()
++    return full_key, key_prefix, key_hash
++
++
++async def _fetch_api_keys(db) -> list[dict]:
++    """Fetch all active API keys for display."""
++    async with db.connection() as conn:
++        result = await conn.execute(
++            """SELECT id, name, key_prefix, scope, is_active, last_used_at, created_at
++                FROM api_keys WHERE is_active = true
++                ORDER BY created_at DESC"""
++        )
++        rows = await result.fetchall()
++
++    keys = []
++    for row in rows:
++        created = row[6]
++        last_used = row[5]
++        keys.append({
++            "id": str(row[0]),
++            "name": row[1],
++            "key_prefix": row[2],
++            "scope": row[3],
++            "created_at_display": created.strftime("%Y-%m-%d %H:%M") if created else "—",
++            "last_used_display": last_used.strftime("%Y-%m-%d %H:%M") if last_used else "Never",
++        })
++    return keys
++
++
++@router.get("/settings/keys", response_class=HTMLResponse)
++async def api_keys_page(request: Request) -> HTMLResponse:
++    """API key management page — list keys + generate form."""
++    db = request.app.state.db
++    keys = await _fetch_api_keys(db)
++
++    return templates.TemplateResponse(request, "settings/keys.html", {
++            "keys": keys,
++            "new_key": None,
++            "new_key_name": None,
++            "new_key_scope": None,
++            "error": None,
++        },
++    )
++
++
++@router.post("/settings/keys", response_class=HTMLResponse)
++async def api_key_generate(
++    request: Request,
++    name: str = Form(...),
++    scope: str = Form("read"),
++) -> HTMLResponse:
++    """Generate a new API key — shows full key once."""
++    db = request.app.state.db
++
++    if scope not in ("read", "write", "admin"):
++        scope = "read"
++
++    full_key, key_prefix, key_hash = _generate_api_key()
++
++    await _ensure_default_tenant(db)
++
++    async with db.connection() as conn:
++        await conn.execute(
++            """INSERT INTO api_keys (tenant_id, key_hash, key_prefix, name, scope)
++                VALUES (%s, %s, %s, %s, %s)""",
++            (DEFAULT_TENANT_ID, key_hash, key_prefix, name, scope),
++        )
++        await conn.commit()
++
++    logger.info("API key generated: %s (scope=%s, prefix=%s)", name, scope, key_prefix)
++
++    keys = await _fetch_api_keys(db)
++
++    return templates.TemplateResponse(request, "settings/keys.html", {
++            "keys": keys,
++            "new_key": full_key,
++            "new_key_name": name,
++            "new_key_scope": scope,
++            "error": None,
++        },
++    )
++
++
++@router.post("/settings/keys/{key_id}/revoke", response_class=HTMLResponse)
++async def api_key_revoke(request: Request, key_id: str) -> HTMLResponse:
++    """Revoke an API key — HTMX removes row."""
++    db = request.app.state.db
++
++    async with db.connection() as conn:
++        await conn.execute(
++            "UPDATE api_keys SET is_active = false WHERE id = %s",
++            (key_id,),
++        )
++        await conn.commit()
++
++    logger.info("API key revoked: %s", key_id)
++    return HTMLResponse(content="", status_code=200)
+diff --git a/src/fs2/server/dashboard/templates/base.html b/src/fs2/server/dashboard/templates/base.html
+new file mode 100644
+index 0000000..f91cc3d
+--- /dev/null
++++ b/src/fs2/server/dashboard/templates/base.html
+@@ -0,0 +1,87 @@
++<!DOCTYPE html>
++<html lang="en" data-theme="light">
++<head>
++    <meta charset="utf-8">
++    <meta name="viewport" content="width=device-width, initial-scale=1">
++    <title>{% block title %}fs2 Server{% endblock %}</title>
++
++    <!-- Pico CSS — classless, minimal, responsive -->
++    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
++
++    <!-- HTMX — server-rendered interactivity -->
++    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
++
++    <!-- Alpine.js — lightweight reactivity for modals/toggles -->
++    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
++
++    <style>
++        :root {
++            --fs2-green: #4CAF50;
++            --fs2-blue: #2196F3;
++            --fs2-yellow: #FFC107;
++            --fs2-red: #F44336;
 +        }
-+
-+    async def list_graphs(self, status: str | None = "ready") -> dict:
-+        """List graphs from all remotes, merged.
-+
-+        Returns:
-+            Merged graphs list with remote source tagged.
-+        """
-+        import asyncio
-+        import sys
-+
-+        tasks = [client.list_graphs(status=status) for client in self.clients]
-+        results = await asyncio.gather(*tasks, return_exceptions=True)
-+
-+        all_graphs: list[dict] = []
-+        for client, result in zip(self.clients, results, strict=True):
-+            if isinstance(result, Exception):
-+                print(
-+                    f"Warning: Remote '{client.name}' failed: {result}",
-+                    file=sys.stderr,
-+                )
-+                continue
-+            if isinstance(result, dict) and "graphs" in result:
-+                for g in result["graphs"]:
-+                    g["_remote"] = client.name
-+                all_graphs.extend(result["graphs"])
-+
-+        return {
-+            "graphs": all_graphs,
-+            "count": len(all_graphs),
++        .badge {
++            display: inline-block;
++            padding: 0.15em 0.5em;
++            border-radius: 4px;
++            font-size: 0.8em;
++            font-weight: 600;
++            text-transform: uppercase;
 +        }
-diff --git a/src/fs2/cli/search.py b/src/fs2/cli/search.py
-index 1150bde..99f152b 100644
---- a/src/fs2/cli/search.py
-+++ b/src/fs2/cli/search.py
-@@ -173,7 +173,42 @@ def search(
-         raise typer.Exit(code=1) from None
- 
-     try:
--        # === Composition Root ===
-+        # === Remote mode branch ===
-+        from fs2.cli.remote_client import RemoteClientError
-+        from fs2.cli.utils import resolve_remote_client
++        .badge-ready { background: var(--fs2-green); color: white; }
++        .badge-ingesting { background: var(--fs2-blue); color: white; animation: pulse 1.5s infinite; }
++        .badge-pending { background: var(--fs2-yellow); color: black; }
++        .badge-error { background: var(--fs2-red); color: white; }
++        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 +
-+        remote_client = resolve_remote_client(ctx)
-+        if remote_client is not None:
++        nav ul li strong { font-size: 1.1em; }
++        .flash { padding: 0.75em 1em; border-radius: 4px; margin-bottom: 1em; }
++        .flash-success { background: #E8F5E9; border: 1px solid var(--fs2-green); }
++        .flash-error { background: #FFEBEE; border: 1px solid var(--fs2-red); }
++        .flash-warning { background: #FFF8E1; border: 1px solid var(--fs2-yellow); }
++        .mono { font-family: monospace; }
++        .text-muted { opacity: 0.7; font-size: 0.9em; }
 +
-+            try:
-+                graph_name = ctx.obj.graph_name if ctx.obj and ctx.obj.graph_name else None
-+                inc_str = ",".join(include) if include else None
-+                exc_str = ",".join(exclude) if exclude else None
++        /* Upload progress */
++        .progress-bar {
++            width: 100%;
++            height: 8px;
++            background: #e0e0e0;
++            border-radius: 4px;
++            overflow: hidden;
++            display: none;
++        }
++        .progress-bar-fill {
++            height: 100%;
++            background: var(--fs2-blue);
++            transition: width 0.2s;
++        }
++    </style>
++    {% block extra_head %}{% endblock %}
++</head>
++<body>
++    <nav class="container">
++        <ul>
++            <li><strong>⚡ fs2 Server</strong></li>
++        </ul>
++        <ul>
++            <li><a href="/dashboard/">Home</a></li>
++            <li><a href="/dashboard/graphs">Graphs</a></li>
++            <li><a href="/dashboard/graphs/upload">Upload</a></li>
++            <li><a href="/dashboard/settings/keys">API Keys</a></li>
++        </ul>
++    </nav>
 +
-+                result = asyncio.run(remote_client.search(
-+                    pattern,
-+                    graph=graph_name,
-+                    mode=mode_lower,
-+                    limit=limit,
-+                    offset=offset,
-+                    detail=detail_lower,
-+                    include=inc_str,
-+                    exclude=exc_str,
-+                ))
++    <main class="container">
++        {% block content %}{% endblock %}
++    </main>
 +
-+                json_str = json.dumps(result, indent=2, default=str)
-+                if file:
-+                    absolute_path = validate_save_path(file, console)
-+                    safe_write_file(absolute_path, json_str, console)
-+                    console.print(f"[green]✓[/green] Wrote search results to {file}")
-+                else:
-+                    print(json_str)
-+                raise typer.Exit(code=0)
-+            except RemoteClientError as e:
-+                console.print(f"[red]Error:[/red] {e}")
-+                raise typer.Exit(code=1) from None
++    <footer class="container">
++        <hr>
++        <p class="text-muted">fs2 Server — Code intelligence graph server</p>
++    </footer>
 +
-+        # === Local mode (existing) ===
-         # Per Phase 4: Use resolve_graph_from_context for multi-graph support
-         config, graph_store = resolve_graph_from_context(ctx)
- 
-diff --git a/src/fs2/cli/tree.py b/src/fs2/cli/tree.py
-index af39f2c..4dca2ac 100644
---- a/src/fs2/cli/tree.py
-+++ b/src/fs2/cli/tree.py
-@@ -162,7 +162,62 @@ def tree(
-         stderr_console.print("[dim]DEBUG: Verbose mode enabled[/dim]")
- 
-     try:
--        # === Composition Root ===
-+        # === Remote mode branch ===
-+        from fs2.cli.remote_client import RemoteClientError
-+        from fs2.cli.utils import resolve_remote_client
++    {% block extra_scripts %}{% endblock %}
++</body>
++</html>
+diff --git a/src/fs2/server/dashboard/templates/graphs/_table.html b/src/fs2/server/dashboard/templates/graphs/_table.html
+new file mode 100644
+index 0000000..0ad8f3c
+--- /dev/null
++++ b/src/fs2/server/dashboard/templates/graphs/_table.html
+@@ -0,0 +1,49 @@
++<table>
++    <thead>
++        <tr>
++            <th>Name</th>
++            <th>Status</th>
++            <th>Nodes</th>
++            <th>Edges</th>
++            <th>Embedding Model</th>
++            <th>Updated</th>
++            <th>Actions</th>
++        </tr>
++    </thead>
++    <tbody>
++    {% for g in graphs %}
++        <tr id="graph-row-{{ g.id }}">
++            <td><strong>{{ g.name }}</strong>
++                {% if g.description %}<br><small class="text-muted">{{ g.description }}</small>{% endif %}
++            </td>
++            <td><span class="badge badge-{{ g.status }}">{{ g.status }}</span></td>
++            <td>{{ g.node_count or '—' }}</td>
++            <td>{{ g.edge_count or '—' }}</td>
++            <td class="mono">{{ g.embedding_model or '—' }}</td>
++            <td class="text-muted">{{ g.updated_at_display }}</td>
++            <td>
++                <div x-data="{ confirmDelete: false }">
++                    <button class="outline secondary" style="padding: 0.3em 0.6em; font-size: 0.85em;"
++                            @click="confirmDelete = true"
++                            x-show="!confirmDelete">
++                        Delete
++                    </button>
++                    <span x-show="confirmDelete" x-cloak>
++                        <button class="outline" style="padding: 0.3em 0.6em; font-size: 0.85em; --pico-color: var(--fs2-red);"
++                                hx-delete="/dashboard/graphs/{{ g.id }}"
++                                hx-target="#graph-row-{{ g.id }}"
++                                hx-swap="outerHTML"
++                                hx-confirm="Delete graph '{{ g.name }}' and all its data?">
++                            Confirm
++                        </button>
++                        <button class="outline" style="padding: 0.3em 0.6em; font-size: 0.85em;"
++                                @click="confirmDelete = false">
++                            Cancel
++                        </button>
++                    </span>
++                </div>
++            </td>
++        </tr>
++    {% endfor %}
++    </tbody>
++</table>
+diff --git a/src/fs2/server/dashboard/templates/graphs/list.html b/src/fs2/server/dashboard/templates/graphs/list.html
+new file mode 100644
+index 0000000..5b91d89
+--- /dev/null
++++ b/src/fs2/server/dashboard/templates/graphs/list.html
+@@ -0,0 +1,29 @@
++{% extends "base.html" %}
 +
-+        remote_client = resolve_remote_client(ctx)
-+        if remote_client is not None:
-+            import asyncio
++{% block title %}Graphs — fs2 Server{% endblock %}
 +
-+            try:
-+                # Get graph name from context (required for remote tree)
-+                graph_name = ctx.obj.graph_name if ctx.obj and ctx.obj.graph_name else None
-+                if not graph_name:
-+                    # If no graph specified, try to list and pick single graph
-+                    graphs_resp = asyncio.run(remote_client.list_graphs())
-+                    graphs = graphs_resp.get("graphs", [])
-+                    if len(graphs) == 1:
-+                        graph_name = graphs[0]["name"]
-+                    elif len(graphs) == 0:
-+                        stderr_console.print("[red]Error:[/red] No graphs available on remote.")
-+                        raise typer.Exit(code=1)
-+                    else:
-+                        names = [g["name"] for g in graphs]
-+                        stderr_console.print(
-+                            "[red]Error:[/red] Multiple graphs on remote. "
-+                            f"Specify one with --graph-name: {', '.join(names)}"
-+                        )
-+                        raise typer.Exit(code=1)
++{% block content %}
++<hgroup>
++    <h1>Graphs</h1>
++    <p>{{ graphs | length }} graph{{ 's' if graphs | length != 1 else '' }} indexed</p>
++</hgroup>
 +
-+                result = asyncio.run(remote_client.tree(graph_name, pattern=pattern, max_depth=depth))
++<div style="margin-bottom: 1em;">
++    <a href="/dashboard/graphs/upload" role="button" class="outline">↑ Upload Graph</a>
++</div>
 +
-+                if json_output or file:
-+                    json_str = json.dumps(result, indent=2, default=str)
-+                    if file:
-+                        absolute_path = validate_save_path(file, stderr_console)
-+                        safe_write_file(absolute_path, json_str, stderr_console)
-+                        stderr_console.print(f"[green]✓[/green] Wrote tree results to {file}")
-+                    else:
-+                        print(json_str)
-+                else:
-+                    # Print server tree response (raw JSON structure)
-+                    tree_data = result.get("tree", result.get("results", []))
-+                    if not tree_data:
-+                        if pattern == ".":
-+                            console.print("Found 0 nodes in 0 files")
-+                        else:
-+                            console.print(f"No nodes match pattern: {pattern}")
-+                    else:
-+                        # Pretty-print the tree structure
-+                        json_str = json.dumps(result, indent=2, default=str)
-+                        print(json_str)
-+                raise typer.Exit(code=0)
-+            except RemoteClientError as e:
-+                stderr_console.print(f"[red]Error:[/red] {e}")
-+                raise typer.Exit(code=1) from None
++{% if graphs %}
++<div id="graph-table-container"
++     {% if has_pending %}
++     hx-get="/dashboard/graphs/table"
++     hx-trigger="every 5s"
++     hx-swap="innerHTML"
++     {% endif %}>
++    {% include "graphs/_table.html" %}
++</div>
++{% else %}
++<article>
++    <p>No graphs uploaded yet. <a href="/dashboard/graphs/upload">Upload your first graph →</a></p>
++</article>
++{% endif %}
++{% endblock %}
+diff --git a/src/fs2/server/dashboard/templates/graphs/upload.html b/src/fs2/server/dashboard/templates/graphs/upload.html
+new file mode 100644
+index 0000000..89b07f6
+--- /dev/null
++++ b/src/fs2/server/dashboard/templates/graphs/upload.html
+@@ -0,0 +1,107 @@
++{% extends "base.html" %}
 +
-+        # === Local mode (existing) ===
-         # Per Phase 4: Use resolve_graph_from_context for multi-graph support
-         config, graph_store = resolve_graph_from_context(ctx)
- 
-diff --git a/src/fs2/cli/utils.py b/src/fs2/cli/utils.py
-index 721d24a..af1a115 100644
---- a/src/fs2/cli/utils.py
-+++ b/src/fs2/cli/utils.py
-@@ -7,6 +7,10 @@ Per Phase 1 save-to-file plan:
- Per Phase 4 multi-graph plan:
- - resolve_graph_from_context(): Resolve graph from CLI context using GraphService
- 
-+Per Phase 5 remote CLI:
-+- resolve_remote_client(): Resolve RemoteClient from CLIContext.remote
-+- resolve_remotes(): Parse comma-separated remote names/URLs into RemoteClient(s)
++{% block title %}Upload Graph — fs2 Server{% endblock %}
 +
- Per Insight #2: Wrap file writes in try/except, delete partial file on failure.
- Per Insight #3: Always use encoding="utf-8" per JSON spec RFC 8259.
++{% block content %}
++<h1>Upload Graph</h1>
++
++<p>Upload a graph pickle file generated by <code>fs2 scan --embed</code>.</p>
++
++{% if error %}
++<div class="flash flash-error">
++    <strong>Upload failed:</strong> {{ error }}
++</div>
++{% endif %}
++
++{% if success %}
++<div class="flash flash-success">
++    <strong>Graph uploaded successfully!</strong>
++    {{ success.name }} — {{ success.node_count }} nodes, {{ success.edge_count }} edges.
++    <br><a href="/dashboard/graphs">← Back to graphs</a>
++</div>
++{% endif %}
++
++<article>
++    <form id="upload-form" method="post" enctype="multipart/form-data"
++          action="/dashboard/graphs/upload">
++
++        <label for="name">Graph Name *</label>
++        <input type="text" id="name" name="name" required
++               placeholder="e.g. my-repo, hve-core">
++
++        <label for="description">Description</label>
++        <input type="text" id="description" name="description"
++               placeholder="Optional description">
++
++        <label for="source_url">Source URL</label>
++        <input type="url" id="source_url" name="source_url"
++               placeholder="e.g. https://github.com/org/repo">
++
++        <label for="file">Graph Pickle File *</label>
++        <input type="file" id="file" name="file" required accept=".pickle,.pkl">
++
++        <div class="progress-bar" id="progress-container">
++            <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
++        </div>
++        <p id="progress-text" style="display: none;" class="text-muted"></p>
++
++        <button type="submit" id="upload-btn">Upload & Ingest</button>
++    </form>
++</article>
++{% endblock %}
++
++{% block extra_scripts %}
++<script>
++// Vanilla JS upload progress (DYK-P6-07)
++document.getElementById('upload-form').addEventListener('submit', function(e) {
++    e.preventDefault();
++
++    const form = e.target;
++    const formData = new FormData(form);
++    const btn = document.getElementById('upload-btn');
++    const progressContainer = document.getElementById('progress-container');
++    const progressFill = document.getElementById('progress-fill');
++    const progressText = document.getElementById('progress-text');
++
++    btn.disabled = true;
++    btn.setAttribute('aria-busy', 'true');
++    btn.textContent = 'Uploading…';
++    progressContainer.style.display = 'block';
++    progressText.style.display = 'block';
++
++    const xhr = new XMLHttpRequest();
++
++    xhr.upload.addEventListener('progress', function(e) {
++        if (e.lengthComputable) {
++            const pct = Math.round((e.loaded / e.total) * 100);
++            progressFill.style.width = pct + '%';
++            const mb = (e.loaded / 1048576).toFixed(1);
++            const totalMb = (e.total / 1048576).toFixed(1);
++            progressText.textContent = pct + '% (' + mb + ' / ' + totalMb + ' MB)';
++            if (pct >= 100) {
++                btn.textContent = 'Ingesting…';
++                progressText.textContent = 'Upload complete. Ingesting graph…';
++            }
++        }
++    });
++
++    xhr.addEventListener('load', function() {
++        // Server returns HTML — replace the page content
++        document.open();
++        document.write(xhr.responseText);
++        document.close();
++    });
++
++    xhr.addEventListener('error', function() {
++        btn.disabled = false;
++        btn.setAttribute('aria-busy', 'false');
++        btn.textContent = 'Upload & Ingest';
++        progressText.textContent = 'Upload failed. Please try again.';
++        progressText.style.color = 'var(--fs2-red)';
++    });
++
++    xhr.open('POST', form.action);
++    xhr.send(formData);
++});
++</script>
++{% endblock %}
+diff --git a/src/fs2/server/dashboard/templates/index.html b/src/fs2/server/dashboard/templates/index.html
+new file mode 100644
+index 0000000..d76c80d
+--- /dev/null
++++ b/src/fs2/server/dashboard/templates/index.html
+@@ -0,0 +1,44 @@
++{% extends "base.html" %}
++
++{% block title %}fs2 Server — Dashboard{% endblock %}
++
++{% block content %}
++<h1>Dashboard</h1>
++
++<div class="grid">
++    <article>
++        <header>Graphs</header>
++        <p><strong>{{ graph_count }}</strong> ready</p>
++        {% if ingesting_count > 0 %}
++        <p><span class="badge badge-ingesting">{{ ingesting_count }} ingesting</span></p>
++        {% endif %}
++        <footer>
++            <a href="/dashboard/graphs" role="button">View All</a>
++        </footer>
++    </article>
++
++    <article>
++        <header>Upload</header>
++        <p>Upload a graph pickle file from <code>fs2 scan</code></p>
++        <footer>
++            <a href="/dashboard/graphs/upload" role="button" class="outline">Upload Graph</a>
++        </footer>
++    </article>
++
++    <article>
++        <header>API Keys</header>
++        <p>Generate keys for CLI and MCP access</p>
++        <footer>
++            <a href="/dashboard/settings/keys" role="button" class="outline">Manage Keys</a>
++        </footer>
++    </article>
++</div>
++
++<section>
++    <h2>Quick Status</h2>
++    <p>
++        Server is running.
++        <a href="/health">Health check →</a>
++    </p>
++</section>
++{% endblock %}
+diff --git a/src/fs2/server/dashboard/templates/settings/keys.html b/src/fs2/server/dashboard/templates/settings/keys.html
+new file mode 100644
+index 0000000..7f60d70
+--- /dev/null
++++ b/src/fs2/server/dashboard/templates/settings/keys.html
+@@ -0,0 +1,97 @@
++{% extends "base.html" %}
++
++{% block title %}API Keys — fs2 Server{% endblock %}
++
++{% block content %}
++<h1>API Keys</h1>
++
++<div class="flash flash-warning">
++    <strong>⚠ API key enforcement not active.</strong>
++    API keys are generated here for future use. Key validation middleware is not yet enabled —
++    all API endpoints are currently unauthenticated. Keys will be enforced when auth middleware is deployed.
++</div>
++
++{% if new_key %}
++<article style="border: 2px solid var(--fs2-green);">
++    <header style="background: #E8F5E9;">🔑 New API Key Generated</header>
++    <p><strong>Copy this key now — it will not be shown again.</strong></p>
++    <div x-data="{ copied: false }">
++        <code id="new-key-value" style="font-size: 1.1em; word-break: break-all;">{{ new_key }}</code>
++        <br><br>
++        <button class="outline" style="padding: 0.3em 0.8em;"
++                @click="navigator.clipboard.writeText('{{ new_key }}'); copied = true; setTimeout(() => copied = false, 2000)">
++            <span x-show="!copied">📋 Copy to Clipboard</span>
++            <span x-show="copied" x-cloak>✓ Copied!</span>
++        </button>
++    </div>
++    <footer>
++        <small class="text-muted">Name: {{ new_key_name }} | Scope: {{ new_key_scope }} | Prefix: {{ new_key[:12] }}…</small>
++    </footer>
++</article>
++{% endif %}
++
++{% if error %}
++<div class="flash flash-error">{{ error }}</div>
++{% endif %}
++
++<section>
++    <h2>Generate New Key</h2>
++    <form method="post" action="/dashboard/settings/keys">
++        <div class="grid">
++            <div>
++                <label for="key_name">Key Name *</label>
++                <input type="text" id="key_name" name="name" required
++                       placeholder="e.g. ci-pipeline, dev-laptop">
++            </div>
++            <div>
++                <label for="key_scope">Scope</label>
++                <select id="key_scope" name="scope">
++                    <option value="read">Read (query only)</option>
++                    <option value="write">Write (query + upload/delete)</option>
++                </select>
++            </div>
++        </div>
++        <button type="submit">Generate Key</button>
++    </form>
++</section>
++
++<section>
++    <h2>Active Keys</h2>
++    {% if keys %}
++    <table>
++        <thead>
++            <tr>
++                <th>Name</th>
++                <th>Prefix</th>
++                <th>Scope</th>
++                <th>Created</th>
++                <th>Last Used</th>
++                <th>Actions</th>
++            </tr>
++        </thead>
++        <tbody>
++        {% for k in keys %}
++            <tr id="key-row-{{ k.id }}">
++                <td><strong>{{ k.name }}</strong></td>
++                <td class="mono">{{ k.key_prefix }}…</td>
++                <td><span class="badge badge-{% if k.scope == 'write' %}ingesting{% elif k.scope == 'admin' %}error{% else %}ready{% endif %}">{{ k.scope }}</span></td>
++                <td class="text-muted">{{ k.created_at_display }}</td>
++                <td class="text-muted">{{ k.last_used_display }}</td>
++                <td>
++                    <button class="outline secondary" style="padding: 0.3em 0.6em; font-size: 0.85em;"
++                            hx-post="/dashboard/settings/keys/{{ k.id }}/revoke"
++                            hx-target="#key-row-{{ k.id }}"
++                            hx-swap="outerHTML"
++                            hx-confirm="Revoke key '{{ k.name }}'?">
++                        Revoke
++                    </button>
++                </td>
++            </tr>
++        {% endfor %}
++        </tbody>
++    </table>
++    {% else %}
++    <p class="text-muted">No API keys generated yet.</p>
++    {% endif %}
++</section>
++{% endblock %}
+diff --git a/src/fs2/server/middleware.py b/src/fs2/server/middleware.py
+new file mode 100644
+index 0000000..1273391
+--- /dev/null
++++ b/src/fs2/server/middleware.py
+@@ -0,0 +1,60 @@
++"""Structured request logging middleware for fs2 server.
++
++Logs every HTTP request as structured JSON for monitoring and observability.
++Skips noisy endpoints (/health) to avoid log spam.
++
++AC24: Structured request logging for all HTTP requests.
++"""
++
++import logging
++import time
++
++from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
++from starlette.requests import Request
++from starlette.responses import Response
++
++logger = logging.getLogger("fs2.server.access")
++
++# Paths to exclude from access logging (noisy health checks)
++SKIP_PATHS = frozenset({"/health"})
++
++
++class AccessLogMiddleware(BaseHTTPMiddleware):
++    """Log structured request metrics for every HTTP request.
++
++    Emits: method, path, status_code, duration_ms, content_length.
++    Uses standard Python logging — compatible with JSON formatters.
++    """
++
++    async def dispatch(
++        self, request: Request, call_next: RequestResponseEndpoint
++    ) -> Response:
++        if request.url.path in SKIP_PATHS:
++            return await call_next(request)
++
++        start = time.monotonic()
++        response = await call_next(request)
++        duration_ms = round((time.monotonic() - start) * 1000, 1)
++
++        content_length = response.headers.get("content-length", "-")
++
++        logger.info(
++            "%(method)s %(path)s %(status)s %(duration)sms %(size)s",
++            {
++                "method": request.method,
++                "path": request.url.path,
++                "status": response.status_code,
++                "duration": duration_ms,
++                "size": content_length,
++            },
++            extra={
++                "method": request.method,
++                "path": request.url.path,
++                "status_code": response.status_code,
++                "duration_ms": duration_ms,
++                "content_length": content_length,
++                "query": str(request.query_params) if request.query_params else None,
++            },
++        )
++
++        return response
+diff --git a/src/fs2/server/schema.py b/src/fs2/server/schema.py
+index 013b09f..df205b4 100644
+--- a/src/fs2/server/schema.py
++++ b/src/fs2/server/schema.py
+@@ -155,6 +155,25 @@ CREATE TABLE IF NOT EXISTS ingestion_jobs (
+ CREATE INDEX IF NOT EXISTS idx_jobs_status ON ingestion_jobs(status)
+     WHERE status IN ('pending', 'running');
+ CREATE INDEX IF NOT EXISTS idx_jobs_graph ON ingestion_jobs(graph_id);
++
++-- API keys (authentication tokens for CLI/MCP access)
++CREATE TABLE IF NOT EXISTS api_keys (
++    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
++    tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
++    key_hash        TEXT NOT NULL UNIQUE,
++    key_prefix      TEXT NOT NULL,
++    name            TEXT NOT NULL,
++    scope           TEXT NOT NULL DEFAULT 'read'
++                    CHECK (scope IN ('read', 'write', 'admin')),
++    is_active       BOOLEAN NOT NULL DEFAULT true,
++    last_used_at    TIMESTAMPTZ,
++    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
++);
++
++-- Indexes: api_keys
++CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash)
++    WHERE is_active = true;
++CREATE INDEX IF NOT EXISTS idx_api_keys_tenant ON api_keys(tenant_id);
  """
-@@ -21,6 +25,9 @@ import typer
- from rich.console import Console
  
- if TYPE_CHECKING:
-+    from typing import Any
-+
-+    from fs2.cli.remote_client import MultiRemoteClient, RemoteClient
-     from fs2.config.service import ConfigurationService
-     from fs2.core.repos.graph_store import GraphStore
  
-@@ -189,3 +196,103 @@ def resolve_graph_from_context(
-         console = Console(stderr=True)
-         console.print(f"[red]Error:[/red] {e}")
-         raise typer.Exit(code=2) from None
+diff --git a/tests/server/test_dashboard.py b/tests/server/test_dashboard.py
+new file mode 100644
+index 0000000..a82fa4f
+--- /dev/null
++++ b/tests/server/test_dashboard.py
+@@ -0,0 +1,362 @@
++"""Tests for the management dashboard routes.
++
++Uses httpx.AsyncClient + ASGITransport with FakeDatabase — no real PostgreSQL.
++Lightweight functional tests: HTML response codes, form handling, HTMX partials.
++"""
++
++from collections.abc import AsyncGenerator
++from contextlib import asynccontextmanager
++from unittest.mock import AsyncMock, MagicMock
++
++import pytest
++from httpx import ASGITransport, AsyncClient
++
++from fs2.config.objects import ServerDatabaseConfig
++from fs2.server.app import create_app
++from fs2.server.database import Database
 +
 +
-+def resolve_remote_client(
-+    ctx: typer.Context,
-+) -> RemoteClient | MultiRemoteClient | None:
-+    """Resolve remote client from CLIContext.remote.
++class DashboardFakeDatabase(Database):
++    """Fake database for dashboard tests.
 +
-+    Per DYK #4: Does NOT modify resolve_graph_from_context().
-+    CLI commands check this first and branch early.
-+
-+    Args:
-+        ctx: Typer context with CLIContext as obj.
-+
-+    Returns:
-+        RemoteClient for single remote, MultiRemoteClient for comma-separated,
-+        or None if not in remote mode.
++    Supports graph list, graph delete, API key queries, and count queries.
++    Maintains in-memory graph and API key state for realistic test flows.
 +    """
-+    cli_ctx = ctx.obj
-+    if not cli_ctx or not cli_ctx.remote:
-+        return None
 +
-+    clients = resolve_remotes(cli_ctx.remote)
-+    if len(clients) == 1:
-+        return clients[0]
-+    return MultiRemoteClient(clients)
++    def __init__(self) -> None:
++        super().__init__(ServerDatabaseConfig())
++        self._connected = True
++        self._graphs: list[dict] = []
++        self._api_keys: list[dict] = []
++        self._tenants_created = False
 +
++    def add_graph(
++        self,
++        graph_id: str = "test-id-1",
++        name: str = "test-graph",
++        status: str = "ready",
++        node_count: int = 100,
++        edge_count: int = 50,
++    ) -> None:
++        """Add a fake graph for list/delete testing."""
++        self._graphs.append({
++            "id": graph_id,
++            "name": name,
++            "description": None,
++            "status": status,
++            "node_count": node_count,
++            "edge_count": edge_count,
++            "embedding_model": "text-embedding-3-small",
++            "updated_at": None,
++        })
 +
-+def resolve_remotes(remote_str: str) -> list[RemoteClient]:
-+    """Parse remote string into RemoteClient instances.
++    async def connect(self) -> None:
++        self._connected = True
 +
-+    Supports:
-+    - Named remote: "work" → look up in RemotesConfig
-+    - Inline URL: "http://localhost:8000" → use directly
-+    - Comma-separated: "work,oss" → multiple clients
++    async def disconnect(self) -> None:
++        self._connected = False
 +
-+    Args:
-+        remote_str: Comma-separated remote names or URLs.
++    @property
++    def is_connected(self) -> bool:
++        return self._connected
 +
-+    Returns:
-+        List of RemoteClient instances.
++    @asynccontextmanager
++    async def connection(self) -> AsyncGenerator:
++        conn = AsyncMock()
 +
-+    Raises:
-+        typer.Exit(1): If named remote not found in config.
-+    """
-+    from fs2.cli.remote_client import RemoteClient
-+    from fs2.config.objects import RemotesConfig
-+    from fs2.config.service import FS2ConfigurationService
++        async def fake_execute(sql, params=None):
++            result = MagicMock()
++            sql_lower = sql.strip().lower() if isinstance(sql, str) else str(sql).lower()
 +
-+    parts = [p.strip() for p in remote_str.split(",") if p.strip()]
-+    if not parts:
-+        console = Console(stderr=True)
-+        console.print("[red]Error:[/red] --remote value cannot be empty")
-+        raise typer.Exit(code=1)
++            if "select 1" in sql_lower:
++                result.fetchone = AsyncMock(return_value=(1,))
 +
-+    # Load remotes config (may be None if not configured)
-+    config = FS2ConfigurationService()
-+    remotes_config = config.get(RemotesConfig)
-+    servers_by_name: dict[str, Any] = {}
-+    if remotes_config:
-+        for server in remotes_config.servers:
-+            servers_by_name[server.name] = server
++            elif "count(*)" in sql_lower and "ready" in sql_lower:
++                ready = sum(1 for g in self._graphs if g["status"] == "ready")
++                result.fetchone = AsyncMock(return_value=(ready,))
 +
-+    clients: list[RemoteClient] = []
-+    for part in parts:
-+        if part.startswith(("http://", "https://")):
-+            # Inline URL
-+            clients.append(RemoteClient(base_url=part, name=part))
-+        elif part in servers_by_name:
-+            # Named remote from config
-+            server = servers_by_name[part]
-+            clients.append(
-+                RemoteClient(
-+                    base_url=server.url,
-+                    api_key=server.api_key,
-+                    name=server.name,
++            elif "count(*)" in sql_lower and "pending" in sql_lower:
++                pending = sum(
++                    1 for g in self._graphs
++                    if g["status"] in ("pending", "ingesting")
 +                )
-+            )
-+        else:
-+            # Unknown name
-+            console = Console(stderr=True)
-+            available = list(servers_by_name.keys()) if servers_by_name else []
-+            if available:
-+                console.print(
-+                    f"[red]Error:[/red] Unknown remote '{part}'. "
-+                    f"Available remotes: {', '.join(sorted(available))}\n"
-+                    "  Configure remotes in ~/.config/fs2/config.yaml or .fs2/config.yaml"
++                result.fetchone = AsyncMock(return_value=(pending,))
++
++            elif "from graphs" in sql_lower and "order by" in sql_lower:
++                rows = [
++                    (
++                        g["id"], g["name"], g["description"], g["status"],
++                        g["node_count"], g["edge_count"], g["embedding_model"],
++                        g["updated_at"],
++                    )
++                    for g in sorted(self._graphs, key=lambda x: x["name"])
++                ]
++                result.fetchall = AsyncMock(return_value=rows)
++
++            elif "select name from graphs" in sql_lower:
++                graph_id = params[0] if params else None
++                found = next(
++                    (g for g in self._graphs if g["id"] == graph_id), None
 +                )
++                if found:
++                    result.fetchone = AsyncMock(return_value=(found["name"],))
++                else:
++                    result.fetchone = AsyncMock(return_value=None)
++
++            elif "delete from graphs" in sql_lower:
++                graph_id = params[0] if params else None
++                self._graphs = [
++                    g for g in self._graphs if g["id"] != graph_id
++                ]
++                result.fetchone = AsyncMock(return_value=None)
++
++            elif "insert into tenants" in sql_lower:
++                self._tenants_created = True
++                result.fetchone = AsyncMock(return_value=None)
++
++            elif "from api_keys" in sql_lower:
++                rows = [
++                    (
++                        k["id"], k["name"], k["key_prefix"], k["scope"],
++                        k["is_active"], k.get("last_used_at"), k["created_at"],
++                    )
++                    for k in self._api_keys if k["is_active"]
++                ]
++                result.fetchall = AsyncMock(return_value=rows)
++
++            elif "insert into api_keys" in sql_lower:
++                from datetime import datetime, timezone
++                key_data = {
++                    "id": "key-" + str(len(self._api_keys)),
++                    "key_hash": params[1] if params else "hash",
++                    "key_prefix": params[2] if params else "fs2_",
++                    "name": params[3] if params else "test",
++                    "scope": params[4] if params else "read",
++                    "is_active": True,
++                    "last_used_at": None,
++                    "created_at": datetime.now(timezone.utc),
++                }
++                self._api_keys.append(key_data)
++
++            elif "update api_keys" in sql_lower:
++                key_id = params[0] if params else None
++                for k in self._api_keys:
++                    if k["id"] == key_id:
++                        k["is_active"] = False
++
 +            else:
-+                console.print(
-+                    f"[red]Error:[/red] Unknown remote '{part}'. "
-+                    "No remotes configured.\n"
-+                    "  Add remotes to ~/.config/fs2/config.yaml:\n"
-+                    "    remotes:\n"
-+                    "      servers:\n"
-+                    f'        - name: "{part}"\n'
-+                    f'          url: "https://your-server.example.com"'
-+                )
-+            raise typer.Exit(code=1)
++                result.fetchone = AsyncMock(return_value=None)
++                result.fetchall = AsyncMock(return_value=[])
 +
-+    return clients
-diff --git a/src/fs2/config/objects.py b/src/fs2/config/objects.py
-index 29478b3..b17dc3a 100644
---- a/src/fs2/config/objects.py
-+++ b/src/fs2/config/objects.py
-@@ -864,6 +864,102 @@ class OtherGraphsConfig(BaseModel):
-     graphs: list[OtherGraph] = []
- 
- 
-+# =============================================================================
-+# Remote Server Configuration
-+# =============================================================================
++            conn.commit = AsyncMock()
++            return result
++
++        conn.execute = fake_execute
++        conn.commit = AsyncMock()
++        yield conn
 +
 +
-+class RemoteServer(BaseModel):
-+    """Configuration for a named remote fs2 server.
-+
-+    Represents a single remote server that can be queried via CLI or MCP.
-+    Part of the remotes config system. Follows OtherGraph naming conventions.
-+
-+    Per Workshop 003 R5: Config path is "remotes".
-+    Per DYK-P5-05: MCP mixed mode discovers remote graphs automatically.
-+
-+    Attributes:
-+        name: Unique identifier for this remote (required, e.g., "work", "oss").
-+        url: Base URL of the remote server (required, must start with http:// or https://).
-+        api_key: Optional API key for authentication.
-+        description: Human-readable description (optional).
-+
-+    YAML example:
-+        ```yaml
-+        # ~/.config/fs2/config.yaml (user-level, shared across projects)
-+        remotes:
-+          servers:
-+            - name: "work"
-+              url: "https://fs2.internal.company.com"
-+              api_key: ${FS2_WORK_API_KEY}
-+              description: "Internal team server"
-+            - name: "oss"
-+              url: "https://fs2.example.com"
-+              description: "Open source graphs"
-+        ```
-+    """
-+
-+    name: str
-+    url: str
-+    api_key: str | None = None
-+    description: str | None = None
-+
-+    @field_validator("name")
-+    @classmethod
-+    def validate_name(cls, v: str) -> str:
-+        """Validate name is not empty or whitespace."""
-+        if not v or not v.strip():
-+            raise ValueError("name must not be empty or whitespace")
-+        return v
-+
-+    @field_validator("url")
-+    @classmethod
-+    def validate_url(cls, v: str) -> str:
-+        """Validate URL starts with http:// or https://."""
-+        if not v or not v.strip():
-+            raise ValueError("url must not be empty or whitespace")
-+        if not v.startswith(("http://", "https://")):
-+            raise ValueError(
-+                f"url must start with http:// or https://, got: '{v}'. "
-+                "Example: https://fs2.example.com"
-+            )
-+        # Strip trailing slash for consistency
-+        return v.rstrip("/")
++@pytest.fixture
++def fake_db() -> DashboardFakeDatabase:
++    return DashboardFakeDatabase()
 +
 +
-+class RemotesConfig(BaseModel):
-+    """Configuration for remote fs2 server connections.
-+
-+    Loaded from YAML at path "remotes".
-+    Path: remotes (e.g., in YAML: remotes.servers)
-+
-+    Container model for listing named remote servers. Supports both
-+    user-level (~/.config/fs2/config.yaml) and project-level (.fs2/config.yaml)
-+    configuration. User and project configs are concatenated (not replaced),
-+    following the same pattern as OtherGraphsConfig.
-+
-+    Per Workshop 003 R5-R6: Named remotes with URL, api_key, description.
-+    Per DYK-P5-05: MCP discovers remote graphs automatically from this config.
-+
-+    Attributes:
-+        servers: List of RemoteServer configurations (default: empty list).
-+
-+    YAML example:
-+        ```yaml
-+        remotes:
-+          servers:
-+            - name: "work"
-+              url: "https://fs2.internal.company.com"
-+              api_key: ${FS2_WORK_API_KEY}
-+              description: "Internal team server"
-+        ```
-+    """
-+
-+    __config_path__: ClassVar[str] = "remotes"
-+
-+    servers: list[RemoteServer] = []
++@pytest.fixture
++def app(fake_db: DashboardFakeDatabase):
++    return create_app(database=fake_db)
 +
 +
- class SearchConfig(BaseModel):
-     """Configuration for search operations.
- 
-@@ -1059,4 +1155,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
-     OtherGraphsConfig,
-     ServerDatabaseConfig,
-     ServerStorageConfig,
-+    RemotesConfig,
- ]
-diff --git a/src/fs2/core/services/get_node_service.py b/src/fs2/core/services/get_node_service.py
-index 8b3a34e..b419040 100644
---- a/src/fs2/core/services/get_node_service.py
-+++ b/src/fs2/core/services/get_node_service.py
-@@ -81,12 +81,20 @@ class GetNodeService:
-     def _ensure_loaded(self) -> None:
-         """Lazy load graph on first access.
- 
-+        Per Phase 3 Multi-Graph: If the store already has nodes (e.g., loaded
-+        by GraphService), skip loading. This prevents overwriting external
-+        graphs with the default config.graph_path.
-+
-         Raises:
-             GraphNotFoundError: If graph file does not exist.
-             GraphStoreError: If graph file is corrupted.
-         """
-         if self._loaded:
-             return
-+        # Skip loading if store already has content (e.g., from GraphService)
-+        if len(self._graph_store.get_all_nodes()) > 0:
-+            self._loaded = True
-+            return
-         graph_path = Path(self._config.graph_path)
-         if not graph_path.exists():
-             raise GraphNotFoundError(graph_path)
-diff --git a/src/fs2/mcp/server.py b/src/fs2/mcp/server.py
-index 8ec9078..1939f36 100644
---- a/src/fs2/mcp/server.py
-+++ b/src/fs2/mcp/server.py
-@@ -198,6 +198,82 @@ CATEGORY_ICONS = {
- }
- 
- 
-+# =============================================================================
-+# Remote Client Helpers (Phase 5: MCP mixed mode)
-+# =============================================================================
++@pytest.fixture
++async def client(app) -> AsyncClient:
++    transport = ASGITransport(app=app)
++    async with AsyncClient(transport=transport, base_url="http://test") as c:
++        yield c
 +
 +
-+def _get_remote_clients() -> dict[str, Any]:
-+    """Get configured RemoteClient instances keyed by remote name.
-+
-+    Returns empty dict if no remotes configured. Lazy — only called when needed.
-+    """
-+    try:
-+        from fs2.cli.remote_client import RemoteClient
-+        from fs2.config.objects import RemotesConfig
-+
-+        config = get_config()
-+        remotes_config = config.get(RemotesConfig)
-+        if not remotes_config or not remotes_config.servers:
-+            return {}
-+
-+        clients = {}
-+        for server in remotes_config.servers:
-+            clients[server.name] = RemoteClient(
-+                base_url=server.url,
-+                api_key=server.api_key,
-+                name=server.name,
-+            )
-+        return clients
-+    except Exception:
-+        return {}
++# --- Dashboard Home ---
 +
 +
-+def _get_remote_graph_names() -> set[str]:
-+    """Get set of all graph names available across configured remotes.
-+
-+    Used for mixed mode routing: if graph_name is in this set, use RemoteClient.
-+    Caches per-call (not globally) to stay fresh.
-+    """
-+    import asyncio
-+
-+    clients = _get_remote_clients()
-+    if not clients:
-+        return set()
-+
-+    names: set[str] = set()
-+    for _name, client in clients.items():
-+        try:
-+            result = asyncio.run(client.list_graphs(status="ready"))
-+            for g in result.get("graphs", []):
-+                graph_name = g.get("name")
-+                if graph_name:
-+                    names.add(f"{client.name}:{graph_name}")
-+        except Exception:
-+            pass
-+    return names
++async def test_dashboard_home_returns_html(client: AsyncClient):
++    """Dashboard home returns 200 with HTML content type."""
++    response = await client.get("/dashboard/")
++    assert response.status_code == 200
++    assert "text/html" in response.headers["content-type"]
 +
 +
-+def _resolve_remote_for_graph(graph_name: str | None) -> tuple[Any, str] | None:
-+    """Check if graph_name refers to a remote graph.
-+
-+    Supports "remote:graph" syntax (e.g., "work:api-gateway").
-+    Returns (RemoteClient, graph_name_on_server) or None for local.
-+    """
-+    if graph_name is None:
-+        return None
-+
-+    # Check for explicit "remote:graph" syntax
-+    if ":" in graph_name:
-+        parts = graph_name.split(":", 1)
-+        remote_name, server_graph = parts[0], parts[1]
-+        clients = _get_remote_clients()
-+        if remote_name in clients:
-+            return clients[remote_name], server_graph
-+
-+    return None
++async def test_dashboard_home_contains_navigation(client: AsyncClient):
++    """Dashboard home contains navigation links."""
++    response = await client.get("/dashboard/")
++    html = response.text
++    assert "Graphs" in html
++    assert "Upload" in html
++    assert "API Keys" in html
 +
 +
- def _render_tree_as_text(
-     tree_dicts: list[dict[str, Any]],
-     indent: str = "",
-@@ -400,6 +476,32 @@ def tree(
-         {"format": "text", "content": "📄 tree.py [1-364]\\n📄 main.py...", "count": 12}
-     """
-     try:
-+        # Per DYK-P5-05: Check if graph_name refers to a remote graph
-+        remote_info = _resolve_remote_for_graph(graph_name)
-+        if remote_info is not None:
-+            import asyncio
++async def test_dashboard_home_shows_graph_count(
++    fake_db: DashboardFakeDatabase, client: AsyncClient
++):
++    """Dashboard home shows ready graph count."""
++    fake_db.add_graph(status="ready")
++    fake_db.add_graph(graph_id="id-2", name="graph-2", status="ready")
++    response = await client.get("/dashboard/")
++    assert "2" in response.text
 +
-+            from fs2.cli.remote_client import RemoteClientError
 +
-+            try:
-+                client, server_graph = remote_info
-+                result = asyncio.run(client.tree(server_graph, pattern=pattern, max_depth=max_depth))
-+                tree_data = result.get("tree", [])
++# --- Graph List ---
 +
-+                def _count_remote(nodes: list) -> int:
-+                    total = len(nodes)
-+                    for n in nodes:
-+                        total += _count_remote(n.get("children", []))
-+                    return total
 +
-+                node_count = _count_remote(tree_data)
-+                if format == "json":
-+                    return {"format": "json", "tree": tree_data, "count": node_count}
-+                text_output = _render_tree_as_text(tree_data)
-+                return {"format": "text", "content": text_output, "count": node_count}
-+            except RemoteClientError as e:
-+                raise ToolError(str(e)) from None
++async def test_graph_list_returns_html(client: AsyncClient):
++    """Graph list returns 200 with HTML."""
++    response = await client.get("/dashboard/graphs")
++    assert response.status_code == 200
++    assert "text/html" in response.headers["content-type"]
 +
-         config = get_config()
-         store = get_graph_store(graph_name)
-         service = TreeService(config=config, graph_store=store)
-@@ -598,6 +700,22 @@ def get_node(
-         ToolError: If graph not found or path escapes working directory.
-     """
-     try:
-+        # Per DYK-P5-05: Check if graph_name refers to a remote graph
-+        remote_info = _resolve_remote_for_graph(graph_name)
-+        if remote_info is not None:
-+            import asyncio
 +
-+            from fs2.cli.remote_client import RemoteClientError
++async def test_graph_list_shows_graphs(
++    fake_db: DashboardFakeDatabase, client: AsyncClient
++):
++    """Graph list shows graph names and status badges."""
++    fake_db.add_graph(name="my-repo", status="ready")
++    response = await client.get("/dashboard/graphs")
++    html = response.text
++    assert "my-repo" in html
++    assert "badge-ready" in html
 +
-+            try:
-+                client, server_graph = remote_info
-+                result = asyncio.run(client.get_node(server_graph, node_id, detail=detail))
-+                if result is None:
-+                    return None
-+                return result
-+            except RemoteClientError as e:
-+                raise ToolError(str(e)) from None
 +
-         config = get_config()
-         store = get_graph_store(graph_name)
-         service = GetNodeService(config=config, graph_store=store)
-@@ -813,6 +931,29 @@ async def search(
-         if not pattern or not pattern.strip():
-             raise ToolError("Pattern cannot be empty or whitespace-only")
- 
-+        # Per DYK-P5-05: Check if graph_name refers to a remote graph
-+        remote_info = _resolve_remote_for_graph(graph_name)
-+        if remote_info is not None:
-+            from fs2.cli.remote_client import RemoteClientError
++async def test_graph_list_empty_state(client: AsyncClient):
++    """Graph list shows empty state message when no graphs."""
++    response = await client.get("/dashboard/graphs")
++    assert "No graphs uploaded" in response.text
 +
-+            try:
-+                client, server_graph = remote_info
-+                inc_str = ",".join(include) if include else None
-+                exc_str = ",".join(exclude) if exclude else None
-+                result = await client.search(
-+                    pattern,
-+                    graph=server_graph,
-+                    mode=mode.lower(),
-+                    limit=limit,
-+                    offset=offset,
-+                    detail=detail,
-+                    include=inc_str,
-+                    exclude=exc_str,
-+                )
-+                return result
-+            except RemoteClientError as e:
-+                raise ToolError(str(e)) from None
 +
-         # Validate and convert mode
-         mode_upper = mode.upper()
-         try:
-@@ -1153,14 +1294,33 @@ def list_graphs() -> dict[str, Any]:
-         graph_infos = service.list_graphs()
- 
-         # Convert GraphInfo to dicts
--        # GraphInfo is a dataclass with: name, path, description, source_url, available
-         docs_list = []
-         for info in graph_infos:
-             info_dict = dataclasses.asdict(info)
--            # Convert Path to string for JSON serialization
-             info_dict["path"] = str(info_dict["path"])
-             docs_list.append(info_dict)
- 
-+        # Per DYK-P5-05: Merge remote graphs if remotes configured
-+        clients = _get_remote_clients()
-+        if clients:
-+            import asyncio
++async def test_graph_list_shows_ingesting_badge(
++    fake_db: DashboardFakeDatabase, client: AsyncClient
++):
++    """Graph list shows ingesting badge for in-progress graphs."""
++    fake_db.add_graph(name="building", status="ingesting")
++    response = await client.get("/dashboard/graphs")
++    assert "badge-ingesting" in response.text
 +
-+            for _name, client in clients.items():
-+                try:
-+                    result = asyncio.run(client.list_graphs(status="ready"))
-+                    for g in result.get("graphs", []):
-+                        docs_list.append({
-+                            "name": f"{client.name}:{g.get('name', '?')}",
-+                            "path": client.base_url,
-+                            "description": g.get("description"),
-+                            "source_url": None,
-+                            "available": g.get("status") == "ready",
-+                            "_remote": client.name,
-+                            "node_count": g.get("node_count"),
-+                        })
-+                except Exception as e:
-+                    logger.warning("Failed to list graphs from remote '%s': %s", client.name, e)
 +
-         return {
-             "docs": docs_list,
-             "count": len(docs_list),
++async def test_graph_table_partial(
++    fake_db: DashboardFakeDatabase, client: AsyncClient
++):
++    """HTMX table partial returns just the table for polling."""
++    fake_db.add_graph(name="polled-graph")
++    response = await client.get("/dashboard/graphs/table")
++    assert response.status_code == 200
++    assert "polled-graph" in response.text
++    # Should be a table fragment, not a full page
++    assert "<html" not in response.text
++
++
++# --- Graph Upload ---
++
++
++async def test_upload_form_returns_html(client: AsyncClient):
++    """Upload form page returns 200 with HTML."""
++    response = await client.get("/dashboard/graphs/upload")
++    assert response.status_code == 200
++    assert "Upload Graph" in response.text
++
++
++# --- Graph Delete ---
++
++
++async def test_graph_delete_removes_graph(
++    fake_db: DashboardFakeDatabase, client: AsyncClient
++):
++    """Delete endpoint removes graph and returns empty response."""
++    fake_db.add_graph(graph_id="del-1", name="to-delete")
++    response = await client.request("DELETE", "/dashboard/graphs/del-1")
++    assert response.status_code == 200
++    assert response.text == ""
++    assert len(fake_db._graphs) == 0
++
++
++async def test_graph_delete_not_found(client: AsyncClient):
++    """Delete returns 404 for unknown graph."""
++    response = await client.request("DELETE", "/dashboard/graphs/nonexistent")
++    assert response.status_code == 404
++
++
++# --- API Keys ---
++
++
++async def test_api_keys_page_returns_html(client: AsyncClient):
++    """API keys page returns 200 with HTML."""
++    response = await client.get("/dashboard/settings/keys")
++    assert response.status_code == 200
++    assert "API Keys" in response.text
++
++
++async def test_api_keys_shows_warning_banner(client: AsyncClient):
++    """API keys page shows auth not active warning (DYK-P6-08)."""
++    response = await client.get("/dashboard/settings/keys")
++    assert "enforcement not active" in response.text
++
++
++async def test_api_key_generation(
++    fake_db: DashboardFakeDatabase, client: AsyncClient
++):
++    """Generating an API key returns the full key once."""
++    response = await client.post(
++        "/dashboard/settings/keys",
++        data={"name": "test-key", "scope": "read"},
++    )
++    assert response.status_code == 200
++    html = response.text
++    assert "fs2_" in html
++    assert "Copy to Clipboard" in html
++    assert len(fake_db._api_keys) == 1
++
++
++async def test_api_key_revoke(
++    fake_db: DashboardFakeDatabase, client: AsyncClient
++):
++    """Revoking an API key returns empty response for HTMX row removal."""
++    fake_db._api_keys.append({
++        "id": "key-revoke-1",
++        "name": "old-key",
++        "key_prefix": "fs2_abc",
++        "scope": "read",
++        "is_active": True,
++        "created_at": None,
++    })
++
++    response = await client.post("/dashboard/settings/keys/key-revoke-1/revoke")
++    assert response.status_code == 200
++    assert response.text == ""
++
++
++# --- Key Generation Logic ---
++
++
++def test_generate_api_key_format():
++    """API key has correct format: fs2_ prefix + 32 hex chars."""
++    from fs2.server.dashboard.routes import _generate_api_key
++
++    full_key, prefix, key_hash = _generate_api_key()
++    assert full_key.startswith("fs2_")
++    assert len(full_key) == 36
++    assert prefix == full_key[:12]
++    assert len(key_hash) == 64  # SHA-256 hex
++
++
++def test_generate_api_key_uniqueness():
++    """Each generated key is unique."""
++    from fs2.server.dashboard.routes import _generate_api_key
++
++    keys = {_generate_api_key()[0] for _ in range(10)}
++    assert len(keys) == 10
++
++
++def test_generate_api_key_hash_is_sha256():
++    """Key hash is SHA-256 of the full key (DYK-P6-10)."""
++    import hashlib
++
++    from fs2.server.dashboard.routes import _generate_api_key
++
++    full_key, _, key_hash = _generate_api_key()
++    expected = hashlib.sha256(full_key.encode()).hexdigest()
++    assert key_hash == expected
+diff --git a/tests/server/test_middleware.py b/tests/server/test_middleware.py
+new file mode 100644
+index 0000000..e6e8916
+--- /dev/null
++++ b/tests/server/test_middleware.py
+@@ -0,0 +1,142 @@
++"""Tests for the structured request logging middleware.
++
++Verifies that AccessLogMiddleware:
++- Logs requests with correct fields
++- Skips /health to avoid noise
++- Captures status codes and timing
++"""
++
++import logging
++from collections.abc import AsyncGenerator
++from contextlib import asynccontextmanager
++from unittest.mock import AsyncMock, MagicMock
++
++import pytest
++from httpx import ASGITransport, AsyncClient
++
++from fs2.config.objects import ServerDatabaseConfig
++from fs2.server.app import create_app
++from fs2.server.database import Database
++
++
++class MinimalFakeDatabase(Database):
++    """Minimal fake database for middleware tests."""
++
++    def __init__(self) -> None:
++        super().__init__(ServerDatabaseConfig())
++        self._connected = True
++
++    async def connect(self) -> None:
++        self._connected = True
++
++    async def disconnect(self) -> None:
++        self._connected = False
++
++    @property
++    def is_connected(self) -> bool:
++        return self._connected
++
++    @asynccontextmanager
++    async def connection(self) -> AsyncGenerator:
++        conn = AsyncMock()
++
++        async def fake_execute(sql, *args, **kwargs):
++            result = MagicMock()
++            if "count(*)" in str(sql).lower():
++                result.fetchone = AsyncMock(return_value=(0,))
++            elif "select 1" in str(sql).lower():
++                result.fetchone = AsyncMock(return_value=(1,))
++            elif "from graphs" in str(sql).lower():
++                result.fetchall = AsyncMock(return_value=[])
++            elif "from api_keys" in str(sql).lower():
++                result.fetchall = AsyncMock(return_value=[])
++            else:
++                result.fetchone = AsyncMock(return_value=None)
++                result.fetchall = AsyncMock(return_value=[])
++            return result
++
++        conn.execute = fake_execute
++        conn.commit = AsyncMock()
++        yield conn
++
++
++@pytest.fixture
++def fake_db() -> MinimalFakeDatabase:
++    return MinimalFakeDatabase()
++
++
++@pytest.fixture
++def app(fake_db: MinimalFakeDatabase):
++    return create_app(database=fake_db)
++
++
++@pytest.fixture
++async def client(app) -> AsyncClient:
++    transport = ASGITransport(app=app)
++    async with AsyncClient(transport=transport, base_url="http://test") as c:
++        yield c
++
++
++async def test_middleware_logs_api_request(
++    client: AsyncClient, caplog: pytest.LogCaptureFixture
++):
++    """Middleware logs API requests with status and method."""
++    with caplog.at_level(logging.INFO, logger="fs2.server.access"):
++        await client.get("/api/v1/graphs")
++    assert any("GET" in r.message and "/api/v1/graphs" in r.message for r in caplog.records)
++
++
++async def test_middleware_logs_dashboard_request(
++    client: AsyncClient, caplog: pytest.LogCaptureFixture
++):
++    """Middleware logs dashboard requests."""
++    with caplog.at_level(logging.INFO, logger="fs2.server.access"):
++        await client.get("/dashboard/")
++    assert any("/dashboard/" in r.message for r in caplog.records)
++
++
++async def test_middleware_skips_health(
++    client: AsyncClient, caplog: pytest.LogCaptureFixture
++):
++    """Middleware does NOT log /health requests (noise reduction)."""
++    with caplog.at_level(logging.INFO, logger="fs2.server.access"):
++        await client.get("/health")
++    assert not any("/health" in r.message for r in caplog.records)
++
++
++async def test_middleware_logs_status_code(
++    client: AsyncClient, caplog: pytest.LogCaptureFixture
++):
++    """Middleware log records include status code in extra data."""
++    with caplog.at_level(logging.INFO, logger="fs2.server.access"):
++        await client.get("/api/v1/graphs")
++    access_records = [r for r in caplog.records if r.name == "fs2.server.access"]
++    assert len(access_records) > 0
++    record = access_records[0]
++    assert hasattr(record, "status_code")
++    assert record.status_code == 200
++
++
++async def test_middleware_logs_duration(
++    client: AsyncClient, caplog: pytest.LogCaptureFixture
++):
++    """Middleware log records include duration_ms in extra data."""
++    with caplog.at_level(logging.INFO, logger="fs2.server.access"):
++        await client.get("/api/v1/graphs")
++    access_records = [r for r in caplog.records if r.name == "fs2.server.access"]
++    assert len(access_records) > 0
++    record = access_records[0]
++    assert hasattr(record, "duration_ms")
++    assert isinstance(record.duration_ms, float)
++    assert record.duration_ms >= 0
++
++
++async def test_middleware_logs_method(
++    client: AsyncClient, caplog: pytest.LogCaptureFixture
++):
++    """Middleware log records include HTTP method."""
++    with caplog.at_level(logging.INFO, logger="fs2.server.access"):
++        await client.get("/dashboard/graphs")
++    access_records = [r for r in caplog.records if r.name == "fs2.server.access"]
++    assert len(access_records) > 0
++    assert access_records[0].method == "GET"

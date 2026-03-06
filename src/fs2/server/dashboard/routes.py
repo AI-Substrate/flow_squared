@@ -18,12 +18,10 @@ from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from fs2.server.graph_admin import DEFAULT_TENANT_ID, ensure_default_tenant
 from fs2.server.ingestion import IngestionError, IngestionPipeline
 
 logger = logging.getLogger(__name__)
-
-# Default tenant for v1 (no multi-tenancy — matches graphs.py)
-DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000000"
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -73,6 +71,7 @@ async def dashboard_home(request: Request) -> HTMLResponse:
 
     graph_count = 0
     ingesting_count = 0
+    db_error = None
     try:
         async with db.connection() as conn:
             result = await conn.execute(
@@ -87,11 +86,13 @@ async def dashboard_home(request: Request) -> HTMLResponse:
             row = await result.fetchone()
             ingesting_count = row[0] if row else 0
     except Exception:
-        pass
+        logger.exception("Failed to load dashboard counts")
+        db_error = "Unable to load dashboard data. Check database connectivity."
 
     return templates.TemplateResponse(request, "index.html", {
             "graph_count": graph_count,
             "ingesting_count": ingesting_count,
+            "db_error": db_error,
         },
     )
 
@@ -115,26 +116,11 @@ async def graph_table_partial(request: Request) -> HTMLResponse:
     db = request.app.state.db
     graphs, has_pending = await _fetch_graphs(db)
 
-    return templates.TemplateResponse(request, "graphs/_table.html", {
+    return templates.TemplateResponse(request, "graphs/_table_container.html", {
             "graphs": graphs,
             "has_pending": has_pending,
         },
     )
-
-
-async def _ensure_default_tenant(db) -> None:
-    """Create the default tenant if it doesn't exist.
-
-    Shared by dashboard upload and API upload routes (DYK-P6-06).
-    """
-    async with db.connection() as conn:
-        await conn.execute(
-            """INSERT INTO tenants (id, name, slug)
-            VALUES (%s, 'default', 'default')
-            ON CONFLICT (id) DO NOTHING""",
-            (DEFAULT_TENANT_ID,),
-        )
-        await conn.commit()
 
 
 @router.get("/graphs/upload", response_class=HTMLResponse)
@@ -176,7 +162,7 @@ async def graph_upload(
                     )
                 f.write(chunk)
 
-        await _ensure_default_tenant(db)
+        await ensure_default_tenant(db)
 
         pipeline = IngestionPipeline(db)
         result = await pipeline.ingest(
@@ -311,7 +297,7 @@ async def api_key_generate(
 
     full_key, key_prefix, key_hash = _generate_api_key()
 
-    await _ensure_default_tenant(db)
+    await ensure_default_tenant(db)
 
     async with db.connection() as conn:
         await conn.execute(

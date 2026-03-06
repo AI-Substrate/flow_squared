@@ -124,7 +124,7 @@ Key validated facts:
 - **AC17**: Invalid or expired API keys return HTTP 401 with an actionable error message
 
 ### Management Dashboard
-- **AC18**: A server operator can create tenants and generate API keys through the dashboard
+- **AC18**: A server operator can generate API keys through the dashboard; tenant creation is deferred until the auth phase lands
 - **AC19**: A tenant user can upload graph pickle files (50–500MB) via the dashboard with progress feedback
 - **AC20**: A tenant user can view their graphs (name, status, node count, last updated) and see real-time ingestion progress
 - **AC21**: A tenant user can delete a graph from the dashboard, which removes all associated data

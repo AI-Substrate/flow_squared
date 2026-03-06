@@ -140,3 +140,53 @@ async def test_middleware_logs_method(
     access_records = [r for r in caplog.records if r.name == "fs2.server.access"]
     assert len(access_records) > 0
     assert access_records[0].method == "GET"
+
+
+# --- Tenant + Graph Context (FT-003/FT-005) ---
+
+
+async def test_middleware_logs_tenant(
+    client: AsyncClient, caplog: pytest.LogCaptureFixture
+):
+    """Middleware log records include tenant ID (AC24)."""
+    with caplog.at_level(logging.INFO, logger="fs2.server.access"):
+        await client.get("/api/v1/graphs")
+    access_records = [r for r in caplog.records if r.name == "fs2.server.access"]
+    assert len(access_records) > 0
+    assert hasattr(access_records[0], "tenant")
+    assert access_records[0].tenant == "00000000-0000-0000-0000-000000000000"
+
+
+async def test_middleware_logs_graph_from_path(
+    client: AsyncClient, caplog: pytest.LogCaptureFixture
+):
+    """Middleware extracts graph identifier from API path."""
+    # Use list-graphs which doesn't need graph resolution
+    with caplog.at_level(logging.INFO, logger="fs2.server.access"):
+        await client.get("/api/v1/graphs")
+    access_records = [r for r in caplog.records if r.name == "fs2.server.access"]
+    assert len(access_records) > 0
+    # /api/v1/graphs (no graph name) → graph is None
+    assert access_records[0].graph is None
+
+
+def test_extract_graph_from_path():
+    """Graph extraction regex works for various API paths."""
+    from fs2.server.middleware import _extract_graph_from_path
+
+    assert _extract_graph_from_path("/api/v1/graphs/my-repo/tree") == "my-repo"
+    assert _extract_graph_from_path("/api/v1/graphs/some-graph/nodes/x") == "some-graph"
+    assert _extract_graph_from_path("/api/v1/graphs") is None
+    assert _extract_graph_from_path("/dashboard/graphs") is None
+    assert _extract_graph_from_path("/health") is None
+
+
+async def test_middleware_graph_is_none_for_non_graph_paths(
+    client: AsyncClient, caplog: pytest.LogCaptureFixture
+):
+    """Middleware graph is None for non-graph paths."""
+    with caplog.at_level(logging.INFO, logger="fs2.server.access"):
+        await client.get("/dashboard/")
+    access_records = [r for r in caplog.records if r.name == "fs2.server.access"]
+    assert len(access_records) > 0
+    assert access_records[0].graph is None

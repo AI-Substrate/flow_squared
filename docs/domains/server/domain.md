@@ -53,7 +53,7 @@ The HTTP server application that receives graph uploads, stores data in PostgreS
 - **graph-storage** — PostgreSQLGraphStore for data access
 - **search** — SearchService + PgvectorSemanticMatcher for queries
 - **configuration** — ServerDatabaseConfig, ServerStorageConfig
-- **auth** — AuthService, middleware for request validation
+- **auth** — planned extraction target for tenant/API-key enforcement (not yet implemented; server temporarily owns minimal API key CRUD)
 
 ### Domains That Depend On This
 - **cli-presentation** — RemoteClient makes HTTP calls to server endpoints

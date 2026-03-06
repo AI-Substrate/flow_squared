@@ -14,14 +14,12 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
+from fs2.server.graph_admin import DEFAULT_TENANT_ID, ensure_default_tenant
 from fs2.server.ingestion import IngestionError, IngestionPipeline
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/graphs", tags=["graphs"])
-
-# Default tenant for v1 (no multi-tenancy)
-DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000000"
 
 
 @router.post("")
@@ -58,15 +56,7 @@ async def upload_graph(
 
         pipeline = IngestionPipeline(db)
 
-        # Ensure default tenant exists
-        async with db.connection() as conn:
-            await conn.execute(
-                """INSERT INTO tenants (id, name, slug)
-                VALUES (%s, 'default', 'default')
-                ON CONFLICT (id) DO NOTHING""",
-                (DEFAULT_TENANT_ID,),
-            )
-            await conn.commit()
+        await ensure_default_tenant(db)
 
         result = await pipeline.ingest(
             pickle_path=temp_path,

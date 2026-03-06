@@ -360,3 +360,62 @@ def test_generate_api_key_hash_is_sha256():
     full_key, _, key_hash = _generate_api_key()
     expected = hashlib.sha256(full_key.encode()).hexdigest()
     assert key_hash == expected
+
+
+# --- Polling Stop Condition (FT-001/FT-005) ---
+
+
+async def test_polling_container_has_htmx_when_pending(
+    fake_db: DashboardFakeDatabase, client: AsyncClient
+):
+    """Table container includes hx-get/trigger when graphs are pending."""
+    fake_db.add_graph(name="pending-graph", status="ingesting")
+    response = await client.get("/dashboard/graphs/table")
+    html = response.text
+    assert 'hx-get="/dashboard/graphs/table"' in html
+    assert 'hx-trigger="every 5s"' in html
+
+
+async def test_polling_container_stops_when_settled(
+    fake_db: DashboardFakeDatabase, client: AsyncClient
+):
+    """Table container removes hx-get/trigger when all graphs are ready/error."""
+    fake_db.add_graph(name="done-graph", status="ready")
+    response = await client.get("/dashboard/graphs/table")
+    html = response.text
+    assert "hx-get" not in html
+    assert "hx-trigger" not in html
+
+
+# --- Dashboard Home Error Handling (FT-006) ---
+
+
+async def test_dashboard_home_shows_db_error():
+    """Dashboard home shows error message when DB query fails."""
+    from contextlib import asynccontextmanager
+
+    from fs2.server.app import create_app
+
+    class FailingDatabase(DashboardFakeDatabase):
+        @asynccontextmanager
+        async def connection(self):
+            raise RuntimeError("DB is down")
+            yield  # noqa: unreachable — required for async generator syntax
+
+    db = FailingDatabase()
+    app = create_app(database=db)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/dashboard/")
+        assert response.status_code == 200
+        assert "Unable to load dashboard data" in response.text
+
+
+# --- Shared Helpers (FT-007) ---
+
+
+def test_shared_default_tenant_id():
+    """graph_admin.DEFAULT_TENANT_ID matches across modules."""
+    from fs2.server.graph_admin import DEFAULT_TENANT_ID
+
+    assert DEFAULT_TENANT_ID == "00000000-0000-0000-0000-000000000000"
