@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}API Keys — fs2 Server{% endblock %}
+
+{% block content %}
+<h1>API Keys</h1>
+
+<div class="flash flash-warning">
+    <strong>⚠ API key enforcement not active.</strong>
+    API keys are generated here for future use. Key validation middleware is not yet enabled —
+    all API endpoints are currently unauthenticated. Keys will be enforced when auth middleware is deployed.
+</div>
+
+{% if new_key %}
+<article style="border: 2px solid var(--fs2-green);">
+    <header style="background: #E8F5E9;">🔑 New API Key Generated</header>
+    <p><strong>Copy this key now — it will not be shown again.</strong></p>
+    <div x-data="{ copied: false }">
+        <code id="new-key-value" style="font-size: 1.1em; word-break: break-all;">{{ new_key }}</code>
+        <br><br>
+        <button class="outline" style="padding: 0.3em 0.8em;"
+                @click="navigator.clipboard.writeText('{{ new_key }}'); copied = true; setTimeout(() => copied = false, 2000)">
+            <span x-show="!copied">📋 Copy to Clipboard</span>
+            <span x-show="copied" x-cloak>✓ Copied!</span>
+        </button>
+    </div>
+    <footer>
+        <small class="text-muted">Name: {{ new_key_name }} | Scope: {{ new_key_scope }} | Prefix: {{ new_key[:12] }}…</small>
+    </footer>
+</article>
+{% endif %}
+
+{% if error %}
+<div class="flash flash-error">{{ error }}</div>
+{% endif %}
+
+<section>
+    <h2>Generate New Key</h2>
+    <form method="post" action="/dashboard/settings/keys">
+        <div class="grid">
+            <div>
+                <label for="key_name">Key Name *</label>
+                <input type="text" id="key_name" name="name" required
+                       placeholder="e.g. ci-pipeline, dev-laptop">
+            </div>
+            <div>
+                <label for="key_scope">Scope</label>
+                <select id="key_scope" name="scope">
+                    <option value="read">Read (query only)</option>
+                    <option value="write">Write (query + upload/delete)</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit">Generate Key</button>
+    </form>
+</section>
+
+<section>
+    <h2>Active Keys</h2>
+    {% if keys %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Prefix</th>
+                <th>Scope</th>
+                <th>Created</th>
+                <th>Last Used</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for k in keys %}
+            <tr id="key-row-{{ k.id }}">
+                <td><strong>{{ k.name }}</strong></td>
+                <td class="mono">{{ k.key_prefix }}…</td>
+                <td><span class="badge badge-{% if k.scope == 'write' %}ingesting{% elif k.scope == 'admin' %}error{% else %}ready{% endif %}">{{ k.scope }}</span></td>
+                <td class="text-muted">{{ k.created_at_display }}</td>
+                <td class="text-muted">{{ k.last_used_display }}</td>
+                <td>
+                    <button class="outline secondary" style="padding: 0.3em 0.6em; font-size: 0.85em;"
+                            hx-post="/dashboard/settings/keys/{{ k.id }}/revoke"
+                            hx-target="#key-row-{{ k.id }}"
+                            hx-swap="outerHTML"
+                            hx-confirm="Revoke key '{{ k.name }}'?">
+                        Revoke
+                    </button>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted">No API keys generated yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

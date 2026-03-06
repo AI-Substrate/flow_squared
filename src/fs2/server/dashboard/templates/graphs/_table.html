@@ -1,0 +1,49 @@
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Nodes</th>
+            <th>Edges</th>
+            <th>Embedding Model</th>
+            <th>Updated</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for g in graphs %}
+        <tr id="graph-row-{{ g.id }}">
+            <td><strong>{{ g.name }}</strong>
+                {% if g.description %}<br><small class="text-muted">{{ g.description }}</small>{% endif %}
+            </td>
+            <td><span class="badge badge-{{ g.status }}">{{ g.status }}</span></td>
+            <td>{{ g.node_count or '—' }}</td>
+            <td>{{ g.edge_count or '—' }}</td>
+            <td class="mono">{{ g.embedding_model or '—' }}</td>
+            <td class="text-muted">{{ g.updated_at_display }}</td>
+            <td>
+                <div x-data="{ confirmDelete: false }">
+                    <button class="outline secondary" style="padding: 0.3em 0.6em; font-size: 0.85em;"
+                            @click="confirmDelete = true"
+                            x-show="!confirmDelete">
+                        Delete
+                    </button>
+                    <span x-show="confirmDelete" x-cloak>
+                        <button class="outline" style="padding: 0.3em 0.6em; font-size: 0.85em; --pico-color: var(--fs2-red);"
+                                hx-delete="/dashboard/graphs/{{ g.id }}"
+                                hx-target="#graph-row-{{ g.id }}"
+                                hx-swap="outerHTML"
+                                hx-confirm="Delete graph '{{ g.name }}' and all its data?">
+                            Confirm
+                        </button>
+                        <button class="outline" style="padding: 0.3em 0.6em; font-size: 0.85em;"
+                                @click="confirmDelete = false">
+                            Cancel
+                        </button>
+                    </span>
+                </div>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>

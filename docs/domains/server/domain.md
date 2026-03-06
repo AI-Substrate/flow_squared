@@ -17,7 +17,9 @@ The HTTP server application that receives graph uploads, stores data in PostgreS
 | Serve query requests | FastAPI routes | HTTP endpoints for tree, search, get-node, list-graphs |
 | Ingest graph uploads | Ingestion pipeline | Pickle → RestrictedUnpickler → COPY to PostgreSQL |
 | Manage database connections | Database module | Async connection pool, session factory, RLS context |
-| Dashboard administration | HTMX views | Upload graphs, manage sites, view status |
+| Dashboard administration | HTMX dashboard | Upload graphs, manage sites, view status, generate API keys |
+| Log request metrics | AccessLogMiddleware | Structured JSON access logging for all HTTP requests |
+| Manage API keys | Dashboard routes | Generate, list, revoke API keys (SHA-256 hashed) |
 
 ## Boundary
 
@@ -66,14 +68,18 @@ Primary: `src/fs2/server/`
 | File | Role | Notes |
 |------|------|-------|
 | `src/fs2/server/__init__.py` | Public exports | Exports `create_app` |
-| `src/fs2/server/app.py` | App factory | `create_app()` with lifespan |
+| `src/fs2/server/app.py` | App factory | `create_app()` with lifespan, CORS, access logging |
 | `src/fs2/server/database.py` | Connection pool (**contract**) | `Database` class — consumed by other domains via DI |
-| `src/fs2/server/schema.py` | Schema DDL | `create_schema()` — 6 tables, 17 indexes |
+| `src/fs2/server/schema.py` | Schema DDL | `create_schema()` — 7 tables, 19 indexes |
 | `src/fs2/server/ingestion.py` | Ingestion pipeline | `IngestionPipeline` — pickle → COPY to PostgreSQL |
+| `src/fs2/server/middleware.py` | Access logging | `AccessLogMiddleware` — structured request logging |
 | `src/fs2/server/routes/__init__.py` | Routes package | |
 | `src/fs2/server/routes/health.py` | Health endpoint | `GET /health` |
 | `src/fs2/server/routes/graphs.py` | Graph management | Upload, list (with status filter), status, delete |
 | `src/fs2/server/routes/query.py` | Query endpoints | Tree, search, get-node, multi-graph search |
+| `src/fs2/server/dashboard/__init__.py` | Dashboard package | Exports dashboard router |
+| `src/fs2/server/dashboard/routes.py` | Dashboard routes | Graph list/upload/delete, API key management |
+| `src/fs2/server/dashboard/templates/` | Jinja2 templates | HTMX + Alpine.js + Pico CSS server-rendered UI |
 
 ## History
 
@@ -83,3 +89,4 @@ Primary: `src/fs2/server/`
 | 028-server-mode (Phase 1) | Server skeleton implemented: app factory, database pool, schema DDL, health endpoint | 2026-03-05 |
 | 028-server-mode (Phase 3) | Ingestion pipeline, graph upload/list/status/delete endpoints, ingestion_jobs table | 2026-03-06 |
 | 028-server-mode (Phase 4) | Query API: tree, search (text/regex/semantic/auto), get-node, multi-graph search. PgvectorSemanticMatcher. Enhanced list-graphs with status filter. | 2026-03-06 |
+| 028-server-mode (Phase 6) | Management dashboard: HTMX+Jinja2 UI for graph list/upload/delete, API key management, structured access logging middleware, api_keys table | 2026-03-06 |

@@ -12,7 +12,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from fs2.config.objects import ServerDatabaseConfig
+from fs2.server.dashboard import router as dashboard_router
 from fs2.server.database import Database
+from fs2.server.middleware import AccessLogMiddleware
 from fs2.server.routes.graphs import router as graphs_router
 from fs2.server.routes.health import router as health_router
 from fs2.server.routes.query import router as query_router
@@ -65,6 +67,7 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(AccessLogMiddleware)
 
     if database is not None:
         app.state.db = database
@@ -74,5 +77,6 @@ def create_app(
     app.include_router(health_router)
     app.include_router(graphs_router)
     app.include_router(query_router)
+    app.include_router(dashboard_router)
 
     return app

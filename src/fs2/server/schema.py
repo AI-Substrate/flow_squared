@@ -155,6 +155,25 @@ CREATE TABLE IF NOT EXISTS ingestion_jobs (
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON ingestion_jobs(status)
     WHERE status IN ('pending', 'running');
 CREATE INDEX IF NOT EXISTS idx_jobs_graph ON ingestion_jobs(graph_id);
+
+-- API keys (authentication tokens for CLI/MCP access)
+CREATE TABLE IF NOT EXISTS api_keys (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    key_hash        TEXT NOT NULL UNIQUE,
+    key_prefix      TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    scope           TEXT NOT NULL DEFAULT 'read'
+                    CHECK (scope IN ('read', 'write', 'admin')),
+    is_active       BOOLEAN NOT NULL DEFAULT true,
+    last_used_at    TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Indexes: api_keys
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash)
+    WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_api_keys_tenant ON api_keys(tenant_id);
 """
 
 

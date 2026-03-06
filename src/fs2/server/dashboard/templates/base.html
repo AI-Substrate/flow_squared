@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}fs2 Server{% endblock %}</title>
+
+    <!-- Pico CSS — classless, minimal, responsive -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+    <!-- HTMX — server-rendered interactivity -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
+    <!-- Alpine.js — lightweight reactivity for modals/toggles -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        :root {
+            --fs2-green: #4CAF50;
+            --fs2-blue: #2196F3;
+            --fs2-yellow: #FFC107;
+            --fs2-red: #F44336;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.15em 0.5em;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-ready { background: var(--fs2-green); color: white; }
+        .badge-ingesting { background: var(--fs2-blue); color: white; animation: pulse 1.5s infinite; }
+        .badge-pending { background: var(--fs2-yellow); color: black; }
+        .badge-error { background: var(--fs2-red); color: white; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+        nav ul li strong { font-size: 1.1em; }
+        .flash { padding: 0.75em 1em; border-radius: 4px; margin-bottom: 1em; }
+        .flash-success { background: #E8F5E9; border: 1px solid var(--fs2-green); }
+        .flash-error { background: #FFEBEE; border: 1px solid var(--fs2-red); }
+        .flash-warning { background: #FFF8E1; border: 1px solid var(--fs2-yellow); }
+        .mono { font-family: monospace; }
+        .text-muted { opacity: 0.7; font-size: 0.9em; }
+
+        /* Upload progress */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--fs2-blue);
+            transition: width 0.2s;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <nav class="container">
+        <ul>
+            <li><strong>⚡ fs2 Server</strong></li>
+        </ul>
+        <ul>
+            <li><a href="/dashboard/">Home</a></li>
+            <li><a href="/dashboard/graphs">Graphs</a></li>
+            <li><a href="/dashboard/graphs/upload">Upload</a></li>
+            <li><a href="/dashboard/settings/keys">API Keys</a></li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container">
+        <hr>
+        <p class="text-muted">fs2 Server — Code intelligence graph server</p>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

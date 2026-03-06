@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}fs2 Server — Dashboard{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="grid">
+    <article>
+        <header>Graphs</header>
+        <p><strong>{{ graph_count }}</strong> ready</p>
+        {% if ingesting_count > 0 %}
+        <p><span class="badge badge-ingesting">{{ ingesting_count }} ingesting</span></p>
+        {% endif %}
+        <footer>
+            <a href="/dashboard/graphs" role="button">View All</a>
+        </footer>
+    </article>
+
+    <article>
+        <header>Upload</header>
+        <p>Upload a graph pickle file from <code>fs2 scan</code></p>
+        <footer>
+            <a href="/dashboard/graphs/upload" role="button" class="outline">Upload Graph</a>
+        </footer>
+    </article>
+
+    <article>
+        <header>API Keys</header>
+        <p>Generate keys for CLI and MCP access</p>
+        <footer>
+            <a href="/dashboard/settings/keys" role="button" class="outline">Manage Keys</a>
+        </footer>
+    </article>
+</div>
+
+<section>
+    <h2>Quick Status</h2>
+    <p>
+        Server is running.
+        <a href="/health">Health check →</a>
+    </p>
+</section>
+{% endblock %}

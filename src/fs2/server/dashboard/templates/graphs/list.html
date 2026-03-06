@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Graphs — fs2 Server{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>Graphs</h1>
+    <p>{{ graphs | length }} graph{{ 's' if graphs | length != 1 else '' }} indexed</p>
+</hgroup>
+
+<div style="margin-bottom: 1em;">
+    <a href="/dashboard/graphs/upload" role="button" class="outline">↑ Upload Graph</a>
+</div>
+
+{% if graphs %}
+<div id="graph-table-container"
+     {% if has_pending %}
+     hx-get="/dashboard/graphs/table"
+     hx-trigger="every 5s"
+     hx-swap="innerHTML"
+     {% endif %}>
+    {% include "graphs/_table.html" %}
+</div>
+{% else %}
+<article>
+    <p>No graphs uploaded yet. <a href="/dashboard/graphs/upload">Upload your first graph →</a></p>
+</article>
+{% endif %}
+{% endblock %}
