@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Flowspace2 - Clean Architecture Python scaffold"
 requires-python = ">=3.12"
 dependencies = [
+    "azure-identity>=1.18.0,<2",
     "fastmcp>=2.0.0",
     "jinja2>=3.1",
     "networkx>=3.0",
@@ -26,9 +27,6 @@ dependencies = [
 fs2 = "fs2.cli.main:app"
 
 [project.optional-dependencies]
-azure-ad = [
-    "azure-identity>=1.18.0,<2",
-]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.23",
