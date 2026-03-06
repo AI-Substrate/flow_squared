@@ -25,8 +25,6 @@ from rich.console import Console
 
 # Hardcoded GitHub URL - no customization allowed
 GITHUB_URL = "git+https://github.com/AI-Substrate/flow_squared"
-# Extras to always include (azure-identity for az login auth)
-INSTALL_EXTRAS = "[azure-ad]"
 
 console = Console()
 
@@ -112,9 +110,8 @@ def _run_install() -> int:
     console.print("[cyan]i[/cyan] Installing fs2...")
 
     try:
-        install_spec = f"{GITHUB_URL}{INSTALL_EXTRAS}"
         result = subprocess.run(
-            ["uv", "tool", "install", install_spec],
+            ["uv", "tool", "install", GITHUB_URL],
             capture_output=True,
             text=True,
             check=False,
@@ -126,7 +123,7 @@ def _run_install() -> int:
                 console.print(
                     "[yellow]![/yellow] fs2 executable exists but not as uv tool.\n"
                     "  Re-run with: [bold]uv tool install --force "
-                    f"{install_spec}[/bold]"
+                    f"{GITHUB_URL}[/bold]"
                 )
             else:
                 console.print(f"[red]x[/red] Install failed:\n{result.stderr}")
@@ -159,7 +156,7 @@ def _run_upgrade() -> int:
 
     try:
         result = subprocess.run(
-            ["uv", "tool", "upgrade", "--with", "azure-identity>=1.18.0,<2", "fs2"],
+            ["uv", "tool", "upgrade", "fs2"],
             capture_output=True,
             text=True,
             check=False,

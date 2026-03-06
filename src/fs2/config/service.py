@@ -38,7 +38,10 @@ T = TypeVar("T", bound=BaseModel)
 # Paths where lists should be concatenated instead of replaced during merge.
 # Per Critical Finding 01: deep_merge() treats lists as scalars (overlay wins).
 # These paths get special handling: extract before merge, concatenate, re-inject.
-CONCATENATE_LIST_PATHS: list[str] = ["other_graphs.graphs"]
+CONCATENATE_LIST_PATHS: list[str] = [
+    "other_graphs.graphs",
+    "remotes.servers",
+]
 
 
 def _get_nested_value(data: dict, path: str) -> Any:

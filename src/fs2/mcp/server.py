@@ -226,6 +226,7 @@ def _get_remote_clients() -> dict[str, Any]:
             )
         return clients
     except Exception:
+        logger.debug("No remotes configured or config unavailable", exc_info=True)
         return {}
 
 
@@ -257,19 +258,46 @@ def _get_remote_graph_names() -> set[str]:
 def _resolve_remote_for_graph(graph_name: str | None) -> tuple[Any, str] | None:
     """Check if graph_name refers to a remote graph.
 
-    Supports "remote:graph" syntax (e.g., "work:api-gateway").
+    Per DYK-P5-05: Local-first lookup.
+    1. If graph_name is None → local default (return None)
+    2. If graph_name matches a local graph → local (return None)
+    3. If graph_name matches "remote:graph" syntax → remote
+    4. If graph_name matches a graph on any configured remote → remote
+
     Returns (RemoteClient, graph_name_on_server) or None for local.
     """
     if graph_name is None:
         return None
 
-    # Check for explicit "remote:graph" syntax
+    # Check for explicit "remote:graph" syntax first
     if ":" in graph_name:
         parts = graph_name.split(":", 1)
         remote_name, server_graph = parts[0], parts[1]
         clients = _get_remote_clients()
         if remote_name in clients:
             return clients[remote_name], server_graph
+
+    # Check if it's a known local graph — if so, don't try remote
+    try:
+        service = get_graph_service()
+        local_names = {g.name for g in service.list_graphs()}
+        if graph_name in local_names:
+            return None
+    except Exception:
+        pass
+
+    # Not local — check if any configured remote has this graph
+    import asyncio
+
+    clients = _get_remote_clients()
+    for _name, client in clients.items():
+        try:
+            result = asyncio.run(client.list_graphs(status="ready"))
+            for g in result.get("graphs", []):
+                if g.get("name") == graph_name:
+                    return client, graph_name
+        except Exception:
+            continue
 
     return None
 
@@ -712,6 +740,16 @@ def get_node(
                 result = asyncio.run(client.get_node(server_graph, node_id, detail=detail))
                 if result is None:
                     return None
+
+                # Handle save_to_file for remote results too
+                if save_to_file is not None:
+                    import json
+
+                    absolute_path = _validate_save_path(save_to_file)
+                    with open(absolute_path, "w") as f:
+                        json.dump(result, f, indent=2)
+                    result["saved_to"] = absolute_path
+
                 return result
             except RemoteClientError as e:
                 raise ToolError(str(e)) from None

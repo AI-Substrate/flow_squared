@@ -39,14 +39,18 @@ def list_remotes(
         0 - Success
         1 - Configuration error
     """
+    from fs2.config.exceptions import MissingConfigurationError
     from fs2.config.objects import RemotesConfig
     from fs2.config.service import FS2ConfigurationService
 
     try:
         config = FS2ConfigurationService()
         remotes_config = config.get(RemotesConfig)
-    except Exception:
+    except MissingConfigurationError:
         remotes_config = None
+    except Exception as e:
+        stderr_console.print(f"[red]Error:[/red] Failed to load remotes config: {e}")
+        raise typer.Exit(code=1) from None
 
     servers = remotes_config.servers if remotes_config else []
 

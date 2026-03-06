@@ -30,6 +30,43 @@ router = APIRouter(prefix="/api/v1", tags=["query"])
 # Regex metacharacters that trigger REGEX mode in auto-detect
 _REGEX_METACHARACTERS = set("*?[]^$|()")
 
+# Category icons for text rendering (matches MCP/CLI conventions)
+_CATEGORY_ICONS = {
+    "file": "📄", "folder": "📁", "type": "📦", "callable": "ƒ",
+    "section": "📝", "block": "🏗️",
+}
+
+
+def _render_tree_as_text(tree_nodes: list[dict], indent: str = "", is_last_list: list[bool] | None = None) -> str:
+    """Render tree dicts as compact text with icons."""
+    if is_last_list is None:
+        is_last_list = []
+    lines: list[str] = []
+    for i, node in enumerate(tree_nodes):
+        is_last = i == len(tree_nodes) - 1
+        cat = node.get("category", "other")
+        icon = _CATEGORY_ICONS.get(cat, "○")
+        node_id = node.get("node_id", "?")
+        start = node.get("start_line", "?")
+        end = node.get("end_line", "?")
+        children = node.get("children", [])
+        hidden = node.get("hidden_children_count", 0)
+
+        suffix = f" ({len(children) + hidden} children)" if hidden else ""
+        if is_last_list:
+            prefix = ""
+            for _j, was_last in enumerate(is_last_list):
+                prefix += "    " if was_last else "│   "
+            prefix += "└── " if is_last else "├── "
+        else:
+            prefix = ""
+
+        lines.append(f"{prefix}{icon} {node_id} [{start}-{end}]{suffix}")
+
+        if children:
+            lines.append(_render_tree_as_text(children, indent, [*is_last_list, is_last]))
+    return "\n".join(lines)
+
 
 # ── Helpers ──
 
@@ -280,6 +317,7 @@ async def tree(
     name: str,
     pattern: str = Query(default=".", description="Filter pattern"),
     max_depth: int = Query(default=0, ge=0, description="Max depth (0=unlimited)"),
+    format: str = Query(default="json", pattern="^(text|json)$", description="Output format"),
 ) -> dict:
     """Get tree view of a graph.
 
@@ -314,13 +352,21 @@ async def tree(
         matched = await store.get_filtered_nodes_async(pattern)
         tree_nodes = await _build_pattern_tree_async(matched, store, max_depth)
 
-    return {
+    result = {
         "graph_name": graph["name"],
         "pattern": pattern,
         "max_depth": max_depth,
         "count": len(tree_nodes),
-        "tree": tree_nodes,
     }
+
+    if format == "text":
+        result["format"] = "text"
+        result["content"] = _render_tree_as_text(tree_nodes)
+    else:
+        result["format"] = "json"
+        result["tree"] = tree_nodes
+
+    return result
 
 
 # ── Get-node endpoint ──

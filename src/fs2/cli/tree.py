@@ -193,6 +193,10 @@ def tree(
                 result = asyncio.run(remote_client.tree(graph_name, pattern=pattern, max_depth=depth))
 
                 if json_output or file:
+                    # JSON mode: request JSON format from server
+                    result = asyncio.run(remote_client.tree(
+                        graph_name, pattern=pattern, max_depth=depth, format="json",
+                    ))
                     json_str = json.dumps(result, indent=2, default=str)
                     if file:
                         absolute_path = validate_save_path(file, stderr_console)
@@ -201,17 +205,18 @@ def tree(
                     else:
                         print(json_str)
                 else:
-                    # Print server tree response (raw JSON structure)
-                    tree_data = result.get("tree", result.get("results", []))
-                    if not tree_data:
+                    # Text mode: request pre-rendered text from server (DYK-P5-02)
+                    result = asyncio.run(remote_client.tree(
+                        graph_name, pattern=pattern, max_depth=depth, format="text",
+                    ))
+                    content = result.get("content", "")
+                    if not content:
                         if pattern == ".":
                             console.print("Found 0 nodes in 0 files")
                         else:
                             console.print(f"No nodes match pattern: {pattern}")
                     else:
-                        # Pretty-print the tree structure
-                        json_str = json.dumps(result, indent=2, default=str)
-                        print(json_str)
+                        print(content)
                 raise typer.Exit(code=0)
             except RemoteClientError as e:
                 stderr_console.print(f"[red]Error:[/red] {e}")

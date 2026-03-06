@@ -74,7 +74,7 @@ def get_node(
                     )
                     raise typer.Exit(code=1)
 
-                result = asyncio.run(remote_client.get_node(graph_name, node_id))
+                result = asyncio.run(remote_client.get_node(graph_name, node_id, detail="max"))
                 if result is None:
                     console.print(f"[red]Error:[/red] Node not found: {node_id}")
                     raise typer.Exit(code=1)

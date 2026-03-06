@@ -179,21 +179,26 @@ class RemoteClient:
         graph: str,
         pattern: str = ".",
         max_depth: int = 0,
+        format: str = "text",
     ) -> dict:
         """Get tree view from remote server.
 
-        Per DYK-P5-02: Returns server JSON directly. CLI uses format=text
-        for pre-rendered output.
+        Per DYK-P5-02: CLI uses format=text for pre-rendered output.
 
         Args:
             graph: Graph name on the server.
             pattern: Filter pattern (default: ".").
             max_depth: Max depth (0=unlimited).
+            format: Output format ("text" or "json").
 
         Returns:
-            Server JSON tree response.
+            Server JSON tree response. For format=text, includes "content" key.
         """
-        params: dict[str, Any] = {"pattern": pattern, "max_depth": max_depth}
+        params: dict[str, Any] = {
+            "pattern": pattern,
+            "max_depth": max_depth,
+            "format": format,
+        }
         return await self._request("GET", f"/api/v1/graphs/{graph}/tree", params=params)
 
     async def search(
@@ -237,11 +242,16 @@ class RemoteClient:
         if exclude:
             params["exclude"] = exclude
 
-        if graph:
+        if graph and "," not in graph:
+            # Single graph — use per-graph endpoint
             return await self._request("GET", f"/api/v1/graphs/{graph}/search", params=params)
-        else:
-            params["graph"] = "all"
+        if graph:
+            # Comma-separated graphs — use multi-graph endpoint
+            params["graph"] = graph
             return await self._request("GET", "/api/v1/search", params=params)
+        # No graph specified — search all
+        params["graph"] = "all"
+        return await self._request("GET", "/api/v1/search", params=params)
 
     async def get_node(
         self,
@@ -265,7 +275,9 @@ class RemoteClient:
                 "GET", f"/api/v1/graphs/{graph}/nodes/{node_id}", params=params,
             )
         except RemoteClientError as e:
-            if "Not found" in str(e):
+            # Distinguish node-not-found (return None) from graph-not-found (re-raise)
+            msg = str(e)
+            if "Node '" in msg and "not found" in msg:
                 return None
             raise
 
