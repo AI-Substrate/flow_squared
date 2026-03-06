@@ -81,11 +81,19 @@ class GetNodeService:
     def _ensure_loaded(self) -> None:
         """Lazy load graph on first access.
 
+        Per Phase 3 Multi-Graph: If the store already has nodes (e.g., loaded
+        by GraphService), skip loading. This prevents overwriting external
+        graphs with the default config.graph_path.
+
         Raises:
             GraphNotFoundError: If graph file does not exist.
             GraphStoreError: If graph file is corrupted.
         """
         if self._loaded:
+            return
+        # Skip loading if store already has content (e.g., from GraphService)
+        if len(self._graph_store.get_all_nodes()) > 0:
+            self._loaded = True
             return
         graph_path = Path(self._config.graph_path)
         if not graph_path.exists():
