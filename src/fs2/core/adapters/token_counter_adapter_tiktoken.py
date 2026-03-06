@@ -48,6 +48,6 @@ class TiktokenTokenCounterAdapter(TokenCounterAdapter):
 
     def count_tokens(self, text: str) -> int:
         try:
-            return len(self._encoder.encode(text))
+            return len(self._encoder.encode(text, disallowed_special=()))
         except Exception as e:
             raise TokenCounterError(f"Token counting failed: {e}") from e

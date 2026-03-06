@@ -36,7 +36,7 @@ class TestTiktokenModelFallback:
         calls = {"encoding_for_model": 0, "get_encoding": 0}
 
         class FakeEncoder:
-            def encode(self, text: str) -> list[int]:
+            def encode(self, text: str, **_kwargs: object) -> list[int]:
                 return [1, 2, 3, 4]  # 4 tokens
 
         class FakeTiktokenModule:
@@ -79,7 +79,7 @@ class TestTiktokenModelFallback:
         calls = {"encoding_for_model": 0, "get_encoding": 0}
 
         class FakeEncoder:
-            def encode(self, text: str) -> list[int]:
+            def encode(self, text: str, **_kwargs: object) -> list[int]:
                 return [1, 2, 3]  # 3 tokens
 
         class FakeTiktokenModule:
@@ -118,7 +118,7 @@ class TestTiktokenModelFallback:
         encoding_requested = {"name": None}
 
         class FakeEncoder:
-            def encode(self, text: str) -> list[int]:
+            def encode(self, text: str, **_kwargs: object) -> list[int]:
                 return [1]
 
         class FakeTiktokenModule:
@@ -190,7 +190,7 @@ class TestFallbackLogging:
         )
 
         class FakeEncoder:
-            def encode(self, text: str) -> list[int]:
+            def encode(self, text: str, **_kwargs: object) -> list[int]:
                 return [1, 2]
 
         class FakeTiktokenModule:

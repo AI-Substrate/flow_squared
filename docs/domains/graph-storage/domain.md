@@ -82,8 +82,8 @@ graphs = graph_service.list_graphs()  # [GraphInfo(...), ...]
 | `GraphConfig` | Pydantic Model | GraphService, scan pipeline | `graph_path` default |
 | `OtherGraphsConfig` | Pydantic Model | GraphService | External graph references |
 | `RestrictedUnpickler` | Security | NetworkXGraphStore, IngestionPipeline | Secure pickle deserialization with class whitelist |
-| `ConnectionProvider` | Protocol | PostgreSQLGraphStore | Async DB connection access (decouples from server.Database) |
-| `PostgreSQLGraphStore` | Repository Impl | Server query routes | GraphStore ABC over PostgreSQL (async, read-only) |
+| `ConnectionProvider` | Protocol | PostgreSQLGraphStore, PgvectorSemanticMatcher | Async DB connection access (in `protocols.py`) |
+| `PostgreSQLGraphStore` | Repository Impl | Server query routes | GraphStore ABC over PostgreSQL (async, read-only, with tree/search queries) |
 
 ## Composition (Internal)
 

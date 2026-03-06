@@ -84,6 +84,7 @@ for result in results:
 | `SearchResult` | Frozen Dataclass | CLI, MCP (format output) | Scored result with to_dict(detail) |
 | `SearchMode` | Enum | CLI, MCP (mode parameter) | TEXT / REGEX / SEMANTIC / AUTO |
 | `SearchResultMeta` | Dataclass | MCP (envelope metadata) | Total count, folder distribution |
+| `PgvectorSemanticMatcher` | Service | Server query routes | SQL cosine search via pgvector HNSW (public contract) |
 | `SearchConfig` | Pydantic Model | SearchService | regex_timeout, parent_penalty |
 
 ## Composition (Internal)

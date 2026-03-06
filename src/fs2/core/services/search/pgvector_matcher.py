@@ -14,7 +14,7 @@ Per DYK #2: Accepts graph_ids list for multi-graph via WHERE IN(...).
 import logging
 from typing import TYPE_CHECKING
 
-from fs2.core.repos.graph_store_pg import ConnectionProvider
+from fs2.core.repos.protocols import ConnectionProvider
 
 if TYPE_CHECKING:
     from fs2.core.adapters.embedding_adapter import EmbeddingAdapter

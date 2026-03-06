@@ -13,28 +13,19 @@ to avoid graph-storage → server reverse dependency.
 
 import fnmatch
 import logging
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import Any
 
 from fs2.core.models.code_node import CodeNode
 from fs2.core.models.content_type import ContentType
 from fs2.core.repos.graph_store import GraphStore
+from fs2.core.repos.protocols import ConnectionProvider
 
 logger = logging.getLogger(__name__)
 
 
-@runtime_checkable
-class ConnectionProvider(Protocol):
-    """Protocol for async database connection access.
-
-    Decouples PostgreSQLGraphStore from the server.Database class,
-    preventing a graph-storage → server reverse dependency.
-    """
-
-    @asynccontextmanager
-    async def connection(self) -> AsyncGenerator: ...
+# Re-export for backward compatibility
+__all__ = ["ConnectionProvider", "PostgreSQLGraphStore"]
 
 
 class PostgreSQLGraphStore(GraphStore):

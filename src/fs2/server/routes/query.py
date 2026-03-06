@@ -21,7 +21,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fs2.core.models.code_node import CodeNode
 from fs2.core.models.content_type import ContentType
 from fs2.core.repos.graph_store_pg import PostgreSQLGraphStore
-from fs2.core.services.search.pgvector_matcher import PgvectorSemanticMatcher
+from fs2.core.services.search import PgvectorSemanticMatcher
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,8 @@ def _code_node_to_tree_dict(node: CodeNode) -> dict:
 
 
 def _compute_folder_hierarchy(
-    file_nodes: list[CodeNode], max_depth: int
+    file_nodes: list[CodeNode], max_depth: int,
+    children_cache: dict[str, int] | None = None,
 ) -> list[dict]:
     """Compute virtual folder hierarchy from file nodes.
 
@@ -136,7 +137,7 @@ def _compute_folder_hierarchy(
                 current = current["folders"][folder]
             current["files"].append(node)
 
-    return _build_folder_tree(root, max_depth, 0, "")
+    return _build_folder_tree(root, max_depth, 0, "", None, children_cache)
 
 
 def _count_folder_items(folder_dict: dict) -> int:
@@ -148,9 +149,15 @@ def _count_folder_items(folder_dict: dict) -> int:
 
 
 def _build_folder_tree(
-    folder_dict: dict, max_depth: int, current_depth: int, path_prefix: str
+    folder_dict: dict, max_depth: int, current_depth: int, path_prefix: str,
+    store: PostgreSQLGraphStore | None = None,
+    children_cache: dict | None = None,
 ) -> list[dict]:
-    """Build tree node dicts from folder structure."""
+    """Build tree node dicts from folder structure.
+
+    If store and children_cache are provided, expands file symbol children
+    and tracks real hidden_children_count for depth-limited nodes.
+    """
     result = []
 
     # Folders first, sorted
@@ -166,7 +173,8 @@ def _build_folder_tree(
             node["hidden_children_count"] = total
         else:
             children = _build_folder_tree(
-                contents, max_depth, current_depth + 1, folder_path
+                contents, max_depth, current_depth + 1, folder_path,
+                store, children_cache,
             )
             node["children"] = children
             node["hidden_children_count"] = 0
@@ -176,37 +184,32 @@ def _build_folder_tree(
     # Files second, sorted
     for file_node in sorted(folder_dict["files"], key=lambda n: n.name or ""):
         node = _code_node_to_tree_dict(file_node)
+        # Get real children count from cache
+        child_count = 0
+        if children_cache and file_node.node_id in children_cache:
+            child_count = children_cache[file_node.node_id]
+
         if max_depth > 0 and current_depth + 1 >= max_depth:
             node["children"] = []
-            node["hidden_children_count"] = 0  # Would need store for real count
+            node["hidden_children_count"] = child_count
         else:
             node["children"] = []
-            node["hidden_children_count"] = 0
+            node["hidden_children_count"] = child_count
         result.append(node)
 
     return result
 
 
-def _build_pattern_tree(
+async def _build_pattern_tree_async(
     matched: list[CodeNode], store: PostgreSQLGraphStore, max_depth: int
 ) -> list[dict]:
-    """Build tree from pattern-matched nodes (non-folder mode).
+    """Build tree from pattern-matched nodes with async child expansion.
 
-    Keeps only shallowest matches as roots, like TreeService._build_root_bucket.
-    Note: This is synchronous in structure — children aren't expanded from DB
-    for v1 (would need async recursion). Returns flat matched nodes as roots.
+    Keeps only shallowest matches as roots (like TreeService._build_root_bucket),
+    then recursively expands children via get_children_async.
     """
     if not matched:
         return []
-
-    # For single node_id match, return as root
-    if len(matched) == 1:
-        node = matched[0]
-        return [{
-            **_code_node_to_tree_dict(node),
-            "children": [],
-            "hidden_children_count": 0,
-        }]
 
     # Build root bucket: remove children when ancestor also matched
     matched_ids = {n.node_id for n in matched}
@@ -219,7 +222,6 @@ def _build_pattern_tree(
             if parent_id in matched_ids:
                 has_ancestor = True
                 break
-            # Walk up via known parent_node_id
             parent_node = next(
                 (n for n in matched if n.node_id == parent_id), None
             )
@@ -228,14 +230,33 @@ def _build_pattern_tree(
         if not has_ancestor:
             roots.append(node)
 
-    return [
-        {
-            **_code_node_to_tree_dict(n),
-            "children": [],
-            "hidden_children_count": 0,
-        }
-        for n in sorted(roots, key=lambda n: n.node_id)
-    ]
+    # Expand each root with children
+    result = []
+    for n in sorted(roots, key=lambda n: n.node_id):
+        tree_node = await _build_tree_node_async(n, store, max_depth, 0)
+        result.append(tree_node)
+    return result
+
+
+async def _build_tree_node_async(
+    node: CodeNode, store: PostgreSQLGraphStore, max_depth: int, depth: int
+) -> dict:
+    """Recursively build a tree node dict with async child expansion."""
+    children = await store.get_children_async(node.node_id)
+    tree_dict = _code_node_to_tree_dict(node)
+
+    if max_depth > 0 and depth + 1 >= max_depth:
+        tree_dict["children"] = []
+        tree_dict["hidden_children_count"] = len(children)
+    else:
+        child_dicts = []
+        for child in sorted(children, key=lambda c: c.start_line):
+            child_dict = await _build_tree_node_async(child, store, max_depth, depth + 1)
+            child_dicts.append(child_dict)
+        tree_dict["children"] = child_dicts
+        tree_dict["hidden_children_count"] = 0
+
+    return tree_dict
 
 
 def _compute_folder_distribution(results: list[dict]) -> dict[str, int]:
@@ -276,11 +297,22 @@ async def tree(
         # Folder hierarchy mode: fetch file-level nodes
         all_nodes = await store.get_filtered_nodes_async(".")
         file_nodes = [n for n in all_nodes if n.node_id.startswith("file:")]
-        tree_nodes = _compute_folder_hierarchy(file_nodes, max_depth)
+
+        # Build children count cache for file nodes
+        children_cache: dict[str, int] = {}
+        for fn in file_nodes:
+            children_cache[fn.node_id] = await store.get_children_count_async(fn.node_id)
+
+        tree_nodes = _compute_folder_hierarchy(file_nodes, max_depth, children_cache)
+    elif pattern == ".":
+        # Unlimited depth: all file nodes as folder tree without depth limit
+        all_nodes = await store.get_filtered_nodes_async(".")
+        file_nodes = [n for n in all_nodes if n.node_id.startswith("file:")]
+        tree_nodes = _compute_folder_hierarchy(file_nodes, 0, None)
     else:
-        # Pattern search mode
+        # Pattern search mode with child expansion
         matched = await store.get_filtered_nodes_async(pattern)
-        tree_nodes = _build_pattern_tree(matched, store, max_depth)
+        tree_nodes = await _build_pattern_tree_async(matched, store, max_depth)
 
     return {
         "graph_name": graph["name"],
@@ -384,6 +416,7 @@ async def search_graph(
     include: str | None = Query(default=None, description="Comma-separated include patterns"),
     exclude: str | None = Query(default=None, description="Comma-separated exclude patterns"),
     query_vector: str | None = Query(default=None, description="Pre-embedded vector as JSON array"),
+    model: str | None = Query(default=None, description="Embedding model name for validation"),
 ) -> dict:
     """Search within a single graph."""
     db = request.app.state.db
@@ -394,7 +427,7 @@ async def search_graph(
 
     return await _execute_search(
         request, [graph], pattern, mode, limit, offset, detail,
-        min_similarity, inc, exc, query_vector,
+        min_similarity, inc, exc, query_vector, model,
     )
 
 
@@ -414,6 +447,7 @@ async def search_multi(
     include: str | None = Query(default=None),
     exclude: str | None = Query(default=None),
     query_vector: str | None = Query(default=None),
+    model: str | None = Query(default=None, description="Embedding model name for validation"),
 ) -> dict:
     """Search across one, multiple, or all graphs.
 
@@ -449,7 +483,7 @@ async def search_multi(
 
     return await _execute_search(
         request, graphs, pattern, mode, limit, offset, detail,
-        min_similarity, inc, exc, query_vector,
+        min_similarity, inc, exc, query_vector, model,
     )
 
 
@@ -465,6 +499,7 @@ async def _execute_search(
     include: tuple[str, ...] | None,
     exclude: tuple[str, ...] | None,
     query_vector_str: str | None,
+    requested_model: str | None = None,
 ) -> dict:
     """Execute search across given graphs.
 
@@ -498,14 +533,32 @@ async def _execute_search(
             if not has_any_embeddings:
                 resolved_mode = "text"
 
-    # Embedding model validation (T006)
+    # Embedding model validation (T006/FT-002)
+    embedding_adapter = getattr(request.app.state, "embedding_adapter", None)
+
+    if resolved_mode == "semantic" and query_vector is None and embedding_adapter is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Semantic search requires a configured embedding adapter. "
+            "Either configure one on the server or pass query_vector directly.",
+        )
+
     if resolved_mode == "semantic" and query_vector is None:
-        # Text-mode semantic: check model compatibility across graphs
-        embedding_adapter = getattr(request.app.state, "embedding_adapter", None)
-        if embedding_adapter is None:
-            # No adapter configured — fall back to text
-            logger.warning("No embedding adapter configured; falling back to text search")
-            resolved_mode = "text"
+        # Validate embedding model compatibility
+        adapter_model = (
+            requested_model
+            or getattr(embedding_adapter, "model_name", None)
+            or getattr(getattr(embedding_adapter, "_config", None), "model", None)
+        )
+        if adapter_model:
+            for g in graphs:
+                stored_model = g.get("embedding_model")
+                if stored_model and adapter_model != stored_model:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=f"Graph '{g['name']}' uses embedding model '{stored_model}' "
+                        f"but query uses '{adapter_model}'. Embeddings are incompatible.",
+                    )
 
     if resolved_mode in ("text", "regex"):
         store = PostgreSQLGraphStore(db, graph_ids[0])
@@ -519,7 +572,6 @@ async def _execute_search(
             )
     else:
         # Semantic search
-        embedding_adapter = getattr(request.app.state, "embedding_adapter", None)
         matcher = PgvectorSemanticMatcher(db, embedding_adapter)
         results, total = await matcher.search(
             graph_ids=graph_ids,

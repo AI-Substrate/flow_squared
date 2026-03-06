@@ -184,7 +184,7 @@ class TestTokenCounterErrorTranslation:
         )
 
         class FakeEncoder:
-            def encode(self, _text: str) -> list[int]:
+            def encode(self, _text: str, **_kwargs: object) -> list[int]:
                 raise RuntimeError("boom")
 
         class FakeTiktokenModule:
@@ -226,7 +226,7 @@ class TestTokenCounterErrorTranslation:
         calls = {"count": 0}
 
         class FakeEncoder:
-            def encode(self, _text: str) -> list[int]:
+            def encode(self, _text: str, **_kwargs: object) -> list[int]:
                 return [1, 2, 3]
 
         class FakeTiktokenModule:

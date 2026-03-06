@@ -1,8 +1,9 @@
 """
 Repository protocol definitions (ABC interfaces).
 
-This module defines abstract base classes for all repositories in the system.
-Repositories provide data access abstractions, hiding storage implementation details.
+This module defines abstract base classes and protocols for all repositories
+in the system. Repositories provide data access abstractions, hiding storage
+implementation details.
 
 Architecture Rules:
 - Repositories MUST NOT import from services (no upward dependencies)
@@ -11,7 +12,22 @@ Architecture Rules:
 - All repositories inherit from ABC with @abstractmethod decorators
 - Each repository has a corresponding Fake implementation for testing
 
-Phase 2+ will add repository interfaces as needed.
-
 See: docs/plans/002-project-skele/project-skele-spec.md § AC4
 """
+
+from typing import Any, Protocol, runtime_checkable
+
+
+@runtime_checkable
+class ConnectionProvider(Protocol):
+    """Protocol for async database connection access.
+
+    Decouples graph-storage and search domains from the server.Database class,
+    preventing reverse dependencies. Any class with a matching
+    ``connection()`` async context manager satisfies this protocol.
+
+    Structural subtyping: no inheritance needed — just implement
+    a ``connection()`` method that returns an async context manager.
+    """
+
+    def connection(self) -> Any: ...
