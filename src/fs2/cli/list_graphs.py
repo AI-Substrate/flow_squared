@@ -51,6 +51,51 @@ def list_graphs(
         1 - Configuration error (no config found)
     """
     try:
+        # === Remote mode branch ===
+        from fs2.cli.remote_client import RemoteClientError
+        from fs2.cli.utils import resolve_remote_client
+
+        remote_client = resolve_remote_client(ctx)
+        if remote_client is not None:
+            import asyncio
+
+            try:
+                result = asyncio.run(remote_client.list_graphs())
+                graphs = result.get("graphs", [])
+
+                if json_output:
+                    print(json.dumps(result, indent=2))
+                    raise typer.Exit(code=0)
+
+                table = Table(title="Remote Graphs")
+                table.add_column("Name", style="cyan", no_wrap=True)
+                table.add_column("Status", justify="center")
+                table.add_column("Nodes", justify="right")
+                table.add_column("Remote", style="dim")
+                table.add_column("Description")
+
+                for g in graphs:
+                    status_str = (
+                        "[green]ready[/green]" if g.get("status") == "ready"
+                        else f"[yellow]{g.get('status', '?')}[/yellow]"
+                    )
+                    remote_name = g.get("_remote", "")
+                    table.add_row(
+                        g.get("name", "?"),
+                        status_str,
+                        str(g.get("node_count", "?")),
+                        remote_name,
+                        g.get("description", ""),
+                    )
+
+                console.print(table)
+                console.print(f"\nTotal: {len(graphs)} graph(s)")
+                raise typer.Exit(code=0)
+            except RemoteClientError as e:
+                stderr_console.print(f"[red]Error:[/red] {e}")
+                raise typer.Exit(code=1) from None
+
+        # === Local mode (existing) ===
         # Per Critical Insight #2: Wrap get_graph_service() in try/except
         # for both MissingConfigurationError AND FileNotFoundError
         from fs2.core.dependencies import get_graph_service

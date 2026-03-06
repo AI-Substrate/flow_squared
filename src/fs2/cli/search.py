@@ -173,7 +173,42 @@ def search(
         raise typer.Exit(code=1) from None
 
     try:
-        # === Composition Root ===
+        # === Remote mode branch ===
+        from fs2.cli.remote_client import RemoteClientError
+        from fs2.cli.utils import resolve_remote_client
+
+        remote_client = resolve_remote_client(ctx)
+        if remote_client is not None:
+
+            try:
+                graph_name = ctx.obj.graph_name if ctx.obj and ctx.obj.graph_name else None
+                inc_str = ",".join(include) if include else None
+                exc_str = ",".join(exclude) if exclude else None
+
+                result = asyncio.run(remote_client.search(
+                    pattern,
+                    graph=graph_name,
+                    mode=mode_lower,
+                    limit=limit,
+                    offset=offset,
+                    detail=detail_lower,
+                    include=inc_str,
+                    exclude=exc_str,
+                ))
+
+                json_str = json.dumps(result, indent=2, default=str)
+                if file:
+                    absolute_path = validate_save_path(file, console)
+                    safe_write_file(absolute_path, json_str, console)
+                    console.print(f"[green]✓[/green] Wrote search results to {file}")
+                else:
+                    print(json_str)
+                raise typer.Exit(code=0)
+            except RemoteClientError as e:
+                console.print(f"[red]Error:[/red] {e}")
+                raise typer.Exit(code=1) from None
+
+        # === Local mode (existing) ===
         # Per Phase 4: Use resolve_graph_from_context for multi-graph support
         config, graph_store = resolve_graph_from_context(ctx)
 

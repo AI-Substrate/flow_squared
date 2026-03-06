@@ -43,7 +43,7 @@ stateDiagram-v2
     classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
 
     state "1: Config models" as S1
-    state "2: RemoteGraphStore" as S2
+    state "2: RemoteClient" as S2
     state "3: CLI --remote + resolve" as S3
     state "4: list-remotes + MCP" as S4
     state "5: Tests" as S5
@@ -64,9 +64,9 @@ stateDiagram-v2
 
 ## Stages
 
-- [ ] **Stage 1: Config + CLI flag** — Add `RemotesConfig` model and `--remote` flag to CLIContext (`config/objects.py`, `cli/main.py`)
-- [ ] **Stage 2: RemoteClient** — HTTP client returning raw server JSON with error handling (`cli/remote_client.py` — new file)
-- [ ] **Stage 3: Remote branches** — `resolve_remote_client()` helper + `if remote_client:` branches in tree/search/get-node/list-graphs (`cli/utils.py`, `cli/*.py`)
+- [x] **Stage 1: Config + CLI flag** — Add `RemotesConfig` model and `--remote` flag to CLIContext (`config/objects.py`, `cli/main.py`)
+- [x] **Stage 2: RemoteClient** — HTTP client returning raw server JSON with error handling (`cli/remote_client.py` — new file)
+- [x] **Stage 3: Remote branches** — `resolve_remote_client()` helper + `if remote_client:` branches in tree/search/get-node/list-graphs (`cli/utils.py`, `cli/*.py`)
 - [ ] **Stage 4: Commands + MCP** — `list-remotes` command, MCP `--remote` flag, multi-remote support (`cli/list_remotes.py`, `mcp/server.py`)
 - [ ] **Stage 5: Tests** — RemoteClient, resolve_remotes, list-remotes, CLI branches, error handling (`tests/`)
 
@@ -137,12 +137,12 @@ flowchart LR
 
 ## Checklist
 
-- [ ] T001: RemoteServer + RemotesConfig models
-- [ ] T002: --remote flag + CLIContext
-- [ ] T003: RemoteGraphStore (httpx client)
-- [ ] T004: resolve_graph_from_context remote switching
+- [x] T001: RemoteServer + RemotesConfig models
+- [x] T002: --remote flag + CLIContext
+- [x] T003: RemoteClient (httpx → raw JSON)
+- [x] T004: resolve_remote_client + CLI branches
 - [ ] T005: list-remotes command
-- [ ] T006: MultiRemoteGraphStore + resolve_remotes
+- [ ] T006: MultiRemoteClient + resolve_remotes
 - [ ] T007: MCP --remote flag
 - [ ] T008: Error handling
 - [ ] T009: Test suite

@@ -7,6 +7,10 @@ Per Phase 1 save-to-file plan:
 Per Phase 4 multi-graph plan:
 - resolve_graph_from_context(): Resolve graph from CLI context using GraphService
 
+Per Phase 5 remote CLI:
+- resolve_remote_client(): Resolve RemoteClient from CLIContext.remote
+- resolve_remotes(): Parse comma-separated remote names/URLs into RemoteClient(s)
+
 Per Insight #2: Wrap file writes in try/except, delete partial file on failure.
 Per Insight #3: Always use encoding="utf-8" per JSON spec RFC 8259.
 """
@@ -21,6 +25,9 @@ import typer
 from rich.console import Console
 
 if TYPE_CHECKING:
+    from typing import Any
+
+    from fs2.cli.remote_client import MultiRemoteClient, RemoteClient
     from fs2.config.service import ConfigurationService
     from fs2.core.repos.graph_store import GraphStore
 
@@ -189,3 +196,103 @@ def resolve_graph_from_context(
         console = Console(stderr=True)
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(code=2) from None
+
+
+def resolve_remote_client(
+    ctx: typer.Context,
+) -> RemoteClient | MultiRemoteClient | None:
+    """Resolve remote client from CLIContext.remote.
+
+    Per DYK #4: Does NOT modify resolve_graph_from_context().
+    CLI commands check this first and branch early.
+
+    Args:
+        ctx: Typer context with CLIContext as obj.
+
+    Returns:
+        RemoteClient for single remote, MultiRemoteClient for comma-separated,
+        or None if not in remote mode.
+    """
+    cli_ctx = ctx.obj
+    if not cli_ctx or not cli_ctx.remote:
+        return None
+
+    clients = resolve_remotes(cli_ctx.remote)
+    if len(clients) == 1:
+        return clients[0]
+    return MultiRemoteClient(clients)
+
+
+def resolve_remotes(remote_str: str) -> list[RemoteClient]:
+    """Parse remote string into RemoteClient instances.
+
+    Supports:
+    - Named remote: "work" → look up in RemotesConfig
+    - Inline URL: "http://localhost:8000" → use directly
+    - Comma-separated: "work,oss" → multiple clients
+
+    Args:
+        remote_str: Comma-separated remote names or URLs.
+
+    Returns:
+        List of RemoteClient instances.
+
+    Raises:
+        typer.Exit(1): If named remote not found in config.
+    """
+    from fs2.cli.remote_client import RemoteClient
+    from fs2.config.objects import RemotesConfig
+    from fs2.config.service import FS2ConfigurationService
+
+    parts = [p.strip() for p in remote_str.split(",") if p.strip()]
+    if not parts:
+        console = Console(stderr=True)
+        console.print("[red]Error:[/red] --remote value cannot be empty")
+        raise typer.Exit(code=1)
+
+    # Load remotes config (may be None if not configured)
+    config = FS2ConfigurationService()
+    remotes_config = config.get(RemotesConfig)
+    servers_by_name: dict[str, Any] = {}
+    if remotes_config:
+        for server in remotes_config.servers:
+            servers_by_name[server.name] = server
+
+    clients: list[RemoteClient] = []
+    for part in parts:
+        if part.startswith(("http://", "https://")):
+            # Inline URL
+            clients.append(RemoteClient(base_url=part, name=part))
+        elif part in servers_by_name:
+            # Named remote from config
+            server = servers_by_name[part]
+            clients.append(
+                RemoteClient(
+                    base_url=server.url,
+                    api_key=server.api_key,
+                    name=server.name,
+                )
+            )
+        else:
+            # Unknown name
+            console = Console(stderr=True)
+            available = list(servers_by_name.keys()) if servers_by_name else []
+            if available:
+                console.print(
+                    f"[red]Error:[/red] Unknown remote '{part}'. "
+                    f"Available remotes: {', '.join(sorted(available))}\n"
+                    "  Configure remotes in ~/.config/fs2/config.yaml or .fs2/config.yaml"
+                )
+            else:
+                console.print(
+                    f"[red]Error:[/red] Unknown remote '{part}'. "
+                    "No remotes configured.\n"
+                    "  Add remotes to ~/.config/fs2/config.yaml:\n"
+                    "    remotes:\n"
+                    "      servers:\n"
+                    f'        - name: "{part}"\n'
+                    f'          url: "https://your-server.example.com"'
+                )
+            raise typer.Exit(code=1)
+
+    return clients

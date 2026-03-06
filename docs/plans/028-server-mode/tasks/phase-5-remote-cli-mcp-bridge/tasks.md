@@ -163,17 +163,16 @@ flowchart TD
 
 | Status | ID | Task | Domain | Path(s) | Done When | Notes |
 |--------|-----|------|--------|---------|-----------|-------|
-| [ ] | T001 | Add `RemoteServer` and `RemotesConfig` Pydantic models to config registry | configuration | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/config/objects.py` | `config.get(RemotesConfig)` returns valid config from YAML; `RemotesConfig` in `YAML_CONFIG_TYPES`. | **Workshop R5**: Path `remotes` in YAML. `RemoteServer` has `name`, `url`, `api_key`, `description`. URL must start with `http://` or `https://`. Follow `OtherGraphsConfig` pattern (list of named items). User + project configs concatenated (R6). |
-| [ ] | T002 | Add `--remote` global flag to CLI main.py + extend CLIContext | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/main.py` | `fs2 tree --remote work` propagates remote value via `CLIContext.remote` to all subcommands. | **Workshop R1-R3**: Flag is `--remote` / `-r`. Also reads `FS2_REMOTE` env var. Accepts name or URL (detection: starts with `http://` = URL). Comma-separated for multi-remote (R4). CLIContext gets new `remote: str | None = None` field. |
-| [ ] | T003 | Create `RemoteClient`: sync httpx client calling server REST API directly | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | `RemoteClient(url).search("auth", mode="auto")` returns raw server JSON dict. | **DYK #1/#2**: Does NOT implement GraphStore ABC. Returns raw server JSON dicts, not CodeNode objects. Methods: `tree(graph, pattern, max_depth)` → dict, `search(pattern, mode, graph, limit, ...)` → dict, `get_node(graph, node_id, detail)` → dict, `list_graphs()` → dict. Sync `httpx.Client` (R9). Takes `base_url`, `api_key`. |
-| [ ] | T004 | Add `resolve_remote_client()` helper + remote branches in CLI commands | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py`, `cli/tree.py`, `cli/search.py`, `cli/get_node.py`, `cli/list_graphs.py` | All 4 commands detect `CLIContext.remote` and branch to RemoteClient path. `resolve_graph_from_context()` is NOT modified. | **DYK #4**: Don't modify `resolve_graph_from_context()`. Add `resolve_remote_client(ctx) → RemoteClient | None` helper. Each CLI command adds `if remote_client: ... else: <existing local path>`. Remote path calls RemoteClient methods → gets raw JSON → prints (or passes to Rich formatter). |
+| [x] | T001 | Add `RemoteServer` and `RemotesConfig` Pydantic models to config registry | configuration | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/config/objects.py` | `config.get(RemotesConfig)` returns valid config from YAML; `RemotesConfig` in `YAML_CONFIG_TYPES`. | **Workshop R5**: Path `remotes` in YAML. `RemoteServer` has `name`, `url`, `api_key`, `description`. URL must start with `http://` or `https://`. Follow `OtherGraphsConfig` pattern (list of named items). User + project configs concatenated (R6). |
+| [x] | T002 | Add `--remote` global flag to CLI main.py + extend CLIContext | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/main.py` | `fs2 tree --remote work` propagates remote value via `CLIContext.remote` to all subcommands. | **Workshop R1-R3**: Flag is `--remote` / `-r`. Also reads `FS2_REMOTE` env var. Accepts name or URL (detection: starts with `http://` = URL). Comma-separated for multi-remote (R4). CLIContext gets new `remote: str | None = None` field. |
+| [x] | T003 | Create `RemoteClient`: async httpx client calling server REST API directly | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | `RemoteClient(url).search("auth", mode="auto")` returns raw server JSON dict. | **DYK #1/#2**: Does NOT implement GraphStore ABC. Returns raw server JSON dicts, not CodeNode objects. Methods: `tree(graph, pattern, max_depth)` → dict, `search(pattern, mode, graph, limit, ...)` → dict, `get_node(graph, node_id, detail)` → dict, `list_graphs()` → dict. Async `httpx.AsyncClient` (DYK-P5-01: sync blocks MCP event loop). CLI wraps with `asyncio.run()`. Takes `base_url`, `api_key`. |
+| [x] | T004 | Add `resolve_remote_client()` helper + remote branches in CLI commands | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py`, `cli/tree.py`, `cli/search.py`, `cli/get_node.py`, `cli/list_graphs.py` | All 4 commands detect `CLIContext.remote` and branch to RemoteClient path. `resolve_graph_from_context()` is NOT modified. | **DYK #4**: Don't modify `resolve_graph_from_context()`. Add `resolve_remote_client(ctx) → RemoteClient | None` helper. Each CLI command adds `if remote_client: ... else: <existing local path>`. **DYK-P5-02**: Remote tree requests `format=text` from server and prints pre-rendered text directly (no TreeNode reconstruction). Search/get-node already output JSON envelopes that map cleanly. CLI wraps async calls with `asyncio.run()`. |
 | [ ] | T005 | Create `list-remotes` CLI command | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/list_remotes.py` | `fs2 list-remotes` shows all configured remotes with name, URL, description. Supports `--json` output. | Reads `RemotesConfig` from config. Rich table output (name, URL, description). Register in `cli/main.py`. Config-only — no HTTP. |
-| [ ] | T006 | Implement `MultiRemoteClient` for multi-remote fan-out + `resolve_remotes()` helper | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py` | `fs2 search --remote work,oss "pattern"` searches across both remotes, merges results. Partial failure: warn + continue (R8). | **DYK #1, Workshop R4/R8**: `MultiRemoteClient` wraps N `RemoteClient` instances, fans out `search()` calls, merges result dicts, re-sorts by score. `resolve_remotes(remote_str, config)` splits by comma, looks up names or creates inline URLs. Partial failure warns on stderr, continues with successful remotes. |
-| [ ] | T007 | Add `--remote` flag to MCP server startup | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/mcp/server.py` | `fs2 mcp --remote work` starts MCP backed by remote. MCP tools return same format. | **DYK #3**: MCP tools detect remote mode → use `RemoteClient` directly, bypassing TreeService/SearchService/GraphStore entirely. `RemoteClient` returns raw JSON which MCP tools return as-is. |
-| [ ] | T008 | Network error handling: actionable CLI messages for all failure modes | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | Connection refused → "Remote 'work' unreachable at URL". 404 → "Graph not found". 401 → "Auth failed". Timeout → "Request timed out". | Workshop error table. `RemoteClientError` exception with actionable messages. Include remote name and URL in all errors. |
+| [ ] | T006 | Implement `MultiRemoteClient` for multi-remote fan-out + `resolve_remotes()` helper | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py` | `fs2 search --remote work,oss "pattern"` searches across both remotes, merges results. Partial failure: warn + continue (R8). | **DYK #1, Workshop R4/R8**: `MultiRemoteClient` wraps N `RemoteClient` instances, fans out `search()` calls, merges result dicts, re-sorts by score. `resolve_remotes(remote_str, config)` splits by comma, looks up names or creates inline URLs. Partial failure warns on stderr, continues with successful remotes. **DYK-P5-04**: Cross-remote score comparability is a known v1 limitation — text/regex substring scores are consistent; semantic cosine similarity is comparable across graph sizes; but mixed-model semantics may diverge. Document this. Per-remote weighting is a future enhancement. |
+| [ ] | T007 | MCP mixed local+remote mode | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/mcp/server.py` | MCP `list_graphs()` returns local AND remote graphs merged. `graph_name` routes to local GraphStore or RemoteClient automatically. | **DYK-P5-05**: MCP supports mixed mode — no `--remote` flag needed. If `RemotesConfig` is configured, MCP `list_graphs()` merges local graphs (from GraphService) with remote graphs (from each RemoteClient). When user passes `graph_name`, check local first, then remote. If `graph_name` omitted → default local graph (existing behavior). If `graph_name` not found locally or remotely → ToolError listing all available graphs. RemoteClient returns raw JSON which MCP tools return as-is. |
+| [ ] | T008 | Network error handling: actionable CLI messages for all failure modes | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | Connection refused → "Remote 'work' unreachable at URL". 404 → "Graph not found". 401 → "Auth failed". Timeout → "Request timed out". | Workshop error table. `RemoteClientError` exception with actionable messages. Include remote name and URL in all errors. **DYK-P5-03**: Server auto-mode must fallback to text when no embeddings (not 503). Only explicit `mode=semantic` should 503. Verify Phase 4 query route handles this. All errors must be helpful and actionable — never expose raw HTTP status codes to users. |
 | [ ] | T009 | Create test suite: RemoteClient, resolve_remotes, list-remotes, remote CLI branches | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/cli/test_remote_client.py`, `tests/unit/cli/test_list_remotes.py`, `tests/unit/cli/test_remote_integration.py` | `pytest tests/unit/ -m "not slow"` passes including new tests | **Fakes over mocks** (project convention). Tests: (1) RemoteClient constructs correct URLs + returns raw dicts, (2) resolve_remotes splits comma/URL/name, (3) list-remotes output, (4) CLIContext.remote propagates, (5) error handling for connection/404/timeout, (6) MultiRemoteClient merges + sorts results. Use `httpx.MockTransport` for HTTP faking. |
-| [ ] | T008 | Network error handling: actionable CLI messages for all failure modes | graph-storage | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/core/repos/graph_store_remote.py` | Connection refused → "Remote 'work' unreachable at URL". 404 → "Graph not found". 401 → "Auth failed". Timeout → "Request timed out". | Workshop error table. Wrap httpx exceptions in `RemoteGraphStoreError` with actionable messages. Include remote name and URL in all errors. |
-| [ ] | T009 | Create test suite: RemoteGraphStore, resolve_remotes, list-remotes, remote e2e | cli-presentation, graph-storage | `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/repos/test_graph_store_remote.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/cli/test_list_remotes.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/cli/test_remote_integration.py` | `pytest tests/unit/ -m "not slow"` passes including new tests | **Fakes over mocks** (project convention). Tests: (1) RemoteGraphStore constructs correct URLs, (2) resolve_remotes splits comma/URL/name, (3) list-remotes output, (4) CLIContext.remote propagates, (5) error handling for connection/404/timeout, (6) MultiRemoteGraphStore aggregates. Use `httpx.MockTransport` or `respx` for HTTP faking. |
+| [ ] | T010 | Update built-in docs: remotes configuration, --remote usage, MCP mixed mode | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/docs/` | `fs2 docs remotes` and MCP `docs_get("remotes")` return comprehensive guide. Existing config guide and MCP guide updated to mention remotes. | New `remotes.md` doc covering: named remotes YAML config (`~/.config/fs2/config.yaml` and `.fs2/config.yaml`), `--remote` CLI flag + `FS2_REMOTE` env var, inline URL support, multi-remote comma syntax, MCP mixed mode (local+remote graphs), `list-remotes` command, error troubleshooting. Update `configuration-guide.md` with remotes section. Update `mcp-server-guide.md` with mixed mode. Update `cli.md` with `--remote` and `list-remotes`. Agents must be able to discover remote features via `docs_list`. |
 
 ---
 
@@ -182,22 +181,19 @@ flowchart TD
 ### Key Findings from Plan
 
 - **Finding 06** (High): `YAML_CONFIG_TYPES` is flat list with unique `__config_path__`. Action: Register `RemotesConfig` at path `remotes`. Follow `OtherGraphsConfig` pattern.
-- **Finding 07** (High): CLI `resolve_graph_from_context()` is single injection point. Action: Add `--remote` check at top. If set, create `RemoteGraphStore`. Single point of polymorphism.
+- **Finding 07** (High): CLI `resolve_graph_from_context()` is single injection point. Action: Do NOT modify it for remote. Add `resolve_remote_client()` helper instead. CLI commands branch early on remote mode.
 
 ### Domain Dependencies
 
 - `configuration`: ConfigurationService (`config.get(RemotesConfig)`) — load named remotes from YAML/env
   - Entry: `src/fs2/config/service.py:ConfigurationService`
   - Pattern: `config.get(RemotesConfig)` returns None if not configured (optional config)
-- `graph-storage`: GraphStore ABC — RemoteGraphStore implements this
-  - Entry: `src/fs2/core/repos/graph_store.py:GraphStore`
-  - Pattern: Same 10 abstract methods as NetworkXGraphStore
-- `graph-storage`: CodeNode frozen dataclass — reconstructed from server JSON responses
-  - Entry: `src/fs2/core/models/code_node.py:CodeNode`
 - `cli-presentation`: CLIContext + main callback — extend with `remote` field
   - Entry: `src/fs2/cli/main.py:CLIContext`, `main()`
-- `cli-presentation`: resolve_graph_from_context — modify for remote switching
-  - Entry: `src/fs2/cli/utils.py:resolve_graph_from_context()`
+- `cli-presentation`: `resolve_remote_client()` — new helper, does NOT modify `resolve_graph_from_context()`
+  - Entry: `src/fs2/cli/utils.py` (new function)
+- `server` (Phase 4): REST query API endpoints — consumed by `RemoteClient` via HTTP
+  - Endpoints: `/api/v1/graphs`, `/api/v1/graphs/{name}/tree|search|nodes/*`, `/api/v1/search`
 
 ### Domain Constraints
 
@@ -219,14 +215,14 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A[fs2 CLI] -->|--remote work| B[resolve_graph_from_context]
+    A[fs2 CLI] -->|--remote work| B[CLIContext.remote]
     B --> C{remote set?}
-    C -->|yes| D[resolve_remotes]
-    C -->|no| E[local GraphStore]
-    D --> F[RemoteGraphStore]
+    C -->|yes| D[resolve_remote_client]
+    C -->|no| E[local GraphStore path]
+    D --> F[RemoteClient]
     F -->|HTTP GET| G[Server API]
-    G -->|JSON| F
-    F -->|CodeNode| A
+    G -->|JSON dict| F
+    F -->|raw dict| A
 ```
 
 ### Mermaid Sequence (Remote Tree)
@@ -235,15 +231,15 @@ flowchart LR
 sequenceDiagram
     participant User
     participant CLI
-    participant RemoteGraphStore
+    participant RemoteClient
     participant Server
 
     User->>CLI: fs2 tree --remote work --graph repo
-    CLI->>CLI: resolve_graph_from_context()
-    CLI->>RemoteGraphStore: get_all_nodes() / tree
-    RemoteGraphStore->>Server: GET /api/v1/graphs/repo/tree?pattern=.
-    Server-->>RemoteGraphStore: JSON tree response
-    RemoteGraphStore-->>CLI: list[CodeNode] / tree data
+    CLI->>CLI: resolve_remote_client(ctx)
+    CLI->>RemoteClient: tree(graph="repo", pattern=".")
+    RemoteClient->>Server: GET /api/v1/graphs/repo/tree?pattern=.
+    Server-->>RemoteClient: JSON tree response
+    RemoteClient-->>CLI: raw dict
     CLI->>User: Rich tree output
 ```
 
@@ -295,3 +291,13 @@ docs/plans/028-server-mode/
 | 5 | `list-graphs --remote` is just a GET request — no GraphService needed | **`RemoteClient.list_graphs()`** — pure HTTP. `list-remotes` is config-only (no HTTP). |
 
 Action items: All captured in rewritten T003, T004, T006, T007 above. graph-storage domain no longer modified in this phase.
+
+## Critical Insights — DYK Session 2 (2026-03-06)
+
+| # | Insight | Decision |
+|---|---------|----------|
+| P5-01 | Sync httpx.Client in RemoteClient blocks MCP event loop — MCP search() is async | **RemoteClient uses `httpx.AsyncClient`** natively. CLI wraps with `asyncio.run()`. |
+| P5-02 | CLI tree formatter expects TreeNode objects, not dicts — remote branch can't use `_display_tree()` | **Remote tree requests `format=text`** from server and prints pre-rendered text directly. No TreeNode reconstruction. |
+| P5-03 | Server auto-mode returns 503 when no embeddings — locally it falls back to text silently | **Server auto-mode must fallback to text** when no embeddings (not 503). Only explicit `mode=semantic` should 503. All remote errors must be helpful and actionable. |
+| P5-04 | Multi-remote search scores from different servers aren't directly comparable | **Known v1 limitation — documented**. Text/regex scores are consistent; cosine similarity is comparable across graph sizes. Per-remote weighting is a future enhancement. |
+| P5-05 | MCP remote mode should coexist with local — not replace it | **MCP mixed mode**: `list_graphs()` merges local + remote graphs. `graph_name` routes to local GraphStore or RemoteClient automatically. No `--remote` flag needed on MCP if remotes are configured. |

@@ -162,7 +162,62 @@ def tree(
         stderr_console.print("[dim]DEBUG: Verbose mode enabled[/dim]")
 
     try:
-        # === Composition Root ===
+        # === Remote mode branch ===
+        from fs2.cli.remote_client import RemoteClientError
+        from fs2.cli.utils import resolve_remote_client
+
+        remote_client = resolve_remote_client(ctx)
+        if remote_client is not None:
+            import asyncio
+
+            try:
+                # Get graph name from context (required for remote tree)
+                graph_name = ctx.obj.graph_name if ctx.obj and ctx.obj.graph_name else None
+                if not graph_name:
+                    # If no graph specified, try to list and pick single graph
+                    graphs_resp = asyncio.run(remote_client.list_graphs())
+                    graphs = graphs_resp.get("graphs", [])
+                    if len(graphs) == 1:
+                        graph_name = graphs[0]["name"]
+                    elif len(graphs) == 0:
+                        stderr_console.print("[red]Error:[/red] No graphs available on remote.")
+                        raise typer.Exit(code=1)
+                    else:
+                        names = [g["name"] for g in graphs]
+                        stderr_console.print(
+                            "[red]Error:[/red] Multiple graphs on remote. "
+                            f"Specify one with --graph-name: {', '.join(names)}"
+                        )
+                        raise typer.Exit(code=1)
+
+                result = asyncio.run(remote_client.tree(graph_name, pattern=pattern, max_depth=depth))
+
+                if json_output or file:
+                    json_str = json.dumps(result, indent=2, default=str)
+                    if file:
+                        absolute_path = validate_save_path(file, stderr_console)
+                        safe_write_file(absolute_path, json_str, stderr_console)
+                        stderr_console.print(f"[green]✓[/green] Wrote tree results to {file}")
+                    else:
+                        print(json_str)
+                else:
+                    # Print server tree response (raw JSON structure)
+                    tree_data = result.get("tree", result.get("results", []))
+                    if not tree_data:
+                        if pattern == ".":
+                            console.print("Found 0 nodes in 0 files")
+                        else:
+                            console.print(f"No nodes match pattern: {pattern}")
+                    else:
+                        # Pretty-print the tree structure
+                        json_str = json.dumps(result, indent=2, default=str)
+                        print(json_str)
+                raise typer.Exit(code=0)
+            except RemoteClientError as e:
+                stderr_console.print(f"[red]Error:[/red] {e}")
+                raise typer.Exit(code=1) from None
+
+        # === Local mode (existing) ===
         # Per Phase 4: Use resolve_graph_from_context for multi-graph support
         config, graph_store = resolve_graph_from_context(ctx)
 

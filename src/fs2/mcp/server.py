@@ -198,6 +198,82 @@ CATEGORY_ICONS = {
 }
 
 
+# =============================================================================
+# Remote Client Helpers (Phase 5: MCP mixed mode)
+# =============================================================================
+
+
+def _get_remote_clients() -> dict[str, Any]:
+    """Get configured RemoteClient instances keyed by remote name.
+
+    Returns empty dict if no remotes configured. Lazy — only called when needed.
+    """
+    try:
+        from fs2.cli.remote_client import RemoteClient
+        from fs2.config.objects import RemotesConfig
+
+        config = get_config()
+        remotes_config = config.get(RemotesConfig)
+        if not remotes_config or not remotes_config.servers:
+            return {}
+
+        clients = {}
+        for server in remotes_config.servers:
+            clients[server.name] = RemoteClient(
+                base_url=server.url,
+                api_key=server.api_key,
+                name=server.name,
+            )
+        return clients
+    except Exception:
+        return {}
+
+
+def _get_remote_graph_names() -> set[str]:
+    """Get set of all graph names available across configured remotes.
+
+    Used for mixed mode routing: if graph_name is in this set, use RemoteClient.
+    Caches per-call (not globally) to stay fresh.
+    """
+    import asyncio
+
+    clients = _get_remote_clients()
+    if not clients:
+        return set()
+
+    names: set[str] = set()
+    for _name, client in clients.items():
+        try:
+            result = asyncio.run(client.list_graphs(status="ready"))
+            for g in result.get("graphs", []):
+                graph_name = g.get("name")
+                if graph_name:
+                    names.add(f"{client.name}:{graph_name}")
+        except Exception:
+            pass
+    return names
+
+
+def _resolve_remote_for_graph(graph_name: str | None) -> tuple[Any, str] | None:
+    """Check if graph_name refers to a remote graph.
+
+    Supports "remote:graph" syntax (e.g., "work:api-gateway").
+    Returns (RemoteClient, graph_name_on_server) or None for local.
+    """
+    if graph_name is None:
+        return None
+
+    # Check for explicit "remote:graph" syntax
+    if ":" in graph_name:
+        parts = graph_name.split(":", 1)
+        remote_name, server_graph = parts[0], parts[1]
+        clients = _get_remote_clients()
+        if remote_name in clients:
+            return clients[remote_name], server_graph
+
+    return None
+
+
 def _render_tree_as_text(
     tree_dicts: list[dict[str, Any]],
     indent: str = "",
@@ -400,6 +476,32 @@ def tree(
         {"format": "text", "content": "📄 tree.py [1-364]\\n📄 main.py...", "count": 12}
     """
     try:
+        # Per DYK-P5-05: Check if graph_name refers to a remote graph
+        remote_info = _resolve_remote_for_graph(graph_name)
+        if remote_info is not None:
+            import asyncio
+
+            from fs2.cli.remote_client import RemoteClientError
+
+            try:
+                client, server_graph = remote_info
+                result = asyncio.run(client.tree(server_graph, pattern=pattern, max_depth=max_depth))
+                tree_data = result.get("tree", [])
+
+                def _count_remote(nodes: list) -> int:
+                    total = len(nodes)
+                    for n in nodes:
+                        total += _count_remote(n.get("children", []))
+                    return total
+
+                node_count = _count_remote(tree_data)
+                if format == "json":
+                    return {"format": "json", "tree": tree_data, "count": node_count}
+                text_output = _render_tree_as_text(tree_data)
+                return {"format": "text", "content": text_output, "count": node_count}
+            except RemoteClientError as e:
+                raise ToolError(str(e)) from None
+
         config = get_config()
         store = get_graph_store(graph_name)
         service = TreeService(config=config, graph_store=store)
@@ -598,6 +700,22 @@ def get_node(
         ToolError: If graph not found or path escapes working directory.
     """
     try:
+        # Per DYK-P5-05: Check if graph_name refers to a remote graph
+        remote_info = _resolve_remote_for_graph(graph_name)
+        if remote_info is not None:
+            import asyncio
+
+            from fs2.cli.remote_client import RemoteClientError
+
+            try:
+                client, server_graph = remote_info
+                result = asyncio.run(client.get_node(server_graph, node_id, detail=detail))
+                if result is None:
+                    return None
+                return result
+            except RemoteClientError as e:
+                raise ToolError(str(e)) from None
+
         config = get_config()
         store = get_graph_store(graph_name)
         service = GetNodeService(config=config, graph_store=store)
@@ -812,6 +930,29 @@ async def search(
         # Validate pattern
         if not pattern or not pattern.strip():
             raise ToolError("Pattern cannot be empty or whitespace-only")
+
+        # Per DYK-P5-05: Check if graph_name refers to a remote graph
+        remote_info = _resolve_remote_for_graph(graph_name)
+        if remote_info is not None:
+            from fs2.cli.remote_client import RemoteClientError
+
+            try:
+                client, server_graph = remote_info
+                inc_str = ",".join(include) if include else None
+                exc_str = ",".join(exclude) if exclude else None
+                result = await client.search(
+                    pattern,
+                    graph=server_graph,
+                    mode=mode.lower(),
+                    limit=limit,
+                    offset=offset,
+                    detail=detail,
+                    include=inc_str,
+                    exclude=exc_str,
+                )
+                return result
+            except RemoteClientError as e:
+                raise ToolError(str(e)) from None
 
         # Validate and convert mode
         mode_upper = mode.upper()
@@ -1153,13 +1294,32 @@ def list_graphs() -> dict[str, Any]:
         graph_infos = service.list_graphs()
 
         # Convert GraphInfo to dicts
-        # GraphInfo is a dataclass with: name, path, description, source_url, available
         docs_list = []
         for info in graph_infos:
             info_dict = dataclasses.asdict(info)
-            # Convert Path to string for JSON serialization
             info_dict["path"] = str(info_dict["path"])
             docs_list.append(info_dict)
+
+        # Per DYK-P5-05: Merge remote graphs if remotes configured
+        clients = _get_remote_clients()
+        if clients:
+            import asyncio
+
+            for _name, client in clients.items():
+                try:
+                    result = asyncio.run(client.list_graphs(status="ready"))
+                    for g in result.get("graphs", []):
+                        docs_list.append({
+                            "name": f"{client.name}:{g.get('name', '?')}",
+                            "path": client.base_url,
+                            "description": g.get("description"),
+                            "source_url": None,
+                            "available": g.get("status") == "ready",
+                            "_remote": client.name,
+                            "node_count": g.get("node_count"),
+                        })
+                except Exception as e:
+                    logger.warning("Failed to list graphs from remote '%s': %s", client.name, e)
 
         return {
             "docs": docs_list,

@@ -864,6 +864,102 @@ class OtherGraphsConfig(BaseModel):
     graphs: list[OtherGraph] = []
 
 
+# =============================================================================
+# Remote Server Configuration
+# =============================================================================
+
+
+class RemoteServer(BaseModel):
+    """Configuration for a named remote fs2 server.
+
+    Represents a single remote server that can be queried via CLI or MCP.
+    Part of the remotes config system. Follows OtherGraph naming conventions.
+
+    Per Workshop 003 R5: Config path is "remotes".
+    Per DYK-P5-05: MCP mixed mode discovers remote graphs automatically.
+
+    Attributes:
+        name: Unique identifier for this remote (required, e.g., "work", "oss").
+        url: Base URL of the remote server (required, must start with http:// or https://).
+        api_key: Optional API key for authentication.
+        description: Human-readable description (optional).
+
+    YAML example:
+        ```yaml
+        # ~/.config/fs2/config.yaml (user-level, shared across projects)
+        remotes:
+          servers:
+            - name: "work"
+              url: "https://fs2.internal.company.com"
+              api_key: ${FS2_WORK_API_KEY}
+              description: "Internal team server"
+            - name: "oss"
+              url: "https://fs2.example.com"
+              description: "Open source graphs"
+        ```
+    """
+
+    name: str
+    url: str
+    api_key: str | None = None
+    description: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        """Validate name is not empty or whitespace."""
+        if not v or not v.strip():
+            raise ValueError("name must not be empty or whitespace")
+        return v
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        """Validate URL starts with http:// or https://."""
+        if not v or not v.strip():
+            raise ValueError("url must not be empty or whitespace")
+        if not v.startswith(("http://", "https://")):
+            raise ValueError(
+                f"url must start with http:// or https://, got: '{v}'. "
+                "Example: https://fs2.example.com"
+            )
+        # Strip trailing slash for consistency
+        return v.rstrip("/")
+
+
+class RemotesConfig(BaseModel):
+    """Configuration for remote fs2 server connections.
+
+    Loaded from YAML at path "remotes".
+    Path: remotes (e.g., in YAML: remotes.servers)
+
+    Container model for listing named remote servers. Supports both
+    user-level (~/.config/fs2/config.yaml) and project-level (.fs2/config.yaml)
+    configuration. User and project configs are concatenated (not replaced),
+    following the same pattern as OtherGraphsConfig.
+
+    Per Workshop 003 R5-R6: Named remotes with URL, api_key, description.
+    Per DYK-P5-05: MCP discovers remote graphs automatically from this config.
+
+    Attributes:
+        servers: List of RemoteServer configurations (default: empty list).
+
+    YAML example:
+        ```yaml
+        remotes:
+          servers:
+            - name: "work"
+              url: "https://fs2.internal.company.com"
+              api_key: ${FS2_WORK_API_KEY}
+              description: "Internal team server"
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "remotes"
+
+    servers: list[RemoteServer] = []
+
+
 class SearchConfig(BaseModel):
     """Configuration for search operations.
 
@@ -1059,4 +1155,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     OtherGraphsConfig,
     ServerDatabaseConfig,
     ServerStorageConfig,
+    RemotesConfig,
 ]

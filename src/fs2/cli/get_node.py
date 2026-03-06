@@ -57,7 +57,40 @@ def get_node(
         2 - System error (corrupted graph)
     """
     try:
-        # === Composition Root ===
+        # === Remote mode branch ===
+        from fs2.cli.remote_client import RemoteClientError
+        from fs2.cli.utils import resolve_remote_client
+
+        remote_client = resolve_remote_client(ctx)
+        if remote_client is not None:
+            import asyncio
+
+            try:
+                graph_name = ctx.obj.graph_name if ctx.obj and ctx.obj.graph_name else None
+                if not graph_name:
+                    console.print(
+                        "[red]Error:[/red] --graph-name is required for remote get-node.\n"
+                        "  Example: fs2 --remote work --graph-name my-repo get-node \"file:src/main.py\""
+                    )
+                    raise typer.Exit(code=1)
+
+                result = asyncio.run(remote_client.get_node(graph_name, node_id))
+                if result is None:
+                    console.print(f"[red]Error:[/red] Node not found: {node_id}")
+                    raise typer.Exit(code=1)
+
+                json_str = json.dumps(result, indent=2, default=str)
+                if file:
+                    file.write_text(json_str)
+                    console.print(f"[green]✓[/green] Wrote {node_id} to {file}")
+                else:
+                    print(json_str)
+                raise typer.Exit(code=0)
+            except RemoteClientError as e:
+                console.print(f"[red]Error:[/red] {e}")
+                raise typer.Exit(code=1) from None
+
+        # === Local mode (existing) ===
         # Per Phase 4: Use resolve_graph_from_context for multi-graph support
         config, graph_store = resolve_graph_from_context(ctx)
 

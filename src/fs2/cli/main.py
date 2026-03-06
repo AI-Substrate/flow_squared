@@ -30,6 +30,7 @@ from fs2.cli.guard import require_init
 from fs2.cli.init import init
 from fs2.cli.install import get_version_string, install, upgrade
 from fs2.cli.list_graphs import list_graphs
+from fs2.cli.list_remotes import list_remotes
 from fs2.cli.mcp import mcp
 from fs2.cli.scan import scan
 from fs2.cli.search import search
@@ -44,10 +45,12 @@ class CLIContext:
     Attributes:
         graph_file: Path to graph file (overrides config). Mutually exclusive with graph_name.
         graph_name: Name of configured graph (from other_graphs). Mutually exclusive with graph_file.
+        remote: Remote server name, URL, or comma-separated list. None means local mode.
     """
 
     graph_file: str | None = None
     graph_name: str | None = None
+    remote: str | None = None
 
 
 def _version_callback(value: bool) -> None:
@@ -81,6 +84,15 @@ def main(
             help="Named graph from other_graphs config (mutually exclusive with --graph-file)",
         ),
     ] = None,
+    remote: Annotated[
+        str | None,
+        typer.Option(
+            "--remote",
+            "-r",
+            help="Remote server name, URL, or comma-separated list (e.g., 'work', 'http://localhost:8000', 'work,oss')",
+            envvar="FS2_REMOTE",
+        ),
+    ] = None,
     version: Annotated[
         bool | None,
         typer.Option(
@@ -98,7 +110,12 @@ def main(
         typer.echo("Error: Cannot use both --graph-file and --graph-name", err=True)
         raise typer.Exit(1)
 
-    ctx.obj = CLIContext(graph_file=graph_file, graph_name=graph_name)
+    # Remote mode is incompatible with --graph-file (local override)
+    if remote and graph_file:
+        typer.echo("Error: Cannot use both --remote and --graph-file", err=True)
+        raise typer.Exit(1)
+
+    ctx.obj = CLIContext(graph_file=graph_file, graph_name=graph_name, remote=remote)
 
 
 # Register commands
@@ -117,6 +134,7 @@ app.command(name="agents-start-here")(
     agents_start_here
 )  # Per Plan 026: Agent onboarding
 app.command(name="list-graphs")(list_graphs)  # Per subtask 001: diagnostic command
+app.command(name="list-remotes")(list_remotes)  # Per Phase 5: remote discovery
 app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
 app.command(name="install")(install)
 app.command(name="upgrade")(upgrade)
