@@ -156,7 +156,7 @@ def _run_upgrade() -> int:
 
     try:
         result = subprocess.run(
-            ["uv", "tool", "upgrade", "--with", "azure-identity>=1.18.0,<2", "fs2"],
+            ["uv", "tool", "upgrade", "fs2"],
             capture_output=True,
             text=True,
             check=False,
