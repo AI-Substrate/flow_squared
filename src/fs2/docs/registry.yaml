@@ -104,6 +104,20 @@ documents:
       - monorepo
     path: multi-graphs.md
 
+  # === Remotes ===
+  - id: remotes
+    title: "Remote Server Guide"
+    summary: "Configure and use remote fs2 servers. Covers named remotes, --remote flag, multi-remote search, MCP mixed mode, and troubleshooting."
+    category: how-to
+    tags:
+      - remotes
+      - remote
+      - server
+      - config
+      - mcp
+      - multi-remote
+    path: how/user/remotes.md
+
   # === IDE Integration ===
   - id: wormhole-mcp-guide
     title: "Wormhole MCP Guide"

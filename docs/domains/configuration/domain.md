@@ -20,6 +20,7 @@ Owns the typed configuration registry — loading settings from multiple sources
 | Test configuration | `FakeConfigurationService(configs...)` | Pre-wire configs for testing without files or env vars |
 | Server database config | `config.require(ServerDatabaseConfig)` | PostgreSQL connection settings (host, port, pool) for server mode |
 | Server storage config | `config.require(ServerStorageConfig)` | Upload staging directory and max upload size for server mode |
+| Remote server config | `config.get(RemotesConfig)` | Named remote servers (name, URL, api_key) for CLI --remote and MCP mixed mode |
 
 ### Get typed configuration
 
@@ -90,6 +91,8 @@ config = FakeConfigurationService(
 | `WatchConfig` | Pydantic Model | watch service | debounce, timeout |
 | `ServerDatabaseConfig` | Pydantic Model | server domain | DB host, port, pool settings, conninfo |
 | `ServerStorageConfig` | Pydantic Model | server domain | Upload staging directory, max upload size |
+| `RemotesConfig` | Pydantic Model | cli-presentation, MCP server | Named remote server list |
+| `RemoteServer` | Pydantic Model | cli-presentation, MCP server | Single remote: name, url, api_key, description |
 | `MissingConfigurationError` | Exception | All consumers | Actionable error with sources |
 
 ## Composition (Internal)
@@ -144,3 +147,4 @@ Primary: `src/fs2/config/`
 | 027-openrouter-provider | OpenAI-compatible config | 2025 |
 | *(extracted)* | Domain extracted from existing codebase | 2026-03-05 |
 | 028-server-mode (Phase 1) | Added ServerDatabaseConfig + ServerStorageConfig for server mode | 2026-03-05 |
+| 028-server-mode (Phase 5) | Added RemotesConfig + RemoteServer for named remotes | 2026-03-05 |

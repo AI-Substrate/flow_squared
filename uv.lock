@@ -535,6 +535,7 @@ name = "fs2"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "azure-identity" },
     { name = "fastapi" },
     { name = "fastmcp" },
     { name = "httpx" },
@@ -561,9 +562,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-azure-ad = [
-    { name = "azure-identity" },
-]
 dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -578,7 +576,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "azure-identity", marker = "extra == 'azure-ad'", specifier = ">=1.18.0,<2" },
+    { name = "azure-identity", specifier = ">=1.18.0,<2" },
     { name = "fastapi", specifier = ">=0.135.1" },
     { name = "fastmcp", specifier = ">=2.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },
@@ -607,7 +605,7 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.40.0" },
     { name = "watchfiles", specifier = ">=0.21" },
 ]
-provides-extras = ["azure-ad", "dev"]
+provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = ">=0.14.6" }]

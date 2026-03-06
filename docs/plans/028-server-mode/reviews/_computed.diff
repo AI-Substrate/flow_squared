@@ -1,3000 +1,1405 @@
-diff --git a/docs/domains/graph-storage/domain.md b/docs/domains/graph-storage/domain.md
-index bee8ff4..5d62389 100644
---- a/docs/domains/graph-storage/domain.md
-+++ b/docs/domains/graph-storage/domain.md
-@@ -145,3 +145,4 @@ Primary: `src/fs2/core/repos/` + `src/fs2/core/models/` + `src/fs2/core/services
- | *(extracted)* | Domain extracted from existing codebase | 2026-03-05 |
- | 028-server-mode (Phase 1) | Documented schema ownership boundary: server owns DDL bootstrap, graph-storage owns data contracts | 2026-03-05 |
- | 028-server-mode (Phase 3) | Extracted RestrictedUnpickler to pickle_security.py (public contract). Added PostgreSQLGraphStore. | 2026-03-06 |
-+| 028-server-mode (Phase 4) | Extended PostgreSQLGraphStore with filtered node queries, text/regex search SQL, children count, embedding availability check. | 2026-03-06 |
-diff --git a/docs/domains/search/domain.md b/docs/domains/search/domain.md
-index 7f0ff23..09ab612 100644
---- a/docs/domains/search/domain.md
-+++ b/docs/domains/search/domain.md
-@@ -110,6 +110,7 @@ Primary: `src/fs2/core/services/search/` + `src/fs2/core/models/search/`
- | `src/fs2/core/services/search/semantic_matcher.py` | Matcher | Cosine similarity + embedding |
- | `src/fs2/core/services/search/exceptions.py` | Exceptions | SearchError |
- | `src/fs2/core/services/search/__init__.py` | Exports | |
-+| `src/fs2/core/services/search/pgvector_matcher.py` | Server matcher | SQL cosine search via pgvector HNSW |
- | `src/fs2/core/models/search/query_spec.py` | Input model | Frozen, validated |
- | `src/fs2/core/models/search/search_mode.py` | Enum | 4 modes |
- | `src/fs2/core/models/search/search_result.py` | Output model | 13 fields, to_dict() |
-@@ -141,3 +142,4 @@ Primary: `src/fs2/core/services/search/` + `src/fs2/core/models/search/`
- | 015-search-fix | Bug fixes | 2025 |
- | 018-search-trimming | Parent penalization | 2025 |
- | *(extracted)* | Domain extracted from existing codebase | 2026-03-05 |
-+| 028-server-mode (Phase 4) | PgvectorSemanticMatcher: SQL-based cosine search via pgvector HNSW index for server query API | 2026-03-06 |
-diff --git a/docs/domains/server/domain.md b/docs/domains/server/domain.md
-index 993de0a..3127b4d 100644
---- a/docs/domains/server/domain.md
-+++ b/docs/domains/server/domain.md
-@@ -72,7 +72,8 @@ Primary: `src/fs2/server/`
- | `src/fs2/server/ingestion.py` | Ingestion pipeline | `IngestionPipeline` — pickle → COPY to PostgreSQL |
- | `src/fs2/server/routes/__init__.py` | Routes package | |
- | `src/fs2/server/routes/health.py` | Health endpoint | `GET /health` |
--| `src/fs2/server/routes/graphs.py` | Graph management | Upload, list, status, delete |
-+| `src/fs2/server/routes/graphs.py` | Graph management | Upload, list (with status filter), status, delete |
-+| `src/fs2/server/routes/query.py` | Query endpoints | Tree, search, get-node, multi-graph search |
+diff --git a/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.fltplan.md b/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.fltplan.md
+index df65f0f..602352c 100644
+--- a/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.fltplan.md
++++ b/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.fltplan.md
+@@ -43,7 +43,7 @@ stateDiagram-v2
+     classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
  
- ## History
+     state "1: Config models" as S1
+-    state "2: RemoteGraphStore" as S2
++    state "2: RemoteClient" as S2
+     state "3: CLI --remote + resolve" as S3
+     state "4: list-remotes + MCP" as S4
+     state "5: Tests" as S5
+@@ -64,9 +64,9 @@ stateDiagram-v2
  
-@@ -81,3 +82,4 @@ Primary: `src/fs2/server/`
- | 028-server-mode | Domain created | 2026-03-05 |
- | 028-server-mode (Phase 1) | Server skeleton implemented: app factory, database pool, schema DDL, health endpoint | 2026-03-05 |
- | 028-server-mode (Phase 3) | Ingestion pipeline, graph upload/list/status/delete endpoints, ingestion_jobs table | 2026-03-06 |
-+| 028-server-mode (Phase 4) | Query API: tree, search (text/regex/semantic/auto), get-node, multi-graph search. PgvectorSemanticMatcher. Enhanced list-graphs with status filter. | 2026-03-06 |
-diff --git a/docs/plans/028-server-mode/tasks/phase-4-server-query-api/execution.log.md b/docs/plans/028-server-mode/tasks/phase-4-server-query-api/execution.log.md
-new file mode 100644
-index 0000000..1a7c5b6
---- /dev/null
-+++ b/docs/plans/028-server-mode/tasks/phase-4-server-query-api/execution.log.md
-@@ -0,0 +1,37 @@
-+# Execution Log — Phase 4: Server Query API
-+
-+**Plan**: [../../server-mode-plan.md](../../server-mode-plan.md)
-+**Phase**: Phase 4: Server Query API
-+**Started**: 2026-03-06
-+**Completed**: 2026-03-06
-+
-+---
-+
-+## Task Progress
-+
-+| ID | Task | Status | Evidence |
-+|----|------|--------|----------|
-+| T001 | Tree query + filtered nodes | ✅ done | `get_filtered_nodes_async()`, `get_children_count_async()`, `has_embeddings_async()` added to graph_store_pg.py |
-+| T002 | Text/regex search SQL | ✅ done | `search_text_async()`, `search_regex_async()` with trigram ILIKE/~ and heuristic scoring |
-+| T003 | PgvectorSemanticMatcher | ✅ done | New `pgvector_matcher.py` in search domain. HNSW cosine via `<=>` operator. Multi-graph `IN(...)`. |
-+| T004 | Query routes | ✅ done | `routes/query.py`: GET tree (folder hierarchy), search (4 modes), get-node (children_count) |
-+| T005 | Multi-graph search | ✅ done | `GET /api/v1/search` with `graph=all|name1,name2`. Single SQL `IN(...)`, no fan-out. |
-+| T006 | Embedding model validation | ✅ done | Auto-mode checks per-graph embedding availability. Falls back to text when no adapter/embeddings. |
-+| T007 | Response format parity | ✅ done | SearchResult envelope (meta+results), TreeNode shape, CodeNode detail levels match local |
-+| T008 | Wire query router | ✅ done | `query_router` mounted in app.py. list-graphs enhanced with `?status=` filter. |
-+| T009 | Tests | ✅ done | 19 new tests: tree (5), get-node (3), search (3), multi-graph (3), list-graphs (1), format parity (4) |
-+
-+## Decisions Made
-+
-+1. **No CTE for folders** — tree folder hierarchy uses Python path-splitting (same as TreeService), SQL just fetches filtered nodes (DYK #3)
-+2. **Single SQL for multi-graph** — `WHERE graph_id IN (...)` not fan-out (DYK #2)
-+3. **EmbeddingAdapter wiring deferred** — app.state.embedding_adapter = None for now, search falls back to text. Wired when server gets its own config.
-+4. **FastAPI `pattern` param** instead of deprecated `regex` for Query validation
-+
-+## Test Results
-+
-+```
-+52 server tests passed, 2 deselected (slow) in 2.13s
-+Full suite: 1590 passed, 25 skipped, 343 deselected in 54.48s
-+Lint: All checks passed (ruff)
-+```
-diff --git a/docs/plans/028-server-mode/tasks/phase-4-server-query-api/tasks.fltplan.md b/docs/plans/028-server-mode/tasks/phase-4-server-query-api/tasks.fltplan.md
-new file mode 100644
-index 0000000..3bcc93d
---- /dev/null
-+++ b/docs/plans/028-server-mode/tasks/phase-4-server-query-api/tasks.fltplan.md
-@@ -0,0 +1,161 @@
-+# Flight Plan: Phase 4 — Server Query API
-+
-+**Plan**: [../../server-mode-plan.md](../../server-mode-plan.md)
-+**Phase**: Phase 4: Server Query API
-+**Generated**: 2026-03-06
-+**Status**: Landed
-+
-+---
-+
-+## Departure → Destination
-+
-+**Where we are**: The server can receive graph pickle uploads, ingest them into PostgreSQL via COPY, and list/delete graphs. But uploaded data is write-only — there are no query endpoints. The `PostgreSQLGraphStore` has basic async methods (`get_node_async`, `get_children_async`, `get_parent_async`, `get_all_nodes_async`) but no tree CTE, no SQL search, and no vector similarity queries.
-+
-+**Where we're going**: A developer can `GET /api/v1/graphs/{name}/tree`, `GET /api/v1/graphs/{name}/search`, and `GET /api/v1/graphs/{name}/nodes/{id}` and receive the same JSON output they'd get from the local `fs2` CLI. Multi-graph search across all available graphs works. Semantic search uses pgvector HNSW for sub-100ms response. Text/regex search uses trigram GIN indexes. Response format matches SearchResult/TreeNode serialization exactly.
-+
-+---
-+
-+## Domain Context
-+
-+### Domains We're Changing
-+
-+| Domain | What Changes | Key Files |
-+|--------|-------------|-----------|
-+| server | New query routes, wire into app, enhance list-graphs | `routes/query.py`, `app.py`, `routes/graphs.py` |
-+| search | New PgvectorSemanticMatcher (SQL-native cosine search) | `pgvector_matcher.py` |
-+| graph-storage | Extend PostgreSQLGraphStore with tree CTE + text/regex search | `graph_store_pg.py` |
-+
-+### Domains We Depend On (no changes)
-+
-+| Domain | What We Consume | Contract |
-+|--------|----------------|----------|
-+| configuration | `ServerDatabaseConfig` | Config model for DB connection |
-+| graph-storage (existing) | `CodeNode`, `ConnectionProvider` protocol | Data model + DB access |
-+| search (existing) | `SearchResult`, `SearchResultMeta`, `SearchMode`, `QuerySpec` | Output models + enum |
-+
-+---
-+
-+## Flight Status
-+
-+<!-- Updated by /plan-6-v2: pending → active → done. Use blocked for problems/input needed. -->
-+
-+```mermaid
-+stateDiagram-v2
-+    classDef pending fill:#9E9E9E,stroke:#757575,color:#fff
-+    classDef active fill:#FFC107,stroke:#FFA000,color:#000
-+    classDef done fill:#4CAF50,stroke:#388E3C,color:#fff
-+    classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
-+
-+    state "1: Extend PG store (filter + search SQL)" as S1
-+    state "2: PgvectorMatcher + EmbeddingAdapter" as S2
-+    state "3: Query routes (tree/search/get-node)" as S3
-+    state "4: Multi-graph IN(...) + validation" as S4
-+    state "5: Wire + tests" as S5
-+
-+    [*] --> S1
-+    S1 --> S2
-+    S2 --> S3
-+    S3 --> S4
-+    S4 --> S5
-+    S5 --> [*]
-+
-+    class S1,S2,S3,S4,S5 done
-+```
-+
-+**Legend**: grey = pending | yellow = active | red = blocked/needs input | green = done
-+
-+---
-+
-+## Stages
-+
-+<!-- Updated by /plan-6-v2 during implementation: [ ] → [~] → [x] -->
-+
-+- [x] **Stage 1: Extend PostgreSQLGraphStore** — Add filtered node queries and text/regex search SQL methods (`graph_store_pg.py`)
-+- [x] **Stage 2: Create PgvectorSemanticMatcher** — SQL cosine search using HNSW index + wire EmbeddingAdapter (`pgvector_matcher.py` — new file)
-+- [x] **Stage 3: Create query routes** — Tree (reuse TreeService folder algorithm), search, get-node endpoints with format parity (`routes/query.py` — new file)
-+- [x] **Stage 4: Multi-graph search + model validation** — Single SQL with `IN(...)`, embedding model check, per-graph embedding availability (`routes/query.py`)
-+- [x] **Stage 5: Wire router + test suite** — Mount in app factory, full test coverage (`app.py`, `test_query_api.py`, `test_pgvector_matcher.py`)
-+
-+---
-+
-+## Architecture: Before & After
-+
-+```mermaid
-+flowchart LR
-+    classDef existing fill:#E8F5E9,stroke:#4CAF50,color:#000
-+    classDef changed fill:#FFF3E0,stroke:#FF9800,color:#000
-+    classDef new fill:#E3F2FD,stroke:#2196F3,color:#000
-+
-+    subgraph Before["Before Phase 4"]
-+        B_APP["app.py"]:::existing
-+        B_DB["Database"]:::existing
-+        B_HEALTH["/health"]:::existing
-+        B_GRAPHS["/api/v1/graphs\n(upload/list/delete)"]:::existing
-+        B_PGSTORE["PostgreSQLGraphStore\n(get_node, get_children)"]:::existing
-+        B_APP --> B_HEALTH
-+        B_APP --> B_GRAPHS
-+        B_GRAPHS --> B_DB
-+        B_PGSTORE --> B_DB
-+    end
-+
-+    subgraph After["After Phase 4"]
-+        A_APP["app.py"]:::changed
-+        A_DB["Database"]:::existing
-+        A_HEALTH["/health"]:::existing
-+        A_GRAPHS["/api/v1/graphs\n(enhanced list)"]:::changed
-+        A_QUERY["/api/v1/graphs/{name}/\ntree|search|nodes"]:::new
-+        A_MULTI["/api/v1/search\n(multi-graph)"]:::new
-+        A_PGSTORE["PostgreSQLGraphStore\n(+tree CTE, +text/regex)"]:::changed
-+        A_PGVEC["PgvectorSemanticMatcher\n(SQL cosine HNSW)"]:::new
-+        A_APP --> A_HEALTH
-+        A_APP --> A_GRAPHS
-+        A_APP --> A_QUERY
-+        A_APP --> A_MULTI
-+        A_QUERY --> A_PGSTORE
-+        A_QUERY --> A_PGVEC
-+        A_MULTI --> A_PGSTORE
-+        A_MULTI --> A_PGVEC
-+        A_PGSTORE --> A_DB
-+        A_PGVEC --> A_DB
-+    end
-+```
-+
-+**Legend**: existing (green, unchanged) | changed (orange, modified) | new (blue, created)
-+
-+---
-+
-+## Acceptance Criteria
-+
-+- [x] AC6: Remote tree matches local tree (pattern filtering, depth limits)
-+- [x] AC7: Remote search (text/regex/semantic/auto) returns scored results, multi-graph works
-+- [x] AC8: Remote get-node returns all CodeNode fields
-+- [x] AC9: List-graphs shows all accessible graphs with metadata + status filter
-+- [x] AC10: Semantic search <100ms at 200K+ nodes via HNSW
-+
-+## Goals & Non-Goals
-+
-+**Goals**:
-+- ✅ All 4 search modes work via SQL (no in-memory get_all_nodes)
-+- ✅ Response JSON matches local CLI/MCP output exactly
-+- ✅ Multi-graph search with result attribution
-+- ✅ Embedding model mismatch detection
-+
-+**Non-Goals**:
-+- ❌ CLI --remote flag (Phase 5)
-+- ❌ MCP remote mode (Phase 5)
-+- ❌ Dashboard UI (Phase 6)
-+- ❌ Auth on query endpoints
-+
-+---
-+
-+## Checklist
-+
-+- [x] T001: Tree CTE + children queries in PostgreSQLGraphStore
-+- [x] T002: Text/regex search SQL in PostgreSQLGraphStore
-+- [x] T003: PgvectorSemanticMatcher (SQL cosine via HNSW)
-+- [x] T004: Query routes (tree, search, get-node)
-+- [x] T005: Multi-graph search endpoint
-+- [x] T006: Embedding model validation
-+- [x] T007: Response format parity
-+- [x] T008: Wire query router + enhance list-graphs
-+- [x] T009: Test suite
-diff --git a/docs/plans/028-server-mode/tasks/phase-4-server-query-api/tasks.md b/docs/plans/028-server-mode/tasks/phase-4-server-query-api/tasks.md
-new file mode 100644
-index 0000000..c7c2376
---- /dev/null
-+++ b/docs/plans/028-server-mode/tasks/phase-4-server-query-api/tasks.md
-@@ -0,0 +1,392 @@
-+# Phase 4: Server Query API — Tasks
-+
-+**Plan**: [server-mode-plan.md](../../server-mode-plan.md)
-+**Phase**: Phase 4: Server Query API
-+**Generated**: 2026-03-06
-+**CS**: CS-4 (large)
-+
-+---
-+
-+## Executive Briefing
-+
-+- **Purpose**: Expose tree, search, get-node, and list-graphs as REST endpoints on the server, replacing the local in-memory approach with SQL-native queries. This is what makes the server *useful for clients* — without query endpoints, uploaded graphs are write-only.
-+- **What We're Building**: Four REST query endpoints (`/tree`, `/search`, `/nodes/{id}`, `/graphs`) that produce the same JSON output as local CLI commands, plus a `PgvectorSemanticMatcher` for SQL-based cosine search, SQL text/regex search via ILIKE/`~` operators, multi-graph search fanout, and embedding model validation.
-+- **Goals**:
-+  - ✅ `GET /api/v1/graphs/{name}/tree` returns same output as `fs2 tree`
-+  - ✅ `GET /api/v1/graphs/{name}/search` supports text/regex/semantic/auto modes
-+  - ✅ `GET /api/v1/graphs/{name}/nodes/{node_id}` returns same output as `fs2 get-node`
-+  - ✅ `GET /api/v1/graphs` lists all graphs with metadata (enhanced from Phase 3)
-+  - ✅ Multi-graph search across 1, N, or all graphs
-+  - ✅ Semantic search <100ms at 200K+ nodes (pgvector HNSW)
-+  - ✅ Embedding model mismatch validation before semantic search
-+  - ✅ Response format parity with existing CLI/MCP output
-+- **Non-Goals**:
-+  - ❌ Remote CLI integration (Phase 5 — this phase builds the API that CLI will consume)
-+  - ❌ MCP remote mode (Phase 5)
-+  - ❌ Dashboard UI (Phase 6)
-+  - ❌ Authentication (deferred)
-+  - ❌ Modifying the existing local SearchService — server uses SQL-native queries
-+
-+---
-+
-+## Prior Phase Context
-+
-+### Phase 1: Server Skeleton + Database (Done ✅)
-+
-+**A. Deliverables**:
-+- `src/fs2/server/app.py` — FastAPI app factory with lifespan (startup: pool + schema)
-+- `src/fs2/server/database.py` — `Database` class (async pool, server-domain **contract**)
-+- `src/fs2/server/schema.py` — `create_schema()` with 6 tables, 17 indexes, 3 extensions
-+- `src/fs2/server/routes/health.py` — `GET /health`
-+- `src/fs2/config/objects.py` — `ServerDatabaseConfig`, `ServerStorageConfig`
-+- `docker-compose.yml` + `Dockerfile` — FastAPI + PostgreSQL + Redis
-+- `tests/server/` — 16 tests passing
-+
-+**B. Dependencies Exported**:
-+- `Database.connection()` — async context manager for DB access
-+- `create_app(db_config, database)` — DI for testing
-+- `ServerDatabaseConfig.conninfo` — connection string builder
-+- Schema DDL with 6 tables (tenants, graphs, code_nodes, node_edges, embedding_chunks, ingestion_jobs)
-+- `FakeDatabase` pattern from test_health.py
-+
-+**C. Gotchas & Debt**:
-+- Schema uses `IF NOT EXISTS` on every startup (no Alembic yet)
-+- pgvector pool `configure` callback required for every new connection
-+- No `tenant_id` on data tables — only on `graphs` table for grouping
-+
-+**D. Incomplete Items**: None.
-+
-+**E. Patterns to Follow**:
-+- FastAPI app factory with DI params for testing
-+- `Database` class as server-domain contract
-+- `FakeDatabase` with `connection()` override
-+- Append to `SCHEMA_SQL` for new tables (idempotent IF NOT EXISTS)
-+
-+### Phase 2: Auth (Skipped ⏭️)
-+
-+Skipped — no auth on query/upload endpoints. Auth deferred to dashboard phase.
-+
-+### Phase 3: Ingestion Pipeline + Graph Upload (Done ✅)
-+
-+**A. Deliverables**:
-+- `src/fs2/server/ingestion.py` — `IngestionPipeline` class (COPY-based, TDD-testable, sync in-process)
-+- `src/fs2/server/routes/graphs.py` — Upload (`POST`), list (`GET`), status (`GET`), delete (`DELETE`)
-+- `src/fs2/core/repos/graph_store_pg.py` — `PostgreSQLGraphStore` + `ConnectionProvider` protocol
-+- `src/fs2/core/repos/pickle_security.py` — Extracted `RestrictedUnpickler`
-+- 28 server tests passing, 1566 total suite
-+
-+**B. Dependencies Exported**:
-+- `PostgreSQLGraphStore(db, graph_id)` — async query methods (get_node_async, get_children_async, get_parent_async, get_all_nodes_async)
-+- `ConnectionProvider` protocol — decouples graph-storage from server.Database
-+- `_NODE_COLUMNS` constant — 25-column SELECT list for code_nodes
-+- `_row_to_code_node()` — reconstruct CodeNode from DB row
-+- `_group_embeddings()` — group embedding chunks by node_id/type
-+- `IngestionPipeline.ingest()` — upload→ingest flow
-+- `list_graphs` endpoint at `GET /api/v1/graphs`
-+
-+**C. Gotchas & Debt**:
-+- PostgreSQLGraphStore sync methods raise `NotImplementedError` — must use `*_async()` methods
-+- `get_all_nodes_async()` loads ALL nodes for a graph — not suitable for search at 500K scale (Finding 02)
-+- Embedding round-trip: chunks in separate table → JOIN + re-group
-+- Upload endpoint uses `Form()`/`File()` annotations for multipart
-+
-+**D. Incomplete Items**: None.
-+
-+**E. Patterns to Follow**:
-+- `ConnectionProvider` protocol for DB access in graph-storage domain
-+- `_row_to_code_node()` for CodeNode reconstruction
-+- Streaming upload with size limit enforcement
-+- Sync in-process pipeline (no background tasks)
-+
-+---
-+
-+## Pre-Implementation Check
-+
-+| File | Exists? | Domain Check | Notes |
-+|------|---------|-------------|-------|
-+| `src/fs2/server/routes/query.py` | ❌ Create | server ✅ | Tree, search, get-node query endpoints |
-+| `src/fs2/core/services/search/pgvector_matcher.py` | ❌ Create | search ✅ | PgvectorSemanticMatcher — SQL cosine search |
-+| `src/fs2/core/repos/graph_store_pg.py` | ✅ Modify | graph-storage ✅ | Add tree CTE query, text/regex search methods |
-+| `src/fs2/server/routes/graphs.py` | ✅ Modify | server ✅ | Enhance list_graphs with embedding_model filter |
-+| `src/fs2/server/app.py` | ✅ Modify | server ✅ | Mount query router |
-+| `tests/server/test_query_api.py` | ❌ Create | server ✅ | Query endpoint tests |
-+| `tests/server/test_pgvector_matcher.py` | ❌ Create | search ✅ | PgvectorSemanticMatcher unit tests |
-+| `tests/server/test_graph_store_pg.py` | ✅ Modify | graph-storage ✅ | Add tree/search method tests |
-+
-+**Concept duplication check**: SearchService + TextMatcher + RegexMatcher exist locally for in-memory search. Server-side search uses SQL-native queries instead — no duplication, different approach. `PgvectorSemanticMatcher` is new — searches `embedding_chunks` table via SQL cosine similarity, not in-memory cosine. The local SemanticMatcher iterates Python lists; PgvectorSemanticMatcher queries pgvector HNSW index. Clean to proceed.
-+
-+---
-+
-+## Architecture Map
-+
-+```mermaid
-+flowchart TD
-+    classDef pending fill:#9E9E9E,stroke:#757575,color:#fff
-+    classDef done fill:#4CAF50,stroke:#388E3C,color:#fff
-+    classDef modified fill:#FFF3E0,stroke:#FF9800,color:#000
-+
-+    subgraph Phase1_3["Phases 1+3 (Done)"]
-+        APP["app.py"]:::done
-+        DB["Database"]:::done
-+        SCHEMA["schema.py"]:::done
-+        HEALTH["/health"]:::done
-+        GRAPHS_R["/api/v1/graphs"]:::done
-+        PGSTORE["PostgreSQLGraphStore"]:::done
-+    end
-+
-+    subgraph Phase4["Phase 4: Server Query API"]
-+        T001["T001: Tree query + folder hierarchy"]:::pending
-+        T002["T002: Text/regex search SQL"]:::pending
-+        T003["T003: PgvectorSemanticMatcher"]:::pending
-+        T004["T004: Query routes (tree/search/get-node)"]:::pending
-+        T005["T005: Multi-graph search"]:::pending
-+        T006["T006: Embedding model validation"]:::pending
-+        T007["T007: Response format parity"]:::pending
-+        T008["T008: Wire query router"]:::pending
-+        T009["T009: Tests"]:::pending
-+
-+        T001 --> T004
-+        T002 --> T004
-+        T003 --> T004
-+        T004 --> T005
-+        T006 --> T005
-+        T004 --> T007
-+        T007 --> T008
-+        T005 --> T008
-+        T008 --> T009
-+    end
-+
-+    PGSTORE -.->|modify| T001
-+    PGSTORE -.->|modify| T002
-+    DB -.->|consume| T003
-+    APP -.->|modify| T008
-+    GRAPHS_R -.->|consume| T005
-+
-+    subgraph NewFiles["New Files"]
-+        F1["routes/query.py"]:::pending
-+        F2["pgvector_matcher.py"]:::pending
-+        F3["test_query_api.py"]:::pending
-+        F4["test_pgvector_matcher.py"]:::pending
-+    end
-+
-+    T004 -.-> F1
-+    T003 -.-> F2
-+    T009 -.-> F3
-+    T009 -.-> F4
-+```
-+
-+---
-+
-+## Tasks
-+
-+| Status | ID | Task | Domain | Path(s) | Done When | Notes |
-+|--------|-----|------|--------|---------|-----------|-------|
-+| [x] | T001 | Add tree query methods to PostgreSQLGraphStore: SQL-filtered node fetch + reuse TreeService folder hierarchy algorithm | graph-storage | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/core/repos/graph_store_pg.py` | `get_filtered_nodes_async(pattern)` returns nodes filtered by pattern; `get_file_nodes_async()` returns all file-category nodes. Tree assembly reuses TreeService algorithm in Python. | **DYK #3**: Do NOT use `WITH RECURSIVE` CTE for folder hierarchy — folders are *virtual*, derived from `node_id` path strings (not `node_edges`). TreeService already has `_compute_folder_hierarchy()` + `_build_folder_tree_nodes()` that split paths at `/`. Reuse same algorithm. SQL role: (1) fetch filtered nodes via `ILIKE`/`~`/exact, (2) fetch children via `node_edges` for AST expansion. Pattern modes: `.` → all file nodes for folder tree, `file:...` → exact node_id, `/` suffix → folder prefix filter, else → substring/glob. |
-+| [x] | T002 | Add text/regex search methods to PostgreSQLGraphStore: SQL ILIKE/`~` with trigram indexes | graph-storage | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/core/repos/graph_store_pg.py` | `search_text_async(pattern, limit, offset)` and `search_regex_async(pattern, limit, offset)` return list[SearchResult]-compatible dicts. Uses trigram GIN indexes. | **Workshop D5**: Text search → `ILIKE '%pattern%'` on content, node_id, smart_content. Regex → `~` operator with same columns. Score: text match priority (node_id match > smart_content > content). Uses `idx_nodes_content_trgm`, `idx_nodes_nodeid_trgm`, `idx_nodes_smart_trgm`. Return same fields as SearchResult.to_dict(). Include `include`/`exclude` as SQL WHERE node_id filter. |
-+| [x] | T003 | Create PgvectorSemanticMatcher: SQL cosine query against embedding_chunks HNSW index | search | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/core/services/search/pgvector_matcher.py` | `match_async(query_vector, graph_ids, limit, min_similarity)` returns list[SearchResult]-compatible dicts. Sub-100ms at 200K nodes using HNSW index. | **Finding 02, AC10**: Query: `SELECT ... FROM embedding_chunks ORDER BY embedding <=> %s LIMIT %s` with HNSW. Join `code_nodes` for node metadata. Filter `1 - (embedding <=> query_vector) >= min_similarity`. Takes `ConnectionProvider` via DI (not Database). Must handle both `content` and `smart_content` embedding types. Return best chunk match per node. Accepts `graph_ids: list[str]` for multi-graph via `WHERE graph_id IN (...)`. **DYK #1**: Wire existing `EmbeddingAdapter` (Azure/OpenAI) from fs2 config for text-mode `query` param. Instantiate in app factory via `ConfigurationService`. BYO `query_vector` bypasses embedding entirely. |
-+| [x] | T004 | Create query routes: GET tree, GET search, GET get-node | server | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/server/routes/query.py` | All 3 endpoints respond with JSON matching local CLI output format. Tree: `GET /api/v1/graphs/{name}/tree?pattern=.&max_depth=0`. Search: `GET /api/v1/graphs/{name}/search?pattern=...&mode=auto&limit=20&offset=0&detail=min`. Get-node: `GET /api/v1/graphs/{name}/nodes/{node_id:path}`. | **AC6, AC7, AC8**: Graph resolved by name (not UUID) — lookup `graphs` table by name. 404 if graph not found or not `status='ready'`. Search mode defaults to `auto` — route to text/regex/semantic SQL methods based on mode (or auto-detect). Get-node uses `PostgreSQLGraphStore.get_node_async()`. Node IDs contain `/` and `:` — use `{node_id:path}` FastAPI path param. **DYK #4**: Get-node response must include `children_count` (via subquery `SELECT COUNT(*) FROM node_edges`) for parity with local. **DYK #5**: Auto-mode must check per-graph embedding availability via `SELECT EXISTS(SELECT 1 FROM embedding_chunks WHERE graph_id = %s LIMIT 1)` before routing to semantic. No-embedding graphs fall back to TEXT. |
-+| [x] | T005 | Multi-graph search: single SQL query across 1, N, or all graphs via `graph` query param | server | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/server/routes/query.py` | `GET /api/v1/search?pattern=...&graph=all` searches all ready graphs. `graph=repo1,repo2` searches specific graphs. Results merged + re-sorted by score. Each result includes `graph_name` field. | **AC7, DYK #2**: Top-level search endpoint (not under `/graphs/{name}/`). `graph` param: single name, comma-separated list, or `all` (default). **Single SQL query with `WHERE graph_id IN (...)`** — all data is in same PostgreSQL instance, no fan-out needed. JOIN `graphs` table for `graph_name` in each result. Scores are inherently comparable (cosine is absolute, ILIKE heuristics are deterministic). Per-graph weighting deferred to future (add `graphs.search_weight` column later). |
-+| [x] | T006 | Embedding model validation: reject semantic search if query model ≠ stored graph model | server | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/server/routes/query.py` | Semantic search against graph with `embedding_model='text-embedding-3-small'` succeeds. Semantic search with mismatched model returns 422 with clear error. | **Finding R4**: Before semantic search, check `graphs.embedding_model` matches the query's model (sent via `model` query param or server default). If mismatch, return 422: "Graph '{name}' uses model '{stored}' but query uses '{requested}'. Embeddings are incompatible." BYO vector mode skips validation (client is responsible). |
-+| [x] | T007 | Response format parity: ensure JSON output matches local CLI/MCP format for tree, search, get-node | server | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/server/routes/query.py` | Tree response matches TreeNode-to-dict shape. Search response matches SearchResult.to_dict() + SearchResultMeta.to_dict() envelope. Get-node response matches CodeNode field set. | **Plan risk**: Comparison tests required. Tree: recursive `{node_id, name, category, start_line, end_line, children: [...], hidden_children_count}`. Search: `{meta: {total, showing, pagination, folders}, results: [{node_id, score, snippet, ...}]}`. Get-node: all 25+ CodeNode fields + embedding info. Use `detail` query param for min/max on search. |
-+| [x] | T008 | Wire query router into `create_app()` + enhance list-graphs | server | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/server/app.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/server/routes/graphs.py` | Query routes accessible at `/api/v1/graphs/{name}/tree|search|nodes/*`. List-graphs enhanced with `embedding_model` filter param. | Mount `query_router` in app factory. Enhance `GET /api/v1/graphs` with optional `?status=ready` filter for query-eligible graphs (AC9). |
-+| [x] | T009 | Create test suite: query endpoints, PgvectorSemanticMatcher, format parity, multi-graph | server, search, graph-storage | `/Users/jordanknight/substrate/fs2/028-server-mode/tests/server/test_query_api.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/tests/server/test_pgvector_matcher.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/tests/server/test_graph_store_pg.py` | `pytest tests/server/ -m "not slow"` passes including new tests | **Fakes over mocks** (project convention). Tests: (1) tree endpoint returns valid shape + respects pattern/depth, (2) search routes correctly per mode, (3) get-node returns full CodeNode, (4) multi-graph merge + sort, (5) 404 for unknown graph, (6) embedding model mismatch 422, (7) PgvectorSemanticMatcher returns scored results, (8) format parity spot-checks vs SearchResult.to_dict() shape. Mark PostgreSQL integration tests `@pytest.mark.slow`. |
-+
-+---
-+
-+## Context Brief
-+
-+### Key Findings from Plan
-+
-+- **Finding 01** (Critical): GraphStore.save()/load() are file-oriented. PostgreSQLGraphStore query methods work directly against DB — `get_node_async()` already implemented in Phase 3. Action: Extend with `tree_async()`, `search_text_async()`, `search_regex_async()`.
-+- **Finding 02** (High): SearchService loads ALL nodes into memory via `get_all_nodes()` — not viable at 500K nodes (~2.5GB). Action: Server uses SQL-native search. `PgvectorSemanticMatcher` queries pgvector HNSW index directly. Text/regex search uses SQL `ILIKE`/`~` with trigram GIN indexes. **Never call `get_all_nodes_async()` for search.**
-+- **Workshop D5**: Trigram GIN indexes on `content`, `node_id`, `smart_content` columns enable fast ILIKE/regex queries. Already created in Phase 1 schema.
-+- **Finding R4**: Embedding model mismatch between query and stored graph produces garbage results. Must validate before semantic search.
-+
-+### Domain Dependencies
-+
-+- `server.Database` (`src/fs2/server/database.py:Database`): Async connection pool — query routes and PgvectorSemanticMatcher use `db.connection()` for all SQL
-+- `graph-storage.PostgreSQLGraphStore` (`src/fs2/core/repos/graph_store_pg.py`): Existing async query methods — extend with tree/search
-+- `graph-storage.ConnectionProvider` protocol: Decouples PgvectorSemanticMatcher from server.Database
-+- `graph-storage.CodeNode` (`src/fs2/core/models/code_node.py`): Data model for all node responses
-+- `search.SearchResult` (`src/fs2/core/models/search/search_result.py`): Output model for search responses — use `to_dict(detail)` shape
-+- `search.SearchResultMeta` (`src/fs2/core/models/search/search_result_meta.py`): Envelope metadata for search responses
-+- `search.SearchMode` (`src/fs2/core/models/search/search_mode.py`): TEXT/REGEX/SEMANTIC/AUTO enum — reuse for mode routing
-+- `search.QuerySpec` (`src/fs2/core/models/search/query_spec.py`): Validation rules for pattern/limit/offset — replicate server-side
-+
-+### Domain Constraints
-+
-+- **server** domain owns: query routes (`routes/query.py`), app wiring, response formatting
-+- **search** domain owns: PgvectorSemanticMatcher (new SQL-native matcher alongside existing in-memory matchers)
-+- **graph-storage** domain owns: PostgreSQLGraphStore extensions (tree CTE, text/regex search methods)
-+- PgvectorSemanticMatcher takes `ConnectionProvider` via DI — does NOT import from `server.Database` (same pattern as PostgreSQLGraphStore)
-+- Query routes create `PostgreSQLGraphStore` instances per request — inject `Database` from `request.app.state.db`
-+- **Import direction**: server → graph-storage ✅, server → search ✅. Never reverse.
-+- Search SQL must produce output that matches `SearchResult.to_dict()` field structure — no new models, reuse existing
-+
-+### Auto-Mode Detection (Server-Side)
-+
-+The local `SearchService._detect_mode()` uses regex metacharacter heuristics. Replicate server-side:
-+- Pattern contains `*`, `?`, `[`, `]`, `^`, `$`, `|`, `(`, `)` → REGEX mode
-+- Pattern is natural language (no metacharacters) → SEMANTIC (if graph has embeddings) or TEXT fallback
-+- This logic lives in the query route, not in PgvectorSemanticMatcher
-+
-+### Gotchas
-+
-+- **Node IDs contain `/` and `:`**: e.g., `file:src/fs2/cli/main.py`, `class:src/fs2/core/models/code_node.py:CodeNode`. FastAPI path params need `{node_id:path}` to capture the full ID including slashes.
-+- **Tree CTE depth**: `WITH RECURSIVE` must limit depth to avoid infinite loops (though the graph is a DAG). Use `depth` counter in CTE.
-+- **Search score calculation**: SQL has no built-in "search score" for ILIKE. Assign heuristic scores: node_id match → 0.9, smart_content match → 0.7, content match → 0.5. Combine if multiple fields match (max).
-+- **pgvector cosine distance**: pgvector uses `<=>` operator which returns *distance* (0 = identical). Convert to similarity: `1 - (embedding <=> query_vector)`.
-+- **Multi-graph result merging**: Results from different graphs may have different score distributions. Simple merge-sort by score is sufficient for v1.
-+- **BYO embeddings**: Search endpoint accepts either `query` (text, server embeds) or `query_vector` (pre-embedded list[float]). BYO mode skips model validation.
-+
-+### Reusable from Prior Phases
-+
-+- `PostgreSQLGraphStore._row_to_code_node()` — reconstruct CodeNode from DB row
-+- `PostgreSQLGraphStore._NODE_COLUMNS` — 25-column SELECT constant
-+- `PostgreSQLGraphStore._group_embeddings()` — embedding chunk grouping
-+- `Database.connection()` — async context manager for all SQL
-+- `create_app(database=fake_db)` DI pattern for test apps
-+- `FakeDatabase` pattern from test files
-+- `httpx.AsyncClient` + `ASGITransport` for endpoint testing
-+- `SearchResult.to_dict(detail)` — reference for response format
-+- `SearchResultMeta.to_dict()` — reference for envelope format
-+
-+### Search SQL Patterns (from Workshop 001 + Prototype)
-+
-+```sql
-+-- Text search (ILIKE with trigram index)
-+SELECT node_id, category, ... FROM code_nodes
-+WHERE graph_id = %s
-+AND (node_id ILIKE %s OR content ILIKE %s OR smart_content ILIKE %s)
-+ORDER BY ... LIMIT %s OFFSET %s;
-+
-+-- Regex search (~ operator with trigram index)
-+SELECT node_id, category, ... FROM code_nodes
-+WHERE graph_id = %s
-+AND (node_id ~ %s OR content ~ %s OR smart_content ~ %s)
-+ORDER BY ... LIMIT %s OFFSET %s;
-+
-+-- Semantic search (pgvector cosine) — single or multi-graph
-+SELECT ec.node_id, ec.embedding_type, ec.chunk_index,
-+       1 - (ec.embedding <=> %s::vector) AS similarity,
-+       g.name AS graph_name, cn.*
-+FROM embedding_chunks ec
-+JOIN code_nodes cn ON ec.graph_id = cn.graph_id AND ec.node_id = cn.node_id
-+JOIN graphs g ON ec.graph_id = g.id
-+WHERE ec.graph_id IN (%s, %s, ...)  -- single query for multi-graph
-+AND 1 - (ec.embedding <=> %s::vector) >= %s
-+ORDER BY ec.embedding <=> %s::vector
-+LIMIT %s;
-+
-+-- Tree: fetch filtered nodes (SQL does filtering, Python assembles tree)
-+-- Folder tree (pattern='.', max_depth>0): fetch all file-level nodes
-+SELECT {NODE_COLUMNS} FROM code_nodes
-+WHERE graph_id = %s AND node_id LIKE 'file:%%';
-+
-+-- Pattern tree: filter by pattern
-+SELECT {NODE_COLUMNS} FROM code_nodes
-+WHERE graph_id = %s AND node_id ILIKE %s;
-+
-+-- Children expansion (for AST tree building)
-+SELECT {NODE_COLUMNS} FROM code_nodes cn
-+JOIN node_edges ne ON cn.graph_id = ne.graph_id AND cn.node_id = ne.child_node_id
-+WHERE ne.graph_id = %s AND ne.parent_node_id = %s;
-+
-+-- Get-node with children_count
-+SELECT {NODE_COLUMNS},
-+    (SELECT COUNT(*) FROM node_edges ne WHERE ne.graph_id = cn.graph_id AND ne.parent_node_id = cn.node_id) AS children_count
-+FROM code_nodes cn
-+WHERE cn.graph_id = %s AND cn.node_id = %s;
-+
-+-- Per-graph embedding availability check (for auto-mode)
-+SELECT EXISTS(SELECT 1 FROM embedding_chunks WHERE graph_id = %s LIMIT 1);
-+```
-+
-+### Mermaid Flow (Query Request)
-+
-+```mermaid
-+flowchart LR
-+    A[Client GET] --> B{Route}
-+    B -->|/tree| C[SQL filter + Python tree assembly]
-+    B -->|/search| D{Mode}
-+    B -->|/nodes/id| E[get_node_async]
-+    D -->|text| F[ILIKE SQL]
-+    D -->|regex| G[~ SQL]
-+    D -->|semantic| H[pgvector <=>]
-+    D -->|auto| I[detect → route]
-+    C --> J[Format TreeNode]
-+    F --> K[Format SearchResult]
-+    G --> K
-+    H --> K
-+    E --> L[Format CodeNode]
-+    J --> M[JSON Response]
-+    K --> M
-+    L --> M
-+```
-+
-+### Mermaid Sequence (Multi-Graph Search)
-+
-+```mermaid
-+sequenceDiagram
-+    participant Client
-+    participant QueryRoute
-+    participant DB as PostgreSQL
-+
-+    Client->>QueryRoute: GET /api/v1/search?pattern=auth&graph=all
-+    QueryRoute->>DB: SELECT id,name FROM graphs WHERE status='ready'
-+    DB-->>QueryRoute: [graph1_id, graph2_id, graph3_id]
-+
-+    QueryRoute->>DB: Single query: WHERE graph_id IN (g1,g2,g3) + JOIN graphs for name
-+    DB-->>QueryRoute: Merged results with graph_name, sorted by score
-+
-+    QueryRoute->>QueryRoute: Apply limit/offset
-+    QueryRoute-->>Client: {meta: {...}, results: [{graph_name, node_id, score, ...}]}
-+```
-+
-+---
-+
-+## Discoveries & Learnings
-+
-+_Populated during implementation by plan-6._
-+
-+| Date | Task | Type | Discovery | Resolution | References |
-+|------|------|------|-----------|------------|------------|
-+
-+**Types**: `gotcha` | `research-needed` | `unexpected-behavior` | `workaround` | `decision` | `debt` | `insight`
-+
-+---
-+
-+## Directory Layout
-+
-+```
-+docs/plans/028-server-mode/
-+  ├── server-mode-plan.md
-+  ├── server-mode-spec.md
-+  ├── workshops/
-+  │   ├── 001-database-schema.md
-+  │   ├── 002-prototype-validation.md
-+  │   └── 003-remotes-cli-mcp.md
-+  ├── tasks/
-+  │   ├── phase-1-server-skeleton-database/  (done)
-+  │   ├── phase-2-auth/  (skipped)
-+  │   ├── phase-3-ingestion-pipeline/  (done)
-+  │   └── phase-4-server-query-api/
-+  │       ├── tasks.md              ← you are here
-+  │       ├── tasks.fltplan.md      ← flight plan
-+  │       └── execution.log.md      # created by plan-6
-+  └── reviews/
-+```
-+
-+---
-+
-+## Critical Insights (2026-03-06)
+ ## Stages
+ 
+-- [ ] **Stage 1: Config + CLI flag** — Add `RemotesConfig` model and `--remote` flag to CLIContext (`config/objects.py`, `cli/main.py`)
+-- [ ] **Stage 2: RemoteClient** — HTTP client returning raw server JSON with error handling (`cli/remote_client.py` — new file)
+-- [ ] **Stage 3: Remote branches** — `resolve_remote_client()` helper + `if remote_client:` branches in tree/search/get-node/list-graphs (`cli/utils.py`, `cli/*.py`)
++- [x] **Stage 1: Config + CLI flag** — Add `RemotesConfig` model and `--remote` flag to CLIContext (`config/objects.py`, `cli/main.py`)
++- [x] **Stage 2: RemoteClient** — HTTP client returning raw server JSON with error handling (`cli/remote_client.py` — new file)
++- [x] **Stage 3: Remote branches** — `resolve_remote_client()` helper + `if remote_client:` branches in tree/search/get-node/list-graphs (`cli/utils.py`, `cli/*.py`)
+ - [ ] **Stage 4: Commands + MCP** — `list-remotes` command, MCP `--remote` flag, multi-remote support (`cli/list_remotes.py`, `mcp/server.py`)
+ - [ ] **Stage 5: Tests** — RemoteClient, resolve_remotes, list-remotes, CLI branches, error handling (`tests/`)
+ 
+@@ -137,12 +137,12 @@ flowchart LR
+ 
+ ## Checklist
+ 
+-- [ ] T001: RemoteServer + RemotesConfig models
+-- [ ] T002: --remote flag + CLIContext
+-- [ ] T003: RemoteGraphStore (httpx client)
+-- [ ] T004: resolve_graph_from_context remote switching
++- [x] T001: RemoteServer + RemotesConfig models
++- [x] T002: --remote flag + CLIContext
++- [x] T003: RemoteClient (httpx → raw JSON)
++- [x] T004: resolve_remote_client + CLI branches
+ - [ ] T005: list-remotes command
+-- [ ] T006: MultiRemoteGraphStore + resolve_remotes
++- [ ] T006: MultiRemoteClient + resolve_remotes
+ - [ ] T007: MCP --remote flag
+ - [ ] T008: Error handling
+ - [ ] T009: Test suite
+diff --git a/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.md b/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.md
+index 1010eac..da9f218 100644
+--- a/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.md
++++ b/docs/plans/028-server-mode/tasks/phase-5-remote-cli-mcp-bridge/tasks.md
+@@ -163,17 +163,16 @@ flowchart TD
+ 
+ | Status | ID | Task | Domain | Path(s) | Done When | Notes |
+ |--------|-----|------|--------|---------|-----------|-------|
+-| [ ] | T001 | Add `RemoteServer` and `RemotesConfig` Pydantic models to config registry | configuration | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/config/objects.py` | `config.get(RemotesConfig)` returns valid config from YAML; `RemotesConfig` in `YAML_CONFIG_TYPES`. | **Workshop R5**: Path `remotes` in YAML. `RemoteServer` has `name`, `url`, `api_key`, `description`. URL must start with `http://` or `https://`. Follow `OtherGraphsConfig` pattern (list of named items). User + project configs concatenated (R6). |
+-| [ ] | T002 | Add `--remote` global flag to CLI main.py + extend CLIContext | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/main.py` | `fs2 tree --remote work` propagates remote value via `CLIContext.remote` to all subcommands. | **Workshop R1-R3**: Flag is `--remote` / `-r`. Also reads `FS2_REMOTE` env var. Accepts name or URL (detection: starts with `http://` = URL). Comma-separated for multi-remote (R4). CLIContext gets new `remote: str | None = None` field. |
+-| [ ] | T003 | Create `RemoteClient`: sync httpx client calling server REST API directly | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | `RemoteClient(url).search("auth", mode="auto")` returns raw server JSON dict. | **DYK #1/#2**: Does NOT implement GraphStore ABC. Returns raw server JSON dicts, not CodeNode objects. Methods: `tree(graph, pattern, max_depth)` → dict, `search(pattern, mode, graph, limit, ...)` → dict, `get_node(graph, node_id, detail)` → dict, `list_graphs()` → dict. Sync `httpx.Client` (R9). Takes `base_url`, `api_key`. |
+-| [ ] | T004 | Add `resolve_remote_client()` helper + remote branches in CLI commands | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py`, `cli/tree.py`, `cli/search.py`, `cli/get_node.py`, `cli/list_graphs.py` | All 4 commands detect `CLIContext.remote` and branch to RemoteClient path. `resolve_graph_from_context()` is NOT modified. | **DYK #4**: Don't modify `resolve_graph_from_context()`. Add `resolve_remote_client(ctx) → RemoteClient | None` helper. Each CLI command adds `if remote_client: ... else: <existing local path>`. Remote path calls RemoteClient methods → gets raw JSON → prints (or passes to Rich formatter). |
++| [x] | T001 | Add `RemoteServer` and `RemotesConfig` Pydantic models to config registry | configuration | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/config/objects.py` | `config.get(RemotesConfig)` returns valid config from YAML; `RemotesConfig` in `YAML_CONFIG_TYPES`. | **Workshop R5**: Path `remotes` in YAML. `RemoteServer` has `name`, `url`, `api_key`, `description`. URL must start with `http://` or `https://`. Follow `OtherGraphsConfig` pattern (list of named items). User + project configs concatenated (R6). |
++| [x] | T002 | Add `--remote` global flag to CLI main.py + extend CLIContext | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/main.py` | `fs2 tree --remote work` propagates remote value via `CLIContext.remote` to all subcommands. | **Workshop R1-R3**: Flag is `--remote` / `-r`. Also reads `FS2_REMOTE` env var. Accepts name or URL (detection: starts with `http://` = URL). Comma-separated for multi-remote (R4). CLIContext gets new `remote: str | None = None` field. |
++| [x] | T003 | Create `RemoteClient`: async httpx client calling server REST API directly | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | `RemoteClient(url).search("auth", mode="auto")` returns raw server JSON dict. | **DYK #1/#2**: Does NOT implement GraphStore ABC. Returns raw server JSON dicts, not CodeNode objects. Methods: `tree(graph, pattern, max_depth)` → dict, `search(pattern, mode, graph, limit, ...)` → dict, `get_node(graph, node_id, detail)` → dict, `list_graphs()` → dict. Async `httpx.AsyncClient` (DYK-P5-01: sync blocks MCP event loop). CLI wraps with `asyncio.run()`. Takes `base_url`, `api_key`. |
++| [x] | T004 | Add `resolve_remote_client()` helper + remote branches in CLI commands | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py`, `cli/tree.py`, `cli/search.py`, `cli/get_node.py`, `cli/list_graphs.py` | All 4 commands detect `CLIContext.remote` and branch to RemoteClient path. `resolve_graph_from_context()` is NOT modified. | **DYK #4**: Don't modify `resolve_graph_from_context()`. Add `resolve_remote_client(ctx) → RemoteClient | None` helper. Each CLI command adds `if remote_client: ... else: <existing local path>`. **DYK-P5-02**: Remote tree requests `format=text` from server and prints pre-rendered text directly (no TreeNode reconstruction). Search/get-node already output JSON envelopes that map cleanly. CLI wraps async calls with `asyncio.run()`. |
+ | [ ] | T005 | Create `list-remotes` CLI command | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/list_remotes.py` | `fs2 list-remotes` shows all configured remotes with name, URL, description. Supports `--json` output. | Reads `RemotesConfig` from config. Rich table output (name, URL, description). Register in `cli/main.py`. Config-only — no HTTP. |
+-| [ ] | T006 | Implement `MultiRemoteClient` for multi-remote fan-out + `resolve_remotes()` helper | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py` | `fs2 search --remote work,oss "pattern"` searches across both remotes, merges results. Partial failure: warn + continue (R8). | **DYK #1, Workshop R4/R8**: `MultiRemoteClient` wraps N `RemoteClient` instances, fans out `search()` calls, merges result dicts, re-sorts by score. `resolve_remotes(remote_str, config)` splits by comma, looks up names or creates inline URLs. Partial failure warns on stderr, continues with successful remotes. |
+-| [ ] | T007 | Add `--remote` flag to MCP server startup | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/mcp/server.py` | `fs2 mcp --remote work` starts MCP backed by remote. MCP tools return same format. | **DYK #3**: MCP tools detect remote mode → use `RemoteClient` directly, bypassing TreeService/SearchService/GraphStore entirely. `RemoteClient` returns raw JSON which MCP tools return as-is. |
+-| [ ] | T008 | Network error handling: actionable CLI messages for all failure modes | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | Connection refused → "Remote 'work' unreachable at URL". 404 → "Graph not found". 401 → "Auth failed". Timeout → "Request timed out". | Workshop error table. `RemoteClientError` exception with actionable messages. Include remote name and URL in all errors. |
++| [ ] | T006 | Implement `MultiRemoteClient` for multi-remote fan-out + `resolve_remotes()` helper | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/utils.py` | `fs2 search --remote work,oss "pattern"` searches across both remotes, merges results. Partial failure: warn + continue (R8). | **DYK #1, Workshop R4/R8**: `MultiRemoteClient` wraps N `RemoteClient` instances, fans out `search()` calls, merges result dicts, re-sorts by score. `resolve_remotes(remote_str, config)` splits by comma, looks up names or creates inline URLs. Partial failure warns on stderr, continues with successful remotes. **DYK-P5-04**: Cross-remote score comparability is a known v1 limitation — text/regex substring scores are consistent; semantic cosine similarity is comparable across graph sizes; but mixed-model semantics may diverge. Document this. Per-remote weighting is a future enhancement. |
++| [ ] | T007 | MCP mixed local+remote mode | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/mcp/server.py` | MCP `list_graphs()` returns local AND remote graphs merged. `graph_name` routes to local GraphStore or RemoteClient automatically. | **DYK-P5-05**: MCP supports mixed mode — no `--remote` flag needed. If `RemotesConfig` is configured, MCP `list_graphs()` merges local graphs (from GraphService) with remote graphs (from each RemoteClient). When user passes `graph_name`, check local first, then remote. If `graph_name` omitted → default local graph (existing behavior). If `graph_name` not found locally or remotely → ToolError listing all available graphs. RemoteClient returns raw JSON which MCP tools return as-is. |
++| [ ] | T008 | Network error handling: actionable CLI messages for all failure modes | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/cli/remote_client.py` | Connection refused → "Remote 'work' unreachable at URL". 404 → "Graph not found". 401 → "Auth failed". Timeout → "Request timed out". | Workshop error table. `RemoteClientError` exception with actionable messages. Include remote name and URL in all errors. **DYK-P5-03**: Server auto-mode must fallback to text when no embeddings (not 503). Only explicit `mode=semantic` should 503. Verify Phase 4 query route handles this. All errors must be helpful and actionable — never expose raw HTTP status codes to users. |
+ | [ ] | T009 | Create test suite: RemoteClient, resolve_remotes, list-remotes, remote CLI branches | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/cli/test_remote_client.py`, `tests/unit/cli/test_list_remotes.py`, `tests/unit/cli/test_remote_integration.py` | `pytest tests/unit/ -m "not slow"` passes including new tests | **Fakes over mocks** (project convention). Tests: (1) RemoteClient constructs correct URLs + returns raw dicts, (2) resolve_remotes splits comma/URL/name, (3) list-remotes output, (4) CLIContext.remote propagates, (5) error handling for connection/404/timeout, (6) MultiRemoteClient merges + sorts results. Use `httpx.MockTransport` for HTTP faking. |
+-| [ ] | T008 | Network error handling: actionable CLI messages for all failure modes | graph-storage | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/core/repos/graph_store_remote.py` | Connection refused → "Remote 'work' unreachable at URL". 404 → "Graph not found". 401 → "Auth failed". Timeout → "Request timed out". | Workshop error table. Wrap httpx exceptions in `RemoteGraphStoreError` with actionable messages. Include remote name and URL in all errors. |
+-| [ ] | T009 | Create test suite: RemoteGraphStore, resolve_remotes, list-remotes, remote e2e | cli-presentation, graph-storage | `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/repos/test_graph_store_remote.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/cli/test_list_remotes.py`, `/Users/jordanknight/substrate/fs2/028-server-mode/tests/unit/cli/test_remote_integration.py` | `pytest tests/unit/ -m "not slow"` passes including new tests | **Fakes over mocks** (project convention). Tests: (1) RemoteGraphStore constructs correct URLs, (2) resolve_remotes splits comma/URL/name, (3) list-remotes output, (4) CLIContext.remote propagates, (5) error handling for connection/404/timeout, (6) MultiRemoteGraphStore aggregates. Use `httpx.MockTransport` or `respx` for HTTP faking. |
++| [ ] | T010 | Update built-in docs: remotes configuration, --remote usage, MCP mixed mode | cli-presentation | `/Users/jordanknight/substrate/fs2/028-server-mode/src/fs2/docs/` | `fs2 docs remotes` and MCP `docs_get("remotes")` return comprehensive guide. Existing config guide and MCP guide updated to mention remotes. | New `remotes.md` doc covering: named remotes YAML config (`~/.config/fs2/config.yaml` and `.fs2/config.yaml`), `--remote` CLI flag + `FS2_REMOTE` env var, inline URL support, multi-remote comma syntax, MCP mixed mode (local+remote graphs), `list-remotes` command, error troubleshooting. Update `configuration-guide.md` with remotes section. Update `mcp-server-guide.md` with mixed mode. Update `cli.md` with `--remote` and `list-remotes`. Agents must be able to discover remote features via `docs_list`. |
+ 
+ ---
+ 
+@@ -182,22 +181,19 @@ flowchart TD
+ ### Key Findings from Plan
+ 
+ - **Finding 06** (High): `YAML_CONFIG_TYPES` is flat list with unique `__config_path__`. Action: Register `RemotesConfig` at path `remotes`. Follow `OtherGraphsConfig` pattern.
+-- **Finding 07** (High): CLI `resolve_graph_from_context()` is single injection point. Action: Add `--remote` check at top. If set, create `RemoteGraphStore`. Single point of polymorphism.
++- **Finding 07** (High): CLI `resolve_graph_from_context()` is single injection point. Action: Do NOT modify it for remote. Add `resolve_remote_client()` helper instead. CLI commands branch early on remote mode.
+ 
+ ### Domain Dependencies
+ 
+ - `configuration`: ConfigurationService (`config.get(RemotesConfig)`) — load named remotes from YAML/env
+   - Entry: `src/fs2/config/service.py:ConfigurationService`
+   - Pattern: `config.get(RemotesConfig)` returns None if not configured (optional config)
+-- `graph-storage`: GraphStore ABC — RemoteGraphStore implements this
+-  - Entry: `src/fs2/core/repos/graph_store.py:GraphStore`
+-  - Pattern: Same 10 abstract methods as NetworkXGraphStore
+-- `graph-storage`: CodeNode frozen dataclass — reconstructed from server JSON responses
+-  - Entry: `src/fs2/core/models/code_node.py:CodeNode`
+ - `cli-presentation`: CLIContext + main callback — extend with `remote` field
+   - Entry: `src/fs2/cli/main.py:CLIContext`, `main()`
+-- `cli-presentation`: resolve_graph_from_context — modify for remote switching
+-  - Entry: `src/fs2/cli/utils.py:resolve_graph_from_context()`
++- `cli-presentation`: `resolve_remote_client()` — new helper, does NOT modify `resolve_graph_from_context()`
++  - Entry: `src/fs2/cli/utils.py` (new function)
++- `server` (Phase 4): REST query API endpoints — consumed by `RemoteClient` via HTTP
++  - Endpoints: `/api/v1/graphs`, `/api/v1/graphs/{name}/tree|search|nodes/*`, `/api/v1/search`
+ 
+ ### Domain Constraints
+ 
+@@ -219,14 +215,14 @@ flowchart TD
+ 
+ ```mermaid
+ flowchart LR
+-    A[fs2 CLI] -->|--remote work| B[resolve_graph_from_context]
++    A[fs2 CLI] -->|--remote work| B[CLIContext.remote]
+     B --> C{remote set?}
+-    C -->|yes| D[resolve_remotes]
+-    C -->|no| E[local GraphStore]
+-    D --> F[RemoteGraphStore]
++    C -->|yes| D[resolve_remote_client]
++    C -->|no| E[local GraphStore path]
++    D --> F[RemoteClient]
+     F -->|HTTP GET| G[Server API]
+-    G -->|JSON| F
+-    F -->|CodeNode| A
++    G -->|JSON dict| F
++    F -->|raw dict| A
+ ```
+ 
+ ### Mermaid Sequence (Remote Tree)
+@@ -235,15 +231,15 @@ flowchart LR
+ sequenceDiagram
+     participant User
+     participant CLI
+-    participant RemoteGraphStore
++    participant RemoteClient
+     participant Server
+ 
+     User->>CLI: fs2 tree --remote work --graph repo
+-    CLI->>CLI: resolve_graph_from_context()
+-    CLI->>RemoteGraphStore: get_all_nodes() / tree
+-    RemoteGraphStore->>Server: GET /api/v1/graphs/repo/tree?pattern=.
+-    Server-->>RemoteGraphStore: JSON tree response
+-    RemoteGraphStore-->>CLI: list[CodeNode] / tree data
++    CLI->>CLI: resolve_remote_client(ctx)
++    CLI->>RemoteClient: tree(graph="repo", pattern=".")
++    RemoteClient->>Server: GET /api/v1/graphs/repo/tree?pattern=.
++    Server-->>RemoteClient: JSON tree response
++    RemoteClient-->>CLI: raw dict
+     CLI->>User: Rich tree output
+ ```
+ 
+@@ -295,3 +291,13 @@ docs/plans/028-server-mode/
+ | 5 | `list-graphs --remote` is just a GET request — no GraphService needed | **`RemoteClient.list_graphs()`** — pure HTTP. `list-remotes` is config-only (no HTTP). |
+ 
+ Action items: All captured in rewritten T003, T004, T006, T007 above. graph-storage domain no longer modified in this phase.
++
++## Critical Insights — DYK Session 2 (2026-03-06)
 +
 +| # | Insight | Decision |
 +|---|---------|----------|
-+| 1 | Server needs EmbeddingAdapter for text-mode semantic `query` param — but all infrastructure already exists (AzureEmbeddingAdapter, OpenAICompatibleEmbeddingAdapter, EmbeddingConfig) | **Wire existing EmbeddingAdapter** from fs2 ConfigurationService. Instantiate in app factory, pass to query route. BYO `query_vector` bypasses embedding entirely. Trivial wiring, no new deps. |
-+| 2 | Multi-graph search described as N fan-out queries — wasteful when all data is in same PostgreSQL | **Single SQL query with `WHERE graph_id IN (...)`** + JOIN `graphs` for `graph_name`. Scores are inherently comparable (cosine is absolute, ILIKE heuristics deterministic). Per-graph weighting deferred (future `graphs.search_weight` column). |
-+| 3 | Tree folder hierarchy is *virtual* — `_compute_folder_hierarchy()` splits `node_id` paths at `/`, creates synthetic folder CodeNodes. Not in `node_edges`. CTE won't work for folders. | **Reuse TreeService algorithm** in Python. SQL fetches filtered nodes, Python assembles folder tree using same path-splitting logic. CTE only useful for AST parent→child expansion (but `get_children_async()` already exists). |
-+| 4 | `get_node_async()` returns flat CodeNode but local `fs2 get-node` includes children context | **Add `children_count`** via subquery `SELECT COUNT(*) FROM node_edges WHERE parent_node_id = %s` in get-node endpoint for parity. |
-+| 5 | Auto-mode falls back TEXT→SEMANTIC based on whether nodes have embeddings — but different graphs may have different embedding status | **Per-graph embedding availability check**: `SELECT EXISTS(SELECT 1 FROM embedding_chunks WHERE graph_id = %s LIMIT 1)` before routing to semantic. No-embedding graphs fall back to TEXT. |
++| P5-01 | Sync httpx.Client in RemoteClient blocks MCP event loop — MCP search() is async | **RemoteClient uses `httpx.AsyncClient`** natively. CLI wraps with `asyncio.run()`. |
++| P5-02 | CLI tree formatter expects TreeNode objects, not dicts — remote branch can't use `_display_tree()` | **Remote tree requests `format=text`** from server and prints pre-rendered text directly. No TreeNode reconstruction. |
++| P5-03 | Server auto-mode returns 503 when no embeddings — locally it falls back to text silently | **Server auto-mode must fallback to text** when no embeddings (not 503). Only explicit `mode=semantic` should 503. All remote errors must be helpful and actionable. |
++| P5-04 | Multi-remote search scores from different servers aren't directly comparable | **Known v1 limitation — documented**. Text/regex scores are consistent; cosine similarity is comparable across graph sizes. Per-remote weighting is a future enhancement. |
++| P5-05 | MCP remote mode should coexist with local — not replace it | **MCP mixed mode**: `list_graphs()` merges local + remote graphs. `graph_name` routes to local GraphStore or RemoteClient automatically. No `--remote` flag needed on MCP if remotes are configured. |
+diff --git a/src/fs2/cli/get_node.py b/src/fs2/cli/get_node.py
+index 3c8f968..ed5bc52 100644
+--- a/src/fs2/cli/get_node.py
++++ b/src/fs2/cli/get_node.py
+@@ -57,7 +57,40 @@ def get_node(
+         2 - System error (corrupted graph)
+     """
+     try:
+-        # === Composition Root ===
++        # === Remote mode branch ===
++        from fs2.cli.remote_client import RemoteClientError
++        from fs2.cli.utils import resolve_remote_client
 +
-+Action items: All captured in task updates above.
-diff --git a/docs/plans/028-server-mode/workshops/003-remotes-cli-mcp.md b/docs/plans/028-server-mode/workshops/003-remotes-cli-mcp.md
++        remote_client = resolve_remote_client(ctx)
++        if remote_client is not None:
++            import asyncio
++
++            try:
++                graph_name = ctx.obj.graph_name if ctx.obj and ctx.obj.graph_name else None
++                if not graph_name:
++                    console.print(
++                        "[red]Error:[/red] --graph-name is required for remote get-node.\n"
++                        "  Example: fs2 --remote work --graph-name my-repo get-node \"file:src/main.py\""
++                    )
++                    raise typer.Exit(code=1)
++
++                result = asyncio.run(remote_client.get_node(graph_name, node_id))
++                if result is None:
++                    console.print(f"[red]Error:[/red] Node not found: {node_id}")
++                    raise typer.Exit(code=1)
++
++                json_str = json.dumps(result, indent=2, default=str)
++                if file:
++                    file.write_text(json_str)
++                    console.print(f"[green]✓[/green] Wrote {node_id} to {file}")
++                else:
++                    print(json_str)
++                raise typer.Exit(code=0)
++            except RemoteClientError as e:
++                console.print(f"[red]Error:[/red] {e}")
++                raise typer.Exit(code=1) from None
++
++        # === Local mode (existing) ===
+         # Per Phase 4: Use resolve_graph_from_context for multi-graph support
+         config, graph_store = resolve_graph_from_context(ctx)
+ 
+diff --git a/src/fs2/cli/list_graphs.py b/src/fs2/cli/list_graphs.py
+index 3dd5457..a009fab 100644
+--- a/src/fs2/cli/list_graphs.py
++++ b/src/fs2/cli/list_graphs.py
+@@ -51,6 +51,51 @@ def list_graphs(
+         1 - Configuration error (no config found)
+     """
+     try:
++        # === Remote mode branch ===
++        from fs2.cli.remote_client import RemoteClientError
++        from fs2.cli.utils import resolve_remote_client
++
++        remote_client = resolve_remote_client(ctx)
++        if remote_client is not None:
++            import asyncio
++
++            try:
++                result = asyncio.run(remote_client.list_graphs())
++                graphs = result.get("graphs", [])
++
++                if json_output:
++                    print(json.dumps(result, indent=2))
++                    raise typer.Exit(code=0)
++
++                table = Table(title="Remote Graphs")
++                table.add_column("Name", style="cyan", no_wrap=True)
++                table.add_column("Status", justify="center")
++                table.add_column("Nodes", justify="right")
++                table.add_column("Remote", style="dim")
++                table.add_column("Description")
++
++                for g in graphs:
++                    status_str = (
++                        "[green]ready[/green]" if g.get("status") == "ready"
++                        else f"[yellow]{g.get('status', '?')}[/yellow]"
++                    )
++                    remote_name = g.get("_remote", "")
++                    table.add_row(
++                        g.get("name", "?"),
++                        status_str,
++                        str(g.get("node_count", "?")),
++                        remote_name,
++                        g.get("description", ""),
++                    )
++
++                console.print(table)
++                console.print(f"\nTotal: {len(graphs)} graph(s)")
++                raise typer.Exit(code=0)
++            except RemoteClientError as e:
++                stderr_console.print(f"[red]Error:[/red] {e}")
++                raise typer.Exit(code=1) from None
++
++        # === Local mode (existing) ===
+         # Per Critical Insight #2: Wrap get_graph_service() in try/except
+         # for both MissingConfigurationError AND FileNotFoundError
+         from fs2.core.dependencies import get_graph_service
+diff --git a/src/fs2/cli/list_remotes.py b/src/fs2/cli/list_remotes.py
 new file mode 100644
-index 0000000..6b9f7a7
+index 0000000..6b717f5
 --- /dev/null
-+++ b/docs/plans/028-server-mode/workshops/003-remotes-cli-mcp.md
-@@ -0,0 +1,605 @@
-+# Workshop: How Remotes Work in CLI and MCP Server
++++ b/src/fs2/cli/list_remotes.py
+@@ -0,0 +1,93 @@
++"""fs2 list-remotes command implementation.
++
++Lists all configured remote servers from user and project config.
++Config-only — no HTTP calls. For checking connectivity, use `fs2 list-graphs --remote`.
++"""
++
++import json
++import logging
++from typing import Annotated
++
++import typer
++from rich.console import Console
++from rich.table import Table
++
++logger = logging.getLogger("fs2.cli.list_remotes")
++
++console = Console()
++stderr_console = Console(stderr=True)
++
++
++def list_remotes(
++    json_output: Annotated[
++        bool,
++        typer.Option("--json", help="Output JSON instead of table"),
++    ] = False,
++) -> None:
++    """List all configured remote fs2 servers.
++
++    Shows named remotes from ~/.config/fs2/config.yaml and .fs2/config.yaml.
++    Does NOT contact remotes — use `fs2 list-graphs --remote` to verify connectivity.
++
++    \\b
++    Examples:
++        $ fs2 list-remotes              # Show table
++        $ fs2 list-remotes --json       # Output JSON
++
++    \\b
++    Exit codes:
++        0 - Success
++        1 - Configuration error
++    """
++    from fs2.config.objects import RemotesConfig
++    from fs2.config.service import FS2ConfigurationService
++
++    try:
++        config = FS2ConfigurationService()
++        remotes_config = config.get(RemotesConfig)
++    except Exception:
++        remotes_config = None
 +
-+**Type**: CLI Flow + API Contract
-+**Plan**: 028-server-mode
-+**Spec**: [server-mode-spec.md](../server-mode-spec.md)
-+**Created**: 2026-03-06
-+**Status**: Draft
-+
-+**Related Documents**:
-+- [Workshop 001: Database Schema](001-database-schema.md)
-+- [Workshop 002: Prototype Validation](002-prototype-validation.md)
-+- [External Research: Remote CLI Protocol](../external-research/remote-cli-protocol.md)
-+
-+**Domain Context**:
-+- **Primary Domain**: cli-presentation (modify), configuration (modify)
-+- **Related Domains**: server (consume via HTTP), graph-storage (RemoteGraphStore)
-+
-+---
-+
-+## Purpose
-+
-+Design how `fs2` CLI commands and MCP tools transparently query remote servers. Defines the named remote registry (config), inline URL support, multi-remote search, and how `resolve_graph_from_context()` changes to support remote graph resolution. This workshop locks the CLI contract before Phase 5 implementation.
-+
-+## Key Questions Addressed
-+
-+- How does a user configure named remotes?
-+- How does `--remote` flag interact with `--graph-name`?
-+- How does multi-remote search work (search across multiple servers)?
-+- How does the MCP server switch between local and remote?
-+- How does `resolve_graph_from_context()` change?
-+- What happens when a remote is unreachable?
-+
-+---
-+
-+## Overview
-+
-+fs2 remotes are named server connections stored in config, similar to git remotes. Users can also pass raw URLs inline. The `--remote` flag is the single entry point — if the value starts with `http://` or `https://`, it's treated as a URL; otherwise, it's looked up in the config registry.
-+
-+## Command Summary
-+
-+| Command | Purpose |
-+|---------|---------|
-+| `fs2 tree --remote work --graph repo-name` | Query remote server's graph |
-+| `fs2 search --remote work "pattern"` | Search across all graphs on remote |
-+| `fs2 search --remote work,oss "pattern"` | Search across multiple remotes |
-+| `fs2 search --remote http://localhost:8000 "pattern"` | Ad-hoc URL remote |
-+| `fs2 list-graphs --remote work` | List graphs available on remote |
-+| `fs2 list-remotes` | Show all configured remotes |
-+| `fs2 get-node --remote work --graph repo "node_id"` | Fetch node from remote |
-+| `fs2 mcp --remote work` | Start MCP server backed by remote |
-+
-+---
-+
-+## Remote Configuration
-+
-+### Config Model: `RemotesConfig`
-+
-+```yaml
-+# ~/.config/fs2/config.yaml (user-level — available everywhere)
-+remotes:
-+  servers:
-+    - name: "work"
-+      url: "https://fs2.mycompany.com"
-+      api_key: "fs2_abc123..."  # Optional — for future auth
-+      description: "Company fs2 server"
-+
-+    - name: "oss"
-+      url: "https://community-fs2.dev"
-+      description: "Open source community graphs"
-+
-+    - name: "local"
-+      url: "http://localhost:8000"
-+      description: "Local dev server"
-+```
-+
-+```yaml
-+# .fs2/config.yaml (project-level — can add project-specific remotes)
-+remotes:
-+  servers:
-+    - name: "staging"
-+      url: "https://staging-fs2.mycompany.com"
-+      api_key: "fs2_staging..."
-+```
-+
-+**Merge behavior**: User + project remotes are **concatenated** (same as `OtherGraphsConfig.graphs`). Project remotes override user remotes if same name.
-+
-+### Pydantic Models
-+
-+```python
-+class RemoteServer(BaseModel):
-+    """A single remote fs2 server."""
-+    name: str              # Unique identifier
-+    url: str               # Base URL (must start with http:// or https://)
-+    api_key: str | None = None  # Optional auth key
-+    description: str | None = None
-+
-+    @field_validator("url")
-+    @classmethod
-+    def validate_url(cls, v: str) -> str:
-+        if not v.startswith(("http://", "https://")):
-+            raise ValueError("Remote URL must start with http:// or https://")
-+        return v.rstrip("/")
-+
-+    @field_validator("name")
-+    @classmethod
-+    def validate_name(cls, v: str) -> str:
-+        if v == "local":
-+            raise ValueError("'local' is reserved for the project graph")
-+        return v
-+
-+
-+class RemotesConfig(BaseModel):
-+    """Configuration for remote fs2 servers."""
-+    __config_path__: ClassVar[str] = "remotes"
-+
-+    servers: list[RemoteServer] = []
-+```
-+
-+### Environment Variable Override
-+
-+```bash
-+# Single remote via env (quick setup, no config file needed)
-+FS2_REMOTES__SERVERS__0__NAME=work
-+FS2_REMOTES__SERVERS__0__URL=https://fs2.mycompany.com
-+FS2_REMOTES__SERVERS__0__API_KEY=fs2_abc123
-+```
-+
-+---
-+
-+## The `--remote` Flag
-+
-+### Resolution Logic
-+
-+```
-+--remote value received
-+    │
-+    ├─ starts with http:// or https://
-+    │   └─ Treat as inline URL → create ephemeral RemoteServer(name="_inline", url=value)
-+    │
-+    ├─ contains ","
-+    │   └─ Split by comma → resolve each name → multi-remote mode
-+    │
-+    └─ single name
-+        └─ Look up in RemotesConfig.servers by name
-+            ├─ Found → use that RemoteServer
-+            └─ Not found → error: "Unknown remote 'xxx'. Run 'fs2 list-remotes' to see available remotes."
-+```
-+
-+### Flag Placement (Global Option)
-+
-+```python
-+# src/fs2/cli/main.py
-+@app.callback()
-+def main(
-+    ctx: typer.Context,
-+    graph_file: str | None = None,
-+    graph_name: str | None = None,
-+    remote: str | None = typer.Option(
-+        None, "--remote", "-r",
-+        help="Remote server name or URL. Comma-separated for multi-remote.",
-+        envvar="FS2_REMOTE",
-+    ),
-+    version: bool = False,
-+):
-+    ctx.obj = CLIContext(
-+        graph_file=graph_file,
-+        graph_name=graph_name,
-+        remote=remote,  # NEW
-+    )
-+```
-+
-+### Interaction Matrix
-+
-+| `--remote` | `--graph-name` | Behavior |
-+|------------|----------------|----------|
-+| ❌ | ❌ | Local default graph (unchanged) |
-+| ❌ | `lib` | Local named graph (unchanged, via OtherGraphsConfig) |
-+| `work` | ❌ | All graphs on `work` remote |
-+| `work` | `repo-x` | Specific graph `repo-x` on `work` remote |
-+| `work,oss` | ❌ | Search all graphs across both remotes |
-+| `work,oss` | `repo-x` | Search `repo-x` on whichever remote has it |
-+| `http://...` | ❌ | All graphs on inline URL |
-+| `http://...` | `repo-x` | Specific graph on inline URL |
-+
-+---
-+
-+## CLI Command Examples
-+
-+### `fs2 list-remotes`
-+
-+```
-+$ fs2 list-remotes
-+
-+  Name     URL                              Description
-+  ────     ───                              ───────────
-+  work     https://fs2.mycompany.com        Company fs2 server
-+  oss      https://community-fs2.dev        Open source community graphs
-+  local    http://localhost:8000            Local dev server
-+
-+  3 remotes configured (from ~/.config/fs2/config.yaml)
-+```
-+
-+### `fs2 list-graphs --remote work`
-+
-+```
-+$ fs2 list-graphs --remote work
-+
-+  Remote: work (https://fs2.mycompany.com)
-+
-+  Name              Nodes   Embedding Model              Status   Updated
-+  ────              ─────   ───────────────              ──────   ───────
-+  api-gateway       12,841  text-embedding-3-small       ready    2h ago
-+  shared-lib        3,204   text-embedding-3-small       ready    1d ago
-+  frontend          45,102  text-embedding-3-small       ready    3h ago
-+
-+  3 graphs available
-+```
-+
-+### `fs2 search --remote work "authentication"`
-+
-+```
-+$ fs2 search --remote work "authentication"
-+
-+  Remote: work (https://fs2.mycompany.com)
-+  Searching all 3 graphs...
-+
-+  ── api-gateway (12,841 nodes) ──────────────────────────────────
-+
-+  1. method:src/auth/jwt_handler.py:JWTHandler.validate  [0.92]
-+     Validates JWT tokens and extracts claims...
-+
-+  2. class:src/auth/middleware.py:AuthMiddleware  [0.89]
-+     FastAPI middleware that enforces authentication...
-+
-+  ── shared-lib (3,204 nodes) ────────────────────────────────────
-+
-+  3. method:src/auth/base.py:BaseAuthProvider.authenticate  [0.87]
-+     Abstract authentication provider...
-+
-+  3 results across 2 graphs (47ms)
-+```
-+
-+### `fs2 search --remote work --graph api-gateway "authentication"`
-+
-+```
-+$ fs2 search --remote work --graph api-gateway "authentication"
-+
-+  Remote: work (https://fs2.mycompany.com)
-+  Graph: api-gateway
-+
-+  1. method:src/auth/jwt_handler.py:JWTHandler.validate  [0.92]
-+     ...
-+
-+  2 results (23ms)
-+```
-+
-+### `fs2 search --remote work,oss "error handling"`
-+
-+```
-+$ fs2 search --remote work,oss "error handling"
-+
-+  Searching 2 remotes (6 graphs total)...
-+
-+  ── work / api-gateway ──────────────────────────────────────────
-+
-+  1. class:src/errors/handler.py:GlobalErrorHandler  [0.94]
-+     ...
-+
-+  ── oss / python-patterns ───────────────────────────────────────
-+
-+  2. method:src/patterns/error_handling.py:retry_with_backoff  [0.88]
-+     ...
-+
-+  5 results across 2 remotes (89ms)
-+```
-+
-+### Error: Remote Unreachable
-+
-+```
-+$ fs2 search --remote work "pattern"
-+
-+  ✗ Remote 'work' unreachable at https://fs2.mycompany.com
-+    Connection refused. Check the URL or server status.
-+    Run 'fs2 list-remotes' to see configured remotes.
-+```
-+
-+### Error: Unknown Remote Name
-+
-+```
-+$ fs2 search --remote typo "pattern"
-+
-+  ✗ Unknown remote 'typo'.
-+    Available remotes: work, oss, local
-+    Run 'fs2 list-remotes' to see configured remotes.
-+    Tip: Use a URL directly: --remote http://your-server:8000
-+```
-+
-+---
-+
-+## `resolve_graph_from_context()` Changes
-+
-+The existing function returns `(ConfigurationService, GraphStore)`. For remote mode, it returns a `RemoteGraphStore` (HTTP client implementing GraphStore).
-+
-+```python
-+def resolve_graph_from_context(
-+    ctx: typer.Context,
-+) -> tuple[ConfigurationService, GraphStore]:
-+    """Resolve graph source: local file, named graph, or remote server."""
-+
-+    cli_ctx: CLIContext = ctx.obj
-+    config = get_config()
-+
-+    # Priority 1: Remote mode
-+    if cli_ctx.remote:
-+        remotes = resolve_remotes(cli_ctx.remote, config)
-+        graph_name = cli_ctx.graph_name  # Optional filter
-+
-+        if len(remotes) == 1:
-+            store = RemoteGraphStore(
-+                base_url=remotes[0].url,
-+                api_key=remotes[0].api_key,
-+                graph_name=graph_name,
-+            )
-+        else:
-+            # Multi-remote: composite store that fans out queries
-+            store = MultiRemoteGraphStore(
-+                remotes=remotes,
-+                graph_name=graph_name,
-+            )
-+        return config, store
-+
-+    # Priority 2: Explicit graph file (unchanged)
-+    if cli_ctx.graph_file:
-+        ...
-+
-+    # Priority 3: Named graph (unchanged)
-+    if cli_ctx.graph_name:
-+        ...
-+
-+    # Priority 4: Default graph (unchanged)
-+    ...
-+```
-+
-+### `resolve_remotes()` Helper
-+
-+```python
-+def resolve_remotes(
-+    remote_str: str, config: ConfigurationService
-+) -> list[RemoteServer]:
-+    """Resolve --remote flag to list of RemoteServer objects."""
-+    remotes_config = config.get(RemotesConfig)
 +    servers = remotes_config.servers if remotes_config else []
 +
-+    parts = [p.strip() for p in remote_str.split(",")]
-+    result = []
++    if json_output:
++        output = {
++            "remotes": [
++                {
++                    "name": s.name,
++                    "url": s.url,
++                    "has_api_key": s.api_key is not None,
++                    "description": s.description,
++                }
++                for s in servers
++            ],
++            "count": len(servers),
++        }
++        print(json.dumps(output, indent=2))
++        raise typer.Exit(code=0)
 +
-+    for part in parts:
-+        if part.startswith(("http://", "https://")):
-+            # Inline URL
-+            result.append(RemoteServer(name="_inline", url=part))
-+        else:
-+            # Named lookup
-+            match = next((s for s in servers if s.name == part), None)
-+            if not match:
-+                names = ", ".join(s.name for s in servers) or "(none configured)"
-+                raise SystemExit(
-+                    f"Unknown remote '{part}'. Available: {names}\n"
-+                    f"Tip: Use a URL directly: --remote http://your-server:8000"
-+                )
-+            result.append(match)
++    if not servers:
++        console.print("No remotes configured.")
++        console.print(
++            "\n[dim]Add remotes to ~/.config/fs2/config.yaml:[/dim]\n"
++            "  remotes:\n"
++            "    servers:\n"
++            '      - name: "work"\n'
++            '        url: "https://fs2.your-company.com"\n'
++            '        description: "Team server"'
++        )
++        raise typer.Exit(code=0)
 +
-+    return result
-+```
++    table = Table(title="Configured Remotes")
++    table.add_column("Name", style="cyan", no_wrap=True)
++    table.add_column("URL")
++    table.add_column("Auth", justify="center")
++    table.add_column("Description")
 +
-+---
++    for s in servers:
++        auth = "[green]✓[/green]" if s.api_key else "[dim]—[/dim]"
++        table.add_row(s.name, s.url, auth, s.description or "")
 +
-+## RemoteGraphStore (HTTP Client)
++    console.print(table)
++    console.print(f"\nTotal: {len(servers)} remote(s)")
++    console.print("[dim]Tip: Use --remote <name> with any command to query a remote.[/dim]")
+diff --git a/src/fs2/cli/main.py b/src/fs2/cli/main.py
+index 071540b..4134275 100644
+--- a/src/fs2/cli/main.py
++++ b/src/fs2/cli/main.py
+@@ -30,6 +30,7 @@ from fs2.cli.guard import require_init
+ from fs2.cli.init import init
+ from fs2.cli.install import get_version_string, install, upgrade
+ from fs2.cli.list_graphs import list_graphs
++from fs2.cli.list_remotes import list_remotes
+ from fs2.cli.mcp import mcp
+ from fs2.cli.scan import scan
+ from fs2.cli.search import search
+@@ -44,10 +45,12 @@ class CLIContext:
+     Attributes:
+         graph_file: Path to graph file (overrides config). Mutually exclusive with graph_name.
+         graph_name: Name of configured graph (from other_graphs). Mutually exclusive with graph_file.
++        remote: Remote server name, URL, or comma-separated list. None means local mode.
+     """
+ 
+     graph_file: str | None = None
+     graph_name: str | None = None
++    remote: str | None = None
+ 
+ 
+ def _version_callback(value: bool) -> None:
+@@ -81,6 +84,15 @@ def main(
+             help="Named graph from other_graphs config (mutually exclusive with --graph-file)",
+         ),
+     ] = None,
++    remote: Annotated[
++        str | None,
++        typer.Option(
++            "--remote",
++            "-r",
++            help="Remote server name, URL, or comma-separated list (e.g., 'work', 'http://localhost:8000', 'work,oss')",
++            envvar="FS2_REMOTE",
++        ),
++    ] = None,
+     version: Annotated[
+         bool | None,
+         typer.Option(
+@@ -98,7 +110,12 @@ def main(
+         typer.echo("Error: Cannot use both --graph-file and --graph-name", err=True)
+         raise typer.Exit(1)
+ 
+-    ctx.obj = CLIContext(graph_file=graph_file, graph_name=graph_name)
++    # Remote mode is incompatible with --graph-file (local override)
++    if remote and graph_file:
++        typer.echo("Error: Cannot use both --remote and --graph-file", err=True)
++        raise typer.Exit(1)
 +
-+Implements `GraphStore` ABC by making HTTP calls to the server's REST API.
++    ctx.obj = CLIContext(graph_file=graph_file, graph_name=graph_name, remote=remote)
+ 
+ 
+ # Register commands
+@@ -117,6 +134,7 @@ app.command(name="agents-start-here")(
+     agents_start_here
+ )  # Per Plan 026: Agent onboarding
+ app.command(name="list-graphs")(list_graphs)  # Per subtask 001: diagnostic command
++app.command(name="list-remotes")(list_remotes)  # Per Phase 5: remote discovery
+ app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
+ app.command(name="install")(install)
+ app.command(name="upgrade")(upgrade)
+diff --git a/src/fs2/cli/remote_client.py b/src/fs2/cli/remote_client.py
+new file mode 100644
+index 0000000..a5b1a9e
+--- /dev/null
++++ b/src/fs2/cli/remote_client.py
+@@ -0,0 +1,384 @@
++"""Remote client for querying fs2 server endpoints.
 +
-+```python
-+class RemoteGraphStore(GraphStore):
-+    """GraphStore backed by a remote fs2 server via HTTP."""
++Provides RemoteClient (single server) and MultiRemoteClient (fan-out across
++multiple servers) for the CLI and MCP remote mode.
++
++Per DYK-P5-01: Uses async httpx.AsyncClient (not sync) to avoid blocking
++the MCP event loop. CLI wraps calls with asyncio.run().
++
++Per DYK #1/#2: Does NOT implement GraphStore ABC. Returns raw server JSON
++dicts — no CodeNode reconstruction needed.
++
++Usage:
++    ```python
++    # Single remote
++    client = RemoteClient(base_url="https://fs2.example.com")
++    result = await client.tree("my-graph", pattern="src/")
++
++    # Multi-remote
++    multi = MultiRemoteClient([client1, client2])
++    results = await multi.search("auth", mode="auto")
++    ```
++"""
++
++from __future__ import annotations
++
++import logging
++from typing import Any
++
++import httpx
++
++logger = logging.getLogger(__name__)
++
++# Default timeout for remote requests (seconds)
++DEFAULT_TIMEOUT = 30.0
++
++
++class RemoteClientError(Exception):
++    """Error communicating with a remote fs2 server.
++
++    Always includes actionable context: remote name/URL and what to do.
++    """
++
++    def __init__(self, message: str, remote_name: str | None = None, url: str | None = None) -> None:
++        self.remote_name = remote_name
++        self.url = url
++        super().__init__(message)
++
++
++class RemoteClient:
++    """Async HTTP client for a single fs2 server.
++
++    Calls server REST API endpoints directly and returns raw JSON dicts.
++    Does NOT implement GraphStore ABC (DYK #1).
++
++    Attributes:
++        base_url: Server base URL (no trailing slash).
++        api_key: Optional API key for Bearer auth.
++        name: Optional human-readable name (e.g., "work") for error messages.
++        _timeout: Request timeout in seconds.
++    """
 +
 +    def __init__(
 +        self,
 +        base_url: str,
 +        api_key: str | None = None,
-+        graph_name: str | None = None,
-+    ):
-+        self._base_url = base_url
-+        self._api_key = api_key
-+        self._graph_name = graph_name
-+        self._client = httpx.Client(
-+            base_url=base_url,
-+            headers=self._auth_headers(),
-+            timeout=30.0,
-+        )
-+
-+    def _auth_headers(self) -> dict:
-+        if self._api_key:
-+            return {"Authorization": f"Bearer {self._api_key}"}
-+        return {}
-+
-+    def get_node(self, node_id: str) -> CodeNode | None:
-+        """GET /api/v1/graphs/{name}/nodes/{node_id}"""
-+        resp = self._client.get(
-+            f"/api/v1/graphs/{self._graph_name}/nodes/{node_id}"
-+        )
-+        if resp.status_code == 404:
-+            return None
-+        resp.raise_for_status()
-+        return CodeNode(**resp.json())
-+
-+    def get_children(self, node_id: str) -> list[CodeNode]:
-+        """GET /api/v1/graphs/{name}/tree?pattern={node_id}&max_depth=1"""
-+        ...
-+
-+    def get_all_nodes(self) -> list[CodeNode]:
-+        """GET /api/v1/graphs/{name}/nodes (paginated)"""
-+        ...
-+
-+    def save(self, path) -> None:
-+        """No-op — remote is read-only from CLI perspective."""
-+        pass
-+
-+    def load(self, path) -> None:
-+        """No-op — remote is always-on."""
-+        pass
-+```
-+
-+### MultiRemoteGraphStore
-+
-+For comma-separated remotes, fans out queries:
-+
-+```python
-+class MultiRemoteGraphStore(GraphStore):
-+    """Composite store that queries multiple remotes."""
-+
-+    def __init__(self, remotes: list[RemoteServer], graph_name: str | None):
-+        self._stores = [
-+            RemoteGraphStore(r.url, r.api_key, graph_name)
-+            for r in remotes
-+        ]
-+
-+    def get_all_nodes(self) -> list[CodeNode]:
-+        """Aggregate nodes from all remotes."""
-+        all_nodes = []
-+        for store in self._stores:
-+            all_nodes.extend(store.get_all_nodes())
-+        return all_nodes
-+```
-+
-+---
-+
-+## MCP Server Remote Mode
-+
-+### Configuration
-+
-+```bash
-+# Start MCP server backed by a remote
-+fs2 mcp --remote work
-+
-+# Start MCP server backed by multiple remotes
-+fs2 mcp --remote work,oss
-+```
-+
-+### How It Works
-+
-+The MCP server's tools (`tree`, `search`, `get_node`, `list_graphs`) already go through `GraphStore`. When `--remote` is set, the MCP server wires a `RemoteGraphStore` instead of `NetworkXGraphStore`.
-+
-+```python
-+# src/fs2/mcp/server.py — modified initialization
-+def create_mcp_graph_store(remote: str | None = None) -> GraphStore:
-+    if remote:
-+        config = get_config()
-+        remotes = resolve_remotes(remote, config)
-+        if len(remotes) == 1:
-+            return RemoteGraphStore(remotes[0].url, remotes[0].api_key)
-+        return MultiRemoteGraphStore(remotes)
-+    else:
-+        return get_graph_store()  # Local (unchanged)
-+```
-+
-+### MCP Tool Behavior
-+
-+| MCP Tool | Local Mode | Remote Mode |
-+|----------|-----------|-------------|
-+| `tree(pattern)` | NetworkXGraphStore | RemoteGraphStore → `GET /api/v1/graphs/{name}/tree` |
-+| `search(pattern)` | SearchService (in-memory) | RemoteGraphStore → `GET /api/v1/search` |
-+| `get_node(id)` | NetworkXGraphStore | RemoteGraphStore → `GET /api/v1/graphs/{name}/nodes/{id}` |
-+| `list_graphs()` | GraphService (local files) | RemoteGraphStore → `GET /api/v1/graphs` |
-+
-+AI agents using MCP tools see **identical response formats** regardless of mode (AC13).
-+
-+### MCP Config for Claude/AI
-+
-+```json
-+{
-+  "mcpServers": {
-+    "fs2-local": {
-+      "command": "fs2",
-+      "args": ["mcp"]
-+    },
-+    "fs2-work": {
-+      "command": "fs2",
-+      "args": ["mcp", "--remote", "work"]
-+    }
-+  }
-+}
-+```
-+
-+This lets an AI agent have **both local and remote** available simultaneously — different MCP server instances.
-+
-+---
-+
-+## API Endpoints (Server Side)
-+
-+These are what `RemoteGraphStore` calls. Phase 4 builds these.
-+
-+| Method | Endpoint | Purpose |
-+|--------|----------|---------|
-+| GET | `/api/v1/graphs` | List all graphs |
-+| GET | `/api/v1/graphs/{name}/tree?pattern=&max_depth=` | Tree query |
-+| GET | `/api/v1/graphs/{name}/nodes/{node_id}` | Get single node |
-+| GET | `/api/v1/search?pattern=&mode=&graph=&limit=` | Multi-graph search |
-+| GET | `/api/v1/graphs/{name}/nodes` | All nodes (paginated) |
-+
-+### Response Format Parity
-+
-+Server responses use the **same JSON shape** as local CLI output. Example for `get_node`:
-+
-+```json
-+{
-+  "node_id": "class:src/auth.py:AuthService",
-+  "category": "type",
-+  "ts_kind": "class_definition",
-+  "name": "AuthService",
-+  "qualified_name": "AuthService",
-+  "start_line": 15,
-+  "end_line": 89,
-+  "content": "class AuthService:\n    ...",
-+  "smart_content": "AuthService handles JWT-based auth...",
-+  "language": "python",
-+  "graph_name": "api-gateway"
-+}
-+```
-+
-+---
-+
-+## Error Handling
-+
-+| Scenario | HTTP Status | CLI Behavior |
-+|----------|-------------|-------------|
-+| Remote unreachable | Connection error | `✗ Remote 'work' unreachable at <url>` + exit 1 |
-+| Remote returns 500 | 500 | `✗ Server error on 'work': <detail>` + exit 1 |
-+| Graph not found on remote | 404 | `✗ Graph 'xxx' not found on remote 'work'` + exit 1 |
-+| Invalid API key | 401 | `✗ Authentication failed for 'work'. Check api_key in config.` + exit 1 |
-+| Timeout (>30s) | Timeout | `✗ Request timed out for 'work'. Try again or check server.` + exit 1 |
-+| Partial failure (multi) | Mixed | Show results from successful remotes, warn about failed ones |
-+
-+### Partial Failure in Multi-Remote
-+
-+```
-+$ fs2 search --remote work,oss "pattern"
-+
-+  ⚠ Remote 'oss' unreachable — skipping (https://community-fs2.dev)
-+
-+  ── work / api-gateway ──────────────────────────────────────────
-+
-+  1. class:src/auth.py:AuthService  [0.94]
-+     ...
-+
-+  2 results from 1 of 2 remotes (1 unreachable)
-+```
-+
-+---
-+
-+## Locked Decisions
-+
-+| # | Decision | Rationale |
-+|---|----------|-----------|
-+| R1 | Named remotes in config, like git remotes | Familiar UX, persistent, shareable |
-+| R2 | Inline URL also supported (`--remote http://...`) | Ad-hoc usage without config changes |
-+| R3 | URL detection heuristic: starts with `http://`/`https://` = URL, else = name | Simple, unambiguous |
-+| R4 | Comma-separated for multi-remote | Concise, familiar from `--graph name1,name2` pattern |
-+| R5 | `RemotesConfig` at path `remotes` in YAML | Consistent with other config models |
-+| R6 | User + project remotes concatenated (project wins on name collision) | Same merge as `OtherGraphsConfig` |
-+| R7 | MCP server supports `--remote` flag | AI agents get remote access via separate MCP instances |
-+| R8 | Partial failure in multi-remote: warn and continue | Don't fail entire search because one remote is down |
-+| R9 | `RemoteGraphStore` uses sync `httpx.Client` (CLI is sync) | Matches existing CLI sync patterns |
-+
-+## Open Questions
-+
-+### Q1: Should `fs2 search` without `--graph` search ALL graphs on the remote?
-+
-+**RESOLVED**: Yes — matches the local behavior where search scans the current graph. On a remote, "current" = all accessible graphs. Use `--graph name` to narrow.
-+
-+### Q2: Should remotes support graph name prefixing (`work/repo-name`)?
-+
-+**OPEN**: Could allow `fs2 get-node work/api-gateway "node_id"` instead of `--remote work --graph api-gateway`. Deferred — add if user feedback demands it.
-+
-+### Q3: Should there be a `fs2 remote add/remove` command?
-+
-+**OPEN**: Git has `git remote add`. We could add `fs2 remote add work https://...` as sugar for editing config YAML. Low priority — config file is fine for v1.
-diff --git a/src/fs2/core/repos/graph_store_pg.py b/src/fs2/core/repos/graph_store_pg.py
-index bc3b6b8..4980854 100644
---- a/src/fs2/core/repos/graph_store_pg.py
-+++ b/src/fs2/core/repos/graph_store_pg.py
-@@ -5,11 +5,13 @@ save()/load() are no-ops — the database is always-on.
- 
- Per Finding 01: Query methods work directly against DB.
- Per DYK #3: Embedding round-trip reconstructs tuple-of-tuples from chunks table.
-+Per Phase 4 DYK #3: Tree folder hierarchy uses Python path splitting, not SQL CTE.
- 
- Depends on ConnectionProvider protocol (not server.Database directly)
- to avoid graph-storage → server reverse dependency.
- """
- 
-+import fnmatch
- import logging
- from collections.abc import AsyncGenerator
- from contextlib import asynccontextmanager
-@@ -198,6 +200,246 @@ class PostgreSQLGraphStore(GraphStore):
-             embeddings[node_id][emb_type].append((chunk_idx, vec_list, sl, el))
-         return embeddings
- 
-+    # ── Phase 4: Tree + Search query methods ──
-+
-+    async def get_filtered_nodes_async(
-+        self, pattern: str
-+    ) -> list[CodeNode]:
-+        """Fetch nodes filtered by pattern using SQL.
-+
-+        Pattern modes (same as TreeService._detect_input_mode):
-+        - "." → all nodes (file-level for folder tree)
-+        - Contains ":" → exact node_id match
-+        - Contains "/" → folder prefix filter (node_id LIKE 'file:{prefix}%')
-+        - Contains glob chars → glob match (fetches all, filters in Python)
-+        - Otherwise → substring match via ILIKE
-+        """
-+        async with self._db.connection() as conn:
-+            if pattern == ".":
-+                result = await conn.execute(
-+                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
-+                    "WHERE graph_id = %s ORDER BY node_id",
-+                    (self._graph_id,),
-+                )
-+            elif ":" in pattern:
-+                # Exact node_id match
-+                result = await conn.execute(
-+                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
-+                    "WHERE graph_id = %s AND node_id = %s",
-+                    (self._graph_id, pattern),
-+                )
-+            elif "/" in pattern:
-+                # Folder prefix filter
-+                prefix = pattern if pattern.endswith("/") else pattern + "/"
-+                like_pattern = f"%{prefix}%"
-+                result = await conn.execute(
-+                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
-+                    "WHERE graph_id = %s AND node_id LIKE %s ORDER BY node_id",
-+                    (self._graph_id, like_pattern),
-+                )
-+            elif any(c in pattern for c in "*?[]"):
-+                # Glob pattern — fetch all, filter in Python
-+                result = await conn.execute(
-+                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
-+                    "WHERE graph_id = %s ORDER BY node_id",
-+                    (self._graph_id,),
-+                )
-+                rows = await result.fetchall()
-+                return [
-+                    self._row_to_code_node(r) for r in rows
-+                    if fnmatch.fnmatch(r[0], f"*{pattern}*")
-+                ]
-+            else:
-+                # Substring match via ILIKE
-+                like_pattern = f"%{pattern}%"
-+                result = await conn.execute(
-+                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
-+                    "WHERE graph_id = %s AND node_id ILIKE %s ORDER BY node_id",
-+                    (self._graph_id, like_pattern),
-+                )
-+
-+            rows = await result.fetchall()
-+            return [self._row_to_code_node(r) for r in rows]
-+
-+    async def get_children_count_async(self, node_id: str) -> int:
-+        """Get count of children for a node."""
-+        async with self._db.connection() as conn:
-+            result = await conn.execute(
-+                "SELECT COUNT(*) FROM node_edges "
-+                "WHERE graph_id = %s AND parent_node_id = %s",
-+                (self._graph_id, node_id),
-+            )
-+            row = await result.fetchone()
-+            return row[0] if row else 0
-+
-+    async def has_embeddings_async(self) -> bool:
-+        """Check if this graph has any embedding chunks."""
-+        async with self._db.connection() as conn:
-+            result = await conn.execute(
-+                "SELECT EXISTS(SELECT 1 FROM embedding_chunks "
-+                "WHERE graph_id = %s LIMIT 1)",
-+                (self._graph_id,),
-+            )
-+            row = await result.fetchone()
-+            return row[0] if row else False
-+
-+    async def search_text_async(
-+        self,
-+        pattern: str,
-+        limit: int = 20,
-+        offset: int = 0,
-+        include: tuple[str, ...] | None = None,
-+        exclude: tuple[str, ...] | None = None,
-+        graph_ids: list[str] | None = None,
-+    ) -> tuple[list[dict], int]:
-+        """Text search via SQL ILIKE with trigram indexes.
-+
-+        Returns (results, total_count) where results are
-+        SearchResult-compatible dicts.
-+        """
-+        return await self._search_sql(
-+            pattern, "ilike", limit, offset, include, exclude, graph_ids
-+        )
-+
-+    async def search_regex_async(
-+        self,
-+        pattern: str,
-+        limit: int = 20,
-+        offset: int = 0,
-+        include: tuple[str, ...] | None = None,
-+        exclude: tuple[str, ...] | None = None,
-+        graph_ids: list[str] | None = None,
-+    ) -> tuple[list[dict], int]:
-+        """Regex search via SQL ~ operator with trigram indexes.
-+
-+        Returns (results, total_count) where results are
-+        SearchResult-compatible dicts.
-+        """
-+        return await self._search_sql(
-+            pattern, "regex", limit, offset, include, exclude, graph_ids
-+        )
-+
-+    async def _search_sql(
-+        self,
-+        pattern: str,
-+        mode: str,
-+        limit: int,
-+        offset: int,
-+        include: tuple[str, ...] | None,
-+        exclude: tuple[str, ...] | None,
-+        graph_ids: list[str] | None,
-+    ) -> tuple[list[dict], int]:
-+        """Internal: run text or regex search via SQL.
-+
-+        Uses ILIKE for text, ~ for regex. Scores heuristically:
-+        node_id match → 0.9, smart_content → 0.7, content → 0.5.
-+        """
-+        ids = graph_ids or [self._graph_id]
-+        placeholders = ",".join(["%s"] * len(ids))
-+
-+        if mode == "ilike":
-+            op = "ILIKE"
-+            sql_pattern = f"%{pattern}%"
-+        else:
-+            op = "~"
-+            sql_pattern = pattern
-+
-+        # Build include/exclude filters
-+        filters = ""
-+        filter_params: list = []
-+        if include:
-+            inc_clauses = " OR ".join(["cn.node_id ~ %s"] * len(include))
-+            filters += f" AND ({inc_clauses})"
-+            filter_params.extend(include)
-+        if exclude:
-+            exc_clauses = " AND ".join(["cn.node_id !~ %s"] * len(exclude))
-+            filters += f" AND ({exc_clauses})"
-+            filter_params.extend(exclude)
-+
-+        # Score calculation: prioritize node_id > smart_content > content
-+        score_expr = f"""
-+            CASE
-+                WHEN cn.node_id {op} %s THEN 0.9
-+                WHEN cn.smart_content IS NOT NULL AND cn.smart_content {op} %s THEN 0.7
-+                ELSE 0.5
-+            END
-+        """
-+
-+        base_where = f"""
-+            cn.graph_id IN ({placeholders})
-+            AND (cn.node_id {op} %s OR cn.content {op} %s
-+                 OR (cn.smart_content IS NOT NULL AND cn.smart_content {op} %s))
-+            {filters}
-+        """
-+
-+        params_where = [*ids, sql_pattern, sql_pattern, sql_pattern, *filter_params]
-+        params_score = [sql_pattern, sql_pattern]
-+
-+        # Count total
-+        async with self._db.connection() as conn:
-+            count_result = await conn.execute(
-+                f"SELECT COUNT(*) FROM code_nodes cn WHERE {base_where}",
-+                params_where,
-+            )
-+            total_row = await count_result.fetchone()
-+            total = total_row[0] if total_row else 0
-+
-+            # Fetch page
-+            result = await conn.execute(
-+                f"""SELECT cn.node_id, cn.category, cn.start_line, cn.end_line,
-+                    cn.smart_content, cn.content, cn.name,
-+                    {score_expr} AS score,
-+                    g.name AS graph_name
-+                FROM code_nodes cn
-+                JOIN graphs g ON cn.graph_id = g.id
-+                WHERE {base_where}
-+                ORDER BY score DESC, cn.node_id
-+                LIMIT %s OFFSET %s""",
-+                [*params_score, *params_where, limit, offset],
-+            )
-+            rows = await result.fetchall()
-+
-+        results = []
-+        for row in rows:
-+            node_id, category, start, end, smart, content, name, score, gname = row
-+            snippet = (smart or content or "")[:50]
-+            # Determine which field matched
-+            pat_lower = pattern.lower() if mode == "ilike" else pattern
-+            if mode == "ilike":
-+                if pat_lower in (node_id or "").lower():
-+                    match_field = "node_id"
-+                elif smart and pat_lower in smart.lower():
-+                    match_field = "smart_content"
-+                else:
-+                    match_field = "content"
-+            else:
-+                import re as _re
-+                try:
-+                    if _re.search(pattern, node_id or ""):
-+                        match_field = "node_id"
-+                    elif smart and _re.search(pattern, smart):
-+                        match_field = "smart_content"
-+                    else:
-+                        match_field = "content"
-+                except _re.error:
-+                    match_field = "content"
-+
-+            results.append({
-+                "node_id": node_id,
-+                "start_line": start,
-+                "end_line": end,
-+                "match_start_line": start,
-+                "match_end_line": end,
-+                "smart_content": smart,
-+                "snippet": snippet,
-+                "score": float(score),
-+                "match_field": match_field,
-+                "content": content,
-+                "graph_name": gname,
-+            })
-+
-+        return results, total
-+
-     # ── Sync ABC methods (no-ops or sync wrappers) ──
- 
-     def add_node(self, node: CodeNode) -> None:
-diff --git a/src/fs2/core/services/search/pgvector_matcher.py b/src/fs2/core/services/search/pgvector_matcher.py
-new file mode 100644
-index 0000000..a11d476
---- /dev/null
-+++ b/src/fs2/core/services/search/pgvector_matcher.py
-@@ -0,0 +1,179 @@
-+"""PgvectorSemanticMatcher — SQL-based cosine similarity search.
-+
-+Queries the embedding_chunks table via pgvector's HNSW index for
-+sub-100ms semantic search at scale. Unlike the in-memory
-+SemanticMatcher (which iterates Python lists), this uses SQL
-+ORDER BY <=> for hardware-accelerated vector search.
-+
-+Per Finding 02: Server must NOT use get_all_nodes() for search.
-+Per AC10: Semantic search <100ms at 200K+ nodes.
-+Per DYK #1: Accepts query_vector (BYO) or uses EmbeddingAdapter for text.
-+Per DYK #2: Accepts graph_ids list for multi-graph via WHERE IN(...).
-+"""
-+
-+import logging
-+from typing import TYPE_CHECKING
-+
-+from fs2.core.repos.graph_store_pg import ConnectionProvider
-+
-+if TYPE_CHECKING:
-+    from fs2.core.adapters.embedding_adapter import EmbeddingAdapter
-+
-+logger = logging.getLogger(__name__)
-+
-+
-+class PgvectorSemanticMatcher:
-+    """SQL-based semantic search using pgvector cosine similarity.
-+
-+    Takes ConnectionProvider via DI (not server.Database) to respect
-+    domain boundaries. Optionally takes EmbeddingAdapter for text queries.
-+
-+    Usage::
-+
-+        matcher = PgvectorSemanticMatcher(db, embedding_adapter=adapter)
-+        results, total = await matcher.search(
-+            query="error handling",
-+            graph_ids=["uuid1", "uuid2"],
-+            limit=20,
-+        )
-+    """
-+
-+    def __init__(
-+        self,
-+        db: ConnectionProvider,
-+        embedding_adapter: "EmbeddingAdapter | None" = None,
++        name: str | None = None,
++        timeout: float = DEFAULT_TIMEOUT,
 +    ) -> None:
-+        self._db = db
-+        self._embedding_adapter = embedding_adapter
++        self.base_url = base_url.rstrip("/")
++        self.api_key = api_key
++        self.name = name or base_url
++        self._timeout = timeout
++
++    def _headers(self) -> dict[str, str]:
++        """Build request headers with optional auth."""
++        headers: dict[str, str] = {"Accept": "application/json"}
++        if self.api_key:
++            headers["Authorization"] = f"Bearer {self.api_key}"
++        return headers
++
++    def _client(self) -> httpx.AsyncClient:
++        """Create a fresh async client for a request."""
++        return httpx.AsyncClient(
++            base_url=self.base_url,
++            headers=self._headers(),
++            timeout=self._timeout,
++        )
++
++    async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
++        """Make an HTTP request and return parsed JSON.
++
++        Translates HTTP errors into actionable RemoteClientError messages.
++        """
++        async with self._client() as client:
++            try:
++                response = await client.request(method, path, **kwargs)
++            except httpx.ConnectError:
++                raise RemoteClientError(
++                    f"Remote '{self.name}' unreachable at {self.base_url}. "
++                    "Check the URL and ensure the server is running.",
++                    remote_name=self.name,
++                    url=self.base_url,
++                ) from None
++            except httpx.TimeoutException:
++                raise RemoteClientError(
++                    f"Request to remote '{self.name}' timed out after {self._timeout}s. "
++                    "The server may be overloaded. Try again or increase timeout.",
++                    remote_name=self.name,
++                    url=self.base_url,
++                ) from None
++            except httpx.HTTPError as e:
++                raise RemoteClientError(
++                    f"Network error contacting remote '{self.name}': {e}",
++                    remote_name=self.name,
++                    url=self.base_url,
++                ) from None
++
++        # Handle HTTP status errors
++        if response.status_code == 401:
++            raise RemoteClientError(
++                f"Authentication failed for remote '{self.name}'. "
++                "Check your API key in remotes config.",
++                remote_name=self.name,
++                url=self.base_url,
++            )
++        if response.status_code == 404:
++            # Extract detail from JSON if possible
++            try:
++                detail = response.json().get("detail", "Resource not found")
++            except Exception:
++                detail = "Resource not found"
++            raise RemoteClientError(
++                f"Not found on remote '{self.name}': {detail}",
++                remote_name=self.name,
++                url=self.base_url,
++            )
++        if response.status_code == 503:
++            try:
++                detail = response.json().get("detail", "Service unavailable")
++            except Exception:
++                detail = "Service unavailable"
++            raise RemoteClientError(
++                f"Remote '{self.name}' service unavailable: {detail}. "
++                "The server may be starting up or missing configuration.",
++                remote_name=self.name,
++                url=self.base_url,
++            )
++        if response.status_code >= 400:
++            try:
++                detail = response.json().get("detail", response.text)
++            except Exception:
++                detail = response.text
++            raise RemoteClientError(
++                f"Remote '{self.name}' returned error {response.status_code}: {detail}",
++                remote_name=self.name,
++                url=self.base_url,
++            )
++
++        return response.json()
++
++    # ── Public API — returns raw server JSON dicts ──
++
++    async def list_graphs(self, status: str | None = "ready") -> dict:
++        """List graphs on the remote server.
++
++        Args:
++            status: Optional filter (e.g., "ready"). Default filters to ready graphs.
++
++        Returns:
++            Server JSON: {"graphs": [...], "count": N}
++        """
++        params: dict[str, Any] = {}
++        if status:
++            params["status"] = status
++        return await self._request("GET", "/api/v1/graphs", params=params)
++
++    async def tree(
++        self,
++        graph: str,
++        pattern: str = ".",
++        max_depth: int = 0,
++    ) -> dict:
++        """Get tree view from remote server.
++
++        Per DYK-P5-02: Returns server JSON directly. CLI uses format=text
++        for pre-rendered output.
++
++        Args:
++            graph: Graph name on the server.
++            pattern: Filter pattern (default: ".").
++            max_depth: Max depth (0=unlimited).
++
++        Returns:
++            Server JSON tree response.
++        """
++        params: dict[str, Any] = {"pattern": pattern, "max_depth": max_depth}
++        return await self._request("GET", f"/api/v1/graphs/{graph}/tree", params=params)
 +
 +    async def search(
 +        self,
-+        graph_ids: list[str],
++        pattern: str,
++        *,
++        graph: str | None = None,
++        mode: str = "auto",
 +        limit: int = 20,
 +        offset: int = 0,
-+        min_similarity: float = 0.25,
-+        query: str | None = None,
-+        query_vector: list[float] | None = None,
-+        include: tuple[str, ...] | None = None,
-+        exclude: tuple[str, ...] | None = None,
-+    ) -> tuple[list[dict], int]:
-+        """Search for semantically similar code nodes.
++        detail: str = "min",
++        include: str | None = None,
++        exclude: str | None = None,
++    ) -> dict:
++        """Search on remote server.
 +
-+        Either `query` (text, embedded by adapter) or `query_vector`
-+        (pre-embedded BYO) must be provided.
++        If graph is specified, searches single graph. Otherwise searches all.
 +
 +        Args:
-+            graph_ids: List of graph UUIDs to search across.
-+            limit: Max results to return.
-+            offset: Results to skip.
-+            min_similarity: Minimum cosine similarity threshold.
-+            query: Text query (requires embedding_adapter).
-+            query_vector: Pre-embedded vector (BYO mode).
-+            include: Keep only node_ids matching any pattern.
-+            exclude: Remove node_ids matching any pattern.
++            pattern: Search pattern.
++            graph: Optional graph name (None = search all).
++            mode: Search mode (auto/text/regex/semantic).
++            limit: Max results.
++            offset: Pagination offset.
++            detail: Detail level (min/max).
++            include: Comma-separated include patterns.
++            exclude: Comma-separated exclude patterns.
 +
 +        Returns:
-+            Tuple of (results list, total count).
++            Server JSON search envelope: {"meta": {...}, "results": [...]}
 +        """
-+        if query_vector is None and query is not None:
-+            if self._embedding_adapter is None:
-+                raise ValueError(
-+                    "Text query requires an embedding adapter. "
-+                    "Either configure one or pass query_vector directly."
-+                )
-+            query_vector = await self._embedding_adapter.embed_text(query)
-+
-+        if query_vector is None:
-+            raise ValueError("Either query or query_vector must be provided.")
-+
-+        vec_str = "[" + ",".join(str(float(v)) for v in query_vector) + "]"
-+
-+        placeholders = ",".join(["%s"] * len(graph_ids))
-+
-+        # Build include/exclude filters
-+        filters = ""
-+        filter_params: list = []
++        params: dict[str, Any] = {
++            "pattern": pattern,
++            "mode": mode,
++            "limit": limit,
++            "offset": offset,
++            "detail": detail,
++        }
 +        if include:
-+            inc_clauses = " OR ".join(["cn.node_id ~ %s"] * len(include))
-+            filters += f" AND ({inc_clauses})"
-+            filter_params.extend(include)
++            params["include"] = include
 +        if exclude:
-+            exc_clauses = " AND ".join(["cn.node_id !~ %s"] * len(exclude))
-+            filters += f" AND ({exc_clauses})"
-+            filter_params.extend(exclude)
++            params["exclude"] = exclude
 +
-+        async with self._db.connection() as conn:
-+            # Get total count of matches above threshold
-+            count_result = await conn.execute(
-+                f"""SELECT COUNT(DISTINCT (ec.graph_id, ec.node_id))
-+                FROM embedding_chunks ec
-+                JOIN code_nodes cn ON ec.graph_id = cn.graph_id AND ec.node_id = cn.node_id
-+                WHERE ec.graph_id IN ({placeholders})
-+                AND 1 - (ec.embedding <=> %s::vector) >= %s
-+                {filters}""",
-+                [*graph_ids, vec_str, min_similarity, *filter_params],
++        if graph:
++            return await self._request("GET", f"/api/v1/graphs/{graph}/search", params=params)
++        else:
++            params["graph"] = "all"
++            return await self._request("GET", "/api/v1/search", params=params)
++
++    async def get_node(
++        self,
++        graph: str,
++        node_id: str,
++        detail: str = "min",
++    ) -> dict | None:
++        """Get a single node from remote server.
++
++        Args:
++            graph: Graph name.
++            node_id: Node ID (may contain / and :).
++            detail: Detail level (min/max).
++
++        Returns:
++            Server JSON node dict, or None if not found.
++        """
++        params: dict[str, Any] = {"detail": detail}
++        try:
++            return await self._request(
++                "GET", f"/api/v1/graphs/{graph}/nodes/{node_id}", params=params,
 +            )
-+            total_row = await count_result.fetchone()
-+            total = total_row[0] if total_row else 0
++        except RemoteClientError as e:
++            if "Not found" in str(e):
++                return None
++            raise
 +
-+            # Fetch best chunk match per node using DISTINCT ON
-+            result = await conn.execute(
-+                f"""SELECT DISTINCT ON (ec.graph_id, ec.node_id)
-+                    ec.node_id,
-+                    cn.category,
-+                    cn.start_line,
-+                    cn.end_line,
-+                    cn.smart_content,
-+                    cn.content,
-+                    cn.name,
-+                    1 - (ec.embedding <=> %s::vector) AS similarity,
-+                    g.name AS graph_name,
-+                    ec.embedding_type,
-+                    ec.chunk_index,
-+                    ec.chunk_start_line,
-+                    ec.chunk_end_line
-+                FROM embedding_chunks ec
-+                JOIN code_nodes cn ON ec.graph_id = cn.graph_id AND ec.node_id = cn.node_id
-+                JOIN graphs g ON ec.graph_id = g.id
-+                WHERE ec.graph_id IN ({placeholders})
-+                AND 1 - (ec.embedding <=> %s::vector) >= %s
-+                {filters}
-+                ORDER BY ec.graph_id, ec.node_id, ec.embedding <=> %s::vector
-+                """,
-+                [
-+                    vec_str,
-+                    *graph_ids, vec_str, min_similarity, *filter_params,
-+                    vec_str,
-+                ],
++
++class MultiRemoteClient:
++    """Fan-out client across multiple remote servers.
++
++    Merges results from N RemoteClient instances. Partial failures
++    log warnings but don't abort the entire operation (DYK Workshop R8).
++
++    Per DYK-P5-04: Cross-remote score comparability is a known v1 limitation.
++    Results are merged and sorted by score — text/regex scores are consistent;
++    cosine similarity is comparable across graph sizes.
++    """
++
++    def __init__(self, clients: list[RemoteClient]) -> None:
++        self.clients = clients
++
++    async def search(
++        self,
++        pattern: str,
++        *,
++        graph: str | None = None,
++        mode: str = "auto",
++        limit: int = 20,
++        offset: int = 0,
++        detail: str = "min",
++        include: str | None = None,
++        exclude: str | None = None,
++    ) -> dict:
++        """Search across all remotes, merge results by score.
++
++        Partial failures warn on stderr and continue with successful remotes.
++
++        Returns:
++            Merged search envelope with results re-sorted by score.
++        """
++        import asyncio
++        import sys
++
++        tasks = [
++            client.search(
++                pattern,
++                graph=graph,
++                mode=mode,
++                limit=limit,
++                offset=offset,
++                detail=detail,
++                include=include,
++                exclude=exclude,
 +            )
-+            all_rows = await result.fetchall()
++            for client in self.clients
++        ]
 +
-+        # Sort by similarity descending, apply offset/limit
-+        all_rows.sort(key=lambda r: r[7], reverse=True)
-+        paged = all_rows[offset:offset + limit]
++        results_per_remote = await asyncio.gather(*tasks, return_exceptions=True)
 +
-+        results = []
-+        for row in paged:
-+            (node_id, category, start, end, smart, content, name,
-+             sim, gname, emb_type, chunk_idx, csl, cel) = row
++        all_results: list[dict] = []
++        for client, result in zip(self.clients, results_per_remote, strict=True):
++            if isinstance(result, Exception):
++                print(
++                    f"Warning: Remote '{client.name}' failed: {result}",
++                    file=sys.stderr,
++                )
++                continue
++            if isinstance(result, dict) and "results" in result:
++                # Tag each result with its source remote
++                for r in result["results"]:
++                    r["_remote"] = client.name
++                all_results.extend(result["results"])
 +
-+            snippet = (smart or content or "")[:50]
-+            chunk_offset = (csl, cel) if csl is not None else None
++        # Sort merged results by score (descending)
++        all_results.sort(key=lambda r: r.get("score", 0), reverse=True)
 +
-+            results.append({
-+                "node_id": node_id,
-+                "start_line": start,
-+                "end_line": end,
-+                "match_start_line": csl or start,
-+                "match_end_line": cel or end,
-+                "smart_content": smart,
-+                "snippet": snippet,
-+                "score": float(sim),
-+                "match_field": "embedding",
-+                "content": content,
-+                "graph_name": gname,
-+                "chunk_offset": chunk_offset,
-+                "embedding_chunk_index": chunk_idx,
-+            })
++        # Apply limit to merged results
++        limited = all_results[:limit]
 +
-+        return results, total
-diff --git a/src/fs2/server/app.py b/src/fs2/server/app.py
-index 6a83525..6c59859 100644
---- a/src/fs2/server/app.py
-+++ b/src/fs2/server/app.py
-@@ -15,6 +15,7 @@ from fs2.config.objects import ServerDatabaseConfig
- from fs2.server.database import Database
- from fs2.server.routes.graphs import router as graphs_router
- from fs2.server.routes.health import router as health_router
-+from fs2.server.routes.query import router as query_router
- from fs2.server.schema import create_schema
++        return {
++            "meta": {
++                "total": len(all_results),
++                "showing": {"from": 0, "to": len(limited), "count": len(limited)},
++                "pagination": {"limit": limit, "offset": 0},
++                "folders": {},
++                "remotes": [c.name for c in self.clients],
++            },
++            "results": limited,
++        }
++
++    async def list_graphs(self, status: str | None = "ready") -> dict:
++        """List graphs from all remotes, merged.
++
++        Returns:
++            Merged graphs list with remote source tagged.
++        """
++        import asyncio
++        import sys
++
++        tasks = [client.list_graphs(status=status) for client in self.clients]
++        results = await asyncio.gather(*tasks, return_exceptions=True)
++
++        all_graphs: list[dict] = []
++        for client, result in zip(self.clients, results, strict=True):
++            if isinstance(result, Exception):
++                print(
++                    f"Warning: Remote '{client.name}' failed: {result}",
++                    file=sys.stderr,
++                )
++                continue
++            if isinstance(result, dict) and "graphs" in result:
++                for g in result["graphs"]:
++                    g["_remote"] = client.name
++                all_graphs.extend(result["graphs"])
++
++        return {
++            "graphs": all_graphs,
++            "count": len(all_graphs),
++        }
+diff --git a/src/fs2/cli/search.py b/src/fs2/cli/search.py
+index 1150bde..99f152b 100644
+--- a/src/fs2/cli/search.py
++++ b/src/fs2/cli/search.py
+@@ -173,7 +173,42 @@ def search(
+         raise typer.Exit(code=1) from None
  
+     try:
+-        # === Composition Root ===
++        # === Remote mode branch ===
++        from fs2.cli.remote_client import RemoteClientError
++        from fs2.cli.utils import resolve_remote_client
++
++        remote_client = resolve_remote_client(ctx)
++        if remote_client is not None:
++
++            try:
++                graph_name = ctx.obj.graph_name if ctx.obj and ctx.obj.graph_name else None
++                inc_str = ",".join(include) if include else None
++                exc_str = ",".join(exclude) if exclude else None
++
++                result = asyncio.run(remote_client.search(
++                    pattern,
++                    graph=graph_name,
++                    mode=mode_lower,
++                    limit=limit,
++                    offset=offset,
++                    detail=detail_lower,
++                    include=inc_str,
++                    exclude=exc_str,
++                ))
++
++                json_str = json.dumps(result, indent=2, default=str)
++                if file:
++                    absolute_path = validate_save_path(file, console)
++                    safe_write_file(absolute_path, json_str, console)
++                    console.print(f"[green]✓[/green] Wrote search results to {file}")
++                else:
++                    print(json_str)
++                raise typer.Exit(code=0)
++            except RemoteClientError as e:
++                console.print(f"[red]Error:[/red] {e}")
++                raise typer.Exit(code=1) from None
++
++        # === Local mode (existing) ===
+         # Per Phase 4: Use resolve_graph_from_context for multi-graph support
+         config, graph_store = resolve_graph_from_context(ctx)
  
-@@ -72,5 +73,6 @@ def create_app(
+diff --git a/src/fs2/cli/tree.py b/src/fs2/cli/tree.py
+index af39f2c..4dca2ac 100644
+--- a/src/fs2/cli/tree.py
++++ b/src/fs2/cli/tree.py
+@@ -162,7 +162,62 @@ def tree(
+         stderr_console.print("[dim]DEBUG: Verbose mode enabled[/dim]")
  
-     app.include_router(health_router)
-     app.include_router(graphs_router)
-+    app.include_router(query_router)
+     try:
+-        # === Composition Root ===
++        # === Remote mode branch ===
++        from fs2.cli.remote_client import RemoteClientError
++        from fs2.cli.utils import resolve_remote_client
++
++        remote_client = resolve_remote_client(ctx)
++        if remote_client is not None:
++            import asyncio
++
++            try:
++                # Get graph name from context (required for remote tree)
++                graph_name = ctx.obj.graph_name if ctx.obj and ctx.obj.graph_name else None
++                if not graph_name:
++                    # If no graph specified, try to list and pick single graph
++                    graphs_resp = asyncio.run(remote_client.list_graphs())
++                    graphs = graphs_resp.get("graphs", [])
++                    if len(graphs) == 1:
++                        graph_name = graphs[0]["name"]
++                    elif len(graphs) == 0:
++                        stderr_console.print("[red]Error:[/red] No graphs available on remote.")
++                        raise typer.Exit(code=1)
++                    else:
++                        names = [g["name"] for g in graphs]
++                        stderr_console.print(
++                            "[red]Error:[/red] Multiple graphs on remote. "
++                            f"Specify one with --graph-name: {', '.join(names)}"
++                        )
++                        raise typer.Exit(code=1)
++
++                result = asyncio.run(remote_client.tree(graph_name, pattern=pattern, max_depth=depth))
++
++                if json_output or file:
++                    json_str = json.dumps(result, indent=2, default=str)
++                    if file:
++                        absolute_path = validate_save_path(file, stderr_console)
++                        safe_write_file(absolute_path, json_str, stderr_console)
++                        stderr_console.print(f"[green]✓[/green] Wrote tree results to {file}")
++                    else:
++                        print(json_str)
++                else:
++                    # Print server tree response (raw JSON structure)
++                    tree_data = result.get("tree", result.get("results", []))
++                    if not tree_data:
++                        if pattern == ".":
++                            console.print("Found 0 nodes in 0 files")
++                        else:
++                            console.print(f"No nodes match pattern: {pattern}")
++                    else:
++                        # Pretty-print the tree structure
++                        json_str = json.dumps(result, indent=2, default=str)
++                        print(json_str)
++                raise typer.Exit(code=0)
++            except RemoteClientError as e:
++                stderr_console.print(f"[red]Error:[/red] {e}")
++                raise typer.Exit(code=1) from None
++
++        # === Local mode (existing) ===
+         # Per Phase 4: Use resolve_graph_from_context for multi-graph support
+         config, graph_store = resolve_graph_from_context(ctx)
  
-     return app
-diff --git a/src/fs2/server/routes/graphs.py b/src/fs2/server/routes/graphs.py
-index c379bc8..2f03e02 100644
---- a/src/fs2/server/routes/graphs.py
-+++ b/src/fs2/server/routes/graphs.py
-@@ -93,18 +93,37 @@ async def upload_graph(
+diff --git a/src/fs2/cli/utils.py b/src/fs2/cli/utils.py
+index 721d24a..af1a115 100644
+--- a/src/fs2/cli/utils.py
++++ b/src/fs2/cli/utils.py
+@@ -7,6 +7,10 @@ Per Phase 1 save-to-file plan:
+ Per Phase 4 multi-graph plan:
+ - resolve_graph_from_context(): Resolve graph from CLI context using GraphService
  
++Per Phase 5 remote CLI:
++- resolve_remote_client(): Resolve RemoteClient from CLIContext.remote
++- resolve_remotes(): Parse comma-separated remote names/URLs into RemoteClient(s)
++
+ Per Insight #2: Wrap file writes in try/except, delete partial file on failure.
+ Per Insight #3: Always use encoding="utf-8" per JSON spec RFC 8259.
+ """
+@@ -21,6 +25,9 @@ import typer
+ from rich.console import Console
  
- @router.get("")
--async def list_graphs(request: Request) -> dict:
--    """List all available graphs with status and metadata."""
-+async def list_graphs(
-+    request: Request,
-+    status: str | None = None,
-+) -> dict:
-+    """List all available graphs with status and metadata.
+ if TYPE_CHECKING:
++    from typing import Any
++
++    from fs2.cli.remote_client import MultiRemoteClient, RemoteClient
+     from fs2.config.service import ConfigurationService
+     from fs2.core.repos.graph_store import GraphStore
+ 
+@@ -189,3 +196,103 @@ def resolve_graph_from_context(
+         console = Console(stderr=True)
+         console.print(f"[red]Error:[/red] {e}")
+         raise typer.Exit(code=2) from None
++
++
++def resolve_remote_client(
++    ctx: typer.Context,
++) -> RemoteClient | MultiRemoteClient | None:
++    """Resolve remote client from CLIContext.remote.
++
++    Per DYK #4: Does NOT modify resolve_graph_from_context().
++    CLI commands check this first and branch early.
 +
 +    Args:
-+        status: Optional filter (e.g. 'ready') for query-eligible graphs.
++        ctx: Typer context with CLIContext as obj.
++
++    Returns:
++        RemoteClient for single remote, MultiRemoteClient for comma-separated,
++        or None if not in remote mode.
 +    """
-     db = request.app.state.db
++    cli_ctx = ctx.obj
++    if not cli_ctx or not cli_ctx.remote:
++        return None
++
++    clients = resolve_remotes(cli_ctx.remote)
++    if len(clients) == 1:
++        return clients[0]
++    return MultiRemoteClient(clients)
++
++
++def resolve_remotes(remote_str: str) -> list[RemoteClient]:
++    """Parse remote string into RemoteClient instances.
++
++    Supports:
++    - Named remote: "work" → look up in RemotesConfig
++    - Inline URL: "http://localhost:8000" → use directly
++    - Comma-separated: "work,oss" → multiple clients
++
++    Args:
++        remote_str: Comma-separated remote names or URLs.
++
++    Returns:
++        List of RemoteClient instances.
++
++    Raises:
++        typer.Exit(1): If named remote not found in config.
++    """
++    from fs2.cli.remote_client import RemoteClient
++    from fs2.config.objects import RemotesConfig
++    from fs2.config.service import FS2ConfigurationService
++
++    parts = [p.strip() for p in remote_str.split(",") if p.strip()]
++    if not parts:
++        console = Console(stderr=True)
++        console.print("[red]Error:[/red] --remote value cannot be empty")
++        raise typer.Exit(code=1)
++
++    # Load remotes config (may be None if not configured)
++    config = FS2ConfigurationService()
++    remotes_config = config.get(RemotesConfig)
++    servers_by_name: dict[str, Any] = {}
++    if remotes_config:
++        for server in remotes_config.servers:
++            servers_by_name[server.name] = server
++
++    clients: list[RemoteClient] = []
++    for part in parts:
++        if part.startswith(("http://", "https://")):
++            # Inline URL
++            clients.append(RemoteClient(base_url=part, name=part))
++        elif part in servers_by_name:
++            # Named remote from config
++            server = servers_by_name[part]
++            clients.append(
++                RemoteClient(
++                    base_url=server.url,
++                    api_key=server.api_key,
++                    name=server.name,
++                )
++            )
++        else:
++            # Unknown name
++            console = Console(stderr=True)
++            available = list(servers_by_name.keys()) if servers_by_name else []
++            if available:
++                console.print(
++                    f"[red]Error:[/red] Unknown remote '{part}'. "
++                    f"Available remotes: {', '.join(sorted(available))}\n"
++                    "  Configure remotes in ~/.config/fs2/config.yaml or .fs2/config.yaml"
++                )
++            else:
++                console.print(
++                    f"[red]Error:[/red] Unknown remote '{part}'. "
++                    "No remotes configured.\n"
++                    "  Add remotes to ~/.config/fs2/config.yaml:\n"
++                    "    remotes:\n"
++                    "      servers:\n"
++                    f'        - name: "{part}"\n'
++                    f'          url: "https://your-server.example.com"'
++                )
++            raise typer.Exit(code=1)
++
++    return clients
+diff --git a/src/fs2/config/objects.py b/src/fs2/config/objects.py
+index 29478b3..b17dc3a 100644
+--- a/src/fs2/config/objects.py
++++ b/src/fs2/config/objects.py
+@@ -864,6 +864,102 @@ class OtherGraphsConfig(BaseModel):
+     graphs: list[OtherGraph] = []
  
--    async with db.connection() as conn:
--        result = await conn.execute(
--            """SELECT id, name, description, status, node_count, edge_count,
-+    if status:
-+        query = """SELECT id, name, description, status, node_count, edge_count,
-+                embedding_model, embedding_dimensions, format_version,
-+                created_at, updated_at, ingested_at
-+            FROM graphs WHERE status = %s
-+            ORDER BY name"""
-+        params = (status,)
-+    else:
-+        query = """SELECT id, name, description, status, node_count, edge_count,
-                 embedding_model, embedding_dimensions, format_version,
-                 created_at, updated_at, ingested_at
-             FROM graphs
-             ORDER BY name"""
--        )
-+        params = None
-+
-+    async with db.connection() as conn:
-+        if params:
-+            result = await conn.execute(query, params)
-+        else:
-+            result = await conn.execute(query)
-         rows = await result.fetchall()
  
-     graphs = []
-diff --git a/src/fs2/server/routes/query.py b/src/fs2/server/routes/query.py
-new file mode 100644
-index 0000000..781ff4d
---- /dev/null
-+++ b/src/fs2/server/routes/query.py
-@@ -0,0 +1,570 @@
-+"""Query routes for fs2 server.
-+
-+Endpoints:
-+- GET  /api/v1/graphs/{name}/tree     — tree view with folder hierarchy
-+- GET  /api/v1/graphs/{name}/search   — single-graph search
-+- GET  /api/v1/graphs/{name}/nodes/{node_id} — get-node detail
-+- GET  /api/v1/search                  — multi-graph search
-+
-+Per Phase 4 DYK decisions:
-+- #1: Wire existing EmbeddingAdapter for text-mode semantic
-+- #2: Single SQL with IN(...) for multi-graph
-+- #3: Reuse TreeService folder hierarchy algorithm (Python, not CTE)
-+- #4: Get-node includes children_count
-+- #5: Auto-mode checks per-graph embedding availability
-+"""
-+
-+import logging
-+
-+from fastapi import APIRouter, HTTPException, Query, Request
-+
-+from fs2.core.models.code_node import CodeNode
-+from fs2.core.models.content_type import ContentType
-+from fs2.core.repos.graph_store_pg import PostgreSQLGraphStore
-+from fs2.core.services.search.pgvector_matcher import PgvectorSemanticMatcher
-+
-+logger = logging.getLogger(__name__)
-+
-+router = APIRouter(prefix="/api/v1", tags=["query"])
-+
-+# Regex metacharacters that trigger REGEX mode in auto-detect
-+_REGEX_METACHARACTERS = set("*?[]^$|()")
++# =============================================================================
++# Remote Server Configuration
++# =============================================================================
 +
 +
-+# ── Helpers ──
++class RemoteServer(BaseModel):
++    """Configuration for a named remote fs2 server.
 +
++    Represents a single remote server that can be queried via CLI or MCP.
++    Part of the remotes config system. Follows OtherGraph naming conventions.
 +
-+async def _resolve_graph(db, name: str) -> dict:
-+    """Resolve graph by name. Returns graph row dict or raises 404."""
-+    async with db.connection() as conn:
-+        result = await conn.execute(
-+            """SELECT id, name, status, embedding_model, embedding_dimensions
-+            FROM graphs WHERE name = %s""",
-+            (name,),
-+        )
-+        row = await result.fetchone()
++    Per Workshop 003 R5: Config path is "remotes".
++    Per DYK-P5-05: MCP mixed mode discovers remote graphs automatically.
 +
-+    if not row:
-+        raise HTTPException(status_code=404, detail=f"Graph '{name}' not found")
++    Attributes:
++        name: Unique identifier for this remote (required, e.g., "work", "oss").
++        url: Base URL of the remote server (required, must start with http:// or https://).
++        api_key: Optional API key for authentication.
++        description: Human-readable description (optional).
 +
-+    if row[2] != "ready":
-+        raise HTTPException(
-+            status_code=409,
-+            detail=f"Graph '{name}' is not ready (status: {row[2]})",
-+        )
-+
-+    return {
-+        "id": str(row[0]),
-+        "name": row[1],
-+        "status": row[2],
-+        "embedding_model": row[3],
-+        "embedding_dimensions": row[4],
-+    }
-+
-+
-+def _detect_search_mode(pattern: str) -> str:
-+    """Detect search mode from pattern (same heuristic as local SearchService)."""
-+    if any(c in pattern for c in _REGEX_METACHARACTERS):
-+        return "regex"
-+    return "semantic"
-+
-+
-+def _detect_tree_input_mode(pattern: str) -> str:
-+    """Detect tree input mode (same as TreeService._detect_input_mode)."""
-+    if ":" in pattern:
-+        return "node_id"
-+    if "/" in pattern:
-+        return "folder"
-+    return "pattern"
-+
-+
-+def _extract_file_path(node_id: str) -> str:
-+    """Extract file path from node_id (e.g. 'file:src/main.py' → 'src/main.py')."""
-+    if ":" in node_id:
-+        parts = node_id.split(":", 1)
-+        if len(parts) > 1:
-+            return parts[1]
-+    return node_id
-+
-+
-+def _create_folder_node_dict(folder_path: str) -> dict:
-+    """Create a synthetic folder node dict for tree rendering."""
-+    name = folder_path.rstrip("/").rsplit("/", 1)[-1] if "/" in folder_path else folder_path.rstrip("/")
-+    return {
-+        "node_id": folder_path,
-+        "name": name,
-+        "category": "folder",
-+        "start_line": 0,
-+        "end_line": 0,
-+    }
-+
-+
-+def _code_node_to_tree_dict(node: CodeNode) -> dict:
-+    """Convert CodeNode to tree-compatible dict."""
-+    return {
-+        "node_id": node.node_id,
-+        "name": node.name,
-+        "category": node.category,
-+        "start_line": node.start_line,
-+        "end_line": node.end_line,
-+    }
-+
-+
-+def _compute_folder_hierarchy(
-+    file_nodes: list[CodeNode], max_depth: int
-+) -> list[dict]:
-+    """Compute virtual folder hierarchy from file nodes.
-+
-+    Same algorithm as TreeService._compute_folder_hierarchy — splits
-+    node_id paths at '/' to build synthetic folder structure.
++    YAML example:
++        ```yaml
++        # ~/.config/fs2/config.yaml (user-level, shared across projects)
++        remotes:
++          servers:
++            - name: "work"
++              url: "https://fs2.internal.company.com"
++              api_key: ${FS2_WORK_API_KEY}
++              description: "Internal team server"
++            - name: "oss"
++              url: "https://fs2.example.com"
++              description: "Open source graphs"
++        ```
 +    """
-+    if not file_nodes:
-+        return []
 +
-+    root: dict = {"files": [], "folders": {}}
++    name: str
++    url: str
++    api_key: str | None = None
++    description: str | None = None
 +
-+    for node in file_nodes:
-+        file_path = _extract_file_path(node.node_id)
-+        parts = file_path.split("/")
-+        if len(parts) <= 1:
-+            root["files"].append(node)
-+        else:
-+            current = root
-+            for folder in parts[:-1]:
-+                if folder not in current["folders"]:
-+                    current["folders"][folder] = {"files": [], "folders": {}}
-+                current = current["folders"][folder]
-+            current["files"].append(node)
++    @field_validator("name")
++    @classmethod
++    def validate_name(cls, v: str) -> str:
++        """Validate name is not empty or whitespace."""
++        if not v or not v.strip():
++            raise ValueError("name must not be empty or whitespace")
++        return v
 +
-+    return _build_folder_tree(root, max_depth, 0, "")
-+
-+
-+def _count_folder_items(folder_dict: dict) -> int:
-+    """Count total items in a folder recursively."""
-+    count = len(folder_dict["files"])
-+    for sub in folder_dict["folders"].values():
-+        count += _count_folder_items(sub)
-+    return count
-+
-+
-+def _build_folder_tree(
-+    folder_dict: dict, max_depth: int, current_depth: int, path_prefix: str
-+) -> list[dict]:
-+    """Build tree node dicts from folder structure."""
-+    result = []
-+
-+    # Folders first, sorted
-+    for folder_name in sorted(folder_dict["folders"].keys()):
-+        contents = folder_dict["folders"][folder_name]
-+        folder_path = f"{path_prefix}{folder_name}/"
-+        total = _count_folder_items(contents)
-+
-+        node = _create_folder_node_dict(folder_path)
-+
-+        if max_depth > 0 and current_depth + 1 >= max_depth:
-+            node["children"] = []
-+            node["hidden_children_count"] = total
-+        else:
-+            children = _build_folder_tree(
-+                contents, max_depth, current_depth + 1, folder_path
++    @field_validator("url")
++    @classmethod
++    def validate_url(cls, v: str) -> str:
++        """Validate URL starts with http:// or https://."""
++        if not v or not v.strip():
++            raise ValueError("url must not be empty or whitespace")
++        if not v.startswith(("http://", "https://")):
++            raise ValueError(
++                f"url must start with http:// or https://, got: '{v}'. "
++                "Example: https://fs2.example.com"
 +            )
-+            node["children"] = children
-+            node["hidden_children_count"] = 0
-+
-+        result.append(node)
-+
-+    # Files second, sorted
-+    for file_node in sorted(folder_dict["files"], key=lambda n: n.name or ""):
-+        node = _code_node_to_tree_dict(file_node)
-+        if max_depth > 0 and current_depth + 1 >= max_depth:
-+            node["children"] = []
-+            node["hidden_children_count"] = 0  # Would need store for real count
-+        else:
-+            node["children"] = []
-+            node["hidden_children_count"] = 0
-+        result.append(node)
-+
-+    return result
++        # Strip trailing slash for consistency
++        return v.rstrip("/")
 +
 +
-+def _build_pattern_tree(
-+    matched: list[CodeNode], store: PostgreSQLGraphStore, max_depth: int
-+) -> list[dict]:
-+    """Build tree from pattern-matched nodes (non-folder mode).
++class RemotesConfig(BaseModel):
++    """Configuration for remote fs2 server connections.
 +
-+    Keeps only shallowest matches as roots, like TreeService._build_root_bucket.
-+    Note: This is synchronous in structure — children aren't expanded from DB
-+    for v1 (would need async recursion). Returns flat matched nodes as roots.
++    Loaded from YAML at path "remotes".
++    Path: remotes (e.g., in YAML: remotes.servers)
++
++    Container model for listing named remote servers. Supports both
++    user-level (~/.config/fs2/config.yaml) and project-level (.fs2/config.yaml)
++    configuration. User and project configs are concatenated (not replaced),
++    following the same pattern as OtherGraphsConfig.
++
++    Per Workshop 003 R5-R6: Named remotes with URL, api_key, description.
++    Per DYK-P5-05: MCP discovers remote graphs automatically from this config.
++
++    Attributes:
++        servers: List of RemoteServer configurations (default: empty list).
++
++    YAML example:
++        ```yaml
++        remotes:
++          servers:
++            - name: "work"
++              url: "https://fs2.internal.company.com"
++              api_key: ${FS2_WORK_API_KEY}
++              description: "Internal team server"
++        ```
 +    """
-+    if not matched:
-+        return []
 +
-+    # For single node_id match, return as root
-+    if len(matched) == 1:
-+        node = matched[0]
-+        return [{
-+            **_code_node_to_tree_dict(node),
-+            "children": [],
-+            "hidden_children_count": 0,
-+        }]
++    __config_path__: ClassVar[str] = "remotes"
 +
-+    # Build root bucket: remove children when ancestor also matched
-+    matched_ids = {n.node_id for n in matched}
-+    roots = []
++    servers: list[RemoteServer] = []
 +
-+    for node in matched:
-+        has_ancestor = False
-+        parent_id = node.parent_node_id
-+        while parent_id:
-+            if parent_id in matched_ids:
-+                has_ancestor = True
-+                break
-+            # Walk up via known parent_node_id
-+            parent_node = next(
-+                (n for n in matched if n.node_id == parent_id), None
++
+ class SearchConfig(BaseModel):
+     """Configuration for search operations.
+ 
+@@ -1059,4 +1155,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
+     OtherGraphsConfig,
+     ServerDatabaseConfig,
+     ServerStorageConfig,
++    RemotesConfig,
+ ]
+diff --git a/src/fs2/core/services/get_node_service.py b/src/fs2/core/services/get_node_service.py
+index 8b3a34e..b419040 100644
+--- a/src/fs2/core/services/get_node_service.py
++++ b/src/fs2/core/services/get_node_service.py
+@@ -81,12 +81,20 @@ class GetNodeService:
+     def _ensure_loaded(self) -> None:
+         """Lazy load graph on first access.
+ 
++        Per Phase 3 Multi-Graph: If the store already has nodes (e.g., loaded
++        by GraphService), skip loading. This prevents overwriting external
++        graphs with the default config.graph_path.
++
+         Raises:
+             GraphNotFoundError: If graph file does not exist.
+             GraphStoreError: If graph file is corrupted.
+         """
+         if self._loaded:
+             return
++        # Skip loading if store already has content (e.g., from GraphService)
++        if len(self._graph_store.get_all_nodes()) > 0:
++            self._loaded = True
++            return
+         graph_path = Path(self._config.graph_path)
+         if not graph_path.exists():
+             raise GraphNotFoundError(graph_path)
+diff --git a/src/fs2/mcp/server.py b/src/fs2/mcp/server.py
+index 8ec9078..1939f36 100644
+--- a/src/fs2/mcp/server.py
++++ b/src/fs2/mcp/server.py
+@@ -198,6 +198,82 @@ CATEGORY_ICONS = {
+ }
+ 
+ 
++# =============================================================================
++# Remote Client Helpers (Phase 5: MCP mixed mode)
++# =============================================================================
++
++
++def _get_remote_clients() -> dict[str, Any]:
++    """Get configured RemoteClient instances keyed by remote name.
++
++    Returns empty dict if no remotes configured. Lazy — only called when needed.
++    """
++    try:
++        from fs2.cli.remote_client import RemoteClient
++        from fs2.config.objects import RemotesConfig
++
++        config = get_config()
++        remotes_config = config.get(RemotesConfig)
++        if not remotes_config or not remotes_config.servers:
++            return {}
++
++        clients = {}
++        for server in remotes_config.servers:
++            clients[server.name] = RemoteClient(
++                base_url=server.url,
++                api_key=server.api_key,
++                name=server.name,
 +            )
-+            parent_id = parent_node.parent_node_id if parent_node else None
-+
-+        if not has_ancestor:
-+            roots.append(node)
-+
-+    return [
-+        {
-+            **_code_node_to_tree_dict(n),
-+            "children": [],
-+            "hidden_children_count": 0,
-+        }
-+        for n in sorted(roots, key=lambda n: n.node_id)
-+    ]
++        return clients
++    except Exception:
++        return {}
 +
 +
-+def _compute_folder_distribution(results: list[dict]) -> dict[str, int]:
-+    """Compute folder distribution from search results."""
-+    folders: dict[str, int] = {}
-+    for r in results:
-+        node_id = r["node_id"]
-+        path = _extract_file_path(node_id)
-+        parts = path.split("/")
-+        folder = parts[0] + "/" if len(parts) > 1 else "."
-+        folders[folder] = folders.get(folder, 0) + 1
-+    return dict(sorted(folders.items(), key=lambda x: -x[1]))
++def _get_remote_graph_names() -> set[str]:
++    """Get set of all graph names available across configured remotes.
 +
-+
-+# ── Tree endpoint ──
-+
-+
-+@router.get("/graphs/{name}/tree")
-+async def tree(
-+    request: Request,
-+    name: str,
-+    pattern: str = Query(default=".", description="Filter pattern"),
-+    max_depth: int = Query(default=0, ge=0, description="Max depth (0=unlimited)"),
-+) -> dict:
-+    """Get tree view of a graph.
-+
-+    Replicates local `fs2 tree` output:
-+    - pattern="." + max_depth>0 → virtual folder hierarchy
-+    - pattern with ":" → exact node_id match
-+    - pattern with "/" → folder prefix filter
-+    - other → substring/glob match
++    Used for mixed mode routing: if graph_name is in this set, use RemoteClient.
++    Caches per-call (not globally) to stay fresh.
 +    """
-+    db = request.app.state.db
-+    graph = await _resolve_graph(db, name)
-+    store = PostgreSQLGraphStore(db, graph["id"])
++    import asyncio
 +
-+    if pattern == "." and max_depth > 0:
-+        # Folder hierarchy mode: fetch file-level nodes
-+        all_nodes = await store.get_filtered_nodes_async(".")
-+        file_nodes = [n for n in all_nodes if n.node_id.startswith("file:")]
-+        tree_nodes = _compute_folder_hierarchy(file_nodes, max_depth)
-+    else:
-+        # Pattern search mode
-+        matched = await store.get_filtered_nodes_async(pattern)
-+        tree_nodes = _build_pattern_tree(matched, store, max_depth)
++    clients = _get_remote_clients()
++    if not clients:
++        return set()
 +
-+    return {
-+        "graph_name": graph["name"],
-+        "pattern": pattern,
-+        "max_depth": max_depth,
-+        "count": len(tree_nodes),
-+        "tree": tree_nodes,
-+    }
-+
-+
-+# ── Get-node endpoint ──
-+
-+
-+@router.get("/graphs/{name}/nodes/{node_id:path}")
-+async def get_node(
-+    request: Request,
-+    name: str,
-+    node_id: str,
-+    detail: str = Query(default="min", pattern="^(min|max)$"),
-+) -> dict:
-+    """Get a single code node by ID.
-+
-+    Per DYK #4: Includes children_count for parity with local.
-+    """
-+    db = request.app.state.db
-+    graph = await _resolve_graph(db, name)
-+    store = PostgreSQLGraphStore(db, graph["id"])
-+
-+    node = await store.get_node_async(node_id)
-+    if not node:
-+        raise HTTPException(
-+            status_code=404,
-+            detail=f"Node '{node_id}' not found in graph '{name}'",
-+        )
-+
-+    children_count = await store.get_children_count_async(node_id)
-+
-+    result = _code_node_to_dict(node, detail)
-+    result["children_count"] = children_count
-+    result["graph_name"] = graph["name"]
-+    return result
-+
-+
-+def _code_node_to_dict(node: CodeNode, detail: str = "min") -> dict:
-+    """Convert CodeNode to response dict with detail level."""
-+    ct = getattr(node, "content_type", None)
-+    ct_val = ct.value if isinstance(ct, ContentType) else str(ct) if ct else "code"
-+
-+    result = {
-+        "node_id": node.node_id,
-+        "category": node.category,
-+        "ts_kind": node.ts_kind,
-+        "content_type": ct_val,
-+        "name": node.name,
-+        "qualified_name": node.qualified_name,
-+        "start_line": node.start_line,
-+        "end_line": node.end_line,
-+        "language": node.language,
-+        "is_named": node.is_named,
-+        "parent_node_id": node.parent_node_id,
-+        "smart_content": node.smart_content,
-+        "signature": node.signature,
-+    }
-+
-+    if detail == "max":
-+        result.update({
-+            "start_column": node.start_column,
-+            "end_column": node.end_column,
-+            "start_byte": node.start_byte,
-+            "end_byte": node.end_byte,
-+            "content": node.content,
-+            "content_hash": node.content_hash,
-+            "field_name": node.field_name,
-+            "is_error": getattr(node, "is_error", False),
-+            "truncated": getattr(node, "truncated", False),
-+            "truncated_at_line": getattr(node, "truncated_at_line", None),
-+            "smart_content_hash": getattr(node, "smart_content_hash", None),
-+            "embedding_hash": node.embedding_hash,
-+            "has_embedding": node.embedding is not None,
-+            "has_smart_content_embedding": (
-+                getattr(node, "smart_content_embedding", None) is not None
-+            ),
-+        })
-+
-+    return result
-+
-+
-+# ── Single-graph search endpoint ──
-+
-+
-+@router.get("/graphs/{name}/search")
-+async def search_graph(
-+    request: Request,
-+    name: str,
-+    pattern: str = Query(..., min_length=1),
-+    mode: str = Query(default="auto", pattern="^(text|regex|semantic|auto)$"),
-+    limit: int = Query(default=20, ge=1, le=100),
-+    offset: int = Query(default=0, ge=0),
-+    detail: str = Query(default="min", pattern="^(min|max)$"),
-+    min_similarity: float = Query(default=0.25, ge=0.0, le=1.0),
-+    include: str | None = Query(default=None, description="Comma-separated include patterns"),
-+    exclude: str | None = Query(default=None, description="Comma-separated exclude patterns"),
-+    query_vector: str | None = Query(default=None, description="Pre-embedded vector as JSON array"),
-+) -> dict:
-+    """Search within a single graph."""
-+    db = request.app.state.db
-+    graph = await _resolve_graph(db, name)
-+
-+    inc = tuple(include.split(",")) if include else None
-+    exc = tuple(exclude.split(",")) if exclude else None
-+
-+    return await _execute_search(
-+        request, [graph], pattern, mode, limit, offset, detail,
-+        min_similarity, inc, exc, query_vector,
-+    )
-+
-+
-+# ── Multi-graph search endpoint ──
-+
-+
-+@router.get("/search")
-+async def search_multi(
-+    request: Request,
-+    pattern: str = Query(..., min_length=1),
-+    graph: str = Query(default="all", description="Graph name(s), comma-separated, or 'all'"),
-+    mode: str = Query(default="auto", pattern="^(text|regex|semantic|auto)$"),
-+    limit: int = Query(default=20, ge=1, le=100),
-+    offset: int = Query(default=0, ge=0),
-+    detail: str = Query(default="min", pattern="^(min|max)$"),
-+    min_similarity: float = Query(default=0.25, ge=0.0, le=1.0),
-+    include: str | None = Query(default=None),
-+    exclude: str | None = Query(default=None),
-+    query_vector: str | None = Query(default=None),
-+) -> dict:
-+    """Search across one, multiple, or all graphs.
-+
-+    Per DYK #2: Single SQL query with WHERE graph_id IN(...).
-+    """
-+    db = request.app.state.db
-+
-+    if graph == "all":
-+        async with db.connection() as conn:
-+            result = await conn.execute(
-+                """SELECT id, name, status, embedding_model, embedding_dimensions
-+                FROM graphs WHERE status = 'ready' ORDER BY name"""
-+            )
-+            rows = await result.fetchall()
-+        graphs = [
-+            {"id": str(r[0]), "name": r[1], "status": r[2],
-+             "embedding_model": r[3], "embedding_dimensions": r[4]}
-+            for r in rows
-+        ]
-+        if not graphs:
-+            return {"meta": {"total": 0, "showing": {"from": 0, "to": 0, "count": 0},
-+                             "pagination": {"limit": limit, "offset": offset}, "folders": {}},
-+                    "results": []}
-+    else:
-+        names = [n.strip() for n in graph.split(",")]
-+        graphs = []
-+        for n in names:
-+            g = await _resolve_graph(db, n)
-+            graphs.append(g)
-+
-+    inc = tuple(include.split(",")) if include else None
-+    exc = tuple(exclude.split(",")) if exclude else None
-+
-+    return await _execute_search(
-+        request, graphs, pattern, mode, limit, offset, detail,
-+        min_similarity, inc, exc, query_vector,
-+    )
-+
-+
-+async def _execute_search(
-+    request: Request,
-+    graphs: list[dict],
-+    pattern: str,
-+    mode: str,
-+    limit: int,
-+    offset: int,
-+    detail: str,
-+    min_similarity: float,
-+    include: tuple[str, ...] | None,
-+    exclude: tuple[str, ...] | None,
-+    query_vector_str: str | None,
-+) -> dict:
-+    """Execute search across given graphs.
-+
-+    Routes to text/regex/semantic based on mode.
-+    Auto-mode detects from pattern + embedding availability.
-+    """
-+    db = request.app.state.db
-+    graph_ids = [g["id"] for g in graphs]
-+
-+    # Parse BYO query vector if provided
-+    query_vector = None
-+    if query_vector_str:
-+        import json
++    names: set[str] = set()
++    for _name, client in clients.items():
 +        try:
-+            query_vector = json.loads(query_vector_str)
-+        except (json.JSONDecodeError, TypeError) as e:
-+            raise HTTPException(status_code=400, detail=f"Invalid query_vector JSON: {e}") from e
-+
-+    # Resolve auto mode
-+    resolved_mode = mode
-+    if mode == "auto":
-+        resolved_mode = _detect_search_mode(pattern)
-+        if resolved_mode == "semantic":
-+            # DYK #5: Check per-graph embedding availability
-+            has_any_embeddings = False
-+            for g in graphs:
-+                store = PostgreSQLGraphStore(db, g["id"])
-+                if await store.has_embeddings_async():
-+                    has_any_embeddings = True
-+                    break
-+            if not has_any_embeddings:
-+                resolved_mode = "text"
-+
-+    # Embedding model validation (T006)
-+    if resolved_mode == "semantic" and query_vector is None:
-+        # Text-mode semantic: check model compatibility across graphs
-+        embedding_adapter = getattr(request.app.state, "embedding_adapter", None)
-+        if embedding_adapter is None:
-+            # No adapter configured — fall back to text
-+            logger.warning("No embedding adapter configured; falling back to text search")
-+            resolved_mode = "text"
-+
-+    if resolved_mode in ("text", "regex"):
-+        store = PostgreSQLGraphStore(db, graph_ids[0])
-+        if resolved_mode == "text":
-+            results, total = await store.search_text_async(
-+                pattern, limit, offset, include, exclude, graph_ids
-+            )
-+        else:
-+            results, total = await store.search_regex_async(
-+                pattern, limit, offset, include, exclude, graph_ids
-+            )
-+    else:
-+        # Semantic search
-+        embedding_adapter = getattr(request.app.state, "embedding_adapter", None)
-+        matcher = PgvectorSemanticMatcher(db, embedding_adapter)
-+        results, total = await matcher.search(
-+            graph_ids=graph_ids,
-+            limit=limit,
-+            offset=offset,
-+            min_similarity=min_similarity,
-+            query=pattern if query_vector is None else None,
-+            query_vector=query_vector,
-+            include=include,
-+            exclude=exclude,
-+        )
-+
-+    # Format response
-+    showing_from = offset
-+    showing_to = offset + len(results)
-+    folders = _compute_folder_distribution(results)
-+
-+    # Apply detail level to results
-+    formatted_results = []
-+    for r in results:
-+        entry = {
-+            "node_id": r["node_id"],
-+            "start_line": r["start_line"],
-+            "end_line": r["end_line"],
-+            "match_start_line": r.get("match_start_line", r["start_line"]),
-+            "match_end_line": r.get("match_end_line", r["end_line"]),
-+            "smart_content": r.get("smart_content"),
-+            "snippet": r.get("snippet", ""),
-+            "score": r["score"],
-+            "match_field": r.get("match_field", "content"),
-+            "graph_name": r.get("graph_name"),
-+        }
-+        if detail == "max":
-+            entry["content"] = r.get("content")
-+            entry["matched_lines"] = r.get("matched_lines")
-+            entry["chunk_offset"] = r.get("chunk_offset")
-+            entry["embedding_chunk_index"] = r.get("embedding_chunk_index")
-+        formatted_results.append(entry)
-+
-+    return {
-+        "meta": {
-+            "total": total,
-+            "showing": {"from": showing_from, "to": showing_to, "count": len(results)},
-+            "pagination": {"limit": limit, "offset": offset},
-+            "folders": folders,
-+        },
-+        "results": formatted_results,
-+    }
-diff --git a/tests/server/test_query_api.py b/tests/server/test_query_api.py
-new file mode 100644
-index 0000000..f62b7ae
---- /dev/null
-+++ b/tests/server/test_query_api.py
-@@ -0,0 +1,637 @@
-+"""Tests for server query API endpoints.
-+
-+Tests tree, search, get-node, and multi-graph search routes
-+using FakeDatabase pattern from prior phases.
-+"""
-+
-+import json
-+from collections.abc import AsyncGenerator
-+from contextlib import asynccontextmanager
-+from unittest.mock import AsyncMock
-+
-+import pytest
-+from httpx import ASGITransport, AsyncClient
-+
-+from fs2.server.app import create_app
++            result = asyncio.run(client.list_graphs(status="ready"))
++            for g in result.get("graphs", []):
++                graph_name = g.get("name")
++                if graph_name:
++                    names.add(f"{client.name}:{graph_name}")
++        except Exception:
++            pass
++    return names
 +
 +
-+# ── Fake Database for query tests ──
++def _resolve_remote_for_graph(graph_name: str | None) -> tuple[Any, str] | None:
++    """Check if graph_name refers to a remote graph.
++
++    Supports "remote:graph" syntax (e.g., "work:api-gateway").
++    Returns (RemoteClient, graph_name_on_server) or None for local.
++    """
++    if graph_name is None:
++        return None
++
++    # Check for explicit "remote:graph" syntax
++    if ":" in graph_name:
++        parts = graph_name.split(":", 1)
++        remote_name, server_graph = parts[0], parts[1]
++        clients = _get_remote_clients()
++        if remote_name in clients:
++            return clients[remote_name], server_graph
++
++    return None
 +
 +
-+class FakeConnection:
-+    """Fake async connection that returns configured results."""
+ def _render_tree_as_text(
+     tree_dicts: list[dict[str, Any]],
+     indent: str = "",
+@@ -400,6 +476,32 @@ def tree(
+         {"format": "text", "content": "📄 tree.py [1-364]\\n📄 main.py...", "count": 12}
+     """
+     try:
++        # Per DYK-P5-05: Check if graph_name refers to a remote graph
++        remote_info = _resolve_remote_for_graph(graph_name)
++        if remote_info is not None:
++            import asyncio
 +
-+    def __init__(self, results: dict | None = None):
-+        self._results = results or {}
-+        self._default_result = FakeResult([])
++            from fs2.cli.remote_client import RemoteClientError
 +
-+    async def execute(self, query, params=None):
-+        # Route based on query content
-+        query_lower = query.strip().lower() if isinstance(query, str) else ""
++            try:
++                client, server_graph = remote_info
++                result = asyncio.run(client.tree(server_graph, pattern=pattern, max_depth=max_depth))
++                tree_data = result.get("tree", [])
 +
-+        for key, result in self._results.items():
-+            if key.lower() in query_lower:
++                def _count_remote(nodes: list) -> int:
++                    total = len(nodes)
++                    for n in nodes:
++                        total += _count_remote(n.get("children", []))
++                    return total
++
++                node_count = _count_remote(tree_data)
++                if format == "json":
++                    return {"format": "json", "tree": tree_data, "count": node_count}
++                text_output = _render_tree_as_text(tree_data)
++                return {"format": "text", "content": text_output, "count": node_count}
++            except RemoteClientError as e:
++                raise ToolError(str(e)) from None
++
+         config = get_config()
+         store = get_graph_store(graph_name)
+         service = TreeService(config=config, graph_store=store)
+@@ -598,6 +700,22 @@ def get_node(
+         ToolError: If graph not found or path escapes working directory.
+     """
+     try:
++        # Per DYK-P5-05: Check if graph_name refers to a remote graph
++        remote_info = _resolve_remote_for_graph(graph_name)
++        if remote_info is not None:
++            import asyncio
++
++            from fs2.cli.remote_client import RemoteClientError
++
++            try:
++                client, server_graph = remote_info
++                result = asyncio.run(client.get_node(server_graph, node_id, detail=detail))
++                if result is None:
++                    return None
 +                return result
-+
-+        return self._default_result
-+
-+    async def commit(self):
-+        pass
-+
-+
-+class FakeResult:
-+    """Fake query result."""
-+
-+    def __init__(self, rows):
-+        self._rows = rows
-+
-+    async def fetchone(self):
-+        return self._rows[0] if self._rows else None
-+
-+    async def fetchall(self):
-+        return self._rows
-+
-+
-+class FakeDatabase:
-+    """Fake database for testing query endpoints."""
-+
-+    def __init__(self, results: dict | None = None):
-+        self._results = results or {}
-+
-+    @asynccontextmanager
-+    async def connection(self) -> AsyncGenerator:
-+        yield FakeConnection(self._results)
-+
-+    async def connect(self):
-+        pass
-+
-+    async def disconnect(self):
-+        pass
-+
-+    @property
-+    def is_connected(self):
-+        return True
-+
-+
-+def _make_graph_row(
-+    graph_id="00000000-0000-0000-0000-000000000001",
-+    name="test-repo",
-+    status="ready",
-+    model="text-embedding-3-small",
-+    dims=1024,
-+):
-+    """Create a fake graphs table row."""
-+    return (graph_id, name, status, model, dims)
-+
-+
-+def _make_node_row(
-+    node_id="file:src/main.py",
-+    category="file",
-+    ts_kind="module",
-+    content_type="code",
-+    name="main.py",
-+):
-+    """Create a fake code_nodes row matching _NODE_COLUMNS order."""
-+    return (
-+        node_id,      # node_id
-+        category,      # category
-+        ts_kind,       # ts_kind
-+        content_type,  # content_type
-+        name,          # name
-+        node_id,       # qualified_name
-+        1,             # start_line
-+        50,            # end_line
-+        0,             # start_column
-+        0,             # end_column
-+        0,             # start_byte
-+        500,           # end_byte
-+        "# Main file", # content
-+        "abc123",      # content_hash
-+        None,          # signature
-+        "python",      # language
-+        True,          # is_named
-+        None,          # field_name
-+        False,         # is_error
-+        None,          # parent_node_id
-+        False,         # truncated
-+        None,          # truncated_at_line
-+        "Main module", # smart_content
-+        "sc123",       # smart_content_hash
-+        None,          # embedding_hash
-+    )
-+
-+
-+def _make_app_with_fake(fake_db):
-+    """Create app with fake database, bypassing lifespan."""
-+    from fastapi import FastAPI
-+    from fastapi.middleware.cors import CORSMiddleware
-+    from fs2.server.routes.graphs import router as graphs_router
-+    from fs2.server.routes.health import router as health_router
-+    from fs2.server.routes.query import router as query_router
-+
-+    app = FastAPI(title="fs2 Server Test")
-+    app.add_middleware(
-+        CORSMiddleware,
-+        allow_origins=["*"],
-+        allow_methods=["*"],
-+        allow_headers=["*"],
-+    )
-+    app.state.db = fake_db
-+    app.include_router(health_router)
-+    app.include_router(graphs_router)
-+    app.include_router(query_router)
-+    return app
-+
-+
-+# ── Tree endpoint tests ──
-+
-+
-+class TestTreeEndpoint:
-+    """Tests for GET /api/v1/graphs/{name}/tree."""
-+
-+    @pytest.mark.anyio
-+    async def test_tree_returns_200_with_graph_name(self):
-+        """Tree endpoint returns graph metadata in response."""
-+        graph_row = _make_graph_row()
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "from code_nodes": FakeResult([]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get("/api/v1/graphs/test-repo/tree")
-+
-+        assert resp.status_code == 200
-+        data = resp.json()
-+        assert data["graph_name"] == "test-repo"
-+        assert data["pattern"] == "."
-+        assert "tree" in data
-+        assert "count" in data
-+
-+    @pytest.mark.anyio
-+    async def test_tree_404_for_unknown_graph(self):
-+        """Tree returns 404 for non-existent graph."""
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get("/api/v1/graphs/nonexistent/tree")
-+
-+        assert resp.status_code == 404
-+
-+    @pytest.mark.anyio
-+    async def test_tree_409_for_not_ready_graph(self):
-+        """Tree returns 409 for graph not in 'ready' status."""
-+        graph_row = _make_graph_row(status="ingesting")
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get("/api/v1/graphs/test-repo/tree")
-+
-+        assert resp.status_code == 409
-+
-+    @pytest.mark.anyio
-+    async def test_tree_with_folder_hierarchy(self):
-+        """Tree with max_depth builds virtual folder structure."""
-+        graph_row = _make_graph_row()
-+        nodes = [
-+            _make_node_row("file:src/main.py", "file", "module", "code", "main.py"),
-+            _make_node_row("file:src/utils.py", "file", "module", "code", "utils.py"),
-+            _make_node_row("file:tests/test_main.py", "file", "module", "code", "test_main.py"),
-+        ]
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "from code_nodes": FakeResult(nodes),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/tree?pattern=.&max_depth=1"
-+            )
-+
-+        assert resp.status_code == 200
-+        data = resp.json()
-+        assert data["count"] >= 1  # At least one folder
-+
-+    @pytest.mark.anyio
-+    async def test_tree_with_pattern_filter(self):
-+        """Tree with pattern filter returns matching nodes."""
-+        graph_row = _make_graph_row()
-+        nodes = [
-+            _make_node_row("file:src/main.py", "file", "module", "code", "main.py"),
-+        ]
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "from code_nodes": FakeResult(nodes),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/tree?pattern=main"
-+            )
-+
-+        assert resp.status_code == 200
-+        data = resp.json()
-+        assert "tree" in data
-+
-+
-+# ── Get-node endpoint tests ──
-+
-+
-+class TestGetNodeEndpoint:
-+    """Tests for GET /api/v1/graphs/{name}/nodes/{node_id}."""
-+
-+    @pytest.mark.anyio
-+    async def test_get_node_returns_code_node(self):
-+        """Get-node returns full CodeNode data."""
-+        graph_row = _make_graph_row()
-+        node_row = _make_node_row()
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "from code_nodes": FakeResult([node_row]),
-+            "from embedding_chunks": FakeResult([]),
-+            "count(*) from node_edges": FakeResult([(3,)]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/nodes/file:src/main.py"
-+            )
-+
-+        assert resp.status_code == 200
-+        data = resp.json()
-+        assert data["node_id"] == "file:src/main.py"
-+        assert data["category"] == "file"
-+        assert data["graph_name"] == "test-repo"
-+        assert "children_count" in data
-+
-+    @pytest.mark.anyio
-+    async def test_get_node_404_for_unknown_node(self):
-+        """Get-node returns 404 for non-existent node."""
-+        graph_row = _make_graph_row()
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "from code_nodes": FakeResult([]),
-+            "from embedding_chunks": FakeResult([]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/nodes/file:nonexistent.py"
-+            )
-+
-+        assert resp.status_code == 404
-+
-+    @pytest.mark.anyio
-+    async def test_get_node_max_detail_includes_content(self):
-+        """Get-node with detail=max includes content field."""
-+        graph_row = _make_graph_row()
-+        node_row = _make_node_row()
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "from code_nodes": FakeResult([node_row]),
-+            "from embedding_chunks": FakeResult([]),
-+            "count(*) from node_edges": FakeResult([(0,)]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/nodes/file:src/main.py?detail=max"
-+            )
-+
-+        assert resp.status_code == 200
-+        data = resp.json()
-+        assert "content" in data
-+        assert "content_hash" in data
-+
-+
-+# ── Search endpoint tests ──
-+
-+
-+class TestSearchEndpoint:
-+    """Tests for GET /api/v1/graphs/{name}/search."""
-+
-+    @pytest.mark.anyio
-+    async def test_search_returns_envelope_format(self):
-+        """Search response has meta + results envelope."""
-+        graph_row = _make_graph_row()
-+        search_rows = [
-+            ("file:src/main.py", "file", 1, 50, "Main module", "# content", "main.py",
-+             0.9, "test-repo"),
-+        ]
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "count(*) from code_nodes": FakeResult([(1,)]),
-+            "from code_nodes cn": FakeResult(search_rows),
-+            "select exists": FakeResult([(False,)]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/search?pattern=main&mode=text"
-+            )
-+
-+        assert resp.status_code == 200
-+        data = resp.json()
-+        assert "meta" in data
-+        assert "results" in data
-+        assert "total" in data["meta"]
-+        assert "showing" in data["meta"]
-+        assert "pagination" in data["meta"]
-+        assert "folders" in data["meta"]
-+
-+    @pytest.mark.anyio
-+    async def test_search_text_mode_returns_results(self):
-+        """Text mode search returns scored results."""
-+        graph_row = _make_graph_row()
-+        search_rows = [
-+            ("file:src/main.py", "file", 1, 50, "Main module", "# main", "main.py",
-+             0.9, "test-repo"),
-+        ]
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "count(*) from code_nodes": FakeResult([(1,)]),
-+            "from code_nodes cn": FakeResult(search_rows),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/search?pattern=main&mode=text"
-+            )
-+
-+        assert resp.status_code == 200
-+        results = resp.json()["results"]
-+        assert len(results) >= 1
-+        assert "score" in results[0]
-+        assert "node_id" in results[0]
-+
-+    @pytest.mark.anyio
-+    async def test_search_auto_falls_back_to_text(self):
-+        """Auto mode falls back to text when no embeddings."""
-+        graph_row = _make_graph_row()
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "select exists": FakeResult([(False,)]),
-+            "count(*) from code_nodes": FakeResult([(0,)]),
-+            "from code_nodes cn": FakeResult([]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/search?pattern=authentication&mode=auto"
-+            )
-+
-+        # Should succeed (fell back to text, found nothing)
-+        assert resp.status_code == 200
-+
-+
-+# ── Multi-graph search tests ──
-+
-+
-+class TestMultiGraphSearch:
-+    """Tests for GET /api/v1/search (multi-graph)."""
-+
-+    @pytest.mark.anyio
-+    async def test_multi_graph_all_returns_envelope(self):
-+        """Multi-graph search with graph=all returns proper envelope."""
-+        graph_rows = [
-+            _make_graph_row("id1", "repo1"),
-+            _make_graph_row("id2", "repo2"),
-+        ]
-+        fake_db = FakeDatabase({
-+            "from graphs where status": FakeResult(graph_rows),
-+            "select exists": FakeResult([(False,)]),
-+            "count(*) from code_nodes": FakeResult([(0,)]),
-+            "from code_nodes cn": FakeResult([]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get("/api/v1/search?pattern=test&graph=all")
-+
-+        assert resp.status_code == 200
-+        data = resp.json()
-+        assert "meta" in data
-+        assert "results" in data
-+
-+    @pytest.mark.anyio
-+    async def test_multi_graph_specific_names(self):
-+        """Multi-graph search with specific graph names."""
-+        graph_row = _make_graph_row()
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "select exists": FakeResult([(False,)]),
-+            "count(*) from code_nodes": FakeResult([(0,)]),
-+            "from code_nodes cn": FakeResult([]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/search?pattern=test&graph=test-repo&mode=text"
-+            )
-+
-+        assert resp.status_code == 200
-+
-+    @pytest.mark.anyio
-+    async def test_multi_graph_no_ready_graphs(self):
-+        """Multi-graph returns empty when no graphs ready."""
-+        fake_db = FakeDatabase({
-+            "from graphs where status": FakeResult([]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get("/api/v1/search?pattern=test&graph=all")
-+
-+        assert resp.status_code == 200
-+        assert resp.json()["meta"]["total"] == 0
-+
-+
-+# ── List-graphs enhanced tests ──
-+
-+
-+class TestListGraphsEnhanced:
-+    """Tests for GET /api/v1/graphs with status filter."""
-+
-+    @pytest.mark.anyio
-+    async def test_list_graphs_with_status_filter(self):
-+        """List-graphs with ?status=ready filters results."""
-+        graph_rows = [
-+            ("id1", "repo1", None, "ready", 100, 50, "model", 1024, "1.0",
-+             None, None, None),
-+        ]
-+        fake_db = FakeDatabase({
-+            "from graphs where status": FakeResult(graph_rows),
-+            "from graphs": FakeResult(graph_rows),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get("/api/v1/graphs?status=ready")
-+
-+        assert resp.status_code == 200
-+        data = resp.json()
-+        assert "graphs" in data
-+
-+
-+# ── Response format parity tests ──
-+
-+
-+class TestResponseFormatParity:
-+    """Verify response shapes match local CLI/MCP output."""
-+
-+    @pytest.mark.anyio
-+    async def test_search_result_has_9_min_fields(self):
-+        """Search result in min mode has 9 required fields."""
-+        graph_row = _make_graph_row()
-+        search_rows = [
-+            ("file:src/main.py", "file", 1, 50, "Main module", "# content", "main.py",
-+             0.9, "test-repo"),
-+        ]
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "count(*) from code_nodes": FakeResult([(1,)]),
-+            "from code_nodes cn": FakeResult(search_rows),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/search?pattern=main&mode=text&detail=min"
-+            )
-+
-+        result = resp.json()["results"][0]
-+        min_fields = {
-+            "node_id", "start_line", "end_line",
-+            "match_start_line", "match_end_line",
-+            "smart_content", "snippet", "score", "match_field",
-+        }
-+        assert min_fields.issubset(set(result.keys()))
-+        # Min mode should not have content
-+        assert "content" not in result
-+
-+    @pytest.mark.anyio
-+    async def test_search_result_max_has_extra_fields(self):
-+        """Search result in max mode adds content + chunk fields."""
-+        graph_row = _make_graph_row()
-+        search_rows = [
-+            ("file:src/main.py", "file", 1, 50, "Main module", "# content", "main.py",
-+             0.9, "test-repo"),
-+        ]
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "count(*) from code_nodes": FakeResult([(1,)]),
-+            "from code_nodes cn": FakeResult(search_rows),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/search?pattern=main&mode=text&detail=max"
-+            )
-+
-+        result = resp.json()["results"][0]
-+        assert "content" in result
-+
-+    @pytest.mark.anyio
-+    async def test_tree_node_has_required_shape(self):
-+        """Tree nodes have node_id, name, category, children fields."""
-+        graph_row = _make_graph_row()
-+        nodes = [
-+            _make_node_row("file:src/main.py", "file", "module", "code", "main.py"),
-+        ]
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "from code_nodes": FakeResult(nodes),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/tree?pattern=main"
-+            )
-+
-+        data = resp.json()
-+        if data["count"] > 0:
-+            node = data["tree"][0]
-+            assert "node_id" in node
-+            assert "children" in node
-+
-+    @pytest.mark.anyio
-+    async def test_get_node_min_has_core_fields(self):
-+        """Get-node min mode has core identification fields."""
-+        graph_row = _make_graph_row()
-+        node_row = _make_node_row()
-+        fake_db = FakeDatabase({
-+            "from graphs where name": FakeResult([graph_row]),
-+            "from code_nodes": FakeResult([node_row]),
-+            "from embedding_chunks": FakeResult([]),
-+            "count(*) from node_edges": FakeResult([(0,)]),
-+        })
-+        app = _make_app_with_fake(fake_db)
-+
-+        async with AsyncClient(
-+            transport=ASGITransport(app=app), base_url="http://test"
-+        ) as client:
-+            resp = await client.get(
-+                "/api/v1/graphs/test-repo/nodes/file:src/main.py?detail=min"
-+            )
-+
-+        data = resp.json()
-+        core_fields = {
-+            "node_id", "category", "ts_kind", "name",
-+            "start_line", "end_line", "language",
-+            "children_count", "graph_name",
-+        }
-+        assert core_fields.issubset(set(data.keys()))
++            except RemoteClientError as e:
++                raise ToolError(str(e)) from None
++
+         config = get_config()
+         store = get_graph_store(graph_name)
+         service = GetNodeService(config=config, graph_store=store)
+@@ -813,6 +931,29 @@ async def search(
+         if not pattern or not pattern.strip():
+             raise ToolError("Pattern cannot be empty or whitespace-only")
+ 
++        # Per DYK-P5-05: Check if graph_name refers to a remote graph
++        remote_info = _resolve_remote_for_graph(graph_name)
++        if remote_info is not None:
++            from fs2.cli.remote_client import RemoteClientError
++
++            try:
++                client, server_graph = remote_info
++                inc_str = ",".join(include) if include else None
++                exc_str = ",".join(exclude) if exclude else None
++                result = await client.search(
++                    pattern,
++                    graph=server_graph,
++                    mode=mode.lower(),
++                    limit=limit,
++                    offset=offset,
++                    detail=detail,
++                    include=inc_str,
++                    exclude=exc_str,
++                )
++                return result
++            except RemoteClientError as e:
++                raise ToolError(str(e)) from None
++
+         # Validate and convert mode
+         mode_upper = mode.upper()
+         try:
+@@ -1153,14 +1294,33 @@ def list_graphs() -> dict[str, Any]:
+         graph_infos = service.list_graphs()
+ 
+         # Convert GraphInfo to dicts
+-        # GraphInfo is a dataclass with: name, path, description, source_url, available
+         docs_list = []
+         for info in graph_infos:
+             info_dict = dataclasses.asdict(info)
+-            # Convert Path to string for JSON serialization
+             info_dict["path"] = str(info_dict["path"])
+             docs_list.append(info_dict)
+ 
++        # Per DYK-P5-05: Merge remote graphs if remotes configured
++        clients = _get_remote_clients()
++        if clients:
++            import asyncio
++
++            for _name, client in clients.items():
++                try:
++                    result = asyncio.run(client.list_graphs(status="ready"))
++                    for g in result.get("graphs", []):
++                        docs_list.append({
++                            "name": f"{client.name}:{g.get('name', '?')}",
++                            "path": client.base_url,
++                            "description": g.get("description"),
++                            "source_url": None,
++                            "available": g.get("status") == "ready",
++                            "_remote": client.name,
++                            "node_count": g.get("node_count"),
++                        })
++                except Exception as e:
++                    logger.warning("Failed to list graphs from remote '%s': %s", client.name, e)
++
+         return {
+             "docs": docs_list,
+             "count": len(docs_list),

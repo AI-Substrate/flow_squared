@@ -44,7 +44,7 @@ flowchart LR
     server -->|ServerDatabaseConfig| config
     server -->|AuthService + API key middleware| auth
     auth -->|ConfigurationService| config
-    cli -.->|RemoteGraphStore HTTP| server
+    cli -.->|RemoteClient HTTP| server
 ```
 
 ## Legend
@@ -63,5 +63,5 @@ flowchart LR
 | configuration | ConfigurationService, FakeConfigurationService, 12 config models | graph-storage, search, cli, indexing, embedding, server, auth | — | — | ✅ Healthy |
 | graph-storage | GraphStore, GraphService, CodeNode, ContentType | search, cli, indexing, server | ConfigurationService | configuration | ✅ Healthy |
 | search | SearchService, QuerySpec, SearchResult, SearchMode | cli, server | GraphStoreProtocol, ConfigurationService, EmbeddingAdapter | graph-storage, configuration, embedding | ✅ Healthy |
-| server | FastAPI app, REST API, Database session | cli (via RemoteGraphStore) | PostgreSQLGraphStore, SearchService, AuthService, ServerDatabaseConfig | graph-storage, search, auth, configuration | ✅ Active |
+| server | FastAPI app, REST API, Database session | cli (via RemoteClient) | PostgreSQLGraphStore, SearchService, AuthService, ServerDatabaseConfig | graph-storage, search, auth, configuration | ✅ Active |
 | auth | AuthService, Auth middleware, Tenant/APIKey models, FakeAuthService | server | ConfigurationService | configuration | 🟡 Planned |

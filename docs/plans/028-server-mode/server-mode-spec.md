@@ -54,8 +54,8 @@ Key validated facts:
 | search | informal (extract before plan-3) | **modify** | Wire SearchService to query pgvector for semantic search instead of brute-force |
 | indexing | informal | **consume** | Client-side `fs2 scan` unchanged — produces pickle that gets uploaded |
 | embedding | informal | **consume** | Server uses same embedding adapter to embed search queries against stored vectors |
-| configuration | informal (extract before plan-3) | **modify** | Add ServerConfig, RemoteConfig Pydantic models |
-| cli-presentation | informal | **modify** | Add `--fs2-remote` flag, `fs2 list-graphs` remote variant |
+| configuration | informal (extract before plan-3) | **modify** | Add ServerConfig, RemotesConfig Pydantic models |
+| cli-presentation | informal | **modify** | Add `--remote` flag, `fs2 list-graphs` remote variant, `fs2 list-remotes` command |
 | server | **NEW** | **create** | FastAPI application: HTTP API, ingestion pipeline, management dashboard |
 | auth | **NEW** | **create** | API key management, tenant isolation, Row-Level Security |
 
@@ -106,15 +106,15 @@ Key validated facts:
 - **AC5**: The dashboard shows upload and ingestion progress for in-flight graph imports
 
 ### Remote Queries
-- **AC6**: `fs2 tree --fs2-remote <url> --graph <name>` returns the same hierarchical structure as querying the local graph
-- **AC7**: `fs2 search --fs2-remote <url> "pattern"` supports `--graph <name>` (single), `--graph name1,name2` (multi), or no `--graph` flag (search all accessible graphs). All four modes (text, regex, semantic, auto) work identically to local search.
-- **AC8**: `fs2 get-node --fs2-remote <url> --graph <name> <node_id>` returns full node content identical to local get-node
-- **AC9**: `fs2 list-graphs --fs2-remote <url>` shows all graphs the authenticated user has access to, with name, description, node count, embedding model, and status
+- **AC6**: `fs2 tree --remote <name|url> --graph <name>` returns the same hierarchical structure as querying the local graph
+- **AC7**: `fs2 search --remote <name|url> "pattern"` supports `--graph <name>` (single), `--graph name1,name2` (multi), or no `--graph` flag (search all accessible graphs). All four modes (text, regex, semantic, auto) work identically to local search.
+- **AC8**: `fs2 get-node --remote <name|url> --graph <name> <node_id>` returns full node content identical to local get-node
+- **AC9**: `fs2 list-graphs --remote <name|url>` shows all graphs the authenticated user has access to, with name, description, node count, embedding model, and status
 - **AC10**: Semantic search on the server uses pgvector HNSW cosine similarity and returns results in under 100ms for graphs up to 500K nodes
-- **AC11**: If `--fs2-remote` is set (via flag or `FS2_REMOTE_URL` env var), all query commands transparently route to the server without other changes
+- **AC11**: If `--remote` is set (via flag or `FS2_REMOTE` env var), all query commands transparently route to the server without other changes
 
 ### MCP Integration
-- **AC12**: An MCP server started with remote configuration (`fs2 mcp --fs2-remote <url>`) exposes the same `tree`, `search`, `get_node`, and `list_graphs` tools, backed by server data
+- **AC12**: An MCP server started with remote configuration (named remotes in config) exposes the same `tree`, `search`, `get_node`, and `list_graphs` tools, backed by server data via RemoteClient
 - **AC13**: AI agents using MCP tools cannot distinguish between local and remote mode — response formats are identical
 
 ### Multi-Tenancy & Auth
@@ -156,7 +156,7 @@ Key validated facts:
 ## Testing Strategy
 
 - **Approach**: Hybrid
-- **Rationale**: TDD for server core (ingestion pipeline, database repository, auth/RLS, vector search), lightweight/test-after for CLI glue (--fs2-remote flag threading) and dashboard templates (HTMX views)
+- **Rationale**: TDD for server core (ingestion pipeline, database repository, auth/RLS, vector search), lightweight/test-after for CLI glue (--remote flag threading) and dashboard templates (HTMX views)
 - **Mock Policy**: Fakes over mocks — matches fs2 convention. Create FakeDatabase, FakeIngestionPipeline, etc. as real interface implementations. Mocks only if fakes are truly impractical.
 - **Focus Areas**: Ingestion pipeline (pickle → DB round-trip), RLS tenant isolation (multi-tenant queries), semantic search accuracy (pgvector vs brute-force parity), API auth (key validation, scope enforcement)
 - **Excluded**: Dashboard visual/layout testing, Docker Compose integration (tested manually)
@@ -168,7 +168,7 @@ Key validated facts:
 - **Planned Docs**:
   - README.md: Server mode overview section
   - docs/how/operator/server-deployment.md: Docker Compose setup, PostgreSQL config, environment variables
-  - docs/how/user/remote-queries.md: Using --fs2-remote, configuring persistent remote, searching across graphs
+  - docs/how/user/remote-queries.md: Using --remote, configuring persistent remote, searching across graphs
   - docs/how/user/server-dashboard.md: Uploading graphs, managing API keys, monitoring
 
 ## Clarifications
@@ -186,7 +186,7 @@ Key validated facts:
 **Q5: Domain Review** → Existing "domains" in the spec are informal code boundaries, not formally extracted. **Action**: Extract key domains (graph-storage, search, config) via plan-v2-extract-domain BEFORE running plan-3-architect. Keep server and auth as 2 new domains.
 
 **Q6: Upload UX** → **No CLI push command for v1.** Graph upload happens through the web dashboard (browser upload). This avoids CLI auth complexity and security concerns. `fs2 push` may be added later.
-- **Spec impact**: Removed AC1 (push command), AC5 (CLI upload progress). Updated AC to reflect dashboard-only upload. The `--fs2-remote` flag is for queries only.
+- **Spec impact**: Removed AC1 (push command), AC5 (CLI upload progress). Updated AC to reflect dashboard-only upload. The `--remote` flag is for queries only.
 
 **Q7: Cross-graph search** → **Full flexibility**: single graph, multiple named graphs, or all graphs. Query API should support `--graph graph1,graph2` and `--graph all` (or no `--graph` = search all accessible).
 - **Spec impact**: Updated AC7/AC9 to reflect multi-graph search capability.
@@ -200,7 +200,7 @@ Key validated facts:
 |-------|------|--------------|---------------|
 | ~~Database Schema~~ | ~~Storage Design~~ | ~~COMPLETED~~ | See `workshops/001-database-schema.md` |
 | ~~Prototype Validation~~ | ~~Integration Pattern~~ | ~~COMPLETED~~ | See `workshops/002-prototype-validation.md` |
-| Remote CLI Flow | CLI Flow | How `--fs2-remote` flag threads through the CLI layer, interacts with existing graph resolution, and falls back gracefully | How does `resolve_graph_from_context()` change? What happens when remote is down? Config file format for persistent remote? |
+| Remote CLI Flow | CLI Flow | How `--remote` flag threads through the CLI layer, interacts with existing graph resolution, and falls back gracefully | How does the CLI branch for remote mode? What happens when remote is down? Config file format for persistent remote? |
 | Ingestion Pipeline | State Machine | Upload → staging → validation → COPY import → HNSW → ready has multiple failure modes and status transitions | What happens on partial failure? How to report progress? Retry semantics? Concurrent uploads for same graph? |
 | Auth & Tenant Model | API Contract | Tenant hierarchy, API key scoping, RLS integration pattern, and dashboard auth need careful design before implementation | How many roles? Key rotation flow? Admin vs tenant user? How does RLS interact with connection pooling? |
 | HNSW Partitioning Strategy | Scale Design | 500K-node ceiling means 1M+ embedding chunks; need to understand when partitioning becomes necessary and how hard to retrofit | Single index vs per-graph partition? Build time at 1M vectors? Can we partition later without downtime? |

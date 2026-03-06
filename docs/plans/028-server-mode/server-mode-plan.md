@@ -8,7 +8,7 @@
 
 ## Summary
 
-fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot serve teams or scale to hundreds of repositories. This plan adds a server mode: a FastAPI application backed by PostgreSQL + pgvector that hosts pre-scanned graphs for remote queries. Clients use the same `fs2` CLI commands with a `--fs2-remote` flag, and AI agents use the same MCP tools transparently. A management dashboard handles graph uploads, tenant management, and API key provisioning. The approach is validated by a working prototype (5,231 nodes, sub-5ms queries) and 7 locked architectural decisions.
+fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot serve teams or scale to hundreds of repositories. This plan adds a server mode: a FastAPI application backed by PostgreSQL + pgvector that hosts pre-scanned graphs for remote queries. Clients use the same `fs2` CLI commands with a `--remote` flag, and AI agents use the same MCP tools transparently. A management dashboard handles graph uploads, tenant management, and API key provisioning. The approach is validated by a working prototype (5,231 nodes, sub-5ms queries) and 7 locked architectural decisions.
 
 ## Target Domains
 
@@ -16,8 +16,8 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 |--------|--------|-------------|------|
 | graph-storage | extracted ✅ | **modify** | Add PostgreSQL-backed GraphStore; extend GraphService for DB catalog |
 | search | extracted ✅ | **modify** | Add PgvectorSemanticMatcher; server-side text/regex via SQL |
-| configuration | extracted ✅ | **modify** | Add ServerDatabaseConfig, RemoteConfig models |
-| cli-presentation | informal | **modify** | Add `--fs2-remote` flag; transparent local/remote switching |
+| configuration | extracted ✅ | **modify** | Add ServerDatabaseConfig, RemotesConfig models |
+| cli-presentation | informal | **modify** | Add `--remote` flag; transparent local/remote switching |
 | indexing | informal | **consume** | Client-side `fs2 scan` unchanged — produces pickle for upload |
 | embedding | informal | **consume** | Server uses existing EmbeddingAdapter ABC to embed search queries |
 | server | **NEW** | **create** | FastAPI app, ingestion pipeline, REST API, dashboard |
@@ -46,10 +46,11 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | `src/fs2/core/repos/graph_store_pg.py` | graph-storage | contract | PostgreSQLGraphStore implementation |
 | `src/fs2/core/repos/graph_store_pg_fake.py` | graph-storage | internal | Fake for PostgreSQL store |
 | `src/fs2/core/services/search/pgvector_matcher.py` | search | internal | PgvectorSemanticMatcher |
-| `src/fs2/config/objects.py` | configuration | contract | Add ServerDatabaseConfig, RemoteConfig |
-| `src/fs2/cli/utils.py` | cli-presentation | cross-domain | Modify resolve_graph_from_context() for remote |
-| `src/fs2/cli/main.py` | cli-presentation | cross-domain | Add --fs2-remote global flag |
-| `src/fs2/core/repos/graph_store_remote.py` | graph-storage | contract | HTTP client implementing GraphStore for CLI |
+| `src/fs2/config/objects.py` | configuration | contract | Add ServerDatabaseConfig, RemotesConfig, RemoteServer |
+| `src/fs2/cli/utils.py` | cli-presentation | cross-domain | Add resolve_remote_client() (does NOT modify resolve_graph_from_context) |
+| `src/fs2/cli/main.py` | cli-presentation | cross-domain | Add --remote global flag + FS2_REMOTE env var |
+| `src/fs2/cli/remote_client.py` | cli-presentation | internal | RemoteClient + MultiRemoteClient: async HTTP clients (NOT GraphStore ABC) |
+| `src/fs2/cli/list_remotes.py` | cli-presentation | internal | list-remotes command: shows configured remotes |
 | `docker-compose.yml` | server | internal | Deployment stack |
 | `docs/domains/server/domain.md` | server | internal | Domain definition |
 | `docs/domains/auth/domain.md` | auth | internal | Domain definition |
@@ -77,8 +78,8 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | 03 | High | **Async driver: psycopg3 AsyncConnection** — pgvector-python supports psycopg3 (sync+async). asyncpg does NOT have pgvector adapter. | Use `psycopg3.AsyncConnection` + `psycopg_pool.AsyncConnectionPool`. Validate under concurrent load in Phase 1. |
 | 04 | High | **RLS + connection pooling** — `SET app.current_tenant_id` leaks between requests if not scoped. | Use per-request transaction scope: acquire → SET → execute → COMMIT/ROLLBACK. FastAPI middleware wraps every request. Test with concurrent multi-tenant requests. |
 | 05 | High | **500MB upload → OOM risk** — Naive FastAPI UploadFile buffers in RAM. | Stream upload to temp file on disk. Ingestion runs as background job from temp file. Return 202 Accepted + job ID. |
-| 06 | High | **Configuration registry supports new types cleanly** — `YAML_CONFIG_TYPES` is a flat list with unique `__config_path__`. | Add `ServerDatabaseConfig` ("server.database") and `RemoteConfig` ("remote") to registry. Zero collision risk. |
-| 07 | High | **CLI resolve_graph_from_context() is single injection point** — Already abstracts all graph resolution. | Add `--fs2-remote` check at top of function. If set, create `RemoteGraphStore` (HTTP client) instead of local. Single point of polymorphism. |
+| 06 | High | **Configuration registry supports new types cleanly** — `YAML_CONFIG_TYPES` is a flat list with unique `__config_path__`. | Add `ServerDatabaseConfig` ("server.database") and `RemotesConfig` ("remotes") to registry. Zero collision risk. |
+| 07 | High | **CLI resolve_graph_from_context() is single injection point** — Already abstracts all graph resolution. | CLI commands check `resolve_remote_client()` first and branch early. `resolve_graph_from_context()` is NOT modified — remote mode uses a separate `RemoteClient` (not a GraphStore). |
 
 ## Phases
 
@@ -248,14 +249,17 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 ### Phase 5: Remote CLI + MCP Bridge
 
 **Objective**: Enable the `fs2` CLI and MCP server to transparently query remote server data.
-**Domain**: cli-presentation (modify), graph-storage (modify), configuration (modify)
+**Domain**: cli-presentation (modify), configuration (modify)
 **Delivers**:
-- `--fs2-remote <url>` global CLI flag + `FS2_REMOTE_URL` env var
-- RemoteGraphStore: HTTP client implementing GraphStore ABC (query methods)
-- RemoteConfig Pydantic model
-- Modified `resolve_graph_from_context()` for remote switching
-- MCP server remote mode: `fs2 mcp --fs2-remote <url>`
+- `--remote <name|url>` global CLI flag + `FS2_REMOTE` env var
+- RemoteClient + MultiRemoteClient: async HTTP clients (NOT GraphStore ABC — returns raw JSON)
+- RemotesConfig + RemoteServer Pydantic models
+- `resolve_remote_client()` in cli/utils.py (does NOT modify `resolve_graph_from_context()`)
+- MCP mixed mode: remote graphs discovered from RemotesConfig, routed by `graph_name` prefix
+- `fs2 list-remotes` command
 - Persistent remote config in `~/.config/fs2/config.yaml`
+
+**Note**: graph-storage domain is NOT modified. RemoteClient lives in cli-presentation, not in core/repos.
 
 **Depends on**: Phase 4
 **Key risks**: Network errors need graceful handling. Large responses (500KB node content) need compression.
@@ -263,18 +267,19 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 
 | # | Task | Domain | Success Criteria | Notes |
 |---|------|--------|-----------------|-------|
-| 5.1 | Add `--fs2-remote` flag to CLI main.py (global option) | cli-presentation | Flag propagates to all subcommands via context | AC11 |
-| 5.2 | Add RemoteConfig to configuration registry | configuration | `remote.url`, `remote.api_key` loaded from config/env | Per finding 06 |
-| 5.3 | Implement RemoteGraphStore: httpx AsyncClient → server API | graph-storage | get_node, get_children, get_all_nodes work via HTTP | Per finding 07 |
-| 5.4 | Modify resolve_graph_from_context() for remote switching | cli-presentation | If remote URL set → use RemoteGraphStore | Per finding 07 |
-| 5.5 | `fs2 tree --fs2-remote <url> --graph <name>` works end-to-end | cli-presentation | Output identical to local tree | AC6 |
-| 5.6 | `fs2 search --fs2-remote <url> "pattern"` works end-to-end | cli-presentation | All 4 modes work, multi-graph works | AC7 |
-| 5.7 | `fs2 mcp --fs2-remote <url>` — MCP tools backed by remote | cli-presentation | MCP tree/search/get_node return server data | AC12, AC13 |
-| 5.8 | Error handling: network failures → actionable fs2 errors | graph-storage | Connection refused → "Server unreachable at <url>. Check --fs2-remote." | |
-| 5.9 | Tests: remote CLI e2e (test server or fake server) | cli-presentation | Upload graph to server, query via CLI, verify output | |
+| 5.1 | Add `--remote` flag to CLI main.py (global option) + `FS2_REMOTE` env var | cli-presentation | Flag propagates to all subcommands via CLIContext | AC11 |
+| 5.2 | Add RemotesConfig + RemoteServer to configuration registry | configuration | Named remotes loaded from user/project YAML | Per finding 06 |
+| 5.3 | Implement RemoteClient + MultiRemoteClient: async httpx clients | cli-presentation | tree/search/get_node/list_graphs work via HTTP; returns raw JSON | Does NOT implement GraphStore ABC |
+| 5.4 | Add resolve_remote_client() to cli/utils.py | cli-presentation | CLI commands check this first; branches to remote mode early | Does NOT modify resolve_graph_from_context() |
+| 5.5 | `fs2 tree --remote <name> --graph <name>` works end-to-end | cli-presentation | Output identical to local tree | AC6 |
+| 5.6 | `fs2 search --remote <name> "pattern"` works end-to-end | cli-presentation | All 4 modes work, multi-graph works, multi-remote fan-out works | AC7 |
+| 5.7 | MCP mixed mode: remote graphs coexist with local graphs | cli-presentation | MCP tree/search/get_node route by graph_name prefix | AC12, AC13 |
+| 5.8 | `fs2 list-remotes` command | cli-presentation | Shows configured remotes from config (no HTTP calls) | |
+| 5.9 | Error handling: network failures → actionable fs2 errors | cli-presentation | Connection refused → "Server unreachable at <url>. Check --remote." | |
+| 5.10 | Tests: remote CLI e2e (test server or fake server) | cli-presentation | Query via CLI, verify output matches expected | |
 
 ### Acceptance Criteria
-- [ ] AC11: --fs2-remote / FS2_REMOTE_URL transparently routes all commands
+- [ ] AC11: --remote / FS2_REMOTE transparently routes all commands
 - [ ] AC12: MCP remote mode works
 - [ ] AC13: MCP response format identical
 - Revalidated via remote: AC6 (tree), AC7 (search), AC8 (get-node), AC9 (list-graphs)
@@ -348,7 +353,7 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 |---|------|--------|-----------------|-------|
 | 7.1 | README.md: server mode quick-start section | — | README explains both operator and user workflows | |
 | 7.2 | docs/how/operator/server-deployment.md | — | Docker Compose setup, env vars, PostgreSQL config documented | |
-| 7.3 | docs/how/user/remote-queries.md | — | --fs2-remote usage, config file, multi-graph search | |
+| 7.3 | docs/how/user/remote-queries.md | — | --remote usage, config file, multi-graph search | |
 | 7.4 | docs/how/user/server-dashboard.md | — | Upload, manage, delete graphs via dashboard | |
 | 7.5 | Error message audit: all server errors are actionable | server, auth | Every error includes "what to do" guidance | |
 | 7.6 | Scale validation: test with 10+ graphs, 50K+ total nodes | server | Query latency still under 100ms | |
