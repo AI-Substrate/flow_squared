@@ -220,7 +220,9 @@ def resolve_remote_client(
     clients = resolve_remotes(cli_ctx.remote)
     if len(clients) == 1:
         return clients[0]
-    return MultiRemoteClient(clients)
+    from fs2.cli.remote_client import MultiRemoteClient as _MultiRemoteClient
+
+    return _MultiRemoteClient(clients)
 
 
 def resolve_remotes(remote_str: str) -> list[RemoteClient]:
