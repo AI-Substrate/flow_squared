@@ -15,6 +15,7 @@ from fs2.config.objects import ServerDatabaseConfig
 from fs2.server.database import Database
 from fs2.server.routes.graphs import router as graphs_router
 from fs2.server.routes.health import router as health_router
+from fs2.server.routes.query import router as query_router
 from fs2.server.schema import create_schema
 
 
@@ -72,5 +73,6 @@ def create_app(
 
     app.include_router(health_router)
     app.include_router(graphs_router)
+    app.include_router(query_router)
 
     return app

@@ -110,6 +110,7 @@ Primary: `src/fs2/core/services/search/` + `src/fs2/core/models/search/`
 | `src/fs2/core/services/search/semantic_matcher.py` | Matcher | Cosine similarity + embedding |
 | `src/fs2/core/services/search/exceptions.py` | Exceptions | SearchError |
 | `src/fs2/core/services/search/__init__.py` | Exports | |
+| `src/fs2/core/services/search/pgvector_matcher.py` | Server matcher | SQL cosine search via pgvector HNSW |
 | `src/fs2/core/models/search/query_spec.py` | Input model | Frozen, validated |
 | `src/fs2/core/models/search/search_mode.py` | Enum | 4 modes |
 | `src/fs2/core/models/search/search_result.py` | Output model | 13 fields, to_dict() |
@@ -141,3 +142,4 @@ Primary: `src/fs2/core/services/search/` + `src/fs2/core/models/search/`
 | 015-search-fix | Bug fixes | 2025 |
 | 018-search-trimming | Parent penalization | 2025 |
 | *(extracted)* | Domain extracted from existing codebase | 2026-03-05 |
+| 028-server-mode (Phase 4) | PgvectorSemanticMatcher: SQL-based cosine search via pgvector HNSW index for server query API | 2026-03-06 |

@@ -93,18 +93,37 @@ async def upload_graph(
 
 
 @router.get("")
-async def list_graphs(request: Request) -> dict:
-    """List all available graphs with status and metadata."""
+async def list_graphs(
+    request: Request,
+    status: str | None = None,
+) -> dict:
+    """List all available graphs with status and metadata.
+
+    Args:
+        status: Optional filter (e.g. 'ready') for query-eligible graphs.
+    """
     db = request.app.state.db
 
-    async with db.connection() as conn:
-        result = await conn.execute(
-            """SELECT id, name, description, status, node_count, edge_count,
+    if status:
+        query = """SELECT id, name, description, status, node_count, edge_count,
+                embedding_model, embedding_dimensions, format_version,
+                created_at, updated_at, ingested_at
+            FROM graphs WHERE status = %s
+            ORDER BY name"""
+        params = (status,)
+    else:
+        query = """SELECT id, name, description, status, node_count, edge_count,
                 embedding_model, embedding_dimensions, format_version,
                 created_at, updated_at, ingested_at
             FROM graphs
             ORDER BY name"""
-        )
+        params = None
+
+    async with db.connection() as conn:
+        if params:
+            result = await conn.execute(query, params)
+        else:
+            result = await conn.execute(query)
         rows = await result.fetchall()
 
     graphs = []

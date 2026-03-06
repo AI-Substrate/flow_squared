@@ -145,3 +145,4 @@ Primary: `src/fs2/core/repos/` + `src/fs2/core/models/` + `src/fs2/core/services
 | *(extracted)* | Domain extracted from existing codebase | 2026-03-05 |
 | 028-server-mode (Phase 1) | Documented schema ownership boundary: server owns DDL bootstrap, graph-storage owns data contracts | 2026-03-05 |
 | 028-server-mode (Phase 3) | Extracted RestrictedUnpickler to pickle_security.py (public contract). Added PostgreSQLGraphStore. | 2026-03-06 |
+| 028-server-mode (Phase 4) | Extended PostgreSQLGraphStore with filtered node queries, text/regex search SQL, children count, embedding availability check. | 2026-03-06 |

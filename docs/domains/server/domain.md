@@ -72,7 +72,8 @@ Primary: `src/fs2/server/`
 | `src/fs2/server/ingestion.py` | Ingestion pipeline | `IngestionPipeline` — pickle → COPY to PostgreSQL |
 | `src/fs2/server/routes/__init__.py` | Routes package | |
 | `src/fs2/server/routes/health.py` | Health endpoint | `GET /health` |
-| `src/fs2/server/routes/graphs.py` | Graph management | Upload, list, status, delete |
+| `src/fs2/server/routes/graphs.py` | Graph management | Upload, list (with status filter), status, delete |
+| `src/fs2/server/routes/query.py` | Query endpoints | Tree, search, get-node, multi-graph search |
 
 ## History
 
@@ -81,3 +82,4 @@ Primary: `src/fs2/server/`
 | 028-server-mode | Domain created | 2026-03-05 |
 | 028-server-mode (Phase 1) | Server skeleton implemented: app factory, database pool, schema DDL, health endpoint | 2026-03-05 |
 | 028-server-mode (Phase 3) | Ingestion pipeline, graph upload/list/status/delete endpoints, ingestion_jobs table | 2026-03-06 |
+| 028-server-mode (Phase 4) | Query API: tree, search (text/regex/semantic/auto), get-node, multi-graph search. PgvectorSemanticMatcher. Enhanced list-graphs with status filter. | 2026-03-06 |
