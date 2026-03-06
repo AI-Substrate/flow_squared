@@ -135,6 +135,26 @@ CREATE INDEX IF NOT EXISTS idx_embeddings_node ON embedding_chunks(graph_id, nod
 CREATE INDEX IF NOT EXISTS idx_embeddings_hnsw ON embedding_chunks
     USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 128);
+
+-- Ingestion jobs (tracking upload processing)
+CREATE TABLE IF NOT EXISTS ingestion_jobs (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    graph_id        UUID NOT NULL REFERENCES graphs(id) ON DELETE CASCADE,
+    status          TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'running', 'completed', 'failed')),
+    error_message   TEXT,
+    node_count      INT,
+    edge_count      INT,
+    chunk_count     INT,
+    started_at      TIMESTAMPTZ,
+    completed_at    TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Indexes: ingestion_jobs
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON ingestion_jobs(status)
+    WHERE status IN ('pending', 'running');
+CREATE INDEX IF NOT EXISTS idx_jobs_graph ON ingestion_jobs(graph_id);
 """
 
 

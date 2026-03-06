@@ -68,9 +68,11 @@ Primary: `src/fs2/server/`
 | `src/fs2/server/__init__.py` | Public exports | Exports `create_app` |
 | `src/fs2/server/app.py` | App factory | `create_app()` with lifespan |
 | `src/fs2/server/database.py` | Connection pool (**contract**) | `Database` class — consumed by other domains via DI |
-| `src/fs2/server/schema.py` | Schema DDL | `create_schema()` — 5 tables, 15 indexes |
+| `src/fs2/server/schema.py` | Schema DDL | `create_schema()` — 6 tables, 17 indexes |
+| `src/fs2/server/ingestion.py` | Ingestion pipeline | `IngestionPipeline` — pickle → COPY to PostgreSQL |
 | `src/fs2/server/routes/__init__.py` | Routes package | |
 | `src/fs2/server/routes/health.py` | Health endpoint | `GET /health` |
+| `src/fs2/server/routes/graphs.py` | Graph management | Upload, list, status, delete |
 
 ## History
 
@@ -78,3 +80,4 @@ Primary: `src/fs2/server/`
 |------|-------------|------|
 | 028-server-mode | Domain created | 2026-03-05 |
 | 028-server-mode (Phase 1) | Server skeleton implemented: app factory, database pool, schema DDL, health endpoint | 2026-03-05 |
+| 028-server-mode (Phase 3) | Ingestion pipeline, graph upload/list/status/delete endpoints, ingestion_jobs table | 2026-03-06 |

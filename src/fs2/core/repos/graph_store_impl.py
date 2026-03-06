@@ -1,7 +1,7 @@
 """NetworkXGraphStore - Production implementation of GraphStore ABC.
 
 Provides graph persistence using networkx DiGraph and standard pickle.
-Implements RestrictedUnpickler for security against arbitrary code execution.
+Uses RestrictedUnpickler from pickle_security for secure deserialization.
 
 Architecture:
 - Inherits from GraphStore ABC
@@ -26,6 +26,7 @@ from fs2.config.objects import ScanConfig
 from fs2.core.adapters.exceptions import GraphStoreError
 from fs2.core.models.code_node import CodeNode
 from fs2.core.repos.graph_store import GraphStore
+from fs2.core.repos.pickle_security import RestrictedUnpickler
 
 if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
@@ -34,63 +35,6 @@ logger = logging.getLogger(__name__)
 
 # Current format version
 FORMAT_VERSION = "1.0"
-
-# Whitelist of allowed classes for unpickling
-# Only CodeNode, networkx types, and stdlib types allowed
-ALLOWED_MODULES = frozenset(
-    {
-        "builtins",
-        "collections",
-        "datetime",
-        "pathlib",
-        "networkx",
-        "networkx.classes.digraph",
-        "networkx.classes.reportviews",
-        "fs2.core.models.code_node",
-        "fs2.core.models.content_type",
-    }
-)
-
-
-class RestrictedUnpickler(pickle.Unpickler):
-    """Restricted unpickler that only allows safe classes.
-
-    Blocks arbitrary code execution from malicious pickle files by
-    whitelisting only CodeNode, networkx types, and stdlib types.
-
-    Security:
-        - Only classes from ALLOWED_MODULES can be instantiated
-        - Blocks os.system, subprocess, etc.
-        - Raises GraphStoreError on forbidden classes
-    """
-
-    def find_class(self, module: str, name: str) -> Any:
-        """Override to restrict which classes can be unpickled.
-
-        Args:
-            module: Module name of the class.
-            name: Class name.
-
-        Returns:
-            The class if allowed.
-
-        Raises:
-            GraphStoreError: If class is not in whitelist.
-        """
-        # Check if module is allowed
-        if module in ALLOWED_MODULES:
-            return super().find_class(module, name)
-
-        # Check for common safe stdlib modules
-        if module.startswith("builtins") or module == "_collections_abc":
-            return super().find_class(module, name)
-
-        # Block everything else
-        raise GraphStoreError(
-            f"Forbidden class in pickle: {module}.{name}. "
-            f"Only CodeNode, networkx, and stdlib types are allowed. "
-            f"The graph file may be corrupted or malicious."
-        )
 
 
 class NetworkXGraphStore(GraphStore):

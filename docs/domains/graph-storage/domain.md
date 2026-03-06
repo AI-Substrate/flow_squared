@@ -141,3 +141,4 @@ Primary: `src/fs2/core/repos/` + `src/fs2/core/models/` + `src/fs2/core/services
 | 023-multi-graphs | GraphService, OtherGraphsConfig, named graph resolution | 2025 |
 | *(extracted)* | Domain extracted from existing codebase | 2026-03-05 |
 | 028-server-mode (Phase 1) | Documented schema ownership boundary: server owns DDL bootstrap, graph-storage owns data contracts | 2026-03-05 |
+| 028-server-mode (Phase 3) | Extracted RestrictedUnpickler to pickle_security.py (public contract). Added PostgreSQLGraphStore. | 2026-03-06 |
