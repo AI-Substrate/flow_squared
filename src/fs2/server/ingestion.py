@@ -226,11 +226,14 @@ class IngestionPipeline:
                 await conn.commit()
 
             except Exception as e:
-                await conn.execute(
-                    "UPDATE graphs SET status = 'error', updated_at = now() WHERE id = %s",
-                    (graph_id,),
-                )
-                await conn.commit()
+                await conn.rollback()
+                # Update error status in a clean connection
+                async with self._db.connection() as err_conn:
+                    await err_conn.execute(
+                        "UPDATE graphs SET status = 'error', updated_at = now() WHERE id = %s",
+                        (graph_id,),
+                    )
+                    await err_conn.commit()
                 raise IngestionError(f"Ingestion failed: {e}") from e
 
         logger.info(

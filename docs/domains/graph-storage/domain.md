@@ -81,6 +81,9 @@ graphs = graph_service.list_graphs()  # [GraphInfo(...), ...]
 | `ContentType` | Enum | EmbeddingService (chunking strategy), ASTParser | CODE vs CONTENT classification |
 | `GraphConfig` | Pydantic Model | GraphService, scan pipeline | `graph_path` default |
 | `OtherGraphsConfig` | Pydantic Model | GraphService | External graph references |
+| `RestrictedUnpickler` | Security | NetworkXGraphStore, IngestionPipeline | Secure pickle deserialization with class whitelist |
+| `ConnectionProvider` | Protocol | PostgreSQLGraphStore | Async DB connection access (decouples from server.Database) |
+| `PostgreSQLGraphStore` | Repository Impl | Server query routes | GraphStore ABC over PostgreSQL (async, read-only) |
 
 ## Composition (Internal)
 

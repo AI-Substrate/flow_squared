@@ -60,6 +60,13 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | `tests/server/test_database.py` | server | internal | Phase 1 DB connection tests |
 | `tests/server/test_schema.py` | server | internal | Phase 1 schema DDL tests |
 | `tests/server/__init__.py` | server | internal | Test package init |
+| `src/fs2/core/repos/pickle_security.py` | graph-storage | contract | RestrictedUnpickler public contract |
+| `src/fs2/core/repos/graph_store_pg.py` | graph-storage | contract | PostgreSQLGraphStore + ConnectionProvider protocol |
+| `src/fs2/server/ingestion.py` | server | internal | Pickle → PostgreSQL ingestion pipeline |
+| `src/fs2/server/routes/graphs.py` | server | internal | Graph upload, list, status, delete endpoints |
+| `tests/server/test_ingestion.py` | server | internal | Ingestion pipeline tests |
+| `tests/server/test_graph_upload.py` | server | internal | Upload endpoint tests |
+| `tests/server/test_graph_store_pg.py` | graph-storage | internal | PG store round-trip parity tests |
 
 ## Key Findings
 

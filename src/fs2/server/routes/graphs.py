@@ -12,7 +12,7 @@ import os
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
 from fs2.server.ingestion import IngestionError, IngestionPipeline
 
@@ -27,10 +27,10 @@ DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000000"
 @router.post("")
 async def upload_graph(
     request: Request,
-    file: UploadFile,
-    name: str,
-    description: str | None = None,
-    source_url: str | None = None,
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    description: str | None = Form(None),
+    source_url: str | None = Form(None),
 ) -> dict:
     """Upload a graph pickle file for ingestion.
 
@@ -43,9 +43,17 @@ async def upload_graph(
     temp_path = Path(upload_dir) / f"{uuid.uuid4()}.pickle"
 
     try:
-        # Stream to temp file (never buffer full file in RAM)
+        # Stream to temp file with size limit enforcement
+        max_bytes = getattr(request.app.state, "max_upload_bytes", 524_288_000)
+        bytes_written = 0
         with open(temp_path, "wb") as f:
             while chunk := await file.read(1024 * 1024):  # 1MB chunks
+                bytes_written += len(chunk)
+                if bytes_written > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Upload exceeds maximum size of {max_bytes} bytes",
+                    )
                 f.write(chunk)
 
         pipeline = IngestionPipeline(db)

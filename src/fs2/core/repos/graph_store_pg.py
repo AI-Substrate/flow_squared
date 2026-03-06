@@ -5,18 +5,34 @@ save()/load() are no-ops — the database is always-on.
 
 Per Finding 01: Query methods work directly against DB.
 Per DYK #3: Embedding round-trip reconstructs tuple-of-tuples from chunks table.
+
+Depends on ConnectionProvider protocol (not server.Database directly)
+to avoid graph-storage → server reverse dependency.
 """
 
 import logging
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from fs2.core.models.code_node import CodeNode
 from fs2.core.models.content_type import ContentType
 from fs2.core.repos.graph_store import GraphStore
-from fs2.server.database import Database
 
 logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class ConnectionProvider(Protocol):
+    """Protocol for async database connection access.
+
+    Decouples PostgreSQLGraphStore from the server.Database class,
+    preventing a graph-storage → server reverse dependency.
+    """
+
+    @asynccontextmanager
+    async def connection(self) -> AsyncGenerator: ...
 
 
 class PostgreSQLGraphStore(GraphStore):
@@ -31,7 +47,7 @@ class PostgreSQLGraphStore(GraphStore):
         node = await store.get_node_async("file:src/main.py")
     """
 
-    def __init__(self, db: Database, graph_id: str) -> None:
+    def __init__(self, db: ConnectionProvider, graph_id: str) -> None:
         self._db = db
         self._graph_id = graph_id
 
