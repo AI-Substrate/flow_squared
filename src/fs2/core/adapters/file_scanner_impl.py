@@ -80,6 +80,13 @@ class FileSystemScanner(FileScanner):
         self._scan_config = config.require(ScanConfig)
         # Gitignore specs loaded during scan, keyed by directory
         self._gitignore_specs: dict[Path, pathspec.PathSpec] = {}
+        # Config-level ignore patterns (always applied, regardless of respect_gitignore)
+        self._config_ignore_spec: pathspec.PathSpec | None = None
+        if self._scan_config.ignore_patterns:
+            self._config_ignore_spec = pathspec.PathSpec.from_lines(
+                pathspec.patterns.GitWildMatchPattern,
+                self._scan_config.ignore_patterns,
+            )
         # Root paths for relative pattern matching
         self._scan_roots: list[Path] = []
         # Flag to track if scan() has been called
@@ -111,9 +118,11 @@ class FileSystemScanner(FileScanner):
                     "Check scan_paths configuration in .fs2/config.yaml."
                 )
 
-            # Load root gitignore if present and respect_gitignore is True
+            # Load ancestor gitignore files up to repo root (or filesystem root)
+            # This ensures patterns from the repo-root .gitignore apply even
+            # when scan_paths are subdirectories like "scripts" or "src".
             if self._scan_config.respect_gitignore:
-                self._load_gitignore(scan_path)
+                self._load_ancestor_gitignores(scan_path)
 
             # Walk the directory tree
             results.extend(self._walk_directory(scan_path, scan_path))
@@ -122,10 +131,10 @@ class FileSystemScanner(FileScanner):
         return results
 
     def should_ignore(self, path: Path) -> bool:
-        """Check if a path matches gitignore patterns.
+        """Check if a path matches ignore patterns (config or gitignore).
 
         Args:
-            path: Path to check against gitignore patterns.
+            path: Path to check against ignore patterns.
 
         Returns:
             True if path should be ignored, False otherwise.
@@ -138,6 +147,10 @@ class FileSystemScanner(FileScanner):
                 "scan() must be called before should_ignore(). "
                 "Gitignore patterns are not loaded until scan() traverses directories."
             )
+
+        # Config-level patterns always apply
+        if self._is_config_ignored(path):
+            return True
 
         if not self._scan_config.respect_gitignore:
             return False
@@ -177,7 +190,11 @@ class FileSystemScanner(FileScanner):
                     if entry.name == ".git":
                         continue
 
-                    # Check if directory is ignored
+                    # Config-level ignore patterns always apply
+                    if self._is_config_ignored(entry):
+                        continue
+
+                    # Check if directory is ignored by gitignore
                     if self._scan_config.respect_gitignore and self._is_ignored(entry):
                         continue
 
@@ -193,7 +210,11 @@ class FileSystemScanner(FileScanner):
                     if entry.name == ".gitignore":
                         continue
 
-                    # Check if file is ignored
+                    # Config-level ignore patterns always apply
+                    if self._is_config_ignored(entry):
+                        continue
+
+                    # Check if file is ignored by gitignore
                     if self._scan_config.respect_gitignore and self._is_ignored(entry):
                         continue
 
@@ -216,6 +237,66 @@ class FileSystemScanner(FileScanner):
                 continue
 
         return results
+
+    def _is_config_ignored(self, path: Path) -> bool:
+        """Check if a path matches config-level ignore_patterns.
+
+        These patterns are always applied regardless of respect_gitignore.
+
+        Args:
+            path: Path to check.
+
+        Returns:
+            True if path matches a config ignore pattern.
+        """
+        if not self._config_ignore_spec:
+            return False
+
+        abs_path = path.resolve()
+
+        # Check against each scan root
+        for root in self._scan_roots:
+            try:
+                rel_path = abs_path.relative_to(root)
+            except ValueError:
+                continue
+
+            rel_path_str = str(rel_path).replace("\\", "/")
+
+            if abs_path.is_dir():
+                rel_path_str += "/"
+
+            if self._config_ignore_spec.match_file(rel_path_str):
+                return True
+
+        return False
+
+    def _load_ancestor_gitignores(self, scan_path: Path) -> None:
+        """Load .gitignore patterns from scan_path and all ancestor directories.
+
+        Walks upward from scan_path to the git repo root (directory containing
+        .git) or filesystem root, loading .gitignore from each level. This
+        ensures repo-root patterns like 'node_modules' apply even when
+        scan_paths are subdirectories.
+
+        Args:
+            scan_path: The resolved scan path to start from.
+        """
+        # Collect ancestors from scan_path upward, stopping at .git or root
+        ancestors: list[Path] = []
+        current = scan_path
+        while True:
+            ancestors.append(current)
+            if (current / ".git").exists():
+                break
+            parent = current.parent
+            if parent == current:
+                break
+            current = parent
+
+        # Load gitignores top-down (repo root first) so patterns layer correctly
+        for directory in reversed(ancestors):
+            self._load_gitignore(directory)
 
     def _load_gitignore(self, directory: Path) -> None:
         """Load .gitignore patterns from a directory.

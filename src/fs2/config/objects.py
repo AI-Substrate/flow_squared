@@ -215,6 +215,9 @@ class ScanConfig(BaseModel):
 
     Attributes:
         scan_paths: List of paths to scan (relative or absolute).
+        ignore_patterns: Gitignore-syntax patterns to always exclude, regardless
+                         of respect_gitignore setting (default: empty list).
+                         Applied in addition to .gitignore patterns.
         max_file_size_kb: Maximum file size in KB to fully parse (default: 500).
                           Files larger than this are sampled.
         respect_gitignore: Whether to respect .gitignore patterns (default: True).
@@ -230,6 +233,9 @@ class ScanConfig(BaseModel):
           scan_paths:
             - "./src"
             - "./lib"
+          ignore_patterns:
+            - "node_modules"
+            - "*.pyc"
           max_file_size_kb: 1000
           respect_gitignore: true
           follow_symlinks: false
@@ -240,6 +246,7 @@ class ScanConfig(BaseModel):
     __config_path__: ClassVar[str] = "scan"
 
     scan_paths: list[str] = ["."]
+    ignore_patterns: list[str] = []
     max_file_size_kb: int = 500
     respect_gitignore: bool = True
     follow_symlinks: bool = False

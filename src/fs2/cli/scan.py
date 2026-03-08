@@ -120,6 +120,7 @@ def scan(
             # Override scan_paths with CLI values
             updated_scan_config = ScanConfig(
                 scan_paths=scan_path,
+                ignore_patterns=existing_scan_config.ignore_patterns,
                 max_file_size_kb=existing_scan_config.max_file_size_kb,
                 respect_gitignore=existing_scan_config.respect_gitignore,
                 follow_symlinks=existing_scan_config.follow_symlinks,
