@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 
 [[package]]
@@ -510,6 +510,7 @@ name = "fs2"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "azure-identity" },
     { name = "fastmcp" },
     { name = "jinja2" },
     { name = "networkx" },
@@ -529,9 +530,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-azure-ad = [
-    { name = "azure-identity" },
-]
 dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -546,7 +544,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "azure-identity", marker = "extra == 'azure-ad'", specifier = ">=1.18.0,<2" },
+    { name = "azure-identity", specifier = ">=1.18.0,<2" },
     { name = "fastmcp", specifier = ">=2.0.0" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "networkx", specifier = ">=3.0" },
@@ -568,7 +566,7 @@ requires-dist = [
     { name = "typer", specifier = ">=0.9" },
     { name = "watchfiles", specifier = ">=0.21" },
 ]
-provides-extras = ["azure-ad", "dev"]
+provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "ruff", specifier = ">=0.14.6" }]

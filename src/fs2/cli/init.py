@@ -22,6 +22,11 @@ DEFAULT_CONFIG = """\
 scan:
   scan_paths:
     - "."
+  ignore_patterns:
+    - "node_modules"
+    - ".venv"
+    - "*.pyc"
+    - "__pycache__"
   respect_gitignore: true
   max_file_size_kb: 500
   follow_symlinks: false

@@ -399,6 +399,39 @@ class TestFileSystemScannerGitignore:
         file_names = [r.path.name for r in results]
         assert ".gitignore" not in file_names
 
+    def test_file_system_scanner_loads_ancestor_gitignore_for_subdirectory_scan_paths(
+        self, tmp_path
+    ):
+        """Root .gitignore patterns apply when scan_paths are subdirectories."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        # Arrange - repo root has .gitignore and .git, scan_path is a subdir
+        (tmp_path / ".git").mkdir()
+        (tmp_path / ".gitignore").write_text("node_modules/\n*.log\n")
+        scripts = tmp_path / "scripts"
+        scripts.mkdir()
+        (scripts / "app.py").write_text("print('hello')")
+        nm = scripts / "node_modules"
+        nm.mkdir()
+        (nm / "pkg.js").write_text("module")
+        (scripts / "debug.log").write_text("log data")
+
+        config = FakeConfigurationService(
+            ScanConfig(scan_paths=[str(scripts)], respect_gitignore=True)
+        )
+        scanner = FileSystemScanner(config)
+
+        # Act
+        results = scanner.scan()
+
+        # Assert - root .gitignore patterns applied to subdirectory scan
+        file_names = [r.path.name for r in results]
+        assert "app.py" in file_names
+        assert "pkg.js" not in file_names
+        assert "debug.log" not in file_names
+
 
 @pytest.mark.unit
 class TestFileSystemScannerSymlinks:
@@ -607,8 +640,188 @@ class TestFileSystemScannerEdgeCases:
 
 
 @pytest.mark.unit
-class TestFileSystemScannerErrorHandling:
-    """Tests for error handling (T019-T021, T020b, T023, T023b)."""
+class TestFileSystemScannerConfigIgnorePatterns:
+    """Tests for config-level ignore_patterns (scan.ignore_patterns)."""
+
+    def test_config_ignore_patterns_excludes_matching_directories(self, tmp_path):
+        """Config ignore_patterns should exclude matching directories from scan."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        # Arrange
+        (tmp_path / "app.py").write_text("print('hello')")
+        (tmp_path / "node_modules").mkdir()
+        (tmp_path / "node_modules" / "pkg.js").write_text("module")
+
+        config = FakeConfigurationService(
+            ScanConfig(
+                scan_paths=[str(tmp_path)],
+                ignore_patterns=["node_modules"],
+                respect_gitignore=False,
+            )
+        )
+        scanner = FileSystemScanner(config)
+
+        # Act
+        results = scanner.scan()
+
+        # Assert
+        file_names = [r.path.name for r in results]
+        assert "app.py" in file_names
+        assert "pkg.js" not in file_names
+
+    def test_config_ignore_patterns_excludes_matching_files(self, tmp_path):
+        """Config ignore_patterns should exclude matching files from scan."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        # Arrange
+        (tmp_path / "app.py").write_text("print('hello')")
+        (tmp_path / "debug.log").write_text("log data")
+        (tmp_path / "cache.pyc").write_bytes(b"\x00\x01")
+
+        config = FakeConfigurationService(
+            ScanConfig(
+                scan_paths=[str(tmp_path)],
+                ignore_patterns=["*.log", "*.pyc"],
+                respect_gitignore=False,
+            )
+        )
+        scanner = FileSystemScanner(config)
+
+        # Act
+        results = scanner.scan()
+
+        # Assert
+        file_names = [r.path.name for r in results]
+        assert "app.py" in file_names
+        assert "debug.log" not in file_names
+        assert "cache.pyc" not in file_names
+
+    def test_config_ignore_patterns_applied_regardless_of_respect_gitignore(
+        self, tmp_path
+    ):
+        """Config ignore_patterns must be applied even when respect_gitignore=False."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        # Arrange
+        (tmp_path / "app.py").write_text("print('hello')")
+        (tmp_path / "node_modules").mkdir()
+        (tmp_path / "node_modules" / "pkg.js").write_text("module")
+        # Add a .gitignore that would exclude *.log — but gitignore is OFF
+        (tmp_path / ".gitignore").write_text("*.log\n")
+        (tmp_path / "debug.log").write_text("log data")
+
+        config = FakeConfigurationService(
+            ScanConfig(
+                scan_paths=[str(tmp_path)],
+                ignore_patterns=["node_modules"],
+                respect_gitignore=False,
+            )
+        )
+        scanner = FileSystemScanner(config)
+
+        # Act
+        results = scanner.scan()
+
+        # Assert - node_modules excluded by config, debug.log included (gitignore off)
+        file_names = [r.path.name for r in results]
+        assert "app.py" in file_names
+        assert "pkg.js" not in file_names
+        assert "debug.log" in file_names
+
+    def test_config_ignore_patterns_excludes_nested_directories(self, tmp_path):
+        """Config ignore_patterns should exclude nested node_modules too."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        # Arrange - node_modules nested under scripts/cookaborough/
+        (tmp_path / "app.py").write_text("print('hello')")
+        scripts = tmp_path / "scripts" / "cookaborough"
+        scripts.mkdir(parents=True)
+        (scripts / "index.js").write_text("console.log('hi')")
+        nm = scripts / "node_modules"
+        nm.mkdir()
+        (nm / "playwright-core").mkdir()
+        (nm / "playwright-core" / "types.d.ts").write_text("export type Page = {}")
+
+        config = FakeConfigurationService(
+            ScanConfig(
+                scan_paths=[str(tmp_path)],
+                ignore_patterns=["node_modules"],
+                respect_gitignore=False,
+            )
+        )
+        scanner = FileSystemScanner(config)
+
+        # Act
+        results = scanner.scan()
+
+        # Assert
+        file_names = [r.path.name for r in results]
+        assert "app.py" in file_names
+        assert "index.js" in file_names
+        assert "types.d.ts" not in file_names
+
+    def test_config_ignore_patterns_should_ignore_checks_config(self, tmp_path):
+        """should_ignore() should check config patterns after scan()."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        # Arrange
+        (tmp_path / "app.py").write_text("# app")
+        nm = tmp_path / "node_modules"
+        nm.mkdir()
+        (nm / "pkg.js").write_text("module")
+
+        config = FakeConfigurationService(
+            ScanConfig(
+                scan_paths=[str(tmp_path)],
+                ignore_patterns=["node_modules", "*.log"],
+                respect_gitignore=False,
+            )
+        )
+        scanner = FileSystemScanner(config)
+        scanner.scan()
+
+        # Act & Assert
+        assert scanner.should_ignore(nm) is True
+        assert scanner.should_ignore(nm / "pkg.js") is True
+        assert scanner.should_ignore(tmp_path / "debug.log") is True
+        assert scanner.should_ignore(tmp_path / "app.py") is False
+
+    def test_empty_ignore_patterns_excludes_nothing(self, tmp_path):
+        """Empty ignore_patterns list should not exclude any files."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        # Arrange
+        (tmp_path / "app.py").write_text("print('hello')")
+        (tmp_path / "debug.log").write_text("log data")
+
+        config = FakeConfigurationService(
+            ScanConfig(
+                scan_paths=[str(tmp_path)],
+                ignore_patterns=[],
+                respect_gitignore=False,
+            )
+        )
+        scanner = FileSystemScanner(config)
+
+        # Act
+        results = scanner.scan()
+
+        # Assert - both files included
+        file_names = [r.path.name for r in results]
+        assert "app.py" in file_names
+        assert "debug.log" in file_names
 
     def test_file_system_scanner_raises_error_for_nonexistent_path(self, tmp_path):
         """
