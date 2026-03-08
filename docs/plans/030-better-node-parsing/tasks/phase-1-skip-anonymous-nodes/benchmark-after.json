@@ -1,0 +1,21 @@
+{
+  "phase": "AFTER",
+  "graph_path": "/Users/jordanknight/substrate/066-wf-real-agents/.fs2/graph.pickle",
+  "graph_file_size_mb": 175,
+  "total_nodes": 9636,
+  "anonymous_nodes": 0,
+  "anonymous_pct": 0.0,
+  "named_nodes": 9636,
+  "files_scanned": 3347,
+  "comparison": {
+    "nodes_before": 23283,
+    "nodes_after": 9636,
+    "nodes_reduction_pct": 59,
+    "anonymous_before": 13649,
+    "anonymous_after": 0,
+    "anonymous_reduction_pct": 100,
+    "graph_size_before_mb": 451,
+    "graph_size_after_mb": 175,
+    "graph_size_reduction_pct": 61
+  }
+}

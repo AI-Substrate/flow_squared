@@ -39,6 +39,27 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# Tree-sitter node kinds to skip when they have no name.
+# These produce useless @line.column nodes when anonymous — their content
+# is already captured by parent nodes. Named instances are still extracted.
+# Recursion into children continues to find nested named structures.
+# See: docs/plans/030-better-node-parsing/workshop.md
+SKIP_WHEN_ANONYMOUS: frozenset[str] = frozenset(
+    {
+        "arrow_function",  # Anonymous callbacks: describe(() => {), it(() => {)
+        "function",  # Anonymous function expressions
+        "function_expression",  # Same (alternative grammar name)
+        "generator_function",  # Anonymous generators
+        "interface_body",  # Body of interface (parent has the name)
+        "class_body",  # Body of class (parent has the name)
+        "class_heritage",  # extends/implements clause (parent has context)
+        "enum_body",  # Body of enum (parent has the name)
+        "function_type",  # Type annotation like (x: string) => boolean
+        "implements_clause",  # implements Foo (when anonymous)
+    }
+)
+
+
 # Extension to language mapping
 # Per CF13: Static mapping with .h -> cpp default
 EXTENSION_TO_LANGUAGE: dict[str, str] = {
@@ -68,6 +89,10 @@ EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".md": "markdown",
     ".markdown": "markdown",
     ".rst": "rst",
+    ".txt": "plaintext",
+    ".csv": "plaintext",
+    ".tsv": "plaintext",
+    ".example": "plaintext",
     # Infrastructure
     ".tf": "hcl",
     ".tfvars": "hcl",
@@ -658,6 +683,23 @@ class TreeSitterParser(ASTParser):
             # Extract name from node
             name = self._extract_name(child, language)
             if name is None:
+                # Skip anonymous nodes for ts_kinds that are never useful unnamed.
+                # Still recurse into children to find named nested structures.
+                if ts_kind in SKIP_WHEN_ANONYMOUS:
+                    self._extract_nodes(
+                        node=child,
+                        file_path=file_path,
+                        language=language,
+                        content_type=content_type,
+                        content=content,
+                        nodes=nodes,
+                        depth=depth,
+                        parent_qualified_name=parent_qualified_name,
+                        parent_node_id=parent_node_id,
+                        seen_node_ids=seen_node_ids,
+                    )
+                    continue
+
                 # Anonymous node - use position-based ID per CF11
                 # Per fix 2026-01-14: Include column for disambiguation when
                 # multiple anonymous nodes exist at the same line

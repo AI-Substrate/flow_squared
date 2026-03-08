@@ -1,0 +1,43 @@
+{
+  "phase": "BEFORE",
+  "graph_path": "/Users/jordanknight/substrate/066-wf-real-agents/.fs2/graph.pickle",
+  "graph_file_size_mb": 451,
+  "total_nodes": 23283,
+  "anonymous_nodes": 13649,
+  "anonymous_pct": 58.6,
+  "named_nodes": 9634,
+  "anon_by_kind": {
+    "arrow_function": 11456,
+    "interface_body": 1176,
+    "function_type": 602,
+    "class_body": 220,
+    "class_heritage": 192,
+    "enum_body": 2,
+    "implements_clause": 1
+  },
+  "named_by_kind_top20": {
+    "method_definition": 2129,
+    "function_declaration": 1841,
+    "document": 1789,
+    "program": 1390,
+    "interface_declaration": 1177,
+    "method_signature": 399,
+    "type_alias_declaration": 322,
+    "class_declaration": 218,
+    "implements_clause": 149,
+    "stream": 86,
+    "function_type": 55,
+    "arrow_function": 49,
+    "enum_assignment": 9,
+    "function_expression": 7,
+    "stylesheet": 5,
+    "abstract_class_declaration": 2,
+    "enum_declaration": 2,
+    "function_signature": 2,
+    "ERROR": 1,
+    "source_file": 1
+  },
+  "files_scanned": 3347,
+  "skip_when_anonymous_coverage": "100%",
+  "note": "All 13649 anonymous nodes fall into SKIP_WHEN_ANONYMOUS set"
+}
