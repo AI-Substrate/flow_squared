@@ -25,10 +25,17 @@ from fs2.server.schema import create_schema
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage server startup and shutdown.
 
-    Startup: connect pool → create schema → ready.
+    Startup: create extensions → connect pool → create schema → ready.
     Shutdown: close pool.
+
+    Extensions must be created before the pool opens because the
+    pgvector configure callback requires the vector type to exist.
     """
     db: Database = app.state.db
+
+    # Create extensions with a one-off connection (before pool opens)
+    await db.ensure_extensions()
+
     await db.connect()
 
     async with db.connection() as conn:
@@ -46,12 +53,21 @@ def create_app(
     """Create and configure the FastAPI application.
 
     Args:
-        db_config: Database config. If None, uses defaults.
+        db_config: Database config. If None, loads from environment
+                   variables (FS2_SERVER__DATABASE__*) or uses defaults.
         database: Pre-built Database instance (for testing).
                   If None, creates one from db_config.
     """
     if db_config is None:
-        db_config = ServerDatabaseConfig()
+        import os
+
+        db_config = ServerDatabaseConfig(
+            host=os.environ.get("FS2_SERVER__DATABASE__HOST", "localhost"),
+            port=int(os.environ.get("FS2_SERVER__DATABASE__PORT", "5432")),
+            database=os.environ.get("FS2_SERVER__DATABASE__DATABASE", "fs2"),
+            user=os.environ.get("FS2_SERVER__DATABASE__USER", "postgres"),
+            password=os.environ.get("FS2_SERVER__DATABASE__PASSWORD", ""),
+        )
 
     app = FastAPI(
         title="fs2 Server",

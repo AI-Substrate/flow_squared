@@ -81,3 +81,19 @@ class Database:
     def is_connected(self) -> bool:
         """Whether the pool is open and available."""
         return self._pool is not None
+
+    async def ensure_extensions(self) -> None:
+        """Create required PostgreSQL extensions before pool opens.
+
+        Must be called before connect() so the pgvector configure
+        callback can register vector types on new connections.
+        """
+        conn = await psycopg.AsyncConnection.connect(
+            self._config.conninfo, autocommit=True
+        )
+        try:
+            await conn.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+        finally:
+            await conn.close()

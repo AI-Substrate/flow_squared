@@ -1,0 +1,21 @@
+{"id":"tmux:0.0","source":"tmux","label":"Add Flowspace Server Mode","timestamp":"2026-03-08T05:57:42.532Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:1.0","source":"tmux","label":"Review Management Dashboard Tasks","timestamp":"2026-03-08T05:57:42.532Z","meta":{"pane":"1.0","windowName":"r1","session":"028-server-mode"}}
+{"id":"tmux:3.0","source":"tmux","label":"Fix FS2 Scan Token Error","timestamp":"2026-03-08T05:57:42.532Z","meta":{"pane":"3.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"🤖 Checking next phase","timestamp":"2026-03-08T05:58:12.538Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"Add Flowspace Server Mode","timestamp":"2026-03-08T05:58:22.541Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:3.0","source":"tmux","label":"🤖 Analyzing messy TS graph nodes","timestamp":"2026-03-08T06:24:34.776Z","meta":{"pane":"3.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"🤖 Updating plan progress","timestamp":"2026-03-08T06:24:54.781Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"🤖 Auditing plan phase progress","timestamp":"2026-03-08T06:25:04.781Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"Add Flowspace Server Mode","timestamp":"2026-03-08T06:27:24.807Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:3.0","source":"tmux","label":"Fix FS2 Scan Token Error","timestamp":"2026-03-08T06:27:24.807Z","meta":{"pane":"3.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"🤖 Planning integration test approach","timestamp":"2026-03-08T06:32:14.855Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"🤖 Starting server integration test","timestamp":"2026-03-08T06:32:34.859Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"🤖 Merging main into branch","timestamp":"2026-03-08T06:33:14.865Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:3.0","source":"tmux","label":"🤖 Checking FastCode TS parsing","timestamp":"2026-03-08T06:33:44.868Z","meta":{"pane":"3.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:3.0","source":"tmux","label":"Fix FS2 Scan Token Error","timestamp":"2026-03-08T06:34:14.871Z","meta":{"pane":"3.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"Add Flowspace Server Mode","timestamp":"2026-03-08T06:35:04.881Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:3.0","source":"tmux","label":"🤖 Creating implementation workshop","timestamp":"2026-03-08T06:35:44.889Z","meta":{"pane":"3.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:0.0","source":"tmux","label":"🤖 Getting server running end-to-end","timestamp":"2026-03-08T06:36:04.888Z","meta":{"pane":"0.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:1.0","source":"tmux","label":"🤖 Creating implementation workshop","timestamp":"2026-03-08T06:36:34.890Z","meta":{"pane":"1.0","windowName":"node","session":"028-server-mode"}}
+{"id":"tmux:2.0","source":"tmux","label":"Review Management Dashboard Tasks","timestamp":"2026-03-08T06:36:34.890Z","meta":{"pane":"2.0","windowName":"r1","session":"028-server-mode"}}
+{"id":"tmux:1.0","source":"tmux","label":"Fix FS2 Scan Token Error","timestamp":"2026-03-08T06:37:54.907Z","meta":{"pane":"1.0","windowName":"node","session":"028-server-mode"}}

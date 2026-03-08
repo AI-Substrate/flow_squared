@@ -107,7 +107,15 @@ class PostgreSQLGraphStore(GraphStore):
             embedding_chunk_offsets=embedding_chunk_offsets,
         )
 
-    _NODE_COLUMNS = """node_id, category, ts_kind, content_type, name,
+    _NODE_COLUMNS = """cn.node_id, cn.category, cn.ts_kind, cn.content_type, cn.name,
+        cn.qualified_name, cn.start_line, cn.end_line, cn.start_column, cn.end_column,
+        cn.start_byte, cn.end_byte, cn.content, cn.content_hash, cn.signature,
+        cn.language, cn.is_named, cn.field_name, cn.is_error, cn.parent_node_id,
+        cn.truncated, cn.truncated_at_line, cn.smart_content, cn.smart_content_hash,
+        cn.embedding_hash"""
+
+    # Unqualified version for single-table queries (no JOIN)
+    _NODE_COLUMNS_BARE = """node_id, category, ts_kind, content_type, name,
         qualified_name, start_line, end_line, start_column, end_column,
         start_byte, end_byte, content, content_hash, signature,
         language, is_named, field_name, is_error, parent_node_id,
@@ -118,7 +126,7 @@ class PostgreSQLGraphStore(GraphStore):
         """Async version of get_node with embedding reconstruction."""
         async with self._db.connection() as conn:
             result = await conn.execute(
-                f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
+                f"SELECT {self._NODE_COLUMNS_BARE} FROM code_nodes "
                 "WHERE graph_id = %s AND node_id = %s",
                 (self._graph_id, node_id),
             )
@@ -171,7 +179,7 @@ class PostgreSQLGraphStore(GraphStore):
         """Async version of get_all_nodes."""
         async with self._db.connection() as conn:
             result = await conn.execute(
-                f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
+                f"SELECT {self._NODE_COLUMNS_BARE} FROM code_nodes "
                 "WHERE graph_id = %s ORDER BY node_id",
                 (self._graph_id,),
             )
@@ -208,14 +216,14 @@ class PostgreSQLGraphStore(GraphStore):
         async with self._db.connection() as conn:
             if pattern == ".":
                 result = await conn.execute(
-                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
+                    f"SELECT {self._NODE_COLUMNS_BARE} FROM code_nodes "
                     "WHERE graph_id = %s ORDER BY node_id",
                     (self._graph_id,),
                 )
             elif ":" in pattern:
                 # Exact node_id match
                 result = await conn.execute(
-                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
+                    f"SELECT {self._NODE_COLUMNS_BARE} FROM code_nodes "
                     "WHERE graph_id = %s AND node_id = %s",
                     (self._graph_id, pattern),
                 )
@@ -224,14 +232,14 @@ class PostgreSQLGraphStore(GraphStore):
                 prefix = pattern if pattern.endswith("/") else pattern + "/"
                 like_pattern = f"%{prefix}%"
                 result = await conn.execute(
-                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
+                    f"SELECT {self._NODE_COLUMNS_BARE} FROM code_nodes "
                     "WHERE graph_id = %s AND node_id LIKE %s ORDER BY node_id",
                     (self._graph_id, like_pattern),
                 )
             elif any(c in pattern for c in "*?[]"):
                 # Glob pattern — fetch all, filter in Python
                 result = await conn.execute(
-                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
+                    f"SELECT {self._NODE_COLUMNS_BARE} FROM code_nodes "
                     "WHERE graph_id = %s ORDER BY node_id",
                     (self._graph_id,),
                 )
@@ -244,7 +252,7 @@ class PostgreSQLGraphStore(GraphStore):
                 # Substring match via ILIKE
                 like_pattern = f"%{pattern}%"
                 result = await conn.execute(
-                    f"SELECT {self._NODE_COLUMNS} FROM code_nodes "
+                    f"SELECT {self._NODE_COLUMNS_BARE} FROM code_nodes "
                     "WHERE graph_id = %s AND node_id ILIKE %s ORDER BY node_id",
                     (self._graph_id, like_pattern),
                 )
