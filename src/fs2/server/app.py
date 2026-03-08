@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from fs2.config.objects import ServerDatabaseConfig
 from fs2.server.dashboard import router as dashboard_router
@@ -94,5 +95,9 @@ def create_app(
     app.include_router(graphs_router)
     app.include_router(query_router)
     app.include_router(dashboard_router)
+
+    @app.get("/", include_in_schema=False)
+    async def root_redirect():
+        return RedirectResponse(url="/dashboard/")
 
     return app
