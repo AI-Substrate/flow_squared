@@ -90,6 +90,9 @@ EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".markdown": "markdown",
     ".rst": "rst",
     ".txt": "plaintext",
+    ".csv": "plaintext",
+    ".tsv": "plaintext",
+    ".example": "plaintext",
     # Infrastructure
     ".tf": "hcl",
     ".tfvars": "hcl",
