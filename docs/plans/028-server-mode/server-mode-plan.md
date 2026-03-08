@@ -3,8 +3,20 @@
 **Plan Version**: 1.0.0
 **Created**: 2026-03-05
 **Spec**: [server-mode-spec.md](server-mode-spec.md)
-**Status**: DRAFT
+**Status**: IN PROGRESS — Phases 1, 3, 4, 5, 6 complete. Phase 2 skipped. Phase 7 pending.
 **Mode**: Full
+
+## Progress
+
+| Phase | Title | Status | Tasks | ACs |
+|-------|-------|--------|-------|-----|
+| 1 | Server Skeleton + Database | ✅ Landed | 10/10 | AC22, AC23 |
+| 2 | Auth + Multi-Tenancy | ⏭️ Skipped | 0/10 | AC14-17 deferred |
+| 3 | Ingestion Pipeline + Graph Upload | ✅ Landed | 10/10 | AC1-AC5 |
+| 4 | Server Query API | ✅ Landed | 9/9 | AC6-AC10 |
+| 5 | Remote CLI + MCP Bridge | ✅ Landed | 11/11 | AC11-AC13 |
+| 6 | Management Dashboard | ✅ Landed | 8/8 | AC5, AC18-AC21, AC24 |
+| 7 | Documentation + Polish | ⏳ Pending | 0/6 | — |
 
 ## Summary
 
@@ -113,8 +125,8 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | 1.8 | Tests: health endpoint, DB connection, schema creation | server | `pytest tests/server/` passes | Fakes for DB where needed |
 
 ### Acceptance Criteria
-- [ ] AC22: Docker Compose stack starts cleanly
-- [ ] AC23: Health endpoint returns status, DB connectivity, graph count
+- [x] AC22: Docker Compose stack starts cleanly
+- [x] AC23: Health endpoint returns status, DB connectivity, graph count
 
 ### Risks
 | Risk | Likelihood | Impact | Mitigation |
@@ -191,11 +203,11 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | 3.8 | Tests: upload round-trip, ingestion, re-upload, validation rejection | server | End-to-end: upload pickle → query node → matches original | |
 
 ### Acceptance Criteria
-- [ ] AC1: Upload → queryable within 30s for 5K-node graph
-- [ ] AC2: Re-upload replaces completely
-- [ ] AC3: Metadata preserved
-- [ ] AC4: RestrictedUnpickler rejects malicious pickles
-- [ ] AC5: Dashboard shows ingestion progress
+- [x] AC1: Upload → queryable within 30s for 5K-node graph
+- [x] AC2: Re-upload replaces completely
+- [x] AC3: Metadata preserved
+- [x] AC4: RestrictedUnpickler rejects malicious pickles
+- [x] AC5: Dashboard shows ingestion progress
 
 ### Risks
 | Risk | Likelihood | Impact | Mitigation |
@@ -233,11 +245,11 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | 4.8 | Tests: query parity with local mode for all 4 search modes | search | Upload graph → remote search → results match local search | |
 
 ### Acceptance Criteria
-- [ ] AC6: Remote tree matches local tree
-- [ ] AC7: Remote search (text/regex/semantic/auto) matches local, multi-graph works
-- [ ] AC8: Remote get-node matches local
-- [ ] AC9: List-graphs shows all accessible graphs
-- [ ] AC10: Semantic search <100ms at 500K nodes
+- [x] AC6: Remote tree matches local tree
+- [x] AC7: Remote search (text/regex/semantic/auto) matches local, multi-graph works
+- [x] AC8: Remote get-node matches local
+- [x] AC9: List-graphs shows all accessible graphs
+- [x] AC10: Semantic search <100ms at 500K nodes
 
 ### Risks
 | Risk | Likelihood | Impact | Mitigation |
@@ -279,9 +291,9 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | 5.10 | Tests: remote CLI e2e (test server or fake server) | cli-presentation | Query via CLI, verify output matches expected | |
 
 ### Acceptance Criteria
-- [ ] AC11: --remote / FS2_REMOTE transparently routes all commands
-- [ ] AC12: MCP remote mode works
-- [ ] AC13: MCP response format identical
+- [x] AC11: --remote / FS2_REMOTE transparently routes all commands
+- [x] AC12: MCP remote mode works
+- [x] AC13: MCP response format identical
 - Revalidated via remote: AC6 (tree), AC7 (search), AC8 (get-node), AC9 (list-graphs)
 
 ### Risks
@@ -319,12 +331,12 @@ fs2's current local-only architecture (pickle files + in-memory NetworkX) cannot
 | 6.8 | Tests: upload flow, delete flow, key generation | server | Dashboard functional tests | Lightweight — not visual |
 
 ### Acceptance Criteria
-- [ ] AC5: Dashboard shows ingestion progress
-- [ ] AC18: Operator can generate API keys (tenant creation deferred to auth phase)
-- [ ] AC19: Tenant can upload graph pickles via dashboard
-- [ ] AC20: Tenant can view graphs + ingestion progress
-- [ ] AC21: Tenant can delete graphs
-- [ ] AC24: Structured request logging
+- [x] AC5: Dashboard shows ingestion progress
+- [x] AC18: Operator can generate API keys (tenant creation deferred to auth phase)
+- [x] AC19: Tenant can upload graph pickles via dashboard
+- [x] AC20: Tenant can view graphs + ingestion progress
+- [x] AC21: Tenant can delete graphs
+- [x] AC24: Structured request logging
 
 ### Risks
 | Risk | Likelihood | Impact | Mitigation |
