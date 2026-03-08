@@ -44,18 +44,20 @@ logger = logging.getLogger(__name__)
 # is already captured by parent nodes. Named instances are still extracted.
 # Recursion into children continues to find nested named structures.
 # See: docs/plans/030-better-node-parsing/workshop.md
-SKIP_WHEN_ANONYMOUS: frozenset[str] = frozenset({
-    "arrow_function",       # Anonymous callbacks: describe(() => {), it(() => {)
-    "function",             # Anonymous function expressions
-    "function_expression",  # Same (alternative grammar name)
-    "generator_function",   # Anonymous generators
-    "interface_body",       # Body of interface (parent has the name)
-    "class_body",           # Body of class (parent has the name)
-    "class_heritage",       # extends/implements clause (parent has context)
-    "enum_body",            # Body of enum (parent has the name)
-    "function_type",        # Type annotation like (x: string) => boolean
-    "implements_clause",    # implements Foo (when anonymous)
-})
+SKIP_WHEN_ANONYMOUS: frozenset[str] = frozenset(
+    {
+        "arrow_function",  # Anonymous callbacks: describe(() => {), it(() => {)
+        "function",  # Anonymous function expressions
+        "function_expression",  # Same (alternative grammar name)
+        "generator_function",  # Anonymous generators
+        "interface_body",  # Body of interface (parent has the name)
+        "class_body",  # Body of class (parent has the name)
+        "class_heritage",  # extends/implements clause (parent has context)
+        "enum_body",  # Body of enum (parent has the name)
+        "function_type",  # Type annotation like (x: string) => boolean
+        "implements_clause",  # implements Foo (when anonymous)
+    }
+)
 
 
 # Extension to language mapping
@@ -87,6 +89,7 @@ EXTENSION_TO_LANGUAGE: dict[str, str] = {
     ".md": "markdown",
     ".markdown": "markdown",
     ".rst": "rst",
+    ".txt": "plaintext",
     # Infrastructure
     ".tf": "hcl",
     ".tfvars": "hcl",

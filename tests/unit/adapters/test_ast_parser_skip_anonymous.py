@@ -41,9 +41,9 @@ class TestSkipWhenAnonymousCallbacks:
             for n in nodes
             if n.ts_kind == "arrow_function" and n.name and at_pat.search(n.name)
         ]
-        assert (
-            len(anon_arrow) == 0
-        ), f"Expected 0 anonymous arrow_function nodes, got {len(anon_arrow)}: {[n.name for n in anon_arrow]}"
+        assert len(anon_arrow) == 0, (
+            f"Expected 0 anonymous arrow_function nodes, got {len(anon_arrow)}: {[n.name for n in anon_arrow]}"
+        )
 
     def test_anonymous_function_expression_skipped(self, ast_samples_path):
         """
@@ -64,13 +64,11 @@ class TestSkipWhenAnonymousCallbacks:
         anon_fn_expr = [
             n
             for n in nodes
-            if n.ts_kind == "function_expression"
-            and n.name
-            and at_pat.search(n.name)
+            if n.ts_kind == "function_expression" and n.name and at_pat.search(n.name)
         ]
-        assert (
-            len(anon_fn_expr) == 0
-        ), f"Expected 0 anonymous function_expression nodes, got {len(anon_fn_expr)}"
+        assert len(anon_fn_expr) == 0, (
+            f"Expected 0 anonymous function_expression nodes, got {len(anon_fn_expr)}"
+        )
 
     def test_named_function_inside_anonymous_callback_extracted(self, ast_samples_path):
         """
@@ -90,9 +88,9 @@ class TestSkipWhenAnonymousCallbacks:
 
         # helperInsideCallback is a named function_declaration inside an anonymous describe() callback
         helper_nodes = [n for n in nodes if n.name == "helperInsideCallback"]
-        assert (
-            len(helper_nodes) == 1
-        ), f"Expected helperInsideCallback to be extracted, got {len(helper_nodes)}"
+        assert len(helper_nodes) == 1, (
+            f"Expected helperInsideCallback to be extracted, got {len(helper_nodes)}"
+        )
         assert helper_nodes[0].category == "callable"
         assert helper_nodes[0].ts_kind == "function_declaration"
 
@@ -133,9 +131,9 @@ class TestSkipWhenAnonymousCallbacks:
 
         at_pat = re.compile(r"@\d+")
         anon_nodes = [n for n in nodes if n.name and at_pat.search(n.name)]
-        assert (
-            len(anon_nodes) == 0
-        ), f"Expected 0 anonymous nodes, got {len(anon_nodes)}: {[(n.ts_kind, n.name) for n in anon_nodes]}"
+        assert len(anon_nodes) == 0, (
+            f"Expected 0 anonymous nodes, got {len(anon_nodes)}: {[(n.ts_kind, n.name) for n in anon_nodes]}"
+        )
 
 
 @pytest.mark.unit
@@ -163,9 +161,9 @@ class TestSkipWhenAnonymousBodies:
             for n in nodes
             if n.ts_kind == "interface_body" and n.name and at_pat.search(n.name)
         ]
-        assert (
-            len(anon_iface_body) == 0
-        ), f"Expected 0 anonymous interface_body nodes, got {len(anon_iface_body)}"
+        assert len(anon_iface_body) == 0, (
+            f"Expected 0 anonymous interface_body nodes, got {len(anon_iface_body)}"
+        )
 
     def test_class_body_skipped(self, ast_samples_path):
         """
@@ -188,9 +186,9 @@ class TestSkipWhenAnonymousBodies:
             for n in nodes
             if n.ts_kind == "class_body" and n.name and at_pat.search(n.name)
         ]
-        assert (
-            len(anon_class_body) == 0
-        ), f"Expected 0 anonymous class_body nodes, got {len(anon_class_body)}"
+        assert len(anon_class_body) == 0, (
+            f"Expected 0 anonymous class_body nodes, got {len(anon_class_body)}"
+        )
 
     def test_class_heritage_skipped(self, ast_samples_path):
         """
@@ -213,9 +211,9 @@ class TestSkipWhenAnonymousBodies:
             for n in nodes
             if n.ts_kind == "class_heritage" and n.name and at_pat.search(n.name)
         ]
-        assert (
-            len(anon_heritage) == 0
-        ), f"Expected 0 anonymous class_heritage nodes, got {len(anon_heritage)}"
+        assert len(anon_heritage) == 0, (
+            f"Expected 0 anonymous class_heritage nodes, got {len(anon_heritage)}"
+        )
 
     def test_enum_body_skipped(self, ast_samples_path):
         """
@@ -238,9 +236,9 @@ class TestSkipWhenAnonymousBodies:
             for n in nodes
             if n.ts_kind == "enum_body" and n.name and at_pat.search(n.name)
         ]
-        assert (
-            len(anon_enum_body) == 0
-        ), f"Expected 0 anonymous enum_body nodes, got {len(anon_enum_body)}"
+        assert len(anon_enum_body) == 0, (
+            f"Expected 0 anonymous enum_body nodes, got {len(anon_enum_body)}"
+        )
 
     def test_function_type_skipped(self, ast_samples_path):
         """
@@ -263,9 +261,9 @@ class TestSkipWhenAnonymousBodies:
             for n in nodes
             if n.ts_kind == "function_type" and n.name and at_pat.search(n.name)
         ]
-        assert (
-            len(anon_fn_type) == 0
-        ), f"Expected 0 anonymous function_type nodes, got {len(anon_fn_type)}"
+        assert len(anon_fn_type) == 0, (
+            f"Expected 0 anonymous function_type nodes, got {len(anon_fn_type)}"
+        )
 
     def test_implements_clause_not_anonymous(self, ast_samples_path):
         """
@@ -287,13 +285,11 @@ class TestSkipWhenAnonymousBodies:
         anon_impl = [
             n
             for n in nodes
-            if n.ts_kind == "implements_clause"
-            and n.name
-            and at_pat.search(n.name)
+            if n.ts_kind == "implements_clause" and n.name and at_pat.search(n.name)
         ]
-        assert (
-            len(anon_impl) == 0
-        ), f"Expected 0 anonymous implements_clause nodes, got {len(anon_impl)}"
+        assert len(anon_impl) == 0, (
+            f"Expected 0 anonymous implements_clause nodes, got {len(anon_impl)}"
+        )
 
     def test_named_types_still_extracted(self, ast_samples_path):
         """
@@ -355,9 +351,9 @@ class TestSkipWhenAnonymousBodies:
 
         at_pat = re.compile(r"@\d+")
         anon_nodes = [n for n in nodes if n.name and at_pat.search(n.name)]
-        assert (
-            len(anon_nodes) == 0
-        ), f"Expected 0 anonymous nodes, got {len(anon_nodes)}: {[(n.ts_kind, n.name) for n in anon_nodes]}"
+        assert len(anon_nodes) == 0, (
+            f"Expected 0 anonymous nodes, got {len(anon_nodes)}: {[(n.ts_kind, n.name) for n in anon_nodes]}"
+        )
 
 
 @pytest.mark.unit
@@ -371,9 +367,9 @@ class TestSkipWhenAnonymousConstant:
         """
         from fs2.core.adapters.ast_parser_impl import SKIP_WHEN_ANONYMOUS
 
-        assert isinstance(
-            SKIP_WHEN_ANONYMOUS, (set, frozenset)
-        ), "SKIP_WHEN_ANONYMOUS must be a set or frozenset"
+        assert isinstance(SKIP_WHEN_ANONYMOUS, (set, frozenset)), (
+            "SKIP_WHEN_ANONYMOUS must be a set or frozenset"
+        )
 
     def test_skip_when_anonymous_contains_all_10_kinds(self):
         """
@@ -394,6 +390,6 @@ class TestSkipWhenAnonymousConstant:
             "function_type",
             "implements_clause",
         }
-        assert expected == set(
-            SKIP_WHEN_ANONYMOUS
-        ), f"Missing kinds: {expected - set(SKIP_WHEN_ANONYMOUS)}, Extra kinds: {set(SKIP_WHEN_ANONYMOUS) - expected}"
+        assert expected == set(SKIP_WHEN_ANONYMOUS), (
+            f"Missing kinds: {expected - set(SKIP_WHEN_ANONYMOUS)}, Extra kinds: {set(SKIP_WHEN_ANONYMOUS) - expected}"
+        )
