@@ -63,15 +63,44 @@ class StorageStage:
         for node in context.nodes:
             context.graph_store.add_node(node)
 
-        # Create edges based on parent_node_id
+        # Create containment edges based on parent_node_id
         for node in context.nodes:
             if node.parent_node_id is not None:
                 context.graph_store.add_edge(node.parent_node_id, node.node_id)
                 edge_count += 1
 
+        # Build set of containment edges for DYK-03 collision check
+        containment_pairs: set[tuple[str, str]] = set()
+        for node in context.nodes:
+            if node.parent_node_id is not None:
+                containment_pairs.add((node.parent_node_id, node.node_id))
+
+        # Build set of known node_ids for DYK-05 existence check
+        known_nodes = {node.node_id for node in context.nodes}
+
+        # Write cross-file reference edges (collected by CrossFileRelsStage)
+        cross_written = 0
+        cross_skipped = 0
+        for source_id, target_id, edge_data in context.cross_file_edges:
+            # DYK-05: Skip if either node doesn't exist in graph
+            if source_id not in known_nodes or target_id not in known_nodes:
+                cross_skipped += 1
+                continue
+            # DYK-03: Skip if containment edge already exists for this pair
+            if (source_id, target_id) in containment_pairs:
+                cross_skipped += 1
+                continue
+            try:
+                context.graph_store.add_edge(source_id, target_id, **edge_data)
+                cross_written += 1
+            except GraphStoreError:
+                cross_skipped += 1
+
         # Record metrics
         context.metrics["storage_nodes"] = len(context.nodes)
         context.metrics["storage_edges"] = edge_count
+        context.metrics["cross_file_edges_written"] = cross_written
+        context.metrics["cross_file_edges_skipped"] = cross_skipped
 
         embedding_metadata = context.metrics.get("embedding_metadata")
         if embedding_metadata:

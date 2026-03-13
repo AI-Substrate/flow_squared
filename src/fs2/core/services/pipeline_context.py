@@ -64,6 +64,13 @@ class PipelineContext:
     scan_results: list["ScanResult"] = field(default_factory=list)
     nodes: list["CodeNode"] = field(default_factory=list)
 
+    # Cross-file relationship edges collected by CrossFileRelsStage.
+    # Each tuple is (source_node_id, target_node_id, edge_data_dict).
+    # Written to graph by StorageStage after containment edges.
+    cross_file_edges: list[tuple[str, str, dict[str, Any]]] = field(
+        default_factory=list
+    )
+
     # Error collection (append, don't raise)
     errors: list[str] = field(default_factory=list)
 

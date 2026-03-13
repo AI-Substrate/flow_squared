@@ -36,7 +36,7 @@ Cross-file resolution is powered by **Serena** (LSP/Pyright), running as a pool 
 ## Non-Goals
 
 - **Real-time resolution**: Not a live LSP — edges are computed at scan time and persisted in the graph
-- **Multi-language in v1**: Only Python initially (Pyright). Other languages (JS/TS, Go, Rust) are future work via additional LSP backends
+- **Multi-language in v1**: Serena handles multiple languages natively (Python, TypeScript, Go, Rust, C#, Java — empirically validated in workshop 004). Each detected project root gets its own Serena pool. Cross-file refs are within-project only — no cross-project references
 - **Call expression detail**: Edges store node_id references only, not the call expression text or argument types
 - **Third-party library resolution**: Only project-internal references are stored (stdlib/pip imports are resolved by Serena but we only create edges to nodes that exist in the graph)
 - **Incremental edge updates**: v1 re-resolves all nodes every scan. Incremental (only changed files) is a future optimisation
