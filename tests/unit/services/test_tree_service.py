@@ -931,3 +931,82 @@ class TestFolderFiltering:
         assert "file:src/fs2/__init__.py" in node_ids
         assert "file:src/fs2/cli/tree.py" in node_ids
         assert "file:src/fs2/core/services/tree_service.py" in node_ids
+
+
+@pytest.mark.unit
+class TestTreeServiceCrossFileFiltering:
+    """Tests for TreeService cross-file edge filtering (Phase 1: T008)."""
+
+    def test_get_children_excludes_cross_file_edges(self, graph_setup):
+        """
+        Purpose: Proves TreeService tree excludes cross-file reference edges.
+        Acceptance Criteria: Tree shows only same-file containment children.
+
+        Task: T008
+        """
+        config, store, _ = graph_setup
+
+        # File A with class A containing method A
+        file_a = make_file_node("src/a.py")
+        class_a = make_class_node("src/a.py", "ClassA", file_a.node_id)
+        method_a = make_method_node("src/a.py", "ClassA", "method_a", class_a.node_id)
+
+        # File B with class B
+        file_b = make_file_node("src/b.py")
+        class_b = make_class_node("src/b.py", "ClassB", file_b.node_id)
+
+        store.set_nodes([file_a, class_a, method_a, file_b, class_b])
+
+        # Containment edges
+        store.add_edge(file_a.node_id, class_a.node_id)
+        store.add_edge(class_a.node_id, method_a.node_id)
+        store.add_edge(file_b.node_id, class_b.node_id)
+
+        # Cross-file reference: class_b references class_a
+        store.add_edge(class_b.node_id, class_a.node_id, edge_type="references")
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern="file:src/b.py", max_depth=0)
+
+        # Navigate into src/b.py → ClassB
+        assert len(result) == 1  # Just file_b
+        file_b_tree = result[0]
+        assert file_b_tree.node.node_id == file_b.node_id
+
+        # ClassB should NOT show ClassA as a child (that's a cross-file reference)
+        class_b_children = file_b_tree.children
+        assert len(class_b_children) == 1  # Only ClassB
+        class_b_tree = class_b_children[0]
+        assert class_b_tree.node.name == "ClassB"
+
+        # ClassB's children should be empty (no cross-file nodes)
+        assert len(class_b_tree.children) == 0
+
+    def test_tree_unchanged_when_no_cross_file_edges(self, graph_setup):
+        """
+        Purpose: Proves tree output unchanged when only containment edges exist.
+        Acceptance Criteria: Backward compatible — same output as before.
+
+        Task: T008
+        """
+        config, store, _ = graph_setup
+
+        file_a = make_file_node("src/a.py")
+        class_a = make_class_node("src/a.py", "ClassA", file_a.node_id)
+        method_a = make_method_node("src/a.py", "ClassA", "method_a", class_a.node_id)
+
+        store.set_nodes([file_a, class_a, method_a])
+        store.add_edge(file_a.node_id, class_a.node_id)
+        store.add_edge(class_a.node_id, method_a.node_id)
+
+        service = TreeService(config=config, graph_store=store)
+        result = service.build_tree(pattern="file:src/a.py", max_depth=0)
+
+        # Normal containment tree should be intact
+        assert len(result) == 1
+        file_tree = result[0]
+        assert len(file_tree.children) == 1
+        class_tree = file_tree.children[0]
+        assert class_tree.node.name == "ClassA"
+        assert len(class_tree.children) == 1
+        assert class_tree.children[0].node.name == "method_a"

@@ -368,6 +368,22 @@ class TreeService:
 
         return list(bucket.values())
 
+    def _get_containment_children(self, node: CodeNode) -> list[CodeNode]:
+        """Get children filtered to same-file containment edges only.
+
+        Cross-file reference edges are excluded to prevent foreign nodes
+        from appearing in the tree hierarchy.
+
+        Args:
+            node: Parent CodeNode.
+
+        Returns:
+            List of child CodeNodes from the same file.
+        """
+        children = self._graph_store.get_children(node.node_id)
+        parent_file = node.file_path
+        return [c for c in children if c.file_path == parent_file]
+
     def _build_tree_node(
         self,
         node: CodeNode,
@@ -384,8 +400,8 @@ class TreeService:
         Returns:
             TreeNode with children populated (recursively).
         """
-        # Get children from graph store (needed for both paths)
-        children = self._graph_store.get_children(node.node_id)
+        # Get children from graph store, filtered to same-file only
+        children = self._get_containment_children(node)
 
         # Check depth limit (max_depth=1 means root only, max_depth=2 means root+children)
         if max_depth > 0 and current_depth + 1 >= max_depth:
@@ -532,7 +548,7 @@ class TreeService:
             # Check depth limit for files
             if current_depth + 1 >= max_depth:
                 # At depth limit - files without their symbol children
-                children_count = len(self._graph_store.get_children(file_node.node_id))
+                children_count = len(self._get_containment_children(file_node))
                 result.append(
                     TreeNode(
                         node=file_node,

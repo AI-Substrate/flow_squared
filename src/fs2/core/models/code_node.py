@@ -198,6 +198,18 @@ class CodeNode:
     # Per DYK-05: Only raw content has offsets; smart_content uses node's full range
     embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None
 
+    @property
+    def file_path(self) -> str:
+        """Extract file path from node_id.
+
+        node_id format: "{category}:{file_path}" (file nodes)
+                    or: "{category}:{file_path}:{qualified_name}" (others)
+
+        Returns:
+            The file path portion of the node_id.
+        """
+        return self.node_id.split(":", 2)[1]
+
     # === Factory Methods ===
 
     @classmethod

@@ -18,6 +18,7 @@ import pytest
 from fs2.config.objects import GraphConfig, OtherGraph, OtherGraphsConfig
 from fs2.config.service import FakeConfigurationService
 from fs2.core.models.code_node import CodeNode
+from fs2.core.repos.graph_store_impl import FORMAT_VERSION
 
 # =============================================================================
 # Test Fixtures and Helpers
@@ -33,7 +34,7 @@ def create_test_graph_file(path: Path) -> None:
 
     # Build metadata as NetworkXGraphStore expects
     metadata = {
-        "format_version": "1.0",
+        "format_version": FORMAT_VERSION,
         "created_at": "2026-01-13T00:00:00+00:00",
         "node_count": 0,
         "edge_count": 0,
@@ -55,7 +56,7 @@ def create_graph_with_nodes(path: Path, nodes: list[CodeNode]) -> None:
         graph.add_node(node.node_id, data=node)
 
     metadata = {
-        "format_version": "1.0",
+        "format_version": FORMAT_VERSION,
         "created_at": "2026-01-13T00:00:00+00:00",
         "node_count": len(nodes),
         "edge_count": 0,
