@@ -72,6 +72,20 @@ def scan(
             help="Skip embedding generation (faster scans)",
         ),
     ] = False,
+    no_cross_refs: Annotated[
+        bool,
+        typer.Option(
+            "--no-cross-refs",
+            help="Skip cross-file relationship extraction",
+        ),
+    ] = False,
+    cross_refs_instances: Annotated[
+        int | None,
+        typer.Option(
+            "--cross-refs-instances",
+            help="Number of parallel Serena instances (default: 20)",
+        ),
+    ] = None,
 ) -> None:
     """Scan the codebase and build the code graph.
 

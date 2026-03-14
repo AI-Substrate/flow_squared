@@ -559,3 +559,25 @@ class TestDefaultConfigTemplate:
         assert parsed["scan"]["respect_gitignore"] is True
         assert parsed["scan"]["max_file_size_kb"] == 500
         assert parsed["scan"]["follow_symlinks"] is False
+
+
+class TestInitCrossFileRelsGuidance:
+    """DYK-P3-05: DEFAULT_CONFIG includes cross-file rels guidance."""
+
+    def test_default_config_mentions_serena(self):
+        """Config template mentions Serena installation."""
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert "serena" in DEFAULT_CONFIG.lower()
+
+    def test_default_config_mentions_serena_gitignore(self):
+        """Config template warns about .serena/ gitignore."""
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert ".serena/" in DEFAULT_CONFIG
+
+    def test_default_config_mentions_cross_file_rels(self):
+        """Config template shows cross_file_rels section."""
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert "cross_file_rels" in DEFAULT_CONFIG

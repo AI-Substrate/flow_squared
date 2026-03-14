@@ -620,6 +620,103 @@ async def resolve_node_batch(
 
 
 # ---------------------------------------------------------------------------
+# T008: Incremental resolution helpers
+# ---------------------------------------------------------------------------
+
+
+def get_changed_file_paths(
+    current_nodes: list["CodeNode"],
+    prior_nodes: "dict[str, CodeNode] | None",
+) -> set[str] | None:
+    """Identify file paths that have changed since prior scan.
+
+    Compares content_hash of file-category nodes between current and prior.
+    Same pattern as SmartContentStage._merge_prior_smart_content().
+
+    Args:
+        current_nodes: Fresh nodes from ParsingStage.
+        prior_nodes: Prior node dict (None on first scan).
+
+    Returns:
+        Set of changed file paths, or None if all files should be processed
+        (first scan — no prior data).
+    """
+    if prior_nodes is None:
+        return None
+
+    changed: set[str] = set()
+    for node in current_nodes:
+        if node.category != "file":
+            continue
+        file_path = node.file_path
+        prior = prior_nodes.get(node.node_id)
+        if prior is None or node.content_hash != prior.content_hash:
+            changed.add(file_path)
+
+    return changed
+
+
+def filter_nodes_to_changed(
+    nodes: list["CodeNode"],
+    changed_files: set[str] | None,
+) -> list["CodeNode"]:
+    """Filter nodes to only those from changed files.
+
+    Args:
+        nodes: All resolvable nodes.
+        changed_files: Set of changed file paths, or None for all.
+
+    Returns:
+        Filtered list of nodes from changed files only.
+    """
+    if changed_files is None:
+        return nodes
+
+    return [n for n in nodes if n.file_path in changed_files]
+
+
+def reuse_prior_edges(
+    prior_edges: "list[tuple[str, str, dict[str, Any]]] | None",
+    changed_files: set[str] | None,
+    current_node_ids: set[str],
+) -> list[tuple[str, str, dict[str, Any]]]:
+    """Reuse edges from prior scan for unchanged files.
+
+    An edge is reusable when:
+    1. Both endpoints still exist in the current graph
+    2. Neither endpoint's file has changed
+
+    Args:
+        prior_edges: Edges from prior scan (None on first scan).
+        changed_files: Set of changed file paths (None = all changed).
+        current_node_ids: Set of node_ids in current scan.
+
+    Returns:
+        List of edges to carry forward from prior scan.
+    """
+    if prior_edges is None or changed_files is None:
+        return []
+
+    reused: list[tuple[str, str, dict[str, Any]]] = []
+    for source_id, target_id, edge_data in prior_edges:
+        # Both endpoints must still exist
+        if source_id not in current_node_ids or target_id not in current_node_ids:
+            continue
+
+        # Extract file paths from node_ids
+        source_file = source_id.split(":", 2)[1] if ":" in source_id else ""
+        target_file = target_id.split(":", 2)[1] if ":" in target_id else ""
+
+        # Skip if either file changed (will be re-resolved)
+        if source_file in changed_files or target_file in changed_files:
+            continue
+
+        reused.append((source_id, target_id, edge_data))
+
+    return reused
+
+
+# ---------------------------------------------------------------------------
 # T009 + T010: CrossFileRelsStage
 # ---------------------------------------------------------------------------
 

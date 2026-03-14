@@ -182,13 +182,15 @@ Harness: Not applicable (user override — unit tests + benchmark scripts in `sc
 | 4.1 | Add CrossFileRelsStage to ScanPipeline default stage list | core/services | Stage order: Discovery → Parsing → **CrossFileRels** → SmartContent → Embedding → Storage | Per workshop 001. |
 | 4.2 | Wire config through ScanPipeline constructor → PipelineContext | core/services | `CrossFileRelsConfig` available in context for stage to read | Follow existing smart_content_service pattern. |
 | 4.3 | Wire CLI flags through scan.py → ScanPipeline | cli | `--no-cross-refs` and `--cross-refs-instances` reach the stage | Follow `--no-smart-content` pattern. |
-| 4.4 | End-to-end integration test | all | Scan a test project with FakeSerenaPool → graph has reference edges → `get_node` shows relationships | Integration test. |
+| 4.4 | End-to-end integration test (fast) | all | Scan a test project with FakeSerenaPool → graph has reference edges → `get_node` shows relationships | Integration test. Runs in CI without Serena. |
+| 4.4b | Real acceptance test (slow) | all | Scan real project with actual Serena → verify edges match source code → cross-check known references against actual imports/calls | `@pytest.mark.slow`. Requires `serena-mcp-server` on PATH (skip if unavailable). No fakes — real Serena, real scan, real graph. Verify e.g. "Calculator.add references Calculator" by reading source. |
 | 4.5 | Add README section on cross-file relationships | docs | Installation, config, usage, interpreting output | Per documentation strategy. |
-| 4.6 | Add `docs/how/cross-file-relationships.md` guide | docs | Detailed config, performance tuning, troubleshooting | Per documentation strategy. |
+| 4.6 | Add `docs/how/user/cross-file-relationships.md` guide | docs | Detailed config, performance tuning, troubleshooting, .serena/ gitignore guidance | Per documentation strategy. DYK-P3-05: include .serena/ gitignore instructions. |
 
 **Acceptance Criteria**:
 - [AC1] Full scan produces reference edges (end-to-end)
 - [AC2] `get-node` shows relationships (end-to-end)
+- [AC12] Real Serena acceptance test: edges match actual source code references
 - Documentation exists and is accurate
 
 ---
@@ -206,6 +208,7 @@ Harness: Not applicable (user override — unit tests + benchmark scripts in `sc
 - [ ] [AC9] `--cross-refs-instances 5` uses 5 instances
 - [ ] [AC10] Format version 1.1; old 1.0 graphs load without error
 - [ ] [AC11] `tree --detail max` shows ref count per node
+- [ ] [AC12] Real Serena acceptance test: reference edges match actual source code imports/calls
 
 ## Risks
 

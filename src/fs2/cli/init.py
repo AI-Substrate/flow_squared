@@ -89,6 +89,20 @@ scan:
 #     endpoint: https://api.openai.com/v1
 #     api_key: ${OPENAI_API_KEY}
 #     model: text-embedding-3-small
+
+# ─── Cross-File Relationships (LSP-powered) ──────────────────────
+# Resolves call/reference relationships between code nodes using Serena (LSP).
+# Enabled by default when serena-mcp-server is available on PATH.
+# Install: uv tool install "serena-agent @ git+https://github.com/oraios/serena.git"
+# NOTE: Add .serena/ to your project .gitignore (created at project root by Serena)
+#
+# cross_file_rels:
+#   enabled: true
+#   parallel_instances: 20
+#   serena_base_port: 8330
+#   timeout_per_node: 5.0
+#   languages:
+#     - python
 """
 
 # .gitignore for .fs2 directory - ignores everything except config.yaml

@@ -369,20 +369,33 @@ class TreeService:
         return list(bucket.values())
 
     def _get_containment_children(self, node: CodeNode) -> list[CodeNode]:
-        """Get children filtered to same-file containment edges only.
+        """Get children filtered to containment edges only.
 
-        Cross-file reference edges are excluded to prevent foreign nodes
-        from appearing in the tree hierarchy.
+        Excludes cross-file reference edges AND within-file reference edges.
+        Containment edges have no edge_type attribute; reference edges have
+        edge_type="references".
 
         Args:
             node: Parent CodeNode.
 
         Returns:
-            List of child CodeNodes from the same file.
+            List of child CodeNodes via containment edges only.
         """
-        children = self._graph_store.get_children(node.node_id)
-        parent_file = node.file_path
-        return [c for c in children if c.file_path == parent_file]
+        all_children = self._graph_store.get_children(node.node_id)
+        # Filter to containment edges only (edges without edge_type)
+        containment_children = []
+        for child in all_children:
+            edges = self._graph_store.get_edges(
+                node.node_id, direction="outgoing"
+            )
+            is_containment = False
+            for edge_node_id, edge_data in edges:
+                if edge_node_id == child.node_id and "edge_type" not in edge_data:
+                    is_containment = True
+                    break
+            if is_containment:
+                containment_children.append(child)
+        return containment_children
 
     def _build_tree_node(
         self,

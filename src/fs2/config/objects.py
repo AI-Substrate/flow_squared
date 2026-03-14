@@ -941,6 +941,60 @@ class SearchConfig(BaseModel):
         return v
 
 
+class CrossFileRelsConfig(BaseModel):
+    """Configuration for cross-file relationship extraction.
+
+    Loaded from YAML or environment variables.
+    Path: cross_file_rels (e.g., FS2_CROSS_FILE_RELS__PARALLEL_INSTANCES)
+
+    Controls Serena-powered cross-file reference resolution during scan.
+    Enabled by default when serena-mcp-server is on PATH.
+
+    Attributes:
+        enabled: Whether cross-file relationship extraction is enabled (default: True).
+        parallel_instances: Number of parallel Serena instances (default: 20, range 1-50).
+        serena_base_port: Starting port for Serena instances (default: 8330).
+        timeout_per_node: Seconds per node before giving up (default: 5.0).
+        languages: Languages to resolve references for (default: ["python"]).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        cross_file_rels:
+          enabled: true
+          parallel_instances: 20
+          serena_base_port: 8330
+          timeout_per_node: 5.0
+          languages:
+            - python
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "cross_file_rels"
+
+    enabled: bool = True
+    parallel_instances: int = 20
+    serena_base_port: int = 8330
+    timeout_per_node: float = 5.0
+    languages: list[str] = ["python"]
+
+    @field_validator("parallel_instances")
+    @classmethod
+    def validate_parallel_instances(cls, v: int) -> int:
+        """Validate parallel_instances is in 1-50 range."""
+        if v < 1 or v > 50:
+            raise ValueError("parallel_instances must be between 1 and 50")
+        return v
+
+    @field_validator("timeout_per_node")
+    @classmethod
+    def validate_timeout_per_node(cls, v: float) -> float:
+        """Validate timeout_per_node is positive."""
+        if v <= 0:
+            raise ValueError("timeout_per_node must be > 0")
+        return v
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -956,4 +1010,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     SearchConfig,
     WatchConfig,
     OtherGraphsConfig,
+    CrossFileRelsConfig,
 ]

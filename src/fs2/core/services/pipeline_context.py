@@ -88,6 +88,13 @@ class PipelineContext:
     # None on first scan (no prior graph exists), dict[str, CodeNode] on subsequent scans.
     prior_nodes: "dict[str, CodeNode] | None" = None
 
+    # Prior graph reference edges for incremental cross-file resolution (Phase 3 T008).
+    # Populated by ScanPipeline.run() from existing graph before clear().
+    # Each tuple: (source_node_id, target_node_id, edge_data_dict).
+    # Enables skipping Serena calls for unchanged files by reusing prior edges.
+    # None on first scan.
+    prior_cross_file_edges: "list[tuple[str, str, dict[str, Any]]] | None" = None
+
     # SmartContentService for AI-powered smart content generation (Phase 6 T004)
     # Injected by ScanPipeline when smart content is enabled.
     # None when --no-smart-content flag is used or LLM not configured.

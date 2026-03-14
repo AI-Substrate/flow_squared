@@ -518,3 +518,159 @@ class TestCrossFileRelsStageProtocol:
         )
 
         assert CrossFileRelsStage().name == "cross_file_rels"
+
+
+class TestGetChangedFilePaths:
+    """Tests for incremental resolution — skip unchanged files (T008)."""
+
+    def _make_file_node(self, path: str, content_hash: str) -> CodeNode:
+        node = CodeNode.create_file(path, "python", "module", 0, 100, 1, 10, "# file")
+        # Override content_hash for testing
+        object.__setattr__(node, "content_hash", content_hash)
+        return node
+
+    def test_all_changed_when_no_prior(self):
+        """First scan (no prior) — all files are 'changed'."""
+        from fs2.core.services.stages.cross_file_rels_stage import (
+            get_changed_file_paths,
+        )
+
+        current = [
+            self._make_file_node("src/a.py", "hash_a"),
+            self._make_file_node("src/b.py", "hash_b"),
+        ]
+        result = get_changed_file_paths(current, prior_nodes=None)
+        assert result is None  # None means "all files changed"
+
+    def test_unchanged_files_excluded(self):
+        """Files with matching content_hash are excluded."""
+        from fs2.core.services.stages.cross_file_rels_stage import (
+            get_changed_file_paths,
+        )
+
+        current = [
+            self._make_file_node("src/a.py", "hash_a"),
+            self._make_file_node("src/b.py", "hash_b"),
+        ]
+        prior = {
+            "file:src/a.py": self._make_file_node("src/a.py", "hash_a"),  # same
+            "file:src/b.py": self._make_file_node("src/b.py", "old_hash"),  # changed
+        }
+        result = get_changed_file_paths(current, prior)
+        assert result == {"src/b.py"}
+
+    def test_new_files_included(self):
+        """New files (not in prior) are included."""
+        from fs2.core.services.stages.cross_file_rels_stage import (
+            get_changed_file_paths,
+        )
+
+        current = [
+            self._make_file_node("src/a.py", "hash_a"),
+            self._make_file_node("src/new.py", "hash_new"),
+        ]
+        prior = {
+            "file:src/a.py": self._make_file_node("src/a.py", "hash_a"),
+        }
+        result = get_changed_file_paths(current, prior)
+        assert result == {"src/new.py"}
+
+    def test_all_unchanged_returns_empty(self):
+        """When all files unchanged, returns empty set."""
+        from fs2.core.services.stages.cross_file_rels_stage import (
+            get_changed_file_paths,
+        )
+
+        current = [
+            self._make_file_node("src/a.py", "hash_a"),
+        ]
+        prior = {
+            "file:src/a.py": self._make_file_node("src/a.py", "hash_a"),
+        }
+        result = get_changed_file_paths(current, prior)
+        assert result == set()
+
+
+class TestFilterNodesToChanged:
+    """Tests for filtering nodes to only changed files (T008)."""
+
+    def test_filters_nodes_to_changed_files(self):
+        """Only nodes from changed files pass through."""
+        from fs2.core.services.stages.cross_file_rels_stage import (
+            filter_nodes_to_changed,
+        )
+
+        nodes = [
+            make_callable_node("src/a.py", "foo", "A.foo"),
+            make_callable_node("src/b.py", "bar", "B.bar"),
+            make_callable_node("src/a.py", "baz", "A.baz"),
+        ]
+        changed_files = {"src/b.py"}
+
+        result = filter_nodes_to_changed(nodes, changed_files)
+        assert len(result) == 1
+        assert result[0].node_id == "callable:src/b.py:B.bar"
+
+    def test_returns_all_when_changed_is_none(self):
+        """None means first scan — return all nodes."""
+        from fs2.core.services.stages.cross_file_rels_stage import (
+            filter_nodes_to_changed,
+        )
+
+        nodes = [
+            make_callable_node("src/a.py", "foo", "A.foo"),
+            make_callable_node("src/b.py", "bar", "B.bar"),
+        ]
+        result = filter_nodes_to_changed(nodes, None)
+        assert len(result) == 2
+
+
+class TestReusePriorEdges:
+    """Tests for reusing edges from prior scan for unchanged files (T008)."""
+
+    def test_reuses_edges_for_unchanged_files(self):
+        """Edges from unchanged files are carried forward."""
+        from fs2.core.services.stages.cross_file_rels_stage import (
+            reuse_prior_edges,
+        )
+
+        prior_edges = [
+            ("callable:src/a.py:A.foo", "callable:src/b.py:B.bar", {"edge_type": "references"}),
+            ("callable:src/c.py:C.baz", "callable:src/a.py:A.foo", {"edge_type": "references"}),
+        ]
+        changed_files = {"src/b.py"}
+        current_node_ids = {
+            "callable:src/a.py:A.foo",
+            "callable:src/b.py:B.bar",
+            "callable:src/c.py:C.baz",
+        }
+
+        result = reuse_prior_edges(prior_edges, changed_files, current_node_ids)
+        # Only the edge from c.py→a.py should be reused (both files unchanged)
+        # The edge a.py→b.py should NOT be reused (b.py changed)
+        assert len(result) == 1
+        assert result[0][0] == "callable:src/c.py:C.baz"
+
+    def test_skips_edges_with_missing_nodes(self):
+        """Edges referencing deleted nodes are dropped."""
+        from fs2.core.services.stages.cross_file_rels_stage import (
+            reuse_prior_edges,
+        )
+
+        prior_edges = [
+            ("callable:src/a.py:A.foo", "callable:src/deleted.py:X", {"edge_type": "references"}),
+        ]
+        changed_files: set[str] = set()
+        current_node_ids = {"callable:src/a.py:A.foo"}
+
+        result = reuse_prior_edges(prior_edges, changed_files, current_node_ids)
+        assert len(result) == 0  # deleted node no longer exists
+
+    def test_returns_empty_when_no_prior(self):
+        """None prior edges → empty list."""
+        from fs2.core.services.stages.cross_file_rels_stage import (
+            reuse_prior_edges,
+        )
+
+        result = reuse_prior_edges(None, set(), set())
+        assert result == []

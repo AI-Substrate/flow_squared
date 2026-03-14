@@ -7,12 +7,13 @@ Business logic (graph loading, node retrieval) is delegated to GetNodeService.
 
 Per research finding #01: Use raw print() for JSON output, Console(stderr=True) for errors.
 This ensures clean stdout for piping to tools like jq - only JSON on stdout, all else to stderr.
+
+Per DYK-P3-03: Uses explicit field selection to prevent embedding leakage.
 """
 
 import json
-from dataclasses import asdict
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -20,10 +21,62 @@ from rich.console import Console
 from fs2.cli.utils import resolve_graph_from_context
 from fs2.config.exceptions import MissingConfigurationError
 from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
+from fs2.core.models.code_node import CodeNode
 from fs2.core.services.get_node_service import GetNodeService
 
 # Console for error/status messages - writes to stderr to keep stdout clean for piping
 console = Console(stderr=True)
+
+
+def _code_node_to_cli_dict(
+    node: CodeNode,
+    graph_store: Any = None,
+) -> dict[str, Any]:
+    """Convert CodeNode to JSON-serializable dict with explicit field selection.
+
+    Matches MCP _code_node_to_dict pattern. NEVER includes embedding vectors
+    or internal hash fields. Always outputs max detail for CLI (users expect
+    all available metadata).
+
+    Args:
+        node: CodeNode from GetNodeService.get_node().
+        graph_store: Optional GraphStore for relationship edge queries.
+
+    Returns:
+        Dict suitable for JSON serialization.
+    """
+    result: dict[str, Any] = {
+        "node_id": node.node_id,
+        "name": node.name,
+        "category": node.category,
+        "content": node.content,
+        "signature": node.signature,
+        "start_line": node.start_line,
+        "end_line": node.end_line,
+        "smart_content": node.smart_content,
+        "language": node.language,
+        "parent_node_id": node.parent_node_id,
+        "qualified_name": node.qualified_name,
+        "ts_kind": node.ts_kind,
+    }
+
+    # Cross-file relationships (omit when empty)
+    if graph_store is not None:
+        incoming = graph_store.get_edges(
+            node.node_id, direction="incoming", edge_type="references"
+        )
+        outgoing = graph_store.get_edges(
+            node.node_id, direction="outgoing", edge_type="references"
+        )
+        rels: dict[str, list[str]] = {}
+        if incoming:
+            rels["referenced_by"] = [nid for nid, _ in incoming]
+        if outgoing:
+            rels["references"] = [nid for nid, _ in outgoing]
+        if rels:
+            result["relationships"] = rels
+
+    return result
 
 
 def get_node(
@@ -86,9 +139,9 @@ def get_node(
             console.print(f"[red]Error:[/red] Node not found: {node_id}")
             raise typer.Exit(code=1)
 
-        # Serialize to JSON
-        # Use asdict() for dataclass serialization, default=str for non-JSON types
-        json_str = json.dumps(asdict(node), indent=2, default=str)
+        # Serialize to JSON with explicit field selection (DYK-P3-03: no embedding leak)
+        node_dict = _code_node_to_cli_dict(node, graph_store=graph_store)
+        json_str = json.dumps(node_dict, indent=2, default=str)
 
         # Output to file or stdout
         if file:

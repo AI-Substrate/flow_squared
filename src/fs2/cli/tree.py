@@ -52,6 +52,7 @@ CATEGORY_ICONS = {
 def _tree_node_to_dict(
     tree_node: TreeNode,
     detail: Literal["min", "max"] = "min",
+    graph_store: Any = None,
 ) -> dict[str, Any]:
     """Convert TreeNode to JSON-serializable dict.
 
@@ -65,11 +66,12 @@ def _tree_node_to_dict(
     - hidden_children_count
 
     Fields included only in max detail:
-    - signature, smart_content
+    - signature, smart_content, ref_count (when > 0)
 
     Args:
         tree_node: TreeNode from TreeService.build_tree().
         detail: "min" for compact output, "max" for full metadata.
+        graph_store: Optional GraphStore for ref count queries.
 
     Returns:
         Dict suitable for JSON serialization.
@@ -83,7 +85,10 @@ def _tree_node_to_dict(
         "category": node.category,
         "start_line": node.start_line,
         "end_line": node.end_line,
-        "children": [_tree_node_to_dict(child, detail) for child in tree_node.children],
+        "children": [
+            _tree_node_to_dict(child, detail, graph_store)
+            for child in tree_node.children
+        ],
     }
 
     # Add hidden_children_count only when > 0
@@ -96,6 +101,13 @@ def _tree_node_to_dict(
             result["signature"] = node.signature
         if node.smart_content:
             result["smart_content"] = node.smart_content
+        # Ref count from cross-file reference edges
+        if graph_store is not None:
+            incoming = graph_store.get_edges(
+                node.node_id, direction="incoming", edge_type="references"
+            )
+            if incoming:
+                result["ref_count"] = len(incoming)
 
     return result
 
@@ -205,7 +217,7 @@ def tree(
         if json_output or file:
             # Convert to JSON-serializable format
             detail_literal: Literal["min", "max"] = "max" if detail == "max" else "min"
-            tree_dicts = [_tree_node_to_dict(tn, detail_literal) for tn in tree_nodes]
+            tree_dicts = [_tree_node_to_dict(tn, detail_literal, graph_store) for tn in tree_nodes]
             envelope = {"tree": tree_dicts}
             json_str = json.dumps(envelope, indent=2, default=str)
 
@@ -231,7 +243,7 @@ def tree(
             raise typer.Exit(code=0)
 
         # Display tree using Rich
-        _display_tree(tree_nodes, detail, depth, verbose)
+        _display_tree(tree_nodes, detail, depth, verbose, graph_store)
 
     except MissingConfigurationError:
         stderr_console.print(
@@ -246,6 +258,7 @@ def _display_tree(
     detail: str,
     max_depth: int,
     verbose: bool = False,
+    graph_store: Any = None,
 ) -> None:
     """Display TreeNodes as Rich Tree.
 
@@ -256,6 +269,7 @@ def _display_tree(
         detail: "min" or "max" detail level.
         max_depth: Maximum depth (for hidden children messages).
         verbose: Whether to show debug output.
+        graph_store: Optional GraphStore for ref count display.
     """
     # Group by path prefix for virtual folders
     path_groups: dict[str, list[TreeNode]] = {}
@@ -283,7 +297,8 @@ def _display_tree(
         main_tree = Tree("[bold]Code Structure[/bold]")
         for tree_node in sorted(tree_nodes, key=lambda tn: tn.node.node_id):
             _add_tree_node_to_rich_tree(
-                main_tree, tree_node, detail, max_depth, 1, display_stats
+                main_tree, tree_node, detail, max_depth, 1, display_stats,
+                graph_store,
             )
     else:
         # Group by path prefix
@@ -299,7 +314,8 @@ def _display_tree(
                 path_groups[prefix], key=lambda tn: tn.node.node_id
             ):
                 _add_tree_node_to_rich_tree(
-                    folder_branch, tree_node, detail, max_depth, 1, display_stats
+                    folder_branch, tree_node, detail, max_depth, 1, display_stats,
+                    graph_store,
                 )
 
     console.print(main_tree)
@@ -317,6 +333,7 @@ def _add_tree_node_to_rich_tree(
     max_depth: int,
     current_depth: int,
     stats: dict[str, int] | None = None,
+    graph_store: Any = None,
 ) -> None:
     """Recursively add a TreeNode and its children to the Rich Tree.
 
@@ -327,6 +344,7 @@ def _add_tree_node_to_rich_tree(
         max_depth: Maximum depth (for hidden children message).
         current_depth: Current depth in tree.
         stats: Optional dict to track {"total_nodes", "file_count"}.
+        graph_store: Optional GraphStore for ref count display.
     """
     node = tree_node.node
 
@@ -343,6 +361,13 @@ def _add_tree_node_to_rich_tree(
         # Include signature
         sig = f" {node.signature}" if node.signature else ""
         label = f"{icon} {node.node_id} [{node.start_line}-{node.end_line}]{sig}"
+        # Add ref count if available
+        if graph_store is not None:
+            incoming = graph_store.get_edges(
+                node.node_id, direction="incoming", edge_type="references"
+            )
+            if incoming:
+                label += f" ({len(incoming)} refs)"
     else:
         # Show full node_id for agent copy-paste
         label = f"{icon} {node.node_id} [{node.start_line}-{node.end_line}]"
@@ -358,5 +383,6 @@ def _add_tree_node_to_rich_tree(
     # Add children
     for child_tree_node in tree_node.children:
         _add_tree_node_to_rich_tree(
-            branch, child_tree_node, detail, max_depth, current_depth + 1, stats
+            branch, child_tree_node, detail, max_depth, current_depth + 1,
+            stats, graph_store,
         )
