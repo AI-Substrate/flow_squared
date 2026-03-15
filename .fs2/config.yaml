@@ -89,3 +89,4 @@ llm:
 smart_content:
   max_workers: 50
   max_input_tokens: 50000
+  enabled_categories: ["file"]

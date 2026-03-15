@@ -165,7 +165,22 @@ def scan(
                 config, console
             )
             if smart_content_service:
-                console.print_success("Smart content: enabled")
+                # Show category filter status
+                from fs2.config.objects import SmartContentConfig
+
+                try:
+                    sc_config = config.require(SmartContentConfig)
+                    if sc_config.enabled_categories:
+                        cats = ", ".join(sc_config.enabled_categories)
+                        console.print_success(
+                            f"Smart content: enabled (categories: {cats})"
+                        )
+                    else:
+                        console.print_success(
+                            "Smart content: enabled (all categories)"
+                        )
+                except Exception:
+                    console.print_success("Smart content: enabled")
             else:
                 console.print_warning(f"Smart content: {smart_content_status}")
 
