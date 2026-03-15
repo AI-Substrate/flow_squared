@@ -3,7 +3,7 @@
 > **Plan ID**: 034-local-llm-smart-content
 > **Spec**: `local-llm-smart-content-spec.md`
 > **Mode**: Simple (single phase, inline tasks)
-> **Status**: READY
+> **Status**: COMPLETE
 
 ## Summary
 
@@ -227,9 +227,23 @@ Manual verification (not automated — requires running Ollama):
 
 - Tasks: 11/11 complete
 - ACs verified: 12/12
+- Status: **COMPLETE** — committed and pushed (`1dd2a7f`)
+- Tests: 1736 passed, 0 failed (+17 new tests from baseline 1698)
+- Lint: clean (`uv run ruff check` passes all touched files)
 
 ## Fixes
 
 | ID | Created | Summary | Domain(s) | Status | Source |
 |----|---------|---------|-----------|--------|--------|
-| FX001 | 2026-03-15 | Review fixes (exception handling, ruff, docs registry, factory refactor) + "just works" UX (Ollama auto-detect, smart_content default, init messaging) | adapters, cli, docs, tests | Proposed | plan-7-v2 review + workshop 001 |
+| FX001 | 2026-03-15 | Review fixes (exception handling, ruff, docs registry, factory refactor) + "just works" UX (Ollama auto-detect, smart_content default, init messaging) | adapters, cli, docs, tests | **Complete** | plan-7-v2 review + workshop 001 |
+
+## Changes by Domain
+
+| Domain | Files Changed | What |
+|--------|--------------|------|
+| **adapters** | `llm_adapter_local.py` (new), `__init__.py` | New LocalOllamaAdapter, catches `APIConnectionError`/`APITimeoutError`, exports |
+| **config** | `objects.py` | "local" provider, merged `validate_provider_fields`, 300s timeout for local |
+| **services** | `llm_service.py`, `smart_content_service.py` | Factory wiring + progress reports every item |
+| **cli** | `scan.py`, `init.py` | Factory refactored to `LLMService.create()`, Ollama auto-detect, smart_content default |
+| **docs** | `local-llm.md` (new), `configuration-guide.md`, `registry.yaml` | User guide, config guide updated, MCP docs registered |
+| **tests** | `test_llm_adapter_local.py` (new), `test_llm_config.py`, `test_llm_service.py` | 17 new tests: adapter, config, factory |

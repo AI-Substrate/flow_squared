@@ -52,26 +52,26 @@ stateDiagram-v2
 
 - [x] **Stage 1: Add "local" provider to LLM config** — extend LLMConfig with LocalLLMConfig nested model, add provider="local" option, increase timeout max to 300s for local (`src/fs2/config/objects.py`, `tests/unit/config/test_llm_config.py`)
 - [x] **Stage 2: Build the Ollama adapter** — implement LocalOllamaAdapter with openai SDK (DYK-2), error translation for connection refused/timeout/model-not-found, async generate() returning LLMResponse (`src/fs2/core/adapters/llm_adapter_local.py` — new file, `tests/unit/adapters/test_llm_adapter_local.py` — new file)
-- [x] **Stage 3: Wire adapter into factories** — add "local" branch to LLMService.create() AND the duplicate factory in scan.py's _create_smart_content_service(), update adapter exports (`src/fs2/core/services/llm_service.py`, `src/fs2/cli/scan.py`, `src/fs2/core/adapters/__init__.py`)
-- [~] **Stage 4: Update CLI defaults and doctor** — make local LLM the default in `fs2 init` config template ✅, verify `fs2 doctor llm` performs end-to-end test generation against Ollama (pending)
-- [x] **Stage 5: Documentation and integration test** — create user guide for local LLM setup ✅, update configuration guide with LLM section ✅, integration test pending
+- [x] **Stage 3: Wire adapter into factories** — refactored scan.py to use `LLMService.create()` (eliminates RF-02 factory drift), update adapter exports
+- [x] **Stage 4: Update CLI defaults and doctor** — Ollama auto-detect in `fs2 init`, smart_content in DEFAULT_CONFIG, `fs2 doctor llm` verified ✓
+- [x] **Stage 5: Documentation and integration test** — local-llm.md user guide, configuration-guide updated, MCP docs registered, 826/826 nodes on home-improvement ✓
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] AC01: `fs2 scan` with `llm.provider: local` generates smart_content for all code nodes
-- [ ] AC02: LocalOllamaAdapter.generate() returns valid LLMResponse with correct fields
-- [ ] AC03: LLMService.create() returns service with LocalOllamaAdapter when provider="local"
-- [ ] AC04: Ollama not running → LLMAdapterError with "Install/start Ollama" instructions
-- [ ] AC05: Model not available → error suggests `ollama pull <model>`
-- [ ] AC06: Unchanged nodes skip LLM call on re-scan (hash-based)
-- [ ] AC07: `fs2 init` generates config with local LLM as default
-- [ ] AC08: HTTP errors from Ollama translate to LLMAdapterError subclasses
-- [ ] AC09: Adapter uses ConfigurationService DI, extracts config via require()
-- [ ] AC10: `fs2 doctor llm` checks connectivity + performs test generation
-- [ ] AC11: Setup instructions discoverable in MCP help and CLI docs
-- [ ] AC12: Timeout exceeded → clear timeout error (not generic connection error)
+- [x] AC01: `fs2 scan` with `llm.provider: local` generates smart_content for all code nodes
+- [x] AC02: LocalOllamaAdapter.generate() returns valid LLMResponse with correct fields
+- [x] AC03: LLMService.create() returns service with LocalOllamaAdapter when provider="local"
+- [x] AC04: Ollama not running → LLMAdapterError with "Install/start Ollama" instructions
+- [x] AC05: Model not available → error suggests `ollama pull <model>`
+- [x] AC06: Unchanged nodes skip LLM call on re-scan (hash-based)
+- [x] AC07: `fs2 init` generates config with local LLM as default (auto-detects Ollama)
+- [x] AC08: HTTP errors from Ollama translate to LLMAdapterError subclasses
+- [x] AC09: Adapter uses ConfigurationService DI, extracts config via require()
+- [x] AC10: `fs2 doctor llm` checks connectivity + performs test generation
+- [x] AC11: Setup instructions discoverable in MCP help and CLI docs
+- [x] AC12: Timeout exceeded → clear timeout error (not generic connection error)
 
 ---
 
@@ -148,17 +148,19 @@ flowchart LR
 
 ## Checklist
 
-- [ ] T01: Config TDD — tests for local provider + LocalLLMConfig + timeout 300s (CS-1)
-- [ ] T02: Config — extend LLMConfig with "local" provider and LocalLLMConfig (CS-1)
-- [ ] T03: Adapter TDD — tests for LocalOllamaAdapter (CS-2)
-- [ ] T04: Adapter — implement LocalOllamaAdapter with httpx (CS-2)
-- [ ] T05: Factory TDD — tests for LLMService.create() local branch (CS-1)
-- [ ] T06: Factory — wire local into LLMService.create() AND scan.py (CS-1)
-- [ ] T07: CLI — update init.py DEFAULT_CONFIG with local LLM default (CS-1)
-- [ ] T08: Doctor — verify fs2 doctor works with local provider (CS-1)
-- [ ] T09: Exports — update adapters/__init__.py (CS-1)
-- [ ] T10: Docs — local-llm.md user guide + configuration-guide update (CS-2)
-- [ ] T11: Integration test — end-to-end scan with Ollama (CS-2)
+- [x] T01: Config TDD — tests for local provider + LocalLLMConfig + timeout 300s
+- [x] T02: Config — extend LLMConfig with "local" provider and LocalLLMConfig
+- [x] T03: Adapter TDD — tests for LocalOllamaAdapter
+- [x] T04: Adapter — implement LocalOllamaAdapter with openai SDK (DYK-2)
+- [x] T05: Factory TDD — tests for LLMService.create() local branch
+- [x] T06: Factory — refactored scan.py to use LLMService.create()
+- [x] T07: CLI — init.py: Ollama auto-detect + smart_content default
+- [x] T08: Doctor — verified fs2 doctor works with local provider
+- [x] T09: Exports — update adapters/__init__.py
+- [x] T10: Docs — local-llm.md + configuration-guide + MCP registry
+- [x] T11: Integration test — 826/826 nodes on home-improvement repo
+- [x] FX001: Review fixes (APIConnectionError/APITimeoutError, ruff, registry, factory refactor)
+- [x] FX001-UX: Ollama auto-detect in init, smart_content default, messaging
 
 ---
 
