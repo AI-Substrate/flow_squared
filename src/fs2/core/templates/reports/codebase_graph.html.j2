@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fs2 — Codebase Graph</title>
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --chrome: #111827;
+            --border: #1e293b;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --accent: #38bdf8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .report-header {
+            padding: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+        .report-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .report-header h1 span { color: var(--accent); }
+        .report-header .meta {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        .stats {
+            display: flex;
+            gap: 32px;
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border);
+        }
+        .stat {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .stat .label {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .categories {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border);
+        }
+        .categories h2 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .cat-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .cat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--chrome);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .cat-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .cat-badge .count {
+            color: var(--text-dim);
+            font-size: 12px;
+        }
+        .graph-placeholder {
+            padding: 48px 32px;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+        .graph-placeholder .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .footer {
+            padding: 16px 32px;
+            font-size: 12px;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <script>
+        const GRAPH_DATA = {{ graph_json }};
+        const METADATA = {{ metadata_json }};
+    </script>
+
+    <div class="report-header">
+        <h1>fs2 — <span id="project-name"></span></h1>
+        <div class="meta">
+            Generated <span id="generated-at"></span> · fs2 <span id="fs2-version"></span>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <span class="value" id="node-count"></span>
+            <span class="label">Nodes</span>
+        </div>
+        <div class="stat">
+            <span class="value" id="containment-count"></span>
+            <span class="label">Containment Edges</span>
+        </div>
+        <div class="stat">
+            <span class="value" id="reference-count"></span>
+            <span class="label">Cross-File References</span>
+        </div>
+    </div>
+
+    <div class="categories">
+        <h2>Node Categories</h2>
+        <div class="cat-grid" id="cat-grid"></div>
+    </div>
+
+    <div class="graph-placeholder">
+        <div class="icon">◉</div>
+        <p>Interactive graph visualization coming in Phase 2.</p>
+        <p>Graph data is embedded — <strong id="data-size"></strong> of JSON ready for Sigma.js.</p>
+    </div>
+
+    <div class="footer">
+        <span>fs2 Codebase Graph Report · Phase 1 Foundation</span>
+    </div>
+
+    <script>
+        // Populate from embedded data
+        const m = METADATA;
+        document.getElementById('project-name').textContent = m.project_name || 'unknown';
+        document.getElementById('generated-at').textContent = new Date(m.generated_at).toLocaleString();
+        document.getElementById('fs2-version').textContent = m.fs2_version || '';
+        document.getElementById('node-count').textContent = (m.node_count || 0).toLocaleString();
+        document.getElementById('containment-count').textContent = (m.containment_edge_count || 0).toLocaleString();
+        document.getElementById('reference-count').textContent = (m.reference_edge_count || 0).toLocaleString();
+
+        // Category colors
+        const catColors = {
+            file: '#94a3b8', type: '#c4b5fd', callable: '#67e8f9',
+            section: '#a5b4fc', folder: '#64748b', block: '#6ee7b7',
+            statement: '#fda4af', expression: '#fdba74', definition: '#d9f99d',
+            other: '#9ca3af',
+        };
+
+        const grid = document.getElementById('cat-grid');
+        const cats = m.categories || {};
+        Object.entries(cats).sort((a, b) => b[1] - a[1]).forEach(([cat, count]) => {
+            const badge = document.createElement('div');
+            badge.className = 'cat-badge';
+            const color = catColors[cat] || '#9ca3af';
+            badge.innerHTML = `<span class="dot" style="background:${color}"></span>${cat}<span class="count">${count.toLocaleString()}</span>`;
+            grid.appendChild(badge);
+        });
+
+        // Data size
+        const jsonStr = JSON.stringify(GRAPH_DATA);
+        const sizeKB = (jsonStr.length / 1024).toFixed(0);
+        const sizeMB = (jsonStr.length / 1024 / 1024).toFixed(1);
+        document.getElementById('data-size').textContent =
+            jsonStr.length > 1048576 ? `${sizeMB} MB` : `${sizeKB} KB`;
+    </script>
+</body>
+</html>

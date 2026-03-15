@@ -1046,6 +1046,44 @@ class CrossFileRelsConfig(BaseModel):
         return v
 
 
+class ReportsConfig(BaseModel):
+    """Configuration for report generation.
+
+    Loaded from YAML or environment variables.
+    Path: reports (e.g., FS2_REPORTS__OUTPUT_DIR)
+
+    Controls report output location, content inclusion, and scale limits.
+
+    Attributes:
+        output_dir: Directory for generated reports (default: ".fs2/reports").
+        include_smart_content: Include AI summaries in report data (default: True).
+        max_nodes: Maximum nodes before clustering (default: 10000, range 100-500000).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        reports:
+          output_dir: .fs2/reports
+          include_smart_content: true
+          max_nodes: 10000
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "reports"
+
+    output_dir: str = ".fs2/reports"
+    include_smart_content: bool = True
+    max_nodes: int = 10000
+
+    @field_validator("max_nodes")
+    @classmethod
+    def validate_max_nodes(cls, v: int) -> int:
+        """Validate max_nodes is in 100-500000 range."""
+        if v < 100 or v > 500000:
+            raise ValueError("max_nodes must be between 100 and 500000")
+        return v
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -1062,4 +1100,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     WatchConfig,
     OtherGraphsConfig,
     CrossFileRelsConfig,
+    ReportsConfig,
 ]

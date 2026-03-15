@@ -79,6 +79,10 @@ dev = [
 packages = ["src/fs2"]
 include = [
     "src/fs2/core/templates/**/*.j2",
+    "src/fs2/core/templates/**/*.html.j2",
+    "src/fs2/core/static/**/*.js",
+    "src/fs2/core/static/**/*.css",
+    "src/fs2/core/static/**/*.woff2",
     "src/fs2/docs/**/*.yaml",
     "src/fs2/docs/**/*.md",
     "src/fs2/docs/**/*.example",
@@ -87,6 +91,10 @@ include = [
 [tool.hatch.build.targets.sdist]
 include = [
     "src/fs2/core/templates/**/*.j2",
+    "src/fs2/core/templates/**/*.html.j2",
+    "src/fs2/core/static/**/*.js",
+    "src/fs2/core/static/**/*.css",
+    "src/fs2/core/static/**/*.woff2",
     "src/fs2/docs/**/*.yaml",
     "src/fs2/docs/**/*.md",
     "src/fs2/docs/**/*.example",
