@@ -11,6 +11,9 @@ Architecture:
 DYK-06: Two-level hierarchy:
   1. Directory tree from file_path (spatial grouping)
   2. Within each file, nodes positioned by start_line order
+
+FX001-1: Padding between directory regions + minimum node spacing
+  to prevent the dot-matrix overlap pattern.
 """
 
 from __future__ import annotations
@@ -21,6 +24,12 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from fs2.core.models.code_node import CodeNode
+
+# Fraction of cell dimension reserved as padding between directory regions
+_DIR_PADDING_FRAC = 0.03
+
+# Minimum gap between node centers (in canvas units) to prevent overlap
+_MIN_NODE_GAP = 18.0
 
 
 @dataclass(frozen=True)
@@ -96,6 +105,7 @@ def _layout_rect(
 
     Uses a simplified squarified treemap: subdivide the rectangle
     proportionally among subdirectories and local nodes.
+    Adds padding between subdivisions so directory regions are visually distinct.
     """
     if w <= 0 or h <= 0:
         return
@@ -124,30 +134,46 @@ def _layout_rect(
     if total_weight == 0:
         return
 
+    # Padding between directory regions
+    pad_x = w * _DIR_PADDING_FRAC
+    pad_y = h * _DIR_PADDING_FRAC
+
     # Determine split direction: horizontal if wider, vertical if taller
     horizontal = w >= h
-    offset = 0.0
+    n_items = len(items)
 
-    for _key, weight, subtree in items:
+    # Total padding consumed between items
+    total_gap = (pad_x if horizontal else pad_y) * (n_items - 1) if n_items > 1 else 0.0
+
+    available = (w if horizontal else h) - total_gap
+    if available <= 0:
+        available = w if horizontal else h
+        total_gap = 0.0
+
+    offset = 0.0
+    gap = total_gap / max(1, n_items - 1) if n_items > 1 else 0.0
+
+    for _i, (_key, weight, subtree) in enumerate(items):
         fraction = weight / total_weight
         if horizontal:
-            item_w = w * fraction
-            item_h = h
-            item_x = x + offset
-            item_y = y
-            offset += item_w
+            item_w = available * fraction
+            item_h = h - pad_y * 2
+            item_x = x + pad_x + offset
+            item_y = y + pad_y
+            offset += item_w + gap
         else:
-            item_w = w
-            item_h = h * fraction
-            item_x = x
-            item_y = y + offset
-            offset += item_h
+            item_w = w - pad_x * 2
+            item_h = available * fraction
+            item_x = x + pad_x
+            item_y = y + pad_y + offset
+            offset += item_h + gap
+
+        if item_w <= 0 or item_h <= 0:
+            continue
 
         if subtree is not None:
-            # Recurse into subdirectory
             _layout_rect(subtree, item_x, item_y, item_w, item_h, positions)
         else:
-            # Lay out local nodes within this cell
             _layout_local_nodes(local_nodes, item_x, item_y, item_w, item_h, positions)
 
 
@@ -159,7 +185,11 @@ def _layout_local_nodes(
     h: float,
     positions: dict[str, NodePosition],
 ) -> None:
-    """Position local nodes within a cell using a grid layout."""
+    """Position local nodes within a cell with minimum spacing.
+
+    Uses a grid layout with enforced minimum gap between node centers
+    to prevent the dot-matrix overlap pattern (FX001-1).
+    """
     if not nodes:
         return
 
@@ -167,21 +197,39 @@ def _layout_local_nodes(
     sorted_nodes = sorted(nodes, key=lambda n: (n.file_path or "", n.start_line or 0))
     n = len(sorted_nodes)
 
-    # Grid dimensions
-    cols = max(1, math.ceil(math.sqrt(n)))
-    rows = max(1, math.ceil(n / cols))
+    # Grid dimensions — constrained by minimum spacing
+    max_cols_by_space = max(1, int(w / _MIN_NODE_GAP))
+    max_rows_by_space = max(1, int(h / _MIN_NODE_GAP))
+
+    cols = max(1, min(math.ceil(math.sqrt(n)), max_cols_by_space))
+    rows = max(1, min(math.ceil(n / cols), max_rows_by_space))
+
+    # If grid can't fit all nodes, increase cols
+    while cols * rows < n and cols < max_cols_by_space:
+        cols += 1
+        rows = math.ceil(n / cols)
 
     cell_w = w / cols
     cell_h = h / rows
 
     for idx, node in enumerate(sorted_nodes):
-        col = idx % cols
-        row = idx // cols
-        # Center of the grid cell
-        nx = x + (col + 0.5) * cell_w
-        ny = y + (row + 0.5) * cell_h
+        if idx >= cols * rows:
+            # Overflow: stack remaining at last cell with offset
+            col = (cols - 1)
+            row = (rows - 1)
+            overflow_idx = idx - (cols * rows) + 1
+            nx = x + (col + 0.5) * cell_w + overflow_idx * 2
+            ny = y + (row + 0.5) * cell_h + overflow_idx * 2
+        else:
+            col = idx % cols
+            row = idx // cols
+            nx = x + (col + 0.5) * cell_w
+            ny = y + (row + 0.5) * cell_h
+
         size = _compute_node_size(node.start_line, node.end_line)
-        positions[node.node_id] = NodePosition(x=round(nx, 2), y=round(ny, 2), size=round(size, 2))
+        positions[node.node_id] = NodePosition(
+            x=round(nx, 2), y=round(ny, 2), size=round(size, 2)
+        )
 
 
 def compute_treemap(

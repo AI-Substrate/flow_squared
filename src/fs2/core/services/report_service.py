@@ -14,6 +14,7 @@ from __future__ import annotations
 import importlib.resources as importlib_resources
 import json
 import logging
+import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -172,7 +173,27 @@ class ReportService:
 
         positions = compute_treemap(nodes)
 
-        # Apply positions, sizes, and colors to node dicts (DYK-08)
+        # Compute graph metrics (FX001-2: degree, depth, entry point detection)
+        in_degree: dict[str, int] = {}
+        out_degree: dict[str, int] = {}
+        for source, target, data in all_edges:
+            if data.get("edge_type") == "references":
+                out_degree[source] = out_degree.get(source, 0) + 1
+                in_degree[target] = in_degree.get(target, 0) + 1
+
+        node_map = {n.node_id: n for n in nodes}
+
+        def _compute_depth(node_id: str) -> int:
+            depth = 0
+            current = node_map.get(node_id)
+            while current and current.parent_node_id:
+                depth += 1
+                current = node_map.get(current.parent_node_id)
+                if depth > 20:
+                    break  # safety
+            return depth
+
+        # Apply positions, sizes, colors, and metrics to node dicts (DYK-08)
         for nd in node_dicts:
             nid = nd["node_id"]
             if nid in positions:
@@ -187,6 +208,24 @@ class ReportService:
             # Category color — Python is single source of truth
             nd["color"] = _CATEGORY_COLORS.get(nd.get("category", ""), "#9ca3af")
             nd["label"] = nd.get("name", "")
+
+            # Graph metrics
+            nd_in = in_degree.get(nid, 0)
+            nd_out = out_degree.get(nid, 0)
+            nd["in_degree"] = nd_in
+            nd["out_degree"] = nd_out
+            nd["degree"] = nd_in + nd_out
+            nd["depth"] = _compute_depth(nid)
+            nd["is_entry_point"] = (
+                nd_in == 0 and nd_out > 0 and nd.get("category") == "callable"
+            )
+
+            # Alternative sizing by connection count
+            degree = nd["degree"]
+            nd["size_by_lines"] = nd["size"]
+            nd["size_by_degree"] = round(
+                max(4.0, min(14.0, 4.0 + math.log2(degree + 1) * 2.0)), 2
+            )
 
         # Serialize edges (both types with rendering hints)
         edge_dicts = [

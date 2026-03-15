@@ -3,7 +3,7 @@
 **Plan Version**: 1.0.0
 **Created**: 2026-03-15
 **Spec**: [reports-spec.md](reports-spec.md)
-**Status**: READY
+**Status**: IN PROGRESS (Phase 1 complete, Phase 2 complete, Phase 3 next)
 **Mode**: Full
 
 ## Summary
@@ -252,3 +252,9 @@ Harness: Not applicable. No harness exists and the feature is a CLI-to-file-outp
 - **Visual acceptance**: Sigma.js rendering, animations, theme — verified by opening report in browser
 - **Mock usage**: FakeGraphStore for service tests. No mocks for browser/WebGL — visual acceptance only.
 - **Fixtures**: Use `scanned_fixtures_graph` from conftest.py for CLI integration tests. Create small fixture graph for layout unit tests.
+
+## Fixes
+
+| ID | Created | Summary | Domain(s) | Status | Source |
+|----|---------|---------|-----------|--------|--------|
+| FX001 | 2026-03-15 | Unusable visualization — layout overlap, edge spaghetti, no progressive disclosure | services, static-assets | Proposed | User feedback (screenshot) |
