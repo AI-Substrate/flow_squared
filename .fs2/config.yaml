@@ -84,9 +84,9 @@ llm:
   provider: local
   base_url: http://localhost:11434
   model: qwen2.5-coder:7b
-  timeout: 60
+  timeout: 120
 
 smart_content:
-  max_workers: 50
+  max_workers: 1
   max_input_tokens: 50000
   enabled_categories: ["file"]

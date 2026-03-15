@@ -72,7 +72,7 @@ scan:
 # ─── Smart Content (AI summaries for code nodes) ──────────────────
 # Controls AI summary generation. Requires LLM provider above.
 smart_content:
-  max_workers: 50
+  max_workers: 1
   max_input_tokens: 50000
   enabled_categories: ["file"]            # Files only (~85% faster)
   # enabled_categories: ["file", "type"]  # Files + classes (~67% faster)
