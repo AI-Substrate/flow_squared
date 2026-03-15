@@ -53,6 +53,19 @@ llm:
 
 Pull any model with: `ollama pull <model-name>`
 
+## Speeding Up First Scan
+
+For large codebases, limit smart content to file-level summaries only:
+
+```yaml
+smart_content:
+  max_workers: 50
+  max_input_tokens: 50000
+  enabled_categories: ["file"]  # ~85% faster — files only
+```
+
+All nodes (classes, methods, etc.) still exist in the graph with full source code and embeddings — only the AI summary is skipped for non-file nodes.
+
 ## How It Works
 
 1. **First scan**: fs2 sends each code node (class, function, file) to the local LLM for summarization. This takes ~2-3 hours for large codebases (~5000 nodes).

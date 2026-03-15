@@ -516,3 +516,71 @@ class TestSmartContentStageSkip:
         assert len(result_context.nodes) == 0
         # Verify metrics show zeros
         assert result_context.metrics.get("smart_content_enriched", 0) == 0
+
+
+class TestSmartContentStageCategoryFilter:
+    """Tests for enabled_categories filtering — plan 035."""
+
+    def test_given_enabled_categories_file_when_processing_then_skips_callables(self):
+        """Only file nodes get smart content when enabled_categories=["file"].
+
+        Purpose: Proves category filtering works (AC01, AC05)
+        """
+        from unittest.mock import AsyncMock, MagicMock
+
+        from fs2.config.objects import SmartContentConfig
+        from fs2.core.services.stages.smart_content_stage import SmartContentStage
+
+        # Create nodes of different categories
+        file_node = _make_file_node(file_path="test.py", content="# test file")
+        callable_node = replace(
+            file_node,
+            node_id="callable:test.py:foo",
+            category="callable",
+            ts_kind="function_definition",
+            name="foo",
+            qualified_name="foo",
+            content="def foo(): pass",
+            content_hash="hash_callable",
+        )
+
+        # Mock service with enabled_categories=["file"]
+        mock_config = SmartContentConfig(enabled_categories=["file"])
+        mock_service = MagicMock()
+        mock_service._config = mock_config
+
+        async def capture_batch(nodes, progress_callback=None):
+            return {
+                "processed": len(nodes),
+                "skipped": 0,
+                "errors": [],
+                "results": {
+                    n.node_id: replace(n, smart_content="summary")
+                    for n in nodes
+                },
+                "total": len(nodes),
+            }
+
+        mock_service.process_batch = AsyncMock(side_effect=capture_batch)
+
+        context = PipelineContext(scan_config=MagicMock(), graph_path=MagicMock())
+        context.nodes = [file_node, callable_node]
+        context.smart_content_service = mock_service
+        context.prior_nodes = {}
+
+        stage = SmartContentStage()
+        result = stage.process(context)
+
+        # File should have smart content, callable should not
+        result_map = {n.node_id: n for n in result.nodes}
+        file_result = result_map["file:test.py"]
+        callable_result = result_map["callable:test.py:foo"]
+
+        assert file_result.smart_content == "summary"
+        assert callable_result.smart_content is None
+
+        # process_batch should have received only the file node
+        call_args = mock_service.process_batch.call_args
+        nodes_sent = call_args[0][0]
+        assert len(nodes_sent) == 1
+        assert nodes_sent[0].category == "file"

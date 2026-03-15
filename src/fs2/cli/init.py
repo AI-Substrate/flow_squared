@@ -74,6 +74,9 @@ scan:
 smart_content:
   max_workers: 50
   max_input_tokens: 50000
+  # Uncomment to limit which node types get AI summaries:
+  # enabled_categories: ["file"]          # Files only (~85% faster)
+  # enabled_categories: ["file", "type"]  # Files + classes (~67% faster)
 
 # ─── Embedding (for semantic search) ──────────────────────────────
 # Local embeddings (default — no API key needed):

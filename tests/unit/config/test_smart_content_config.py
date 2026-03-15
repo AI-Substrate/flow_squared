@@ -144,3 +144,60 @@ scan:
         config = service.require(SmartContentConfig)
 
         assert config.max_workers == 25
+
+
+class TestSmartContentConfigEnabledCategories:
+    """Tests for enabled_categories field — plan 035."""
+
+    @pytest.mark.unit
+    def test_given_no_enabled_categories_when_constructed_then_default_is_none(self):
+        """Default enabled_categories is None (all categories processed).
+
+        Purpose: Proves backward compatibility (AC02)
+        """
+        from fs2.config.objects import SmartContentConfig
+
+        config = SmartContentConfig()
+        assert config.enabled_categories is None
+
+    @pytest.mark.unit
+    def test_given_valid_categories_when_constructed_then_accepted(self):
+        """Valid category list is accepted.
+
+        Purpose: Proves filtering config works (AC01, AC06)
+        """
+        from fs2.config.objects import SmartContentConfig
+
+        config = SmartContentConfig(enabled_categories=["file"])
+        assert config.enabled_categories == ["file"]
+
+        config2 = SmartContentConfig(enabled_categories=["file", "type"])
+        assert config2.enabled_categories == ["file", "type"]
+
+    @pytest.mark.unit
+    def test_given_invalid_category_when_constructed_then_validation_error(self):
+        """Invalid category names are rejected.
+
+        Purpose: Proves validation (AC04)
+        """
+        from fs2.config.objects import SmartContentConfig
+
+        with pytest.raises(ValidationError) as exc_info:
+            SmartContentConfig(enabled_categories=["file", "banana"])
+
+        assert "banana" in str(exc_info.value)
+
+    @pytest.mark.unit
+    def test_given_all_valid_categories_when_constructed_then_accepted(self):
+        """All 9 valid categories accepted.
+
+        Purpose: Validates the full category set
+        """
+        from fs2.config.objects import SmartContentConfig
+
+        all_cats = [
+            "file", "callable", "type", "block", "section",
+            "definition", "statement", "expression", "other",
+        ]
+        config = SmartContentConfig(enabled_categories=all_cats)
+        assert len(config.enabled_categories) == 9

@@ -113,6 +113,25 @@ class SmartContentStage:
         # Step 3: Filter nodes that need generation (don't already have smart_content)
         needs_generation = [n for n in context.nodes if n.smart_content is None]
 
+        # Step 3b: Apply category filter if configured
+        smart_content_config = service._config if hasattr(service, "_config") else None
+        if (
+            smart_content_config
+            and getattr(smart_content_config, "enabled_categories", None) is not None
+        ):
+            enabled = set(smart_content_config.enabled_categories)
+            filtered_out = len(needs_generation)
+            needs_generation = [n for n in needs_generation if n.category in enabled]
+            filtered_out -= len(needs_generation)
+            if filtered_out > 0:
+                logger.info(
+                    "SmartContentStage: filtered %d nodes by category "
+                    "(enabled: %s), %d remain",
+                    filtered_out,
+                    sorted(enabled),
+                    len(needs_generation),
+                )
+
         if not needs_generation:
             logger.info(
                 "SmartContentStage: All %d nodes already have smart content (preserved)",

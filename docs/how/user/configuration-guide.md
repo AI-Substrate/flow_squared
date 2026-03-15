@@ -633,6 +633,11 @@ smart_content:
   # Token limit for prompt input
   max_input_tokens: 50000
 
+  # Category filter — limit which node types get AI summaries
+  # Default (absent or null): all categories processed
+  # enabled_categories: ["file"]          # Files only (~85% faster)
+  # enabled_categories: ["file", "type"]  # Files + classes (~67% faster)
+
   # Per-category output token limits
   token_limits:
     file: 200
@@ -645,6 +650,21 @@ smart_content:
     expression: 100
     other: 100
 ```
+
+### Category Filter
+
+Use `enabled_categories` to reduce scan time by limiting smart content to high-value node types:
+
+| Setting | Nodes Processed | Time Savings |
+|---------|----------------|-------------|
+| `null` (default) | All | None |
+| `["file"]` | Files only | ~85% |
+| `["file", "type"]` | Files + classes | ~67% |
+| `["file", "type", "callable"]` | Files + classes + functions | ~3% |
+
+Valid categories: `file`, `callable`, `type`, `block`, `section`, `definition`, `statement`, `expression`, `other`.
+
+> **Note**: Filtered nodes still exist in the graph with full source code, embeddings, and relationships — only the `smart_content` AI summary field is skipped.
 
 ---
 

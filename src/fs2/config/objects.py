@@ -454,6 +454,32 @@ class SmartContentConfig(BaseModel):
             raise ValueError("max_input_tokens must be >= 1")
         return v
 
+    enabled_categories: list[str] | None = Field(
+        default=None,
+        description="If set, only these node categories get smart content. "
+        "None = all categories. Valid: file, callable, type, block, "
+        "section, definition, statement, expression, other.",
+    )
+
+    _VALID_CATEGORIES: ClassVar[set[str]] = {
+        "file", "callable", "type", "block", "section",
+        "definition", "statement", "expression", "other",
+    }
+
+    @field_validator("enabled_categories")
+    @classmethod
+    def validate_enabled_categories(cls, v: list[str] | None) -> list[str] | None:
+        """Validate enabled_categories contains only known category names."""
+        if v is None:
+            return v
+        invalid = set(v) - cls._VALID_CATEGORIES
+        if invalid:
+            raise ValueError(
+                f"Invalid categories: {sorted(invalid)}. "
+                f"Valid: {sorted(cls._VALID_CATEGORIES)}"
+            )
+        return v
+
 
 class AzureEmbeddingConfig(BaseModel):
     """Azure OpenAI embedding configuration.
