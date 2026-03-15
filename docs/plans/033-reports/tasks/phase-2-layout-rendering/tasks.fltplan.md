@@ -137,7 +137,7 @@ flowchart LR
 - [ ] AC7: All nodes positioned by treemap layout
 - [ ] AC8: Nodes colored by category (cyan callables, violet types, slate files, indigo sections)
 - [ ] AC9: Node size scales with line count (log scale, 4–14px)
-- [ ] AC10: Reference edges render as curved amber lines with glow
+- [ ] AC10: Deferred — Phase 2 ships straight amber arrows; curves/glow move to Phase 3
 - [ ] AC19: 5K nodes renders in <2s, 60fps
 - [ ] AC20: 50K nodes renders in <5s, 30fps
 - [ ] AC21: Clustering above `--max-nodes`

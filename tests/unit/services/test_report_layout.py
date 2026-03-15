@@ -17,7 +17,11 @@ Tests cover:
 import pytest
 
 from fs2.core.models.code_node import CodeNode
-from fs2.core.services.report_layout import NodePosition, compute_treemap
+from fs2.core.services.report_layout import (
+    NodePosition,
+    build_directory_tree,
+    compute_treemap,
+)
 
 
 def _make_node(
@@ -201,3 +205,24 @@ class TestComputeTreemapMixedCategories:
         for pos in result.values():
             assert 0 <= pos.x <= 1000
             assert 0 <= pos.y <= 1000
+
+
+@pytest.mark.unit
+class TestBuildDirectoryTree:
+    """Tests for the shared build_directory_tree utility."""
+
+    def test_groups_by_directory(self):
+        nodes = [
+            _make_node("file:src/a.py", "a.py", "file", "src/a.py"),
+            _make_node("file:lib/b.py", "b.py", "file", "lib/b.py"),
+        ]
+        tree = build_directory_tree(nodes)
+        assert "src" in tree
+        assert "lib" in tree
+        assert len(tree["src"]["__nodes__"]) == 1
+        assert len(tree["lib"]["__nodes__"]) == 1
+
+    def test_root_level_files(self):
+        node = _make_node("file:setup.py", "setup.py", "file", "setup.py")
+        tree = build_directory_tree([node])
+        assert len(tree["__nodes__"]) == 1

@@ -44,19 +44,26 @@ def _compute_node_size(start_line: int | None, end_line: int | None) -> float:
     return max(4.0, min(14.0, 3.0 + math.log2(lines + 1) * 1.5))
 
 
-def _build_dir_tree(
+def build_directory_tree(
     nodes: list[CodeNode],
 ) -> dict:
-    """Build a nested directory tree from node file_path values.
+    """Build a nested directory tree grouping nodes by file_path.
 
-    Returns a nested dict structure:
-        {"__nodes__": [nodes_at_this_level], "subdir": {...}, ...}
+    Shared logic used by both report_layout (treemap) and potentially
+    tree_service (folder hierarchy). Extracted per FT-004 review finding.
+
+    Args:
+        nodes: CodeNodes to group by directory.
+
+    Returns:
+        Nested dict: {"__nodes__": [nodes_here], "subdir_name": {...}, ...}
+        Each level has "__nodes__" for items at that level and
+        string keys for child directories.
     """
     root: dict = {"__nodes__": []}
     for node in nodes:
         fp = node.file_path or ""
         parts = fp.split("/") if fp else []
-        # Navigate to the appropriate directory
         current = root
         if len(parts) > 1:
             for folder in parts[:-1]:
@@ -196,7 +203,7 @@ def compute_treemap(
     if not nodes:
         return {}
 
-    tree = _build_dir_tree(nodes)
+    tree = build_directory_tree(nodes)
     positions: dict[str, NodePosition] = {}
     _layout_rect(tree, 0, 0, canvas_size, canvas_size, positions)
     return positions

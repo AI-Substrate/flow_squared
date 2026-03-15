@@ -354,6 +354,7 @@ class ReportService:
             "graphology_js": self._load_static_asset("graphology.min.js"),
             "graph_viewer_js": self._load_static_asset("graph-viewer.js"),
             "graph_viewer_css": self._load_static_asset("graph-viewer.css"),
+            "force_atlas_js": self._load_static_asset("graphology-layout-forceatlas2.min.js"),
             "inter_font_b64": self._load_font_base64("inter-latin.woff2"),
             "jetbrains_mono_font_b64": self._load_font_base64("jetbrains-mono-latin.woff2"),
         }

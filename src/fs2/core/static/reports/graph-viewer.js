@@ -54,13 +54,11 @@
     if (!container || typeof METADATA === 'undefined') return;
 
     var cats = METADATA.categories || {};
-    // Category colors (same as Python _CATEGORY_COLORS — read from nodes)
-    var catColors = {
-      callable: '#67e8f9', type: '#c4b5fd', file: '#94a3b8',
-      section: '#a5b4fc', folder: '#64748b', block: '#6ee7b7',
-      statement: '#fda4af', expression: '#fdba74', definition: '#d9f99d',
-      other: '#9ca3af'
-    };
+    // Derive category colors from node data (Python is single source of truth — DYK-08)
+    var catColors = {};
+    (GRAPH_DATA.nodes || []).forEach(function (n) {
+      if (n.category && n.color && !catColors[n.category]) catColors[n.category] = n.color;
+    });
 
     var sorted = Object.entries(cats).sort(function (a, b) { return b[1] - a[1]; });
     sorted.forEach(function (entry) {
