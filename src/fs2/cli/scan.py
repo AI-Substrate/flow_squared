@@ -235,10 +235,25 @@ def scan(
             else:
                 total = progress.total or 0
                 pct = (progress.processed / total * 100.0) if total else 0.0
-                console.print_progress(
-                    f"Smart content: {progress.processed}/{progress.total} ({pct:.1f}%) processed, "
-                    f"{progress.remaining} remaining"
-                )
+                eta = progress.eta_seconds
+                if eta is not None:
+                    # Format ETA as human-readable
+                    if eta < 60:
+                        eta_str = f"~{int(eta)}s"
+                    elif eta < 3600:
+                        eta_str = f"~{int(eta // 60)}m{int(eta % 60):02d}s"
+                    else:
+                        eta_str = f"~{int(eta // 3600)}h{int((eta % 3600) // 60):02d}m"
+                    rate_str = f"{progress.items_per_second:.1f}/s"
+                    console.print_progress(
+                        f"Smart content: {progress.processed}/{progress.total} ({pct:.1f}%), "
+                        f"{progress.remaining} remaining, {eta_str} left ({rate_str})"
+                    )
+                else:
+                    console.print_progress(
+                        f"Smart content: {progress.processed}/{progress.total} ({pct:.1f}%), "
+                        f"{progress.remaining} remaining"
+                    )
 
         def embedding_progress(processed, total, skipped):
             """Display embedding progress using console adapter."""
@@ -594,7 +609,6 @@ def _create_smart_content_service(config, console: ConsoleAdapter):
 
     # Try to create the service
     try:
-        from fs2.core.adapters.llm_adapter_azure import AzureOpenAIAdapter
         from fs2.core.adapters.token_counter_adapter_tiktoken import (
             TiktokenTokenCounterAdapter,
         )
@@ -604,21 +618,12 @@ def _create_smart_content_service(config, console: ConsoleAdapter):
         )
         from fs2.core.services.smart_content.template_service import TemplateService
 
-        # Create adapter based on provider
-        if llm_config.provider == "azure":
-            llm_adapter = AzureOpenAIAdapter(config)
-        elif llm_config.provider == "openai":
-            from fs2.core.adapters.llm_adapter_openai import OpenAIAdapter
-
-            llm_adapter = OpenAIAdapter(config)
-        elif llm_config.provider == "fake":
-            from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
-
-            llm_adapter = FakeLLMAdapter()
-        else:
+        # Delegate adapter selection to LLMService factory (single source of truth)
+        try:
+            llm_service = LLMService.create(config)
+        except ValueError:
             return None, f"unsupported provider: {llm_config.provider}"
 
-        llm_service = LLMService(config, llm_adapter)
         template_service = TemplateService(config)
         token_counter = TiktokenTokenCounterAdapter(config)
 

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any
@@ -70,10 +71,23 @@ class SmartContentProgress:
     errors: int
     """Number of nodes that failed processing."""
 
+    elapsed_seconds: float = 0.0
+    """Seconds elapsed since batch processing started."""
+
+    items_per_second: float = 0.0
+    """Recent processing rate (items/sec), smoothed over last window."""
+
     @property
     def remaining(self) -> int:
         """Calculate remaining nodes to process."""
         return self.total - self.processed - self.skipped - self.errors
+
+    @property
+    def eta_seconds(self) -> float | None:
+        """Estimated seconds until completion, or None if not enough data."""
+        if self.items_per_second <= 0 or self.remaining <= 0:
+            return None
+        return self.remaining / self.items_per_second
 
 
 # Type alias for progress callback
@@ -313,6 +327,8 @@ class SmartContentService:
             "errors": [],
             "results": {},
             "total": len(nodes),
+            "start_time": time.monotonic(),
+            "recent_times": [],  # timestamps of recent completions for rate calc
         }
 
         if not nodes:
@@ -415,13 +431,30 @@ class SmartContentService:
         """
         logger.debug("Worker %d started", worker_id)
 
+        # Window size for rate smoothing (use recent completions, not all-time)
+        _RATE_WINDOW = 20
+
+        def _compute_rate() -> float:
+            """Compute items/sec from recent completion timestamps."""
+            recent = stats["recent_times"]
+            if len(recent) < 2:
+                # Fall back to overall rate
+                elapsed = time.monotonic() - stats["start_time"]
+                return stats["processed"] / elapsed if elapsed > 0 else 0.0
+            window = recent[-_RATE_WINDOW:]
+            dt = window[-1] - window[0]
+            return (len(window) - 1) / dt if dt > 0 else 0.0
+
         def _make_progress() -> SmartContentProgress:
             """Create progress object from current stats (must hold lock)."""
+            elapsed = time.monotonic() - stats["start_time"]
             return SmartContentProgress(
                 processed=stats["processed"],
                 total=stats["total"],
                 skipped=stats["skipped"],
                 errors=len(stats["errors"]),
+                elapsed_seconds=elapsed,
+                items_per_second=_compute_rate(),
             )
 
         while True:
@@ -445,9 +478,11 @@ class SmartContentService:
                 async with stats_lock:
                     stats["processed"] += 1
                     stats["results"][node.node_id] = updated_node
+                    stats["recent_times"].append(time.monotonic())
 
-                    # Progress callback every N items (user request: every 10)
-                    if stats["processed"] % _PROGRESS_INTERVAL == 0:
+                    # Progress callback: first item, then every N items
+                    is_first = stats["processed"] == 1
+                    if is_first or stats["processed"] % _PROGRESS_INTERVAL == 0:
                         remaining = (
                             stats["total"]
                             - stats["processed"]
