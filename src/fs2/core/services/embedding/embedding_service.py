@@ -157,6 +157,25 @@ class EmbeddingService:
                 base_url=embedding_config.openai.base_url,
                 model=embedding_config.openai.model,
             )
+        elif embedding_config.mode == "local":
+            # DYK-1: Probe sentence-transformers before creating adapter.
+            # Fail fast with clear message instead of repeating per-batch errors.
+            try:
+                import sentence_transformers  # noqa: F401
+            except ImportError:
+                raise ValueError(
+                    "sentence-transformers package is required for local embeddings. "
+                    "Install it with: pip install fs2[local-embeddings]"
+                ) from None
+
+            from fs2.config.objects import LocalEmbeddingConfig
+            from fs2.core.adapters.embedding_adapter_local import (
+                SentenceTransformerEmbeddingAdapter,
+            )
+
+            if embedding_config.local is None:
+                embedding_config.local = LocalEmbeddingConfig()
+            embedding_adapter = SentenceTransformerEmbeddingAdapter(config)
         elif embedding_config.mode == "fake":
             embedding_adapter = FakeEmbeddingAdapter(
                 dimensions=embedding_config.dimensions

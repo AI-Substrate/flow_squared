@@ -52,6 +52,9 @@ from fs2.core.adapters.console_adapter_rich import RichConsoleAdapter
 from fs2.core.adapters.embedding_adapter import EmbeddingAdapter
 from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
 from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+from fs2.core.adapters.embedding_adapter_local import (
+    SentenceTransformerEmbeddingAdapter,
+)
 from fs2.core.adapters.embedding_adapter_openai import OpenAICompatibleEmbeddingAdapter
 from fs2.core.adapters.exceptions import (
     AdapterConnectionError,
@@ -108,6 +111,7 @@ __all__ = [
     "EmbeddingAdapter",
     "AzureEmbeddingAdapter",
     "OpenAICompatibleEmbeddingAdapter",
+    "SentenceTransformerEmbeddingAdapter",
     "FakeEmbeddingAdapter",
     "AdapterError",
     "AuthenticationError",

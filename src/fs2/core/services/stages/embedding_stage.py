@@ -80,8 +80,42 @@ class EmbeddingStage:
             mismatch = self._detect_metadata_mismatch(prior_metadata, current_metadata)
             if mismatch:
                 message = f"Embedding metadata mismatch: {mismatch}"
-                context.errors.append(message)
-                logger.warning(message)
+                has_dim_mismatch = "embedding_dimensions" in mismatch
+
+                if has_dim_mismatch and not context.force_embeddings:
+                    # DYK-2: Block scan on dimension mismatch unless --force
+                    error_msg = (
+                        f"{message}. "
+                        "Dimension mismatch will produce mixed-dimension embeddings "
+                        "that break search. Run `fs2 scan --embed --force` to "
+                        "re-embed all nodes with the new dimensions."
+                    )
+                    context.errors.append(error_msg)
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)
+
+                if has_dim_mismatch and context.force_embeddings:
+                    # DYK-2: Force mode — clear all existing embeddings
+                    # so hash-based skip doesn't preserve old dimensions
+                    logger.warning(
+                        f"{message}. --force: clearing all existing embeddings "
+                        "for re-generation with new dimensions."
+                    )
+                    import dataclasses
+
+                    context.nodes = [
+                        dataclasses.replace(
+                            node,
+                            embedding=None,
+                            smart_content_embedding=None,
+                            embedding_hash=None,
+                            embedding_chunk_offsets=None,
+                        )
+                        for node in context.nodes
+                    ]
+                else:
+                    context.errors.append(message)
+                    logger.warning(message)
 
         needs_generation = [n for n in context.nodes if n.embedding is None]
         if not needs_generation:

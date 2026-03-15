@@ -6,7 +6,7 @@ and adapters via constructor, runs stages in order, returns ScanSummary.
 Per Alignment Brief:
 - Receives ConfigurationService, calls config.require(ScanConfig)
 - Receives adapters via constructor, injects into PipelineContext
-- Default stages: Discovery → Parsing → SmartContent → Storage
+- Default stages: Discovery → Parsing → CrossFileRels → SmartContent → Storage
 - Custom stages can override defaults
 - Returns ScanSummary with success, counts, errors, metrics
 
@@ -19,7 +19,7 @@ Per Phase 6 T005 (ScanPipeline Constructor):
 - Accepts optional SmartContentService
 - Injects service into PipelineContext.smart_content_service
 - SmartContentStage placed between ParsingStage and StorageStage
-- Stage order: Discovery → Parsing → SmartContent → Storage
+- Stage order: Discovery → Parsing → CrossFileRels → SmartContent → Storage
 """
 
 import logging
@@ -31,6 +31,7 @@ from fs2.core.adapters.exceptions import GraphStoreError
 from fs2.core.models.scan_summary import ScanSummary
 from fs2.core.services.pipeline_context import PipelineContext
 from fs2.core.services.pipeline_stage import PipelineStage
+from fs2.core.services.stages.cross_file_rels_stage import CrossFileRelsStage
 from fs2.core.services.stages.discovery_stage import DiscoveryStage
 from fs2.core.services.stages.embedding_stage import EmbeddingStage
 from fs2.core.services.stages.parsing_stage import ParsingStage
@@ -40,6 +41,7 @@ from fs2.core.services.stages.storage_stage import StorageStage
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from fs2.config.objects import CrossFileRelsConfig
     from fs2.config.service import ConfigurationService
     from fs2.core.adapters.ast_parser import ASTParser
     from fs2.core.adapters.file_scanner import FileScanner
@@ -97,7 +99,10 @@ class ScanPipeline:
         embedding_progress_callback: "EmbeddingService.ProgressCallback | None" = None,
         parsing_progress_callback: "Callable[[int, int], None] | None" = None,
         parsing_complete_callback: "Callable[..., None] | None" = None,
+        cross_file_rels_progress_callback: "Callable[[str, str], None] | None" = None,
         graph_path: Path | None = None,
+        cross_file_rels_config: "CrossFileRelsConfig | None" = None,
+        force_embeddings: bool = False,
     ):
         """Initialize pipeline with config and adapters.
 
@@ -154,16 +159,20 @@ class ScanPipeline:
         self._embedding_progress_callback = embedding_progress_callback
         self._parsing_progress_callback = parsing_progress_callback
         self._parsing_complete_callback = parsing_complete_callback
+        self._cross_file_rels_progress_callback = cross_file_rels_progress_callback
         self._graph_path = graph_path
+        self._cross_file_rels_config = cross_file_rels_config
+        self._force_embeddings = force_embeddings
 
         # Default stages if not provided
-        # Order: Discovery → Parsing → SmartContent → Embedding → Storage
+        # Order: Discovery → Parsing → CrossFileRels → SmartContent → Embedding → Storage
         self._stages = (
             stages
             if stages is not None
             else [
                 DiscoveryStage(),
                 ParsingStage(),
+                CrossFileRelsStage(),
                 SmartContentStage(),
                 EmbeddingStage(),
                 StorageStage(),
@@ -196,6 +205,9 @@ class ScanPipeline:
             "embedding_progress_callback": self._embedding_progress_callback,
             "parsing_progress_callback": self._parsing_progress_callback,
             "parsing_complete_callback": self._parsing_complete_callback,
+            "cross_file_rels_progress_callback": self._cross_file_rels_progress_callback,
+            "cross_file_rels_config": self._cross_file_rels_config,
+            "force_embeddings": self._force_embeddings,
         }
         if self._graph_path is not None:
             context_kwargs["graph_path"] = self._graph_path
@@ -206,7 +218,11 @@ class ScanPipeline:
         # smart_content and smart_content_hash values to SmartContentStage.
         context.prior_nodes = self._load_prior_nodes(context)
 
-        # Clear graph after extracting prior_nodes - we build fresh each scan
+        # Extract prior cross-file reference edges before clearing graph
+        # (Phase 4 T005: enables incremental resolution — reuse edges for unchanged files)
+        context.prior_cross_file_edges = self._extract_prior_edges(context)
+
+        # Clear graph after extracting prior state - we build fresh each scan
         if context.graph_store is not None:
             context.graph_store.clear()
 
@@ -269,3 +285,32 @@ class ScanPipeline:
                 str(e),
             )
             return None
+
+    def _extract_prior_edges(
+        self, context: PipelineContext
+    ) -> list[tuple[str, str, dict]] | None:
+        """Extract reference edges from prior graph before clear.
+
+        Called after _load_prior_nodes() when the graph is still loaded.
+        Uses get_all_edges(edge_type="references") to efficiently extract
+        all cross-file reference edges for incremental resolution.
+
+        Args:
+            context: PipelineContext with loaded graph_store.
+
+        Returns:
+            List of (source_id, target_id, edge_data) tuples,
+            or None if no prior graph or no reference edges.
+        """
+        if context.prior_nodes is None or context.graph_store is None:
+            return None
+
+        edges = context.graph_store.get_all_edges(edge_type="references")
+        if not edges:
+            return None
+
+        logger.info(
+            "Extracted %d prior cross-file reference edges for incremental resolution",
+            len(edges),
+        )
+        return edges

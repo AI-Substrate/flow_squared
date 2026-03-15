@@ -248,3 +248,94 @@ class TestEmbeddingAdapterAsyncMethods:
 
         # Arrange / Act / Assert
         assert inspect.iscoroutinefunction(EmbeddingAdapter.embed_batch)
+
+
+@pytest.mark.unit
+class TestEmbeddingAdapterFactoryLocal:
+    """032-T006: Tests for create_embedding_adapter_from_config with mode=local."""
+
+    def test_given_mode_local_with_deps_when_creating_then_returns_local_adapter(self):
+        """
+        Purpose: Proves factory returns SentenceTransformerEmbeddingAdapter.
+        Acceptance Criteria: Correct adapter type returned.
+
+        Task: 032-T006 (DYK-1: probes importability)
+        """
+        from unittest.mock import MagicMock, patch
+
+        from fs2.config.objects import EmbeddingConfig, LocalEmbeddingConfig
+        from fs2.core.adapters.embedding_adapter import (
+            create_embedding_adapter_from_config,
+        )
+        from fs2.core.adapters.embedding_adapter_local import (
+            SentenceTransformerEmbeddingAdapter,
+        )
+
+        mock_config = MagicMock()
+        mock_config.require.return_value = EmbeddingConfig(
+            mode="local",
+            local=LocalEmbeddingConfig(),
+        )
+
+        # Mock sentence_transformers as importable
+        mock_st = MagicMock()
+        with patch.dict("sys.modules", {"sentence_transformers": mock_st}):
+            adapter = create_embedding_adapter_from_config(mock_config)
+
+        assert isinstance(adapter, SentenceTransformerEmbeddingAdapter)
+
+    def test_given_mode_local_no_local_section_when_creating_then_uses_defaults(self):
+        """
+        Purpose: Proves factory creates default LocalEmbeddingConfig when missing.
+        Acceptance Criteria: Adapter created with default config.
+
+        Task: 032-T006
+        """
+        from unittest.mock import MagicMock, patch
+
+        from fs2.config.objects import EmbeddingConfig
+        from fs2.core.adapters.embedding_adapter import (
+            create_embedding_adapter_from_config,
+        )
+        from fs2.core.adapters.embedding_adapter_local import (
+            SentenceTransformerEmbeddingAdapter,
+        )
+
+        mock_config = MagicMock()
+        mock_config.require.return_value = EmbeddingConfig(
+            mode="local",
+            local=None,
+        )
+
+        mock_st = MagicMock()
+        with patch.dict("sys.modules", {"sentence_transformers": mock_st}):
+            adapter = create_embedding_adapter_from_config(mock_config)
+
+        assert isinstance(adapter, SentenceTransformerEmbeddingAdapter)
+
+    def test_given_mode_local_no_deps_when_creating_then_returns_none(self):
+        """
+        Purpose: DYK-1 — Proves factory returns None when sentence-transformers missing.
+        Quality Contribution: Graceful degradation for search fallback.
+        Acceptance Criteria: Returns None, not a broken adapter.
+
+        Task: 032-T006 (DYK-1)
+        """
+        from unittest.mock import MagicMock, patch
+
+        from fs2.config.objects import EmbeddingConfig, LocalEmbeddingConfig
+        from fs2.core.adapters.embedding_adapter import (
+            create_embedding_adapter_from_config,
+        )
+
+        mock_config = MagicMock()
+        mock_config.require.return_value = EmbeddingConfig(
+            mode="local",
+            local=LocalEmbeddingConfig(),
+        )
+
+        # Simulate sentence_transformers not installed
+        with patch.dict("sys.modules", {"sentence_transformers": None}):
+            adapter = create_embedding_adapter_from_config(mock_config)
+
+        assert adapter is None

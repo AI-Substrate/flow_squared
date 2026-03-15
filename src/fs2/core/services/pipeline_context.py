@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from fs2.config.objects import ScanConfig
+    from fs2.config.objects import CrossFileRelsConfig, ScanConfig
     from fs2.core.adapters.ast_parser import ASTParser
     from fs2.core.adapters.file_scanner import FileScanner
     from fs2.core.models.code_node import CodeNode
@@ -95,6 +95,17 @@ class PipelineContext:
     # None on first scan.
     prior_cross_file_edges: "list[tuple[str, str, dict[str, Any]]] | None" = None
 
+    # Cross-file relationship config (Phase 4 T002).
+    # Populated by ScanPipeline from constructor param.
+    # CrossFileRelsStage reads this for enabled, parallel_instances, etc.
+    # None when config not provided (stage skips per DYK-P4-02).
+    cross_file_rels_config: "CrossFileRelsConfig | None" = None
+
+    # Scan root directory (Phase 4 DYK-P4-04).
+    # Canonical project root, always set to CWD at pipeline start.
+    # Used by CrossFileRelsStage for project root detection.
+    scan_root: Path = field(default_factory=lambda: Path.cwd().resolve())
+
     # SmartContentService for AI-powered smart content generation (Phase 6 T004)
     # Injected by ScanPipeline when smart content is enabled.
     # None when --no-smart-content flag is used or LLM not configured.
@@ -111,6 +122,11 @@ class PipelineContext:
     # None when --no-embeddings flag is used or embedding config missing.
     embedding_service: "EmbeddingService | None" = None
 
+    # Force re-embedding: when True, dimension mismatch is a warning not error,
+    # and all existing embeddings are cleared for re-generation.
+    # Set via CLI --force flag (032-T008, DYK-2).
+    force_embeddings: bool = False
+
     # Progress callback for embedding batch processing.
     # Called with (processed, total, skipped) counts from EmbeddingService.
     embedding_progress_callback: "Callable[[int, int, int], None] | None" = None
@@ -124,3 +140,12 @@ class PipelineContext:
     # Called after parsing completes with files_scanned, nodes_created, skip_summary.
     # Allows CLI to display summary before smart content stage starts.
     parsing_complete_callback: Callable[..., None] | None = None
+
+    # Progress callback for cross-file relationship resolution.
+    # Called with (status: str, detail: str) at key milestones:
+    #   "starting"  — resolution is beginning (detail: node count)
+    #   "progress"  — batch progress (detail: "N/M nodes, K edges")
+    #   "reused"    — all files unchanged (detail: reused edge count)
+    #   "complete"  — resolution finished (detail: summary)
+    #   "skipped"   — stage skipped (detail: reason)
+    cross_file_rels_progress_callback: Callable[[str, str], None] | None = None

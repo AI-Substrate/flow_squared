@@ -45,6 +45,7 @@ ALLOWED_MODULES = frozenset(
         "pathlib",
         "networkx",
         "networkx.classes.digraph",
+        "networkx.classes.coreviews",
         "networkx.classes.reportviews",
         "fs2.core.models.code_node",
         "fs2.core.models.content_type",
@@ -275,6 +276,25 @@ class NetworkXGraphStore(GraphStore):
             if node is not None:
                 nodes.append(node)
         return nodes
+
+    def get_all_edges(
+        self,
+        edge_type: str | None = None,
+    ) -> list[tuple[str, str, dict[str, Any]]]:
+        """Get all edges in the graph, optionally filtered by edge_type.
+
+        Args:
+            edge_type: Filter to edges with this edge_type attribute.
+                       None returns all edges.
+
+        Returns:
+            List of (source_node_id, target_node_id, edge_data_dict) tuples.
+        """
+        result = []
+        for u, v, data in self._graph.edges(data=True):
+            if edge_type is None or data.get("edge_type") == edge_type:
+                result.append((u, v, dict(data)))
+        return result
 
     def save(self, path: Path) -> None:
         """Persist the graph to a file.

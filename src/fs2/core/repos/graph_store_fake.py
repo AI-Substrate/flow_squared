@@ -241,6 +241,26 @@ class FakeGraphStore(GraphStore):
         )
         return list(self._nodes.values())
 
+    def get_all_edges(
+        self,
+        edge_type: str | None = None,
+    ) -> list[tuple[str, str, dict[str, Any]]]:
+        """Get all edges, optionally filtered by edge_type.
+
+        Args:
+            edge_type: Filter to edges with this edge_type attribute.
+                       None returns all edges.
+
+        Returns:
+            List of (source_node_id, target_node_id, edge_data_dict) tuples.
+        """
+        result: list[tuple[str, str, dict[str, Any]]] = []
+        for source_id, targets in self._edges.items():
+            for target_id, data in targets.items():
+                if edge_type is None or data.get("edge_type") == edge_type:
+                    result.append((source_id, target_id, dict(data)))
+        return result
+
     def save(self, path: Path) -> None:
         """Fake save - records call but doesn't persist.
 

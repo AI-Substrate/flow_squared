@@ -79,6 +79,13 @@ def scan(
             help="Skip cross-file relationship extraction",
         ),
     ] = False,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Force re-embedding when dimensions change (clears existing embeddings)",
+        ),
+    ] = False,
     cross_refs_instances: Annotated[
         int | None,
         typer.Option(
@@ -178,6 +185,31 @@ def scan(
             else:
                 console.print_warning(f"Embeddings: {embedding_status}")
 
+        # Create CrossFileRelsConfig (Phase 4 T003)
+        cross_file_rels_config = None
+        if not no_cross_refs:
+            from fs2.config.objects import CrossFileRelsConfig
+
+            cross_file_rels_config = config.get(CrossFileRelsConfig) or CrossFileRelsConfig()
+            # CLI flag overrides config parallel_instances
+            if cross_refs_instances is not None:
+                cross_file_rels_config = CrossFileRelsConfig(
+                    enabled=cross_file_rels_config.enabled,
+                    parallel_instances=cross_refs_instances,
+                    serena_base_port=cross_file_rels_config.serena_base_port,
+                    timeout_per_node=cross_file_rels_config.timeout_per_node,
+                    languages=cross_file_rels_config.languages,
+                )
+            console.print_info(
+                f"Cross-file refs: {'enabled' if cross_file_rels_config.enabled else 'disabled'}"
+                f" ({cross_file_rels_config.parallel_instances} instances)"
+            )
+        else:
+            from fs2.config.objects import CrossFileRelsConfig
+
+            cross_file_rels_config = CrossFileRelsConfig(enabled=False)
+            console.print_info("Cross-file refs: skipped (--no-cross-refs)")
+
         # ===== STAGE 2: FILE DISCOVERY =====
         console.stage_banner("DISCOVERY")
 
@@ -188,6 +220,7 @@ def scan(
         # Track which stage banners have been shown during pipeline run
         smart_content_banner_shown = False
         embedding_banner_shown = False
+        cross_file_rels_banner_shown = False
 
         # Create progress callback for smart content (uses console adapter)
         def smart_content_progress(progress, error_message):
@@ -238,6 +271,24 @@ def scan(
             else:
                 console.print_info("Skipped: 0")
 
+        def cross_file_rels_progress(status: str, detail: str):
+            """Display cross-file relationship resolution progress."""
+            nonlocal cross_file_rels_banner_shown
+            if not cross_file_rels_banner_shown:
+                console.stage_banner("CROSS-FILE RELATIONSHIPS")
+                cross_file_rels_banner_shown = True
+
+            if status == "skipped":
+                console.print_info(f"Cross-file refs: {detail}")
+            elif status == "preparing":
+                console.print_progress(f"Cross-file refs: {detail}")
+            elif status == "starting":
+                console.print_info(f"Resolving references: {detail}")
+            elif status == "progress":
+                console.print_progress(f"Cross-file refs: {detail}")
+            elif status in ("reused", "complete"):
+                console.print_success(f"Cross-file refs: {detail}")
+
         # Create pipeline
         pipeline = ScanPipeline(
             config=config,
@@ -254,7 +305,12 @@ def scan(
             else None,
             parsing_progress_callback=parsing_progress,
             parsing_complete_callback=parsing_complete,
+            cross_file_rels_progress_callback=cross_file_rels_progress
+            if cross_file_rels_config and cross_file_rels_config.enabled
+            else None,
             graph_path=graph_path,  # Per Subtask 001: Custom output path
+            cross_file_rels_config=cross_file_rels_config,
+            force_embeddings=force,
         )
 
         # ===== STAGE 3: PARSING =====
@@ -262,6 +318,18 @@ def scan(
 
         # Run the pipeline (callbacks show progress and banners during execution)
         summary = pipeline.run()
+
+        # ===== STAGE 3.5: CROSS-FILE RELATIONSHIPS (summary after pipeline) =====
+        if cross_file_rels_config and cross_file_rels_config.enabled:
+            # Banner already shown by progress callback if stage ran
+            if not cross_file_rels_banner_shown:
+                console.stage_banner("CROSS-FILE RELATIONSHIPS")
+                # Stage was enabled but never called back — shouldn't happen, but handle it
+                if summary.metrics.get("cross_file_rels_skipped"):
+                    reason = summary.metrics.get("cross_file_rels_reason", "unknown")
+                    console.print_info(f"Cross-file refs: skipped ({reason})")
+        elif not no_cross_refs:
+            console.stage_banner_skipped("CROSS-FILE RELATIONSHIPS")
 
         # ===== STAGE 4: SMART CONTENT (summary after pipeline) =====
         if smart_content_service:

@@ -1,0 +1,17 @@
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/docs/how/user/configuration-guide.md
+created	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/docs/how/user/local-embeddings.md
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/pyproject.toml
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/uv.lock
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/cli/init.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/cli/scan.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/config/objects.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/adapters/__init__.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/adapters/embedding_adapter.py
+created	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/adapters/embedding_adapter_local.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/services/embedding/embedding_service.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/services/pipeline_context.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/services/scan_pipeline.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/services/stages/embedding_stage.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/tests/unit/adapters/test_embedding_adapter.py
+created	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/tests/unit/adapters/test_embedding_adapter_local.py
+modified	/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/tests/unit/config/test_embedding_config.py

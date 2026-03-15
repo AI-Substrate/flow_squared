@@ -311,6 +311,44 @@ fs2 scan --no-embeddings
 
 See the [Configuration Guide](docs/how/user/configuration-guide.md) for detailed embeddings configuration, provider setup, and architecture.
 
+## Cross-File Relationships
+
+fs2 can resolve cross-file references (imports, calls, type usage) using [Serena](https://github.com/oraios/serena) as an LSP backend. When enabled, `get_node` output includes a `relationships` field showing which nodes reference and are referenced by the queried node.
+
+### Quick Start
+
+```bash
+# Install Serena
+uv tool install "serena-agent @ git+https://github.com/oraios/serena.git"
+
+# Scan with cross-file references (auto-detected if Serena is on PATH)
+fs2 scan
+
+# View relationships for a node
+fs2 get-node "callable:src/service.py:Service.process"
+# → includes: relationships: { referenced_by: [...], references: [...] }
+```
+
+### Configuration
+
+```yaml
+# .fs2/config.yaml
+cross_file_rels:
+  enabled: true              # Set to false to disable
+  parallel_instances: 20     # Serena instances (1-50)
+  serena_base_port: 8330     # Starting port
+  timeout_per_node: 5.0      # Seconds per node
+```
+
+### CLI Flags
+
+```bash
+fs2 scan --no-cross-refs              # Skip cross-file resolution
+fs2 scan --cross-refs-instances 5     # Use 5 parallel instances
+```
+
+See the [Cross-File Relationships Guide](docs/how/user/cross-file-relationships.md) for detailed configuration, performance tuning, and troubleshooting.
+
 ## Language Support
 
 fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages are categorized as:

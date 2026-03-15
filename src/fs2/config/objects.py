@@ -518,6 +518,42 @@ class OpenAIEmbeddingConfig(BaseModel):
         return v
 
 
+class LocalEmbeddingConfig(BaseModel):
+    """Local SentenceTransformer embedding configuration.
+
+    Nested configuration for local on-device embedding settings.
+    No API keys required — runs entirely on-device (CPU, MPS, or CUDA).
+
+    Attributes:
+        model: HuggingFace model name (default: BAAI/bge-small-en-v1.5).
+        device: Compute device - "auto", "cpu", "mps", or "cuda" (default: auto).
+        max_seq_length: Maximum token sequence length (default: 512).
+
+    YAML example:
+        ```yaml
+        embedding:
+          mode: local
+          dimensions: 384
+          local:
+            model: BAAI/bge-small-en-v1.5
+            device: auto
+            max_seq_length: 512
+        ```
+    """
+
+    model: str = "BAAI/bge-small-en-v1.5"
+    device: Literal["auto", "cpu", "mps", "cuda"] = "auto"
+    max_seq_length: int = 512
+
+    @field_validator("max_seq_length")
+    @classmethod
+    def validate_max_seq_length(cls, v: int) -> int:
+        """Validate max_seq_length is positive."""
+        if v <= 0:
+            raise ValueError("max_seq_length must be > 0")
+        return v
+
+
 class ChunkConfig(BaseModel):
     """Chunking parameters for a specific content type.
 
@@ -591,7 +627,7 @@ class EmbeddingConfig(BaseModel):
         - Optional: max_concurrent_batches for parallel batch processing
 
     Attributes:
-        mode: Embedding provider - "azure", "openai_compatible", or "fake".
+        mode: Embedding provider - "local", "azure", "openai_compatible", or "fake".
         dimensions: Embedding vector dimensions (default: 1024).
         batch_size: Number of texts per API call (default: 16). Azure max is 2048.
         max_concurrent_batches: Number of batches to process concurrently (default: 1).
@@ -629,7 +665,7 @@ class EmbeddingConfig(BaseModel):
 
     __config_path__: ClassVar[str] = "embedding"
 
-    mode: Literal["azure", "openai_compatible", "fake"] = "azure"
+    mode: Literal["azure", "openai_compatible", "local", "fake"] = "local"
     dimensions: int = 1024
     batch_size: int = 16  # Texts per API call (FlowSpace pattern)
     max_concurrent_batches: int = 1  # Concurrent batch processing
@@ -639,6 +675,9 @@ class EmbeddingConfig(BaseModel):
 
     # OpenAI-compatible configuration
     openai: OpenAIEmbeddingConfig | None = None
+
+    # Local SentenceTransformer configuration
+    local: LocalEmbeddingConfig | None = None
 
     # Per-content-type chunking configuration (Finding 04)
     code: ChunkConfig = Field(
@@ -705,6 +744,18 @@ class EmbeddingConfig(BaseModel):
             raise ValueError(
                 f"max_delay ({self.max_delay}) must be >= base_delay ({self.base_delay})"
             )
+        return self
+
+    @model_validator(mode="after")
+    def auto_default_dimensions_for_local(self) -> "EmbeddingConfig":
+        """Auto-default dimensions to 384 for local mode when not explicitly set.
+
+        Per DYK-3: Uses model_fields_set to distinguish between user-provided
+        dimensions and Pydantic default. Only overrides if user didn't explicitly
+        set dimensions.
+        """
+        if self.mode == "local" and "dimensions" not in self.model_fields_set:
+            self.dimensions = 384
         return self
 
 
@@ -952,7 +1003,7 @@ class CrossFileRelsConfig(BaseModel):
 
     Attributes:
         enabled: Whether cross-file relationship extraction is enabled (default: True).
-        parallel_instances: Number of parallel Serena instances (default: 20, range 1-50).
+        parallel_instances: Number of parallel Serena instances (default: 2, range 1-50).
         serena_base_port: Starting port for Serena instances (default: 8330).
         timeout_per_node: Seconds per node before giving up (default: 5.0).
         languages: Languages to resolve references for (default: ["python"]).
@@ -962,7 +1013,7 @@ class CrossFileRelsConfig(BaseModel):
         # .fs2/config.yaml
         cross_file_rels:
           enabled: true
-          parallel_instances: 20
+          parallel_instances: 2
           serena_base_port: 8330
           timeout_per_node: 5.0
           languages:
@@ -973,7 +1024,7 @@ class CrossFileRelsConfig(BaseModel):
     __config_path__: ClassVar[str] = "cross_file_rels"
 
     enabled: bool = True
-    parallel_instances: int = 20
+    parallel_instances: int = 15
     serena_base_port: int = 8330
     timeout_per_node: float = 5.0
     languages: list[str] = ["python"]

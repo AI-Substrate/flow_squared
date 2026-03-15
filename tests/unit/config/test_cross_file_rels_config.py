@@ -17,9 +17,9 @@ class TestCrossFileRelsConfigDefaults:
         config = CrossFileRelsConfig()
         assert config.enabled is True
 
-    def test_parallel_instances_defaults_to_20(self):
+    def test_parallel_instances_defaults_to_15(self):
         config = CrossFileRelsConfig()
-        assert config.parallel_instances == 20
+        assert config.parallel_instances == 15
 
     def test_serena_base_port_defaults_to_8330(self):
         config = CrossFileRelsConfig()

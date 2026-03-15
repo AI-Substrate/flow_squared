@@ -320,3 +320,20 @@ class TestGraphStoreEdgeContract:
         assert "node_id" in param_names
         assert "direction" in param_names
         assert "edge_type" in param_names
+
+    def test_graph_store_abc_defines_get_all_edges_method(self):
+        """
+        Purpose: Proves get_all_edges exists on ABC.
+        Quality Contribution: Enables extracting all reference edges.
+        Acceptance Criteria: Method exists with edge_type parameter.
+
+        Task: Phase 4 T005
+        """
+        import inspect
+
+        from fs2.core.repos.graph_store import GraphStore
+
+        assert hasattr(GraphStore, "get_all_edges")
+        sig = inspect.signature(GraphStore.get_all_edges)
+        param_names = list(sig.parameters.keys())
+        assert "edge_type" in param_names

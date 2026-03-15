@@ -526,3 +526,52 @@ class TestFakeGraphStoreEdgeData:
         parent = store.get_parent(func.node_id)
         assert parent is not None
         assert parent.node_id == file_a.node_id
+
+
+class TestFakeGraphStoreGetAllEdges:
+    """Phase 4 T005: Tests for FakeGraphStore.get_all_edges()."""
+
+    def _make_store(self):
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        return FakeGraphStore(config)
+
+    def test_get_all_edges_returns_reference_edges(self):
+        """Filtered by edge_type returns only matching edges."""
+        from fs2.core.models.code_node import CodeNode
+
+        store = self._make_store()
+        file_a = CodeNode.create_file("src/a.py", "python", "module", 0, 100, 1, 10, "#")
+        func_a = CodeNode.create_callable(
+            file_path="src/a.py", language="python", ts_kind="function_definition",
+            name="foo", qualified_name="A.foo", start_line=1, end_line=5,
+            start_column=0, end_column=20, start_byte=0, end_byte=50,
+            content="def foo(): pass", signature="def foo():",
+        )
+        func_b = CodeNode.create_callable(
+            file_path="src/b.py", language="python", ts_kind="function_definition",
+            name="bar", qualified_name="B.bar", start_line=1, end_line=5,
+            start_column=0, end_column=20, start_byte=0, end_byte=50,
+            content="def bar(): pass", signature="def bar():",
+        )
+        file_b = CodeNode.create_file("src/b.py", "python", "module", 0, 100, 1, 10, "#")
+
+        store.add_node(file_a)
+        store.add_node(file_b)
+        store.add_node(func_a)
+        store.add_node(func_b)
+        store.add_edge(file_a.node_id, func_a.node_id)  # containment
+        store.add_edge(func_a.node_id, func_b.node_id, edge_type="references")
+
+        all_refs = store.get_all_edges(edge_type="references")
+        assert len(all_refs) == 1
+        assert all_refs[0][0] == func_a.node_id
+        assert all_refs[0][1] == func_b.node_id
+
+    def test_get_all_edges_empty(self):
+        """Empty store returns empty list."""
+        store = self._make_store()
+        assert store.get_all_edges() == []

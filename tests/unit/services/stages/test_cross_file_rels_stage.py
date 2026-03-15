@@ -215,7 +215,7 @@ class TestProjectDetection:
         assert "javascript" in roots[0].languages
 
     def test_detects_nested_projects(self, tmp_path):
-        """Proves nested projects are detected, deepest-first."""
+        """Proves child projects nested under a parent root are deduplicated."""
         from fs2.core.services.stages.cross_file_rels_stage import (
             detect_project_roots,
         )
@@ -225,9 +225,9 @@ class TestProjectDetection:
         sub.mkdir(parents=True)
         (sub / "package.json").write_text("{}")
         roots = detect_project_roots(str(tmp_path))
-        assert len(roots) == 2
-        # Deepest first
-        assert roots[0].path == str(sub.resolve())
+        # Parent-child dedup: only the shallowest root is kept
+        assert len(roots) == 1
+        assert roots[0].path == str(tmp_path.resolve())
 
     def test_returns_empty_for_no_markers(self, tmp_path):
         """Proves empty list when no project markers found."""
@@ -384,7 +384,7 @@ class TestReferenceResolution:
 
         client = FakeSerenaClient()
         client.set_response("target", [
-            {"file": "src/a.py", "kind": "reference", "symbol": "caller"},
+            {"file": "src/a.py", "kind": "reference", "name_path": "caller"},
         ])
 
         edges = asyncio.run(
@@ -409,7 +409,7 @@ class TestReferenceResolution:
 
         client = FakeSerenaClient()
         client.set_response("target", [
-            {"file": "src/stdlib.py", "kind": "import", "symbol": "os.path.join"},
+            {"file": "src/stdlib.py", "kind": "import", "name_path": "os.path.join"},
         ])
 
         edges = asyncio.run(
@@ -469,7 +469,7 @@ class TestGracefulSkip:
 
     def test_skips_when_serena_not_available(self, monkeypatch):
         """Proves stage skips cleanly when serena-mcp-server not on PATH."""
-        from fs2.config.objects import ScanConfig
+        from fs2.config.objects import CrossFileRelsConfig, ScanConfig
         from fs2.core.services.pipeline_context import PipelineContext
         from fs2.core.services.stages.cross_file_rels_stage import (
             CrossFileRelsStage,
@@ -481,6 +481,7 @@ class TestGracefulSkip:
         )
 
         ctx = PipelineContext(scan_config=ScanConfig())
+        ctx.cross_file_rels_config = CrossFileRelsConfig()
         ctx.nodes = [make_callable_node("src/a.py", "func", "func")]
 
         stage = CrossFileRelsStage()

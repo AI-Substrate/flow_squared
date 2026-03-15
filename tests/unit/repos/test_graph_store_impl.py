@@ -1006,3 +1006,64 @@ class TestNetworkXGraphStoreEdgeData:
         assert len(cont_edges) == 1
         assert cont_edges[0][0] == func_a.node_id
         assert "edge_type" not in cont_edges[0][1]
+
+
+class TestNetworkXGraphStoreGetAllEdges:
+    """Phase 4 T005: Tests for get_all_edges()."""
+
+    def test_get_all_edges_returns_reference_edges(self, tmp_path):
+        """Returns all reference edges in graph."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        node_a = make_file_node("src/a.py")
+        node_b = make_file_node("src/b.py")
+        func_a = make_method_node("src/a.py", "A", "foo")
+        func_b = make_method_node("src/b.py", "B", "bar")
+
+        store.add_node(node_a)
+        store.add_node(node_b)
+        store.add_node(func_a)
+        store.add_node(func_b)
+        store.add_edge(node_a.node_id, func_a.node_id)  # containment
+        store.add_edge(node_b.node_id, func_b.node_id)  # containment
+        store.add_edge(func_a.node_id, func_b.node_id, edge_type="references")
+
+        all_refs = store.get_all_edges(edge_type="references")
+        assert len(all_refs) == 1
+        assert all_refs[0] == (func_a.node_id, func_b.node_id, {"edge_type": "references"})
+
+    def test_get_all_edges_no_filter_returns_all(self, tmp_path):
+        """Without filter returns both containment and reference edges."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        node_a = make_file_node("src/a.py")
+        func_a = make_method_node("src/a.py", "A", "foo")
+
+        store.add_node(node_a)
+        store.add_node(func_a)
+        store.add_edge(node_a.node_id, func_a.node_id)  # containment
+        store.add_edge(func_a.node_id, node_a.node_id, edge_type="references")
+
+        all_edges = store.get_all_edges()
+        assert len(all_edges) == 2
+
+    def test_get_all_edges_empty_graph(self, tmp_path):
+        """Empty graph returns empty list."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        assert store.get_all_edges() == []

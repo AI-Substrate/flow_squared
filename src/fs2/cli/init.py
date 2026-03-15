@@ -59,7 +59,15 @@ scan:
 #   model: gpt-4o
 
 # ─── Embedding (for semantic search) ──────────────────────────────
-# Uncomment ONE block below. Required for: fs2 scan --embed
+# Local embeddings (default — no API key needed):
+# Requires: pip install fs2[local-embeddings]
+embedding:
+  mode: local
+  dimensions: 384
+  # local:
+  #   model: BAAI/bge-small-en-v1.5
+  #   device: auto
+  #   max_seq_length: 512
 #
 # Azure AI Foundry (API key):
 # embedding:

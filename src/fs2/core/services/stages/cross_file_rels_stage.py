@@ -45,7 +45,7 @@ PROJECT_MARKERS: dict[str, list[str]] = {
 }
 
 # Defaults (Phase 3 adds CrossFileRelsConfig, Phase 4 wires through context)
-DEFAULT_PARALLEL_INSTANCES = 20
+DEFAULT_PARALLEL_INSTANCES = 15
 DEFAULT_BASE_PORT = 8330
 DEFAULT_TIMEOUT_PER_NODE = 10.0
 DEFAULT_MICRO_BATCH_SIZE = 10
@@ -122,12 +122,26 @@ def is_serena_available() -> bool:
 # ---------------------------------------------------------------------------
 
 
+_SKIP_DIRS = frozenset({
+    ".venv", "venv", ".env", "env",
+    "node_modules",
+    ".git", ".hg", ".svn",
+    "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache",
+    ".tox", ".nox",
+    "site-packages",
+    "dist", "build", ".eggs",
+})
+
+
 def detect_project_roots(scan_root: str) -> list[ProjectRoot]:
     """Detect project roots by walking for marker files.
 
     Walks the scan_root directory tree looking for project marker files
     (pyproject.toml, package.json, go.mod, etc.). Returns detected roots
     sorted deepest-first so child projects match before parents.
+
+    Skips vendored/dependency directories (.venv, node_modules, etc.)
+    to avoid detecting projects inside installed packages.
 
     Args:
         scan_root: Root directory to scan.
@@ -139,22 +153,42 @@ def detect_project_roots(scan_root: str) -> list[ProjectRoot]:
     root_path = Path(scan_root).resolve()
     found: dict[str, set[str]] = {}  # path → set of languages
 
+    # Collect all marker filenames and glob patterns
+    plain_markers: dict[str, str] = {}  # filename → language
+    glob_markers: list[tuple[str, str]] = []  # (pattern, language)
     for language, markers in PROJECT_MARKERS.items():
         for marker in markers:
-            # Handle glob patterns (e.g., *.csproj)
             if "*" in marker:
-                for match in root_path.rglob(marker):
-                    proj_dir = str(match.parent)
-                    found.setdefault(proj_dir, set()).add(language)
+                glob_markers.append((marker, language))
             else:
-                for match in root_path.rglob(marker):
-                    proj_dir = str(match.parent)
-                    found.setdefault(proj_dir, set()).add(language)
+                plain_markers[marker] = language
 
-    # Sort deepest-first so child projects match before parents
+    # Single walk with directory pruning
+    for dirpath, dirnames, filenames in os.walk(root_path):
+        # Prune vendored/dependency directories in-place
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+
+        for fname in filenames:
+            if fname in plain_markers:
+                found.setdefault(dirpath, set()).add(plain_markers[fname])
+            else:
+                for pattern, language in glob_markers:
+                    if Path(fname).match(pattern):
+                        found.setdefault(dirpath, set()).add(language)
+
+    # Deduplicate: if a root is a subdirectory of another root, drop the child.
+    # The parent's LSP covers children, and child "projects" are often
+    # test fixtures or vendored code (e.g. tests/fixtures/samples/json/package.json).
+    all_paths = sorted(found.keys())
+    kept: set[str] = set()
+    for p in all_paths:
+        if not any(p.startswith(parent + os.sep) for parent in kept):
+            kept.add(p)
+
     roots = [
         ProjectRoot(path=p, languages=sorted(langs))
         for p, langs in found.items()
+        if p in kept
     ]
     roots.sort(key=lambda r: r.path.count(os.sep), reverse=True)
     return roots
@@ -179,13 +213,17 @@ class DefaultSubprocessRunner:
 
 def ensure_serena_project(
     project_root: str,
+    languages: list[str] | None = None,
     runner: SubprocessRunnerProtocol | None = None,
+    timeout: float = 120.0,
 ) -> bool:
     """Create Serena project if .serena/project.yml doesn't exist.
 
     Args:
         project_root: Path to the project root.
+        languages: Explicit languages to enable (skips interactive prompts).
         runner: Subprocess runner (injectable for testing).
+        timeout: Maximum seconds to wait for project creation.
 
     Returns:
         True if project was created, False if already existed.
@@ -198,22 +236,32 @@ def ensure_serena_project(
         return False
 
     logger.info("Creating Serena project for %s (one-time setup)...", project_root)
+    cmd = [
+        "serena",
+        "project",
+        "create",
+        project_root,
+        "--index",
+        "--log-level",
+        "ERROR",
+    ]
+    # Pass explicit languages to avoid interactive prompts
+    for lang in (languages or []):
+        cmd.extend(["--language", lang])
+
     try:
         runner.run(
-            [
-                "serena",
-                "project",
-                "create",
-                project_root,
-                "--index",
-                "--log-level",
-                "ERROR",
-            ],
+            cmd,
             check=True,
             capture_output=True,
             text=True,
+            timeout=timeout,
+            input="\n" * 20,  # Fallback: answer any remaining prompts with defaults
         )
         return True
+    except subprocess.TimeoutExpired:
+        logger.warning("Timed out creating Serena project at %s (%.0fs)", project_root, timeout)
+        return False
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         logger.warning("Failed to create Serena project at %s: %s", project_root, e)
         return False
@@ -266,7 +314,7 @@ class SerenaPool:
                 [
                     "serena-mcp-server",
                     "--project",
-                    Path(project_root).name,
+                    project_root,
                     "--transport",
                     "streamable-http",
                     "--host",
@@ -305,6 +353,7 @@ class SerenaPool:
         Returns:
             True if all instances ready, False if timeout.
         """
+        import urllib.error
         import urllib.request
 
         deadline = time.time() + timeout
@@ -315,9 +364,12 @@ class SerenaPool:
                 if port in ready:
                     continue
                 try:
-                    url = f"http://127.0.0.1:{port}/mcp/"
+                    url = f"http://127.0.0.1:{port}/mcp"
                     req = urllib.request.Request(url, method="GET")
-                    urllib.request.urlopen(req, timeout=2)
+                    try:
+                        urllib.request.urlopen(req, timeout=2)
+                    except urllib.error.HTTPError:
+                        pass  # Any HTTP response means server is up
                     ready.add(port)
                 except Exception:
                     pass
@@ -503,7 +555,34 @@ def build_node_lookup(
 
 
 class DefaultSerenaClient:
-    """Production Serena MCP client using FastMCP."""
+    """Production Serena MCP client using FastMCP.
+
+    Reuses a single HTTP session per port for performance.
+    Must be used as an async context manager or have connect()/disconnect() called.
+    """
+
+    def __init__(self):
+        self._clients: dict[int, Any] = {}  # port → connected Client
+
+    async def _get_client(self, port: int):
+        """Get or create a persistent client for a port."""
+        if port not in self._clients:
+            from fastmcp import Client
+
+            url = f"http://127.0.0.1:{port}/mcp/"
+            client = Client(url)
+            await client.__aenter__()
+            self._clients[port] = client
+        return self._clients[port]
+
+    async def close(self):
+        """Close all persistent connections."""
+        for client in self._clients.values():
+            try:
+                await client.__aexit__(None, None, None)
+            except Exception:
+                pass
+        self._clients.clear()
 
     async def find_referencing_symbols(
         self, name_path: str, relative_path: str, port: int
@@ -518,46 +597,48 @@ class DefaultSerenaClient:
         Returns:
             List of reference dicts with file and symbol info.
         """
-        from fastmcp import Client
-
-        url = f"http://127.0.0.1:{port}/mcp/"
+        client = await self._get_client(port)
         refs: list[dict[str, Any]] = []
 
-        async with Client(url) as client:
-            result = await asyncio.wait_for(
-                client.call_tool(
-                    "find_referencing_symbols",
-                    {
-                        "name_path": name_path,
-                        "relative_path": relative_path,
-                    },
-                ),
-                timeout=DEFAULT_TIMEOUT_PER_NODE,
-            )
+        result = await asyncio.wait_for(
+            client.call_tool(
+                "find_referencing_symbols",
+                {
+                    "name_path": name_path,
+                    "relative_path": relative_path,
+                },
+            ),
+            timeout=DEFAULT_TIMEOUT_PER_NODE,
+        )
 
-            if hasattr(result, "content"):
-                for item in result.content:
-                    text = getattr(item, "text", "")
-                    if text:
-                        try:
-                            data = json.loads(text)
-                            # Serena returns {file_path: {kind: [refs]}}
-                            for file_path, kinds in data.items():
-                                if isinstance(kinds, dict):
-                                    for kind, symbols in kinds.items():
-                                        if isinstance(symbols, list):
-                                            for sym in symbols:
+        if hasattr(result, "content"):
+            for item in result.content:
+                text = getattr(item, "text", "")
+                if text:
+                    try:
+                        data = json.loads(text)
+                        # Serena returns {file_path: {kind: [refs]}}
+                        # Each ref is a dict with name_path, body_location, etc.
+                        for file_path, kinds in data.items():
+                            if isinstance(kinds, dict):
+                                for kind, symbols in kinds.items():
+                                    if isinstance(symbols, list):
+                                        for sym in symbols:
+                                            sym_name = ""
+                                            if isinstance(sym, dict):
+                                                sym_name = sym.get("name_path", "")
+                                            elif isinstance(sym, str):
+                                                sym_name = sym
+                                            if sym_name:
                                                 refs.append(
                                                     {
                                                         "file": file_path,
                                                         "kind": kind,
-                                                        "symbol": sym
-                                                        if isinstance(sym, str)
-                                                        else str(sym),
+                                                        "name_path": sym_name,
                                                     }
                                                 )
-                        except (json.JSONDecodeError, TypeError):
-                            pass
+                    except (json.JSONDecodeError, TypeError):
+                        pass
 
         return refs
 
@@ -594,18 +675,31 @@ async def resolve_node_batch(
                 port=port,
             )
 
+            logger.debug(
+                "Serena refs for %s (%s): %d refs found",
+                node.node_id, name_path, len(refs),
+            )
+
             for ref in refs:
                 ref_file = ref.get("file", "")
-                ref_symbol = ref.get("symbol", "")
+                ref_name_path = ref.get("name_path", "")
+
+                # Convert Serena's "/" name_path to "." qualified_name for lookup
+                ref_qualified = ref_name_path.replace("/", ".")
 
                 # Try to find the referencing node in our graph
-                source_id = node_lookup.get((ref_file, ref_symbol))
+                source_id = node_lookup.get((ref_file, ref_qualified))
                 if source_id and source_id in known_node_ids:
                     target_id = node.node_id
                     if source_id != target_id:  # no self-references
                         edges.append(
                             (source_id, target_id, {"edge_type": "references"})
                         )
+                else:
+                    logger.debug(
+                        "  ref not matched: file=%s name_path=%r qualified=%r (lookup_hit=%s)",
+                        ref_file, ref_name_path, ref_qualified, source_id is not None,
+                    )
 
         except asyncio.TimeoutError:
             logger.warning(
@@ -725,9 +819,18 @@ class CrossFileRelsStage:
     """Pipeline stage for cross-file relationship resolution using Serena.
 
     Per DYK-P2-02: Sync process() bridges to async via asyncio.run().
-    Per DYK-P2-04: Zero-arg constructor; uses hardcoded defaults.
-    Phase 3 adds CrossFileRelsConfig, Phase 4 wires through context.
+    Per DYK-P4-01: Accepts pool_factory for testability (fakes over mocks).
+    Per DYK-P4-02: Checks config.enabled before serena availability.
     """
+
+    def __init__(self, pool_factory: type | None = None):
+        """Initialize stage with optional pool factory for DI.
+
+        Args:
+            pool_factory: Class to use for creating Serena pools.
+                          Defaults to SerenaPool. Tests pass FakeSerenaPool.
+        """
+        self._pool_factory = pool_factory or SerenaPool
 
     @property
     def name(self) -> str:
@@ -737,7 +840,8 @@ class CrossFileRelsStage:
     def process(self, context: "PipelineContext") -> "PipelineContext":
         """Resolve cross-file references and collect edges.
 
-        Full flow: detect → projects → pool → shard → resolve → collect → stop.
+        Full flow: config check → serena check → detect → projects →
+        incremental filter → pool → shard → resolve → merge → collect → stop.
 
         Args:
             context: Pipeline context with nodes from ParsingStage.
@@ -747,6 +851,27 @@ class CrossFileRelsStage:
         """
         start_time = time.time()
 
+        # Get progress callback for user-visible output
+        progress_cb = getattr(context, "cross_file_rels_progress_callback", None)
+
+        # DYK-P4-02: Check config FIRST (before serena check and orphan cleanup)
+        config = getattr(context, "cross_file_rels_config", None)
+        if config is None:
+            logger.info("No cross_file_rels_config in context. Skipping cross-file relationships.")
+            context.metrics["cross_file_rels_skipped"] = True
+            context.metrics["cross_file_rels_reason"] = "no_config"
+            if progress_cb:
+                progress_cb("skipped", "no config provided")
+            return context
+
+        if not config.enabled:
+            logger.info("Cross-file relationships disabled by config.")
+            context.metrics["cross_file_rels_skipped"] = True
+            context.metrics["cross_file_rels_reason"] = "disabled"
+            if progress_cb:
+                progress_cb("skipped", "disabled by config")
+            return context
+
         # T010: Graceful skip if Serena not available
         if not is_serena_available():
             logger.info(
@@ -755,72 +880,214 @@ class CrossFileRelsStage:
             )
             context.metrics["cross_file_rels_skipped"] = True
             context.metrics["cross_file_rels_reason"] = "serena_not_available"
+            if progress_cb:
+                progress_cb("skipped", "serena-mcp-server not found")
             return context
+
+        # Show banner immediately so user knows the stage is active
+        if progress_cb:
+            progress_cb("preparing", "cleaning up prior processes")
 
         # Clean up orphans from prior crashed scan
         SerenaPool.cleanup_orphans()
 
-        # T004: Detect project roots
-        scan_root = str(Path(context.graph_path).parent.parent)
-        project_roots = detect_project_roots(scan_root)
-        if not project_roots:
+        # DYK-P4-04: Detect project roots from scan_root + scan_paths (not graph_path hack)
+        if progress_cb:
+            progress_cb("preparing", "detecting project roots")
+
+        scan_root = str(getattr(context, "scan_root", Path.cwd().resolve()))
+        search_roots = {scan_root}
+        if hasattr(context, "scan_config") and hasattr(context.scan_config, "scan_paths"):
+            for sp in context.scan_config.scan_paths:
+                resolved = str(Path(sp).resolve())
+                search_roots.add(resolved)
+
+        all_project_roots: list[ProjectRoot] = []
+        seen_paths: set[str] = set()
+        for root in search_roots:
+            for pr in detect_project_roots(root):
+                if pr.path not in seen_paths:
+                    all_project_roots.append(pr)
+                    seen_paths.add(pr.path)
+
+        if not all_project_roots:
             logger.info("No project roots detected. Skipping cross-file relationships.")
             context.metrics["cross_file_rels_skipped"] = True
             context.metrics["cross_file_rels_reason"] = "no_project_roots"
+            if progress_cb:
+                progress_cb("skipped", "no project roots detected")
             return context
 
         logger.info(
             "Detected %d project root(s): %s",
-            len(project_roots),
-            [r.path for r in project_roots],
+            len(all_project_roots),
+            [r.path for r in all_project_roots],
         )
 
         # T005: Ensure Serena projects exist
-        for root in project_roots:
-            ensure_serena_project(root.path)
+        if progress_cb:
+            progress_cb("preparing", f"setting up LSP for {len(all_project_roots)} project(s)")
 
-        # T006: Start instance pool
-        pool = SerenaPool()
-        n_instances = min(DEFAULT_PARALLEL_INSTANCES, len(context.nodes))
+        for root in all_project_roots:
+            ensure_serena_project(root.path, languages=root.languages)
+
+        # Incremental resolution: determine changed files
+        changed_files = get_changed_file_paths(context.nodes, context.prior_nodes)
+        reused_edges = reuse_prior_edges(
+            getattr(context, "prior_cross_file_edges", None),
+            changed_files,
+            {n.node_id for n in context.nodes},
+        )
+
+        # Filter nodes to only those from changed files
+        resolvable = [n for n in context.nodes if n.category in ("callable", "type")]
+        nodes_to_resolve = filter_nodes_to_changed(resolvable, changed_files)
+
+        if not nodes_to_resolve:
+            # All files unchanged — reuse all prior edges
+            context.cross_file_edges = reused_edges
+            elapsed = time.time() - start_time
+            context.metrics["cross_file_rels_time_s"] = round(elapsed, 2)
+            context.metrics["cross_file_rels_edges"] = len(reused_edges)
+            context.metrics["cross_file_rels_preserved"] = len(reused_edges)
+            context.metrics["cross_file_rels_resolved"] = 0
+            context.metrics["cross_file_rels_skipped"] = False
+            logger.info(
+                "Cross-file resolution: all files unchanged, reused %d prior edges (%.1fs)",
+                len(reused_edges),
+                elapsed,
+            )
+            if progress_cb:
+                progress_cb("reused", f"all files unchanged, reused {len(reused_edges)} edges")
+            return context
+
+        logger.info(
+            "Cross-file resolution: %d nodes to resolve (%d unchanged files, %d reused edges)",
+            len(nodes_to_resolve),
+            len(resolvable) - len(nodes_to_resolve),
+            len(reused_edges),
+        )
+        if progress_cb:
+            progress_cb(
+                "starting",
+                f"{len(nodes_to_resolve)} nodes to resolve ({len(reused_edges)} edges reused)",
+            )
+
+        # Read config values (with defaults fallback)
+        n_instances = min(config.parallel_instances, len(nodes_to_resolve))
         if n_instances < 1:
             n_instances = 1
+        base_port = config.serena_base_port
+
+        # T006: Start instance pool
+        pool = self._pool_factory()
 
         try:
-            pool.start(n_instances, DEFAULT_BASE_PORT, project_roots[0].path)
+            if progress_cb:
+                progress_cb("preparing", f"starting {n_instances} LSP instance(s)")
+
+            pool.start(n_instances, base_port, all_project_roots[0].path)
             if not pool.wait_ready(timeout=60.0):
                 logger.warning("Some Serena instances failed to start. Continuing with available.")
 
             # T007: Shard nodes
-            shards = shard_nodes(context.nodes, project_roots, pool.ports)
+            shards = shard_nodes(nodes_to_resolve, all_project_roots, pool.ports)
 
-            # T008: Resolve in micro-batches
+            # T008: Resolve with all ports running concurrently
             node_lookup = build_node_lookup(context.nodes)
             known_ids = {n.node_id for n in context.nodes}
-            all_edges: list[tuple[str, str, dict[str, Any]]] = []
-            total_resolved = 0
+            total_nodes = sum(len(v) for v in shards.values())
 
-            for port, port_nodes in shards.items():
-                # Process in micro-batches of DEFAULT_MICRO_BATCH_SIZE
-                for batch_start in range(0, len(port_nodes), DEFAULT_MICRO_BATCH_SIZE):
-                    batch = port_nodes[batch_start : batch_start + DEFAULT_MICRO_BATCH_SIZE]
+            # Shared mutable counter for cross-port progress
+            progress_state = {"resolved": 0, "edges": 0, "last_time": time.time()}
 
-                    batch_edges = asyncio.run(
-                        resolve_node_batch(
-                            batch, port, node_lookup, known_ids
-                        )
-                    )
-                    all_edges.extend(batch_edges)
-                    total_resolved += len(batch)
+            async def _resolve_port(p_nodes, p_port):
+                client = DefaultSerenaClient()
+                try:
+                    port_edges = []
+                    for node in p_nodes:
+                        try:
+                            np = node.qualified_name.replace(".", "/")
+                            refs = await client.find_referencing_symbols(
+                                name_path=np,
+                                relative_path=node.file_path,
+                                port=p_port,
+                            )
+                            logger.debug(
+                                "Serena refs for %s (%s): %d refs found",
+                                node.node_id, np, len(refs),
+                            )
+                            for ref in refs:
+                                ref_file = ref.get("file", "")
+                                ref_name_path = ref.get("name_path", "")
+                                ref_qualified = ref_name_path.replace("/", ".")
+                                source_id = node_lookup.get((ref_file, ref_qualified))
+                                if source_id and source_id in known_ids:
+                                    if source_id != node.node_id:
+                                        port_edges.append(
+                                            (source_id, node.node_id, {"edge_type": "references"})
+                                        )
+                                else:
+                                    logger.debug(
+                                        "  ref not matched: file=%s name_path=%r qualified=%r",
+                                        ref_file, ref_name_path, ref_qualified,
+                                    )
+                        except TimeoutError:
+                            logger.warning("Timeout resolving %s (port %d)", node.node_id, p_port)
+                        except Exception as e:
+                            logger.warning("Error resolving %s (port %d): %s", node.node_id, p_port, e)
+                            try:
+                                await client.close()
+                            except Exception:
+                                pass
+                            client = DefaultSerenaClient()
 
-                    if total_resolved % 100 == 0:
-                        logger.info(
-                            "Cross-file resolution: %d/%d nodes processed, %d edges found",
-                            total_resolved,
-                            sum(len(v) for v in shards.values()),
-                            len(all_edges),
-                        )
+                        # Update shared progress counter
+                        progress_state["resolved"] += 1
+                        progress_state["edges"] += len(port_edges) - progress_state.get(f"_last_{p_port}", 0)
+                        progress_state[f"_last_{p_port}"] = len(port_edges)
 
-            context.cross_file_edges = all_edges
+                        done = progress_state["resolved"]
+                        if progress_cb and (done % 50 == 0 or done == total_nodes):
+                            now = time.time()
+                            pct = (done / total_nodes * 100) if total_nodes else 0
+                            remaining = total_nodes - done
+                            elapsed_batch = now - progress_state["last_time"]
+                            if elapsed_batch > 0:
+                                rate = 50 / elapsed_batch if done >= 50 else done / elapsed_batch
+                                eta_s = remaining / rate if rate > 0 else 0
+                                if eta_s >= 60:
+                                    eta_str = f" ~{eta_s / 60:.1f}m remaining"
+                                else:
+                                    eta_str = f" ~{eta_s:.0f}s remaining"
+                            else:
+                                eta_str = ""
+                            progress_state["last_time"] = now
+                            progress_cb(
+                                "progress",
+                                f"{done}/{total_nodes} nodes ({pct:.0f}%), "
+                                f"{progress_state['edges']} edges{eta_str}",
+                            )
+
+                    return port_edges
+                finally:
+                    await client.close()
+
+            async def _resolve_all():
+                tasks = [
+                    _resolve_port(p_nodes, p_port)
+                    for p_port, p_nodes in shards.items()
+                ]
+                return await asyncio.gather(*tasks)
+
+            all_port_edges = asyncio.run(_resolve_all())
+            fresh_edges: list[tuple[str, str, dict[str, Any]]] = []
+            for port_edges in all_port_edges:
+                fresh_edges.extend(port_edges)
+            total_resolved = total_nodes
+
+            # Merge reused + fresh edges
+            context.cross_file_edges = reused_edges + fresh_edges
 
         finally:
             pool.stop()
@@ -828,15 +1095,23 @@ class CrossFileRelsStage:
         elapsed = time.time() - start_time
         context.metrics["cross_file_rels_time_s"] = round(elapsed, 2)
         context.metrics["cross_file_rels_edges"] = len(context.cross_file_edges)
-        context.metrics["cross_file_rels_nodes_resolved"] = total_resolved
+        context.metrics["cross_file_rels_preserved"] = len(reused_edges)
+        context.metrics["cross_file_rels_resolved"] = total_resolved
         context.metrics["cross_file_rels_instances"] = n_instances
         context.metrics["cross_file_rels_skipped"] = False
 
         logger.info(
-            "Cross-file resolution complete: %d edges from %d nodes in %.1fs",
+            "Cross-file resolution complete: %d edges (%d fresh + %d reused) from %d nodes in %.1fs",
             len(context.cross_file_edges),
+            len(fresh_edges),
+            len(reused_edges),
             total_resolved,
             elapsed,
         )
+        if progress_cb:
+            progress_cb(
+                "complete",
+                f"{len(context.cross_file_edges)} edges ({len(fresh_edges)} fresh + {len(reused_edges)} reused) in {elapsed:.1f}s",
+            )
 
         return context
