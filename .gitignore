@@ -229,3 +229,4 @@ scratch/*
 # Generated test output
 scripts/semantic_search_results.json
 .vsc-bridgehost.json
+.fs2/graph.pickle.backup.*

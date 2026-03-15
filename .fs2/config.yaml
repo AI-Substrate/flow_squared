@@ -78,3 +78,14 @@ other_graphs:
     - name: fastcode
       path: ~/github/FastCode/.fs2/graph.pickle
       description: FastCode - reference implementation for cross-file relationships
+
+# ─── Local LLM (plan 034) ─────────────────────────────────────────
+llm:
+  provider: local
+  base_url: http://localhost:11434
+  model: qwen2.5-coder:7b
+  timeout: 60
+
+smart_content:
+  max_workers: 50
+  max_input_tokens: 50000

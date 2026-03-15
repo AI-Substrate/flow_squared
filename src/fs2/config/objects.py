@@ -314,7 +314,7 @@ class LLMConfig(BaseModel):
 
     __config_path__: ClassVar[str] = "llm"
 
-    provider: Literal["azure", "openai", "fake"]
+    provider: Literal["azure", "openai", "fake", "local"]
     api_key: str | None = None
     base_url: str | None = None
     azure_deployment_name: str | None = None
@@ -348,30 +348,47 @@ class LLMConfig(BaseModel):
     @field_validator("timeout")
     @classmethod
     def validate_timeout(cls, v: int) -> int:
-        """Validate timeout is in reasonable range (1-120 seconds)."""
-        if v < 1 or v > 120:
-            raise ValueError("Timeout must be 1-120 seconds")
+        """Validate timeout is in reasonable range.
+
+        Basic range check. Provider-specific max is enforced in model_validator.
+        """
+        if v < 1:
+            raise ValueError("Timeout must be at least 1 second")
         return v
 
     @model_validator(mode="after")
-    def validate_azure_fields(self) -> "LLMConfig":
-        """Validate Azure-specific fields when provider is 'azure'.
+    def validate_provider_fields(self) -> "LLMConfig":
+        """Validate provider-specific fields.
 
-        When provider=azure, the following fields are required:
-        - base_url (Azure endpoint)
-        - azure_deployment_name
-        - azure_api_version
+        - Azure: requires base_url, azure_deployment_name, azure_api_version
+        - Local: requires base_url and model; allows timeout up to 300s
+        - Cloud (azure/openai): timeout max 120s
         """
-        if self.provider != "azure":
-            return self
-
         errors = []
-        if not self.base_url:
-            errors.append("base_url is required when provider=azure")
-        if not self.azure_deployment_name:
-            errors.append("azure_deployment_name is required when provider=azure")
-        if not self.azure_api_version:
-            errors.append("azure_api_version is required when provider=azure")
+
+        if self.provider == "azure":
+            if not self.base_url:
+                errors.append("base_url is required when provider=azure")
+            if not self.azure_deployment_name:
+                errors.append("azure_deployment_name is required when provider=azure")
+            if not self.azure_api_version:
+                errors.append("azure_api_version is required when provider=azure")
+
+        if self.provider == "local":
+            if not self.base_url:
+                errors.append(
+                    "base_url is required when provider=local "
+                    "(e.g., http://localhost:11434)"
+                )
+            if not self.model:
+                errors.append(
+                    "model is required when provider=local "
+                    "(e.g., qwen2.5-coder:7b)"
+                )
+            if self.timeout > 300:
+                errors.append("Timeout must be 1-300 seconds for local provider")
+        elif self.timeout > 120:
+            errors.append("Timeout must be 1-120 seconds")
 
         if errors:
             raise ValueError("; ".join(errors))

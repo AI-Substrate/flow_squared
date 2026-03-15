@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 _MIN_CONTENT_LENGTH = 50
 
 # Progress callback interval (user request: every 10 items)
-_PROGRESS_INTERVAL = 10
+_PROGRESS_INTERVAL = 1
 
 
 @dataclass(frozen=True)
@@ -479,24 +479,25 @@ class SmartContentService:
                     stats["processed"] += 1
                     stats["results"][node.node_id] = updated_node
                     stats["recent_times"].append(time.monotonic())
+                    # Trim to keep only recent window for rate calculation
+                    if len(stats["recent_times"]) > _RATE_WINDOW * 2:
+                        stats["recent_times"] = stats["recent_times"][-_RATE_WINDOW:]
 
-                    # Progress callback: first item, then every N items
-                    is_first = stats["processed"] == 1
-                    if is_first or stats["processed"] % _PROGRESS_INTERVAL == 0:
-                        remaining = (
-                            stats["total"]
-                            - stats["processed"]
-                            - stats["skipped"]
-                            - len(stats["errors"])
-                        )
-                        logger.info(
-                            "Progress: %d/%d processed, %d remaining",
-                            stats["processed"],
-                            stats["total"],
-                            remaining,
-                        )
-                        if progress_callback:
-                            progress_callback(_make_progress(), None)
+                    # Progress callback on every completion
+                    remaining = (
+                        stats["total"]
+                        - stats["processed"]
+                        - stats["skipped"]
+                        - len(stats["errors"])
+                    )
+                    logger.info(
+                        "Progress: %d/%d processed, %d remaining",
+                        stats["processed"],
+                        stats["total"],
+                        remaining,
+                    )
+                    if progress_callback:
+                        progress_callback(_make_progress(), None)
 
             except LLMAuthenticationError:
                 # Auth errors should fail the entire batch - re-raise

@@ -77,6 +77,7 @@ from fs2.core.adapters.file_watcher_adapter_watchfiles import WatchfilesAdapter
 from fs2.core.adapters.llm_adapter import LLMAdapter
 from fs2.core.adapters.llm_adapter_azure import AzureOpenAIAdapter
 from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+from fs2.core.adapters.llm_adapter_local import LocalOllamaAdapter
 from fs2.core.adapters.llm_adapter_openai import OpenAIAdapter
 from fs2.core.adapters.log_adapter import LogAdapter
 from fs2.core.adapters.log_adapter_console import ConsoleLogAdapter
@@ -121,6 +122,7 @@ __all__ = [
     "GraphStoreError",
     "LLMAdapter",
     "FakeLLMAdapter",
+    "LocalOllamaAdapter",
     "OpenAIAdapter",
     "AzureOpenAIAdapter",
     "LLMAdapterError",

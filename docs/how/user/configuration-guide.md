@@ -208,11 +208,40 @@ The `llm` section configures the Large Language Model used for smart content gen
 
 ### Provider Options
 
-| Provider | Description | Required Fields |
-|----------|-------------|-----------------|
-| `azure` | Azure OpenAI Service | `base_url`, `azure_deployment_name`, `azure_api_version` |
-| `openai` | OpenAI API | `api_key` |
-| `fake` | Mock provider for testing | None |
+| Provider | Description | Required Fields | API Key? |
+|----------|-------------|-----------------|----------|
+| `local` | **Local Ollama** (recommended) | `base_url`, `model` | No |
+| `azure` | Azure OpenAI Service | `base_url`, `azure_deployment_name`, `azure_api_version` | Yes/AD |
+| `openai` | OpenAI API | `api_key` | Yes |
+| `fake` | Mock provider for testing | None | No |
+
+### Local Ollama Configuration (Recommended)
+
+Run a local LLM on your machine — no API keys, no network access, no cost.
+
+**Setup:**
+1. Install Ollama: https://ollama.com/download
+2. Pull a model: `ollama pull qwen2.5-coder:7b`
+
+```yaml
+llm:
+  provider: local
+  base_url: http://localhost:11434
+  model: qwen2.5-coder:7b
+  temperature: 0.1                # Lower = more consistent summaries
+  max_tokens: 1024
+  timeout: 60                     # Up to 300s for CPU-only machines
+```
+
+**Recommended models:**
+| Model | Size | Quality | Use Case |
+|-------|------|---------|----------|
+| `qwen2.5-coder:7b` | 4.7 GB | Best | Default — best code understanding |
+| `qwen2.5-coder:3b` | 2.0 GB | Good | Limited RAM/VRAM |
+
+Ollama auto-detects your GPU (Metal on Mac, CUDA on NVIDIA, CPU fallback).
+
+See [Local LLM Guide](local-llm.md) for detailed setup and troubleshooting.
 
 ### Azure OpenAI Configuration (API Key)
 
