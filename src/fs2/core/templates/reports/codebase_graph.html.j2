@@ -30,7 +30,7 @@
 <body>
     <!-- Loading Screen -->
     <div id="loading-screen">
-        <div class="loading-title">fs2 — <span class="accent name"></span></div>
+        <div class="loading-title">fs2 — <span class="name"></span></div>
         <div class="loading-subtitle"></div>
         <div class="loading-stats">
             <div class="loading-stat">
@@ -49,19 +49,72 @@
         <div class="loading-spinner"></div>
     </div>
 
+    <!-- Error Display -->
+    <div id="error-display"></div>
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+        <div class="toolbar-left">
+            <span class="toolbar-title">fs2 — <span class="name"></span></span>
+            <span class="toolbar-separator"></span>
+            <button id="btn-overview" class="mode-btn active" title="Show file overview (Esc)">Overview</button>
+            <button id="btn-entry-points" class="mode-btn" title="Show entry points">Entry Points</button>
+            <span class="toolbar-separator"></span>
+            <button id="btn-zoom-fit" class="tool-btn" title="Fit view (F)">⊡</button>
+            <button id="btn-zoom-in" class="tool-btn" title="Zoom in">+</button>
+            <button id="btn-zoom-out" class="tool-btn" title="Zoom out">−</button>
+        </div>
+        <div class="toolbar-center">
+            <input type="text" id="search-input" placeholder="Search nodes... (/ to focus)" />
+        </div>
+        <div class="toolbar-right">
+            <div class="category-legend" id="category-legend"></div>
+        </div>
+    </div>
+
     <!-- Sigma.js Canvas -->
     <div id="sigma-container"></div>
 
-    <!-- Project Title -->
-    <div class="project-title">
-        fs2 — <span class="name"></span>
+    <!-- Info Panel (right sidebar) -->
+    <div id="info-panel" style="display:none">
+        <div class="info-header">
+            <span id="info-name"></span>
+            <button id="info-close">×</button>
+        </div>
+        <div class="info-body">
+            <div class="info-row">
+                <span class="info-label">Category</span>
+                <span class="info-value" id="info-category"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Path</span>
+                <span class="info-value mono" id="info-path"></span>
+            </div>
+            <div class="info-section" id="info-sig-section">
+                <div class="info-section-title">Signature</div>
+                <span class="info-value mono" id="info-signature"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Connections</span>
+                <span class="info-value" id="info-degree"></span>
+            </div>
+            <div class="info-section">
+                <div class="info-section-title">Callers (incoming)</div>
+                <div id="info-callers"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-section-title">Calls (outgoing)</div>
+                <div id="info-calls"></div>
+            </div>
+            <div class="info-section" id="info-summary-section">
+                <div class="info-section-title">Summary</div>
+                <div class="info-summary" id="info-summary"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Help Hint -->
-    <div class="help-hint" id="help-hint">Click a file node · Scroll to zoom · Drag to pan · Esc to reset</div>
-
-    <!-- Category Legend -->
-    <div class="category-legend" id="category-legend"></div>
+    <div class="help-hint" id="help-hint">Click a file node · Scroll to zoom · Drag to pan · / to search · Esc to reset</div>
 
     <!-- Status Bar -->
     <div class="status-bar">
@@ -82,9 +135,7 @@
     </script>
 
     <!-- Vendored libraries -->
-    <script>{{ graphology_js }}</script>
-    <script>{{ force_atlas_js }}</script>
-    <script>{{ sigma_js }}</script>
+    <script>{{ d3_js }}</script>
 
     <!-- Graph viewer -->
     <script>{{ graph_viewer_js }}</script>
