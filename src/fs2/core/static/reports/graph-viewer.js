@@ -16,9 +16,9 @@
   // --- State ---
   var viewMode = 'overview'; // 'overview' | 'contents' | 'focus'
   var focusedNode = null;
-  var focusedFile = null;    // file node_id for contents mode
+  var focusedFile = null;
   var hoveredNode = null;
-  var neighborSet = null;    // Set of neighbor node_ids when focused
+  var neighborSet = null;
   var renderer = null;
   var graph = null;
 
@@ -27,14 +27,16 @@
     return (n || 0).toLocaleString();
   }
 
-  function updateStatusShowing(count) {
-    var el = document.getElementById('status-showing');
-    if (el) el.textContent = 'Showing ' + formatNumber(count);
+  function updateStatus(viewLabel, showingCount) {
+    var viewEl = document.getElementById('status-view');
+    var showEl = document.getElementById('status-showing');
+    if (viewEl) viewEl.textContent = viewLabel;
+    if (showEl) showEl.textContent = 'Showing ' + formatNumber(showingCount);
   }
 
-  function updateViewLabel(label) {
-    var el = document.getElementById('status-view');
-    if (el) el.textContent = label;
+  function showHelpHint(text) {
+    var el = document.getElementById('help-hint');
+    if (el) el.textContent = text;
   }
 
   // --- Loading Screen ---
@@ -100,53 +102,63 @@
   // --- View Mode: Node Reducer ---
   function nodeReducer(node, data) {
     var res = Object.assign({}, data);
-    var attrs = graph.getNodeAttributes(node);
-    var cat = attrs.category;
+    var cat = data.category || graph.getNodeAttribute(node, 'category');
 
     if (viewMode === 'overview') {
-      // Only show file nodes
-      if (cat !== 'file') return null;
-      // Hover effect
-      if (hoveredNode === node) { res.size = data.size * 1.5; res.zIndex = 1; }
+      if (cat !== 'file') {
+        res.hidden = true;
+        return res;
+      }
+      if (hoveredNode === node) {
+        res.size = (data.size || 6) * 1.8;
+        res.zIndex = 1;
+        res.highlighted = true;
+      }
       return res;
     }
 
     if (viewMode === 'contents') {
-      // Show the focused file + its direct children
       if (node === focusedFile) {
-        res.size = data.size * 1.2;
+        res.size = (data.size || 6) * 1.3;
         res.zIndex = 1;
+        res.color = '#38bdf8';
         return res;
       }
-      var parentId = attrs.parentNodeId;
+      var parentId = graph.getNodeAttribute(node, 'parentNodeId');
       if (parentId === focusedFile) {
-        if (hoveredNode === node) { res.size = data.size * 1.5; res.zIndex = 1; }
+        if (hoveredNode === node) {
+          res.size = (data.size || 6) * 1.5;
+          res.zIndex = 1;
+        }
         return res;
       }
-      // Also show sibling files (dimmed) for context
       if (cat === 'file') {
-        res.color = '#2a2e3a';
+        res.color = '#1e293b';
         res.label = '';
-        res.size = data.size * 0.5;
+        res.size = 2;
         return res;
       }
-      return null;
+      res.hidden = true;
+      return res;
     }
 
     if (viewMode === 'focus') {
       if (node === focusedNode) {
-        res.size = data.size * 1.5;
+        res.size = (data.size || 6) * 2;
         res.zIndex = 2;
+        res.color = '#38bdf8';
         return res;
       }
       if (neighborSet && neighborSet.has(node)) {
-        if (hoveredNode === node) { res.size = data.size * 1.3; }
+        if (hoveredNode === node) {
+          res.size = (data.size || 6) * 1.3;
+          res.zIndex = 1;
+        }
         return res;
       }
-      // Dim everything else
-      res.color = '#1e293b';
+      res.color = '#1a1f2e';
       res.label = '';
-      res.size = 2;
+      res.size = 1.5;
       return res;
     }
 
@@ -155,17 +167,24 @@
 
   // --- View Mode: Edge Reducer ---
   function edgeReducer(edge, data) {
-    if (viewMode === 'overview' || viewMode === 'contents') {
-      return null; // No edges in overview/contents
+    var res = Object.assign({}, data);
+
+    if (viewMode !== 'focus' || !focusedNode) {
+      res.hidden = true;
+      return res;
     }
-    if (viewMode === 'focus' && focusedNode) {
-      var source = graph.source(edge);
-      var target = graph.target(edge);
-      if (source === focusedNode || target === focusedNode) {
-        return Object.assign({}, data, { hidden: false, size: 1.5, color: '#f59e0b' });
-      }
+
+    var source = graph.source(edge);
+    var target = graph.target(edge);
+    if (source === focusedNode || target === focusedNode) {
+      res.hidden = false;
+      res.size = 2;
+      res.color = '#f59e0b';
+      return res;
     }
-    return null; // Hide all other edges
+
+    res.hidden = true;
+    return res;
   }
 
   // --- View Mode Transitions ---
@@ -174,10 +193,10 @@
     focusedNode = null;
     focusedFile = null;
     neighborSet = null;
-    updateViewLabel('Overview');
     var fileCount = 0;
     graph.forEachNode(function (n, a) { if (a.category === 'file') fileCount++; });
-    updateStatusShowing(fileCount);
+    updateStatus('Overview · click a file to explore', fileCount);
+    showHelpHint('Click a file node · Scroll to zoom · Drag to pan · Esc to reset');
     renderer.refresh();
   }
 
@@ -187,38 +206,36 @@
     focusedNode = null;
     neighborSet = null;
     var fileName = graph.getNodeAttribute(fileNodeId, 'label') || fileNodeId;
-    updateViewLabel('File: ' + fileName);
     var count = 1;
     graph.forEachNode(function (n, a) {
       if (a.parentNodeId === fileNodeId) count++;
     });
-    updateStatusShowing(count);
+    updateStatus('File: ' + fileName, count);
+    showHelpHint('Click a symbol to see connections · Click background to go back');
 
-    // Animate camera to the file node
     var attrs = graph.getNodeAttributes(fileNodeId);
-    renderer.getCamera().animate({ x: attrs.x, y: attrs.y, ratio: 0.3 }, { duration: 400 });
+    renderer.getCamera().animate({ x: attrs.x, y: attrs.y, ratio: 0.15 }, { duration: 400 });
     renderer.refresh();
   }
 
   function enterFocus(nodeId) {
     viewMode = 'focus';
     focusedNode = nodeId;
-    focusedFile = null;
 
-    // Build neighbor set
     neighborSet = new Set();
     try {
-      graph.forEachInNeighbor(nodeId, function (neighbor) { neighborSet.add(neighbor); });
-      graph.forEachOutNeighbor(nodeId, function (neighbor) { neighborSet.add(neighbor); });
+      graph.forEachInNeighbor(nodeId, function (nb) { neighborSet.add(nb); });
+      graph.forEachOutNeighbor(nodeId, function (nb) { neighborSet.add(nb); });
     } catch (e) { /* node may not exist */ }
 
     var nodeName = graph.getNodeAttribute(nodeId, 'label') || nodeId;
-    updateViewLabel('Focus: ' + nodeName);
-    updateStatusShowing(neighborSet.size + 1);
+    var inDeg = graph.getNodeAttribute(nodeId, 'inDegree') || 0;
+    var outDeg = graph.getNodeAttribute(nodeId, 'outDegree') || 0;
+    updateStatus('Focus: ' + nodeName + ' (in:' + inDeg + ' out:' + outDeg + ')', neighborSet.size + 1);
+    showHelpHint('Click a neighbor to walk · Click background to go back · Esc to reset');
 
-    // Animate camera
     var attrs = graph.getNodeAttributes(nodeId);
-    renderer.getCamera().animate({ x: attrs.x, y: attrs.y, ratio: 0.15 }, { duration: 400 });
+    renderer.getCamera().animate({ x: attrs.x, y: attrs.y, ratio: 0.1 }, { duration: 400 });
     renderer.refresh();
   }
 
@@ -265,7 +282,7 @@
             color: e.color || '#f59e0b',
             size: 0.5,
             type: 'arrow',
-            hidden: e.hidden || false,
+            hidden: true,
             isReference: !e.hidden,
           });
         }
@@ -278,52 +295,49 @@
 
     renderer = new Sigma(graph, container, {
       renderLabels: true,
-      labelRenderedSizeThreshold: 5,
+      labelRenderedSizeThreshold: 4,
       labelFont: 'Inter, sans-serif',
-      labelSize: 12,
+      labelSize: 13,
       labelColor: { color: '#e2e8f0' },
       labelWeight: '500',
       defaultNodeType: 'circle',
       defaultEdgeType: 'arrow',
-      minCameraRatio: 0.01,
+      minCameraRatio: 0.005,
       maxCameraRatio: 20,
       stagePadding: 50,
       zoomDuration: 200,
       allowInvalidContainer: true,
+      nodeReducer: nodeReducer,
+      edgeReducer: edgeReducer,
     });
-
-    // Set reducers
-    renderer.setSetting('nodeReducer', nodeReducer);
-    renderer.setSetting('edgeReducer', edgeReducer);
 
     // Hover
     renderer.on('enterNode', function (event) {
       hoveredNode = event.node;
+      container.style.cursor = 'pointer';
       renderer.refresh();
     });
     renderer.on('leaveNode', function () {
       hoveredNode = null;
+      container.style.cursor = 'default';
       renderer.refresh();
     });
 
     // Click node
     renderer.on('clickNode', function (event) {
       var nodeId = event.node;
-      var attrs = graph.getNodeAttributes(nodeId);
+      var cat = graph.getNodeAttribute(nodeId, 'category');
 
-      if (viewMode === 'overview' && attrs.category === 'file') {
+      if (viewMode === 'overview' && cat === 'file') {
         enterContents(nodeId);
-      } else if (viewMode === 'contents' || viewMode === 'focus') {
-        enterFocus(nodeId);
       } else {
         enterFocus(nodeId);
       }
     });
 
-    // Click empty canvas → back to overview
+    // Click empty canvas → go back
     renderer.on('clickStage', function () {
       if (viewMode === 'focus') {
-        // If we came from contents, go back to contents
         if (focusedFile) {
           enterContents(focusedFile);
         } else {
@@ -334,18 +348,17 @@
       }
     });
 
-    // Keyboard: Esc → back, f → fit
+    // Keyboard
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         enterOverview();
-      } else if (e.key === 'f' && !e.ctrlKey && !e.metaKey) {
+      } else if (e.key === 'f' && !e.ctrlKey && !e.metaKey && e.target === document.body) {
         renderer.getCamera().animate({ x: 0.5, y: 0.5, ratio: 1 }, { duration: 300 });
       }
     });
 
-    // Start in overview mode
+    // Start in overview
     enterOverview();
-
     return renderer;
   }
 

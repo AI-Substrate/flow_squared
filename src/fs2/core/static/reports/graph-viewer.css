@@ -269,3 +269,21 @@ html, body {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* === Help Hint === */
+.help-hint {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-sm) var(--space-lg);
+  background: rgba(17, 24, 39, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--text-dim);
+  z-index: 50;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
