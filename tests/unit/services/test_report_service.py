@@ -5,8 +5,6 @@ metadata computation, and HTML rendering.
 Uses FakeGraphStore per doctrine (fakes over mocks).
 """
 
-import json
-
 import pytest
 
 from fs2.config.objects import ReportsConfig

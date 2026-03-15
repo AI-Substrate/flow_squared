@@ -16,6 +16,8 @@ from rich.console import Console
 
 from fs2.cli.utils import (
     resolve_graph_from_context,
+    safe_write_file,
+    validate_save_path,
 )
 from fs2.core.adapters.console_adapter_rich import RichConsoleAdapter
 
@@ -61,9 +63,9 @@ def codebase_graph(
 
         console.stage_banner("REPORT: CODEBASE GRAPH")
 
-        # Determine output path
+        # Determine output path (reuse CLI path-safety helpers)
         if output:
-            output_path = Path(output).resolve()
+            output_path = validate_save_path(Path(output), stderr_console)
         else:
             # Try to get configured output_dir
             try:
@@ -73,7 +75,10 @@ def codebase_graph(
                 output_dir = Path(reports_config.output_dir)
             except Exception:
                 output_dir = Path(".fs2/reports")
-            output_path = (output_dir / "codebase-graph.html").resolve()
+            output_path = validate_save_path(
+                output_dir / "codebase-graph.html",
+                stderr_console,
+            )
 
         console.print_info(f"Graph: {graph_store.get_metadata().get('node_count', '?')} nodes")
 
@@ -95,9 +100,8 @@ def codebase_graph(
             graph_path=graph_path,
         )
 
-        # Write output
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(result.html, encoding="utf-8")
+        # Write output (reuse CLI safe-write helper for cleanup on failure)
+        safe_write_file(output_path, result.html, stderr_console)
 
         # Summary
         meta = result.metadata
