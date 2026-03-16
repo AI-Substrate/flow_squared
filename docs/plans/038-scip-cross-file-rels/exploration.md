@@ -1,7 +1,7 @@
 # SCIP Integration Exploration
 
 **Date**: 2026-03-16
-**Branch**: 031-cross-file-rels-take-2
+**Branch**: 038-scip-cross-file-rels-take-2
 **Status**: Complete — all 4 target languages tested successfully
 
 ---

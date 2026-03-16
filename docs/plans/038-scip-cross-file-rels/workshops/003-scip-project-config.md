@@ -1,14 +1,14 @@
 # Workshop: SCIP Project Configuration
 
 **Type**: Storage Design / CLI Flow
-**Plan**: 031-cross-file-rels
+**Plan**: 038-scip-cross-file-rels
 **Spec**: [cross-file-rels-spec.md](../cross-file-rels-spec.md)
 **Created**: 2026-03-16
 **Status**: Draft
 
 **Related Documents**:
-- [007-scip-language-boot.md](007-scip-language-boot.md) — Per-language boot requirements
-- [008-scip-cross-language-standardisation.md](008-scip-cross-language-standardisation.md) — Adapter standardisation
+- [001-scip-language-boot.md](001-scip-language-boot.md) — Per-language boot requirements
+- [002-scip-cross-language-standardisation.md](002-scip-cross-language-standardisation.md) — Adapter standardisation
 - [004-multi-project.md](004-multi-project.md) — Multi-project detection (Serena-era)
 - [scip-exploration.md](../scip-exploration.md) — Empirical SCIP testing
 

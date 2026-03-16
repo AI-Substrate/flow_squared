@@ -1,7 +1,7 @@
 # Workshop: SCIP Language Boot Requirements
 
 **Type**: Integration Pattern
-**Plan**: 031-cross-file-rels
+**Plan**: 038-scip-cross-file-rels
 **Spec**: [cross-file-rels-spec.md](../cross-file-rels-spec.md)
 **Created**: 2026-03-16
 **Status**: Draft

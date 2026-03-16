@@ -1,14 +1,14 @@
 # Workshop: SCIP Cross-Language Standardisation
 
 **Type**: Integration Pattern
-**Plan**: 031-cross-file-rels
+**Plan**: 038-scip-cross-file-rels
 **Spec**: [cross-file-rels-spec.md](../cross-file-rels-spec.md)
 **Created**: 2026-03-16
 **Status**: Draft
 
 **Related Documents**:
 - [scip-exploration.md](../scip-exploration.md) — Empirical output comparison across 4 languages
-- [007-scip-language-boot.md](007-scip-language-boot.md) — Per-language boot requirements
+- [001-scip-language-boot.md](001-scip-language-boot.md) — Per-language boot requirements
 - [001-edge-storage.md](001-edge-storage.md) — How edges are stored in the fs2 graph
 
 ---
