@@ -341,6 +341,9 @@ def scan(
             graph_path=graph_path,  # Per Subtask 001: Custom output path
             cross_file_rels_config=cross_file_rels_config,
             force_embeddings=force,
+            courtesy_save_callback=lambda n: console.print_success(
+                f"Courtesy save: {n} nodes saved"
+            ),
         )
 
         # ===== STAGE 3: PARSING =====

@@ -156,6 +156,7 @@ class ScanPipeline:
         graph_path: Path | None = None,
         cross_file_rels_config: "CrossFileRelsConfig | None" = None,
         force_embeddings: bool = False,
+        courtesy_save_callback: "Callable[[int], None] | None" = None,
     ):
         """Initialize pipeline with config and adapters.
 
@@ -182,6 +183,8 @@ class ScanPipeline:
             graph_path: Path to save graph. REQUIRED to prevent accidental
                         corruption of project graph during tests. Use
                         tmp_path / "graph.pickle" in tests.
+            courtesy_save_callback: Optional callback when courtesy save
+                                    completes. Receives node count (int).
 
         Raises:
             MissingConfigurationError: If ScanConfig not in registry.
@@ -216,6 +219,7 @@ class ScanPipeline:
         self._graph_path = graph_path
         self._cross_file_rels_config = cross_file_rels_config
         self._force_embeddings = force_embeddings
+        self._courtesy_save_callback = courtesy_save_callback
 
         # Default stages if not provided
         # Order: Discovery → Parsing → CrossFileRels → SmartContent → Embedding → Storage
@@ -284,6 +288,8 @@ class ScanPipeline:
 
             def _do_courtesy_save() -> None:
                 _courtesy_save_graph(context, self._graph_store)
+                if self._courtesy_save_callback is not None:
+                    self._courtesy_save_callback(len(context.nodes))
 
             context.courtesy_save = _do_courtesy_save
 
