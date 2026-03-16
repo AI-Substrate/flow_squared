@@ -295,6 +295,7 @@ class SmartContentService:
         self,
         nodes: list[CodeNode],
         progress_callback: ProgressCallback | None = None,
+        courtesy_save: Callable | None = None,
     ) -> dict[str, Any]:
         """Process multiple nodes in parallel using asyncio Queue + Worker Pool.
 
@@ -306,6 +307,9 @@ class SmartContentService:
             progress_callback: Optional callback for progress updates.
                 Called every 10 items and on errors. Receives SmartContentProgress
                 and optional error message (for error events).
+            courtesy_save: Optional callback for periodic graph saves (Plan 036).
+                Called every 10 processed nodes with dict of partial results
+                (node_id -> updated CodeNode). Enables crash recovery.
 
         Returns:
             Dict containing:
@@ -381,6 +385,7 @@ class SmartContentService:
                 stats_lock=stats_lock,
                 stats=stats,
                 progress_callback=progress_callback,
+                courtesy_save=courtesy_save,
             )
 
         workers = [
@@ -419,6 +424,7 @@ class SmartContentService:
         stats_lock: asyncio.Lock,
         stats: dict[str, Any],
         progress_callback: ProgressCallback | None = None,
+        courtesy_save: Callable | None = None,
     ) -> None:
         """Worker coroutine that processes items from queue.
 
@@ -428,6 +434,7 @@ class SmartContentService:
             stats_lock: Lock for thread-safe stats updates.
             stats: Shared stats dict (processed, errors, results).
             progress_callback: Optional callback for progress reporting.
+            courtesy_save: Optional callback for periodic graph saves (Plan 036).
         """
         logger.debug("Worker %d started", worker_id)
 
@@ -498,6 +505,18 @@ class SmartContentService:
                     )
                     if progress_callback:
                         progress_callback(_make_progress(), None)
+
+                    # Courtesy save every 10 nodes (Plan 036 T04)
+                    should_save = (
+                        courtesy_save is not None
+                        and stats["processed"] % 10 == 0
+                    )
+                    partial_results = (
+                        dict(stats["results"]) if should_save else None
+                    )
+
+                if should_save and partial_results is not None:
+                    courtesy_save(partial_results)
 
             except LLMAuthenticationError:
                 # Auth errors should fail the entire batch - re-raise

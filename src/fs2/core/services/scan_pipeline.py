@@ -22,6 +22,7 @@ Per Phase 6 T005 (ScanPipeline Constructor):
 - Stage order: Discovery → Parsing → CrossFileRels → SmartContent → Storage
 """
 
+import contextlib
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -54,6 +55,58 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
+
+
+def _courtesy_save_graph(
+    context: PipelineContext,
+    graph_store: "GraphStore",
+) -> None:
+    """Rebuild graph_store from context state and save atomically.
+
+    Used for inter-stage and intra-stage courtesy saves (Plan 036).
+    Clears graph_store, re-adds all nodes + edges from context,
+    then calls atomic save.
+
+    Args:
+        context: PipelineContext with current nodes and edges.
+        graph_store: GraphStore to rebuild and save.
+    """
+    graph_store.clear()
+
+    for node in context.nodes:
+        graph_store.add_node(node)
+
+    for node in context.nodes:
+        if node.parent_node_id is not None:
+            with contextlib.suppress(GraphStoreError):
+                graph_store.add_edge(node.parent_node_id, node.node_id)
+
+    if context.cross_file_edges:
+        known = {n.node_id for n in context.nodes}
+        containment = {
+            (n.parent_node_id, n.node_id)
+            for n in context.nodes
+            if n.parent_node_id
+        }
+        for src, tgt, data in context.cross_file_edges:
+            if src not in known or tgt not in known:
+                continue
+            if (src, tgt) in containment:
+                continue
+            with contextlib.suppress(GraphStoreError):
+                graph_store.add_edge(src, tgt, **data)
+
+    embedding_metadata = context.metrics.get("embedding_metadata")
+    if embedding_metadata:
+        graph_store.set_metadata(embedding_metadata)
+
+    try:
+        graph_store.save(context.graph_path)
+        logger.debug(
+            "Courtesy save: %d nodes to %s", len(context.nodes), context.graph_path
+        )
+    except GraphStoreError as e:
+        logger.warning("Courtesy save failed: %s", e)
 
 
 class ScanPipeline:
@@ -226,9 +279,20 @@ class ScanPipeline:
         if context.graph_store is not None:
             context.graph_store.clear()
 
+        # Wire courtesy save callback (Plan 036)
+        if self._graph_store is not None:
+
+            def _do_courtesy_save() -> None:
+                _courtesy_save_graph(context, self._graph_store)
+
+            context.courtesy_save = _do_courtesy_save
+
         # Run each stage sequentially
         for stage in self._stages:
             context = stage.process(context)
+            # Courtesy save after each stage except storage (Plan 036 T03)
+            if stage.name != "storage" and context.courtesy_save is not None:
+                context.courtesy_save()
 
         # Build summary from final context
         return ScanSummary(

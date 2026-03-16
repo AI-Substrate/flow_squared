@@ -1067,3 +1067,98 @@ class TestNetworkXGraphStoreGetAllEdges:
         store = NetworkXGraphStore(config)
 
         assert store.get_all_edges() == []
+
+
+class TestAtomicSave:
+    """Tests for atomic save behavior (Plan 036 T01)."""
+
+    def test_save_uses_temp_file_then_rename(self, tmp_path):
+        """Verify save writes to .tmp then renames — no partial .pickle file."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+        store.add_node(make_file_node())
+
+        graph_path = tmp_path / "graph.pickle"
+        store.save(graph_path)
+
+        # After save, graph.pickle exists and .tmp does not
+        assert graph_path.exists()
+        assert not (tmp_path / "graph.pickle.tmp").exists()
+
+    def test_save_cleans_up_tmp_on_failure(self, tmp_path):
+        """Verify .tmp is cleaned up if save fails (when possible)."""
+        from pathlib import Path
+        from unittest.mock import patch
+
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.exceptions import GraphStoreError
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+        store.add_node(make_file_node())
+
+        graph_path = tmp_path / "graph.pickle"
+
+        # Patch rename to simulate failure after tmp file is written
+        original_rename = Path.rename
+
+        def failing_rename(self_path, target):
+            raise OSError("Simulated rename failure")
+
+        with patch.object(Path, "rename", failing_rename):
+            with pytest.raises(GraphStoreError):
+                store.save(graph_path)
+
+        # Temp file should be cleaned up (it was writable, only rename failed)
+        assert not (tmp_path / "graph.pickle.tmp").exists()
+
+    def test_prior_graph_survives_if_new_save_interrupted(self, tmp_path):
+        """Simulate interrupted save: prior graph.pickle should remain loadable."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+        original = make_file_node("src/original.py", "# original")
+        store.add_node(original)
+
+        graph_path = tmp_path / "graph.pickle"
+        store.save(graph_path)
+
+        # Simulate "interrupted save" by writing a partial .tmp file
+        tmp_file = tmp_path / "graph.pickle.tmp"
+        tmp_file.write_bytes(b"partial data - corrupted")
+
+        # The real graph.pickle should still be loadable
+        store2 = NetworkXGraphStore(config)
+        store2.load(graph_path)
+        loaded = store2.get_all_nodes()
+        assert len(loaded) == 1
+        assert loaded[0].content == "# original"
+
+    def test_save_roundtrip_with_atomic_write(self, tmp_path):
+        """Verify full save/load roundtrip works with atomic write."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+        node = make_file_node("src/test.py", "def foo(): pass")
+        store.add_node(node)
+
+        graph_path = tmp_path / "graph.pickle"
+        store.save(graph_path)
+
+        store2 = NetworkXGraphStore(config)
+        store2.load(graph_path)
+        loaded = store2.get_all_nodes()
+        assert len(loaded) == 1
+        assert loaded[0].content == "def foo(): pass"

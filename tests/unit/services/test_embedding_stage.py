@@ -56,7 +56,7 @@ class FakeEmbeddingService:
             "chunk_params": {"code": {"max_tokens": 400, "overlap_tokens": 50}},
         }
 
-    async def process_batch(self, nodes, progress_callback=None):
+    async def process_batch(self, nodes, progress_callback=None, courtesy_save=None):
         self.calls.append(
             {
                 "nodes": nodes,

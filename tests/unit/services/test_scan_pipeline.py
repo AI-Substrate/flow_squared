@@ -810,3 +810,185 @@ class TestScanPipelinePriorNodesLoading:
         assert "callable:a.py:foo" in ctx.prior_nodes
         assert ctx.prior_nodes["file:a.py"] == node1
         assert ctx.prior_nodes["callable:a.py:foo"] == node2
+
+
+class TestCourtesySaves:
+    """Tests for courtesy save functionality (Plan 036)."""
+
+    def test_courtesy_save_wired_in_context(self, test_graph_path):
+        """Verify ScanPipeline wires courtesy_save callback into context."""
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        captured_context = []
+
+        class CapturingStage:
+            @property
+            def name(self):
+                return "capture"
+
+            def process(self, context):
+                captured_context.append(context)
+                return context
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=store,
+            stages=[CapturingStage()],
+            graph_path=test_graph_path,
+        )
+        pipeline.run()
+
+        ctx = captured_context[0]
+        assert ctx.courtesy_save is not None
+        assert callable(ctx.courtesy_save)
+
+    def test_inter_stage_save_called_after_each_non_storage_stage(
+        self, test_graph_path
+    ):
+        """Verify courtesy_save is called after each stage except storage."""
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+        store = FakeGraphStore(config_service)
+
+        save_calls = []
+
+        class StageA:
+            @property
+            def name(self):
+                return "stage_a"
+
+            def process(self, context):
+                return context
+
+        class StageB:
+            @property
+            def name(self):
+                return "stage_b"
+
+            def process(self, context):
+                return context
+
+        class StageStorage:
+            @property
+            def name(self):
+                return "storage"
+
+            def process(self, context):
+                return context
+
+        # Monkey-patch the pipeline to track courtesy saves
+        from fs2.core.services import scan_pipeline as sp_module
+
+        original_fn = sp_module._courtesy_save_graph
+
+        def tracking_save(context, graph_store):
+            save_calls.append("save")
+            # Don't actually save to avoid test side effects
+
+        sp_module._courtesy_save_graph = tracking_save
+        try:
+            pipeline = ScanPipeline(
+                config=config_service,
+                file_scanner=scanner,
+                ast_parser=parser,
+                graph_store=store,
+                stages=[StageA(), StageB(), StageStorage()],
+                graph_path=test_graph_path,
+            )
+            pipeline.run()
+
+            # Should be called after StageA and StageB, NOT after StageStorage
+            assert len(save_calls) == 2
+        finally:
+            sp_module._courtesy_save_graph = original_fn
+
+    def test_courtesy_save_rebuilds_graph_from_context(self, test_graph_path, tmp_path):
+        """Verify courtesy save creates a loadable graph with correct nodes."""
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.core.services.scan_pipeline import _courtesy_save_graph
+
+        config_service = FakeConfigurationService(ScanConfig())
+        graph_store = NetworkXGraphStore(config_service)
+
+        node1 = CodeNode.create_file(
+            file_path="src/a.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=10,
+            start_line=1,
+            end_line=1,
+            content="# file a",
+        )
+        node2 = CodeNode.create_file(
+            file_path="src/b.py",
+            language="python",
+            ts_kind="module",
+            start_byte=0,
+            end_byte=10,
+            start_line=1,
+            end_line=1,
+            content="# file b",
+        )
+
+        graph_path = tmp_path / "courtesy.pickle"
+        context = PipelineContext(
+            scan_config=ScanConfig(),
+            graph_path=graph_path,
+            nodes=[node1, node2],
+            graph_store=graph_store,
+        )
+
+        _courtesy_save_graph(context, graph_store)
+
+        # Verify saved graph is loadable
+        assert graph_path.exists()
+        store2 = NetworkXGraphStore(config_service)
+        store2.load(graph_path)
+        loaded = store2.get_all_nodes()
+        assert len(loaded) == 2
+        node_ids = {n.node_id for n in loaded}
+        assert "file:src/a.py" in node_ids
+        assert "file:src/b.py" in node_ids
+
+    def test_courtesy_save_not_set_when_no_graph_store(self, test_graph_path):
+        """Verify courtesy_save is None when graph_store is None."""
+        from fs2.core.services.scan_pipeline import ScanPipeline
+
+        config_service = FakeConfigurationService(ScanConfig())
+        scanner = FakeFileScanner(config_service)
+        parser = FakeASTParser(config_service)
+
+        captured_context = []
+
+        class CapturingStage:
+            @property
+            def name(self):
+                return "capture"
+
+            def process(self, context):
+                captured_context.append(context)
+                return context
+
+        pipeline = ScanPipeline(
+            config=config_service,
+            file_scanner=scanner,
+            ast_parser=parser,
+            graph_store=None,
+            stages=[CapturingStage()],
+            graph_path=test_graph_path,
+        )
+        pipeline.run()
+
+        ctx = captured_context[0]
+        assert ctx.courtesy_save is None

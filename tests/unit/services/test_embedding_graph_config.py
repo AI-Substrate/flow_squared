@@ -24,7 +24,7 @@ class FakeEmbeddingService:
     def get_metadata(self) -> dict:
         return self._metadata
 
-    async def process_batch(self, nodes, progress_callback=None):
+    async def process_batch(self, nodes, progress_callback=None, courtesy_save=None):
         updated = {}
         for node in nodes:
             updated[node.node_id] = replace(

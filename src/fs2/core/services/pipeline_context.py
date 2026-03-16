@@ -141,6 +141,12 @@ class PipelineContext:
     # Allows CLI to display summary before smart content stage starts.
     parsing_complete_callback: Callable[..., None] | None = None
 
+    # Courtesy save callback for periodic graph persistence (Plan 036).
+    # Set by ScanPipeline.run() to a closure that saves graph from context.nodes.
+    # Called by stages during long-running batch processing and between stages.
+    # None until ScanPipeline wires it (or in tests without courtesy saves).
+    courtesy_save: Callable[[], None] | None = None
+
     # Progress callback for cross-file relationship resolution.
     # Called with (status: str, detail: str) at key milestones:
     #   "starting"  — resolution is beginning (detail: node count)

@@ -311,6 +311,9 @@ class NetworkXGraphStore(GraphStore):
         Raises:
             GraphStoreError: If save fails (permission, disk full, etc.).
         """
+        # Atomic save: write to temp file then rename.
+        # If kill/crash happens during write, prior graph.pickle is untouched.
+        tmp_path = path.with_name(path.name + ".tmp")
         try:
             # Create parent directories if needed
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -325,11 +328,14 @@ class NetworkXGraphStore(GraphStore):
             if self._extra_metadata:
                 metadata.update(self._extra_metadata)
 
-            # Save as (metadata, graph) tuple
-            with open(path, "wb") as f:
+            # Write to temp file first
+            with open(tmp_path, "wb") as f:
                 pickle.dump(
                     (metadata, self._graph), f, protocol=pickle.HIGHEST_PROTOCOL
                 )
+
+            # Atomic rename (same filesystem guarantees atomicity)
+            tmp_path.rename(path)
 
             logger.info(
                 "Graph saved to %s (%d nodes, %d edges)",
@@ -339,6 +345,8 @@ class NetworkXGraphStore(GraphStore):
             )
 
         except OSError as e:
+            # Clean up temp file on failure
+            tmp_path.unlink(missing_ok=True)
             raise GraphStoreError(
                 f"Failed to save graph to {path}: {e}. "
                 f"Check disk space and permissions."

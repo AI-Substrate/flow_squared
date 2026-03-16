@@ -549,7 +549,7 @@ class TestSmartContentStageCategoryFilter:
         mock_service = MagicMock()
         mock_service._config = mock_config
 
-        async def capture_batch(nodes, progress_callback=None):
+        async def capture_batch(nodes, progress_callback=None, courtesy_save=None):
             return {
                 "processed": len(nodes),
                 "skipped": 0,

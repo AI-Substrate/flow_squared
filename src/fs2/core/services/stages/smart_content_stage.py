@@ -143,11 +143,26 @@ class SmartContentStage:
             return context
 
         # Step 4: Call async process_batch via asyncio.run() (sync→async bridge)
+        # Create courtesy save wrapper that merges partial results (Plan 036 T04)
+        courtesy_callback = None
+        if context.courtesy_save is not None:
+            pre_batch_nodes = list(context.nodes)
+
+            def _courtesy_save_wrapper(partial_results: dict) -> None:
+                """Merge partial results into context.nodes and courtesy save."""
+                context.nodes = [
+                    partial_results.get(n.node_id, n) for n in pre_batch_nodes
+                ]
+                context.courtesy_save()
+
+            courtesy_callback = _courtesy_save_wrapper
+
         try:
             batch_result = asyncio.run(
                 service.process_batch(
                     needs_generation,
                     progress_callback=context.smart_content_progress_callback,
+                    courtesy_save=courtesy_callback,
                 )
             )
         except RuntimeError as e:

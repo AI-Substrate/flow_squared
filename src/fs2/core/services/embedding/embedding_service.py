@@ -570,6 +570,7 @@ class EmbeddingService:
         self,
         nodes: list[CodeNode],
         progress_callback: ProgressCallback | None = None,
+        courtesy_save: Callable | None = None,
     ) -> dict[str, Any]:
         """Process multiple nodes to generate embeddings.
 
@@ -583,6 +584,9 @@ class EmbeddingService:
             nodes: List of CodeNodes to process.
             progress_callback: Optional callback called during processing.
                 Receives (processed, total, skipped).
+            courtesy_save: Optional callback for periodic graph saves (Plan 036).
+                Called every 50 processed nodes with dict of partial results
+                (node_id -> updated CodeNode). Enables crash recovery.
 
         Returns:
             Dict containing:
@@ -758,6 +762,13 @@ class EmbeddingService:
 
             stats["results"][node_id] = updated_node
             stats["processed"] += 1
+
+            # Courtesy save every 50 nodes during reassembly (Plan 036 T05)
+            if (
+                courtesy_save is not None
+                and stats["processed"] % 50 == 0
+            ):
+                courtesy_save(dict(stats["results"]))
 
         # Final progress callback with accurate counts
         if progress_callback and stats["processed"] > 0:
