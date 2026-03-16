@@ -177,8 +177,13 @@
           }
         }
         if (ok) {
-          ctx.fillStyle = c.focused ? '#7dd3fc' : 'rgba(226,232,240,0.85)';
-          ctx.fillText(n.label, n.x + (n._r || 4) + 3, n.y);
+          var tx = n.x + (n._r || 4) + 3, ty = n.y;
+          ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+          ctx.lineWidth = 3 * invK;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(n.label, tx, ty);
+          ctx.fillStyle = c.focused ? '#7dd3fc' : 'rgba(226,232,240,0.92)';
+          ctx.fillText(n.label, tx, ty);
           placed.push({ x: lx, y: ly, w: lw });
         }
       });
