@@ -93,7 +93,7 @@
     if (visibleEdges.length > 0) {
       ctx.lineWidth = 1 * invK;
       var baseAlpha = visibleEdges.length > 500 ? 0.2 : (visibleEdges.length > 50 ? 0.5 : 0.8);
-      var visSet = new Set(); visibleNodes.forEach(function (n) { if (!n._dimmed) visSet.add(n.node_id); });
+      var visSet = new Set(); visibleNodes.forEach(function (n) { visSet.add(n.node_id); });
       visibleEdges.forEach(function (e) {
         var s = nodeMap[e.source], t = nodeMap[e.target];
         if (!s || !t) return;
@@ -103,10 +103,10 @@
         var sx, sy, tx, ty;
         if (sVis) { sx = s.x; sy = s.y; }
         else if (s.parent_node_id && visSet.has(s.parent_node_id)) { var p = nodeMap[s.parent_node_id]; sx = p.x; sy = p.y; }
-        else { sx = s.x; sy = s.y; } // fallback to actual position
+        else return; // skip — endpoint not in visible set
         if (tVis) { tx = t.x; ty = t.y; }
         else if (t.parent_node_id && visSet.has(t.parent_node_id)) { var p2 = nodeMap[t.parent_node_id]; tx = p2.x; ty = p2.y; }
-        else { tx = t.x; ty = t.y; } // fallback to actual position
+        else return; // skip — endpoint not in visible set
         if (sx === tx && sy === ty) return;
         // Directional colors: incoming (caller→selected) = cyan, outgoing (selected→callee) = amber
         var isIncoming = highlightId && (e.target === highlightId || (t.parent_node_id === highlightId));
@@ -145,7 +145,7 @@
       ctx.globalAlpha = 1;
     });
     // Labels
-    if (transform.k > 0.3) {
+    if (transform.k > 0.08) {
       ctx.font = Math.max(9, 12 * invK) + 'px Inter, sans-serif'; ctx.textBaseline = 'middle';
       visibleNodes.forEach(function (n) {
         if (n._dimmed || !n.label) return;
@@ -153,7 +153,7 @@
         var isConnected = highlightId && _focusNeighbors && _focusNeighbors.has(n.node_id);
         var faded = highlightId && !isFocused && !isConnected;
         if (faded) return; // hide labels for faded nodes
-        if ((n._r || 4) * transform.k > 2.5) {
+        if ((n._r || 4) * transform.k > 0.8) {
           ctx.fillStyle = isFocused ? '#7dd3fc' : 'rgba(226,232,240,0.85)';
           ctx.fillText(n.label, n.x + (n._r || 4) + 3, n.y);
         }
@@ -211,7 +211,7 @@
     stopSim();
     if (nodes.length < 2) return;
     var cx = centerNode.x, cy = centerNode.y;
-    var radius = Math.max(80, nodes.length * 12);
+    var radius = Math.min(600, Math.max(200, nodes.length * 20));
     // Initial placement: tight cluster near center (sim pushes them out)
     nodes.forEach(function (n, i) {
       if (n.node_id === centerNode.node_id) return;
@@ -235,13 +235,14 @@
       .alphaDecay(0.03)
       .velocityDecay(0.35)
       .force('center', d3.forceCenter(cx, cy))
-      .force('charge', d3.forceManyBody().strength(-200))
-      .force('collide', d3.forceCollide().radius(function (n) { return (n._r || 4) + 15; }))
-      .force('link', d3.forceLink(links).distance(100).strength(0.3))
+      .force('charge', d3.forceManyBody().strength(-800))
+      .force('collide', d3.forceCollide().radius(function (n) { return (n._r || 4) + 50; }))
+      .force('link', d3.forceLink(links).distance(200).strength(0.2))
       .stop(); // we tick manually in the rAF loop
     activeSim._centerNode = centerNode;
     activeSim._cx = cx;
     activeSim._cy = cy;
+    activeSim._radius = radius;
   }
   function enterOverview() {
     state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null;
@@ -324,7 +325,8 @@
       else enterFocus(n.node_id);
       return;
     }
-    // Highlight this node — keep current view but fade non-connected
+    // Restore any previous spread before starting new one
+    restorePositions();
     highlightId = n.node_id;
     _focusNeighbors = buildNeighbors(n.node_id);
     // Add edges and neighbor nodes so edges render correctly
@@ -339,6 +341,15 @@
     _focusNeighbors.forEach(function (nid) {
       if (!currentIds.has(nid) && nodeMap[nid]) { nodeMap[nid]._dimmed = false; visibleNodes.push(nodeMap[nid]); }
     });
+    // Spread selected + ALL neighbors to prevent hyperspace edges
+    var spreadSet = [n];
+    _focusNeighbors.forEach(function (nid) {
+      var nb = nodeMap[nid]; if (nb && nb !== n) spreadSet.push(nb);
+    });
+    if (spreadSet.length > 1) {
+      savePositions(spreadSet);
+      spreadNodes(n, spreadSet, visibleEdges);
+    }
     showInfoPanel(n.node_id);
     var name = n.label || n.node_id;
     updateStatus(state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + ' - selected: ' + name, visibleNodes.length);
@@ -347,8 +358,14 @@
   }
   function onClickStage() {
     if (highlightId) {
-      // Deselect — clear highlight, keep current mode
+      // Deselect — clear highlight, restore spread positions, keep current mode
       highlightId = null; _focusNeighbors = null;
+      restorePositions();
+      if (state.mode === 'overview') {
+        visibleNodes = allNodes.filter(function (n) { return n.category === 'file'; });
+        visibleNodes.forEach(function (n) { n._dimmed = false; });
+        visibleEdges = getRefEdges();
+      }
       showInfoPanel(null); render();
       return;
     }
@@ -389,8 +406,32 @@
         activeSim.tick();
         activeSim._centerNode.x = activeSim._cx;
         activeSim._centerNode.y = activeSim._cy;
+        // Keep spread nodes within radius bounds
+        var bR = activeSim._radius;
+        if (bR) {
+          activeSim.nodes().forEach(function (nd) {
+            if (nd === activeSim._centerNode) return;
+            var dx = nd.x - activeSim._cx, dy = nd.y - activeSim._cy;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > bR) { nd.x = activeSim._cx + dx * (bR / dist); nd.y = activeSim._cy + dy * (bR / dist); }
+          });
+        }
       } else if (activeSim) {
-        activeSim = null; // simulation finished
+        // Simulation finished — auto-zoom to fit spread nodes
+        var simNodes = activeSim.nodes();
+        if (simNodes.length > 1) {
+          var xs = simNodes.map(function (sn) { return sn.x; }), ys = simNodes.map(function (sn) { return sn.y; });
+          var mnX = Math.min.apply(null, xs), mxX = Math.max.apply(null, xs);
+          var mnY = Math.min.apply(null, ys), mxY = Math.max.apply(null, ys);
+          var gW = (mxX - mnX) || 100, gH = (mxY - mnY) || 100;
+          var pad = 120;
+          var sc = Math.min(width / (gW + pad * 2), height / (gH + pad * 2));
+          sc = Math.min(Math.max(sc, 0.5), 5);
+          var fcx = (mnX + mxX) / 2, fcy = (mnY + mxY) / 2;
+          transform = d3.zoomIdentity.translate(width / 2 - fcx * sc, height / 2 - fcy * sc).scale(sc);
+          canvas.call(zoomBehavior.transform, transform);
+        }
+        activeSim = null;
       }
       render();
       starTimer = requestAnimationFrame(tick);
