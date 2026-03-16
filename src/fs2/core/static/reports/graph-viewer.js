@@ -56,7 +56,9 @@
     ctx.translate(transform.x, transform.y); ctx.scale(transform.k, transform.k);
     var invK = 1 / transform.k;
     if (visibleEdges.length > 0) {
-      ctx.lineWidth = 1.5 * invK; ctx.globalAlpha = 0.7;
+      ctx.lineWidth = 1.5 * invK;
+      // Fade edges when showing many, full opacity for focus
+      ctx.globalAlpha = visibleEdges.length > 500 ? 0.15 : (visibleEdges.length > 50 ? 0.4 : 0.8);
       visibleEdges.forEach(function (e) {
         var s = nodeMap[e.source], t = nodeMap[e.target]; if (!s || !t) return;
         ctx.strokeStyle = '#d97706'; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y); ctx.stroke();
@@ -81,10 +83,16 @@
     visibleNodes.forEach(function (n) { if (n._dimmed) return; var dx = px - n.x, dy = py - n.y, d2 = dx * dx + dy * dy, r = (n._r || 4) + 4; if (d2 < r * r && d2 < bestDist) { bestDist = d2; best = n; } });
     return best;
   }
+  // Build reference edges list (non-containment) — shared across modes
+  function getRefEdges() {
+    return allEdges.filter(function (e) { return !e._containment; });
+  }
   function enterOverview() {
     state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null; highlightId = null;
     visibleNodes = allNodes.filter(function (n) { return n.category === 'file'; });
-    visibleNodes.forEach(function (n) { n._dimmed = false; }); visibleEdges = [];
+    visibleNodes.forEach(function (n) { n._dimmed = false; });
+    // Show ALL reference edges — this is what the user wants to see
+    visibleEdges = getRefEdges();
     updateStatus('Overview - click a file to explore', visibleNodes.length); showInfoPanel(null);
     updateHelpHint('Click a file node - Scroll to zoom - Drag to pan - / to search - Esc to reset'); render();
   }
@@ -94,7 +102,10 @@
     allNodes.forEach(function (n) { if (n.parent_node_id === fileNodeId) children.push(n); });
     var bg = allNodes.filter(function (n) { return n.category === 'file' && n.node_id !== fileNodeId; });
     bg.forEach(function (n) { n._dimmed = true; }); children.forEach(function (n) { n._dimmed = false; });
-    visibleNodes = children.concat(bg); visibleEdges = [];
+    visibleNodes = children.concat(bg);
+    // Show edges involving this file's children
+    var childSet = new Set(); children.forEach(function (c) { childSet.add(c.node_id); });
+    visibleEdges = allEdges.filter(function (e) { return !e._containment && (childSet.has(e.source) || childSet.has(e.target)); });
     updateStatus('File: ' + ((nodeMap[fileNodeId] || {}).label || fileNodeId), children.length);
     showInfoPanel(fileNodeId); updateHelpHint('Click a symbol for connections - Click background to go back');
     var fn = nodeMap[fileNodeId]; if (fn) zoomTo(fn.x, fn.y, 2.5); render();

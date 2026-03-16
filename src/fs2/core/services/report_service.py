@@ -222,9 +222,6 @@ class ReportService:
             else:
                 nd["x"] = 0.0
                 nd["y"] = 0.0
-            # Size based on line count
-            lines = nd.get("end_line", 0) - nd.get("start_line", 0) + 1
-            nd["size"] = round(max(3.0, min(12.0, 2.5 + math.log2(max(lines, 1)) * 1.2)), 2)
             # Category color — Python is single source of truth
             nd["color"] = _CATEGORY_COLORS.get(nd.get("category", ""), "#6b7280")
             nd["label"] = nd.get("name", "")
@@ -240,11 +237,10 @@ class ReportService:
                 nd_in == 0 and nd_out > 0 and nd.get("category") == "callable"
             )
 
-            # Alternative sizing by connection count
+            # Size based on connections — more connections = bigger node
             degree = nd["degree"]
-            nd["size_by_lines"] = nd["size"]
-            nd["size_by_degree"] = round(
-                max(4.0, min(14.0, 4.0 + math.log2(degree + 1) * 2.0)), 2
+            nd["size"] = round(
+                max(3.0, min(18.0, 3.0 + math.log2(degree + 1) * 3.0)), 2
             )
 
         # Serialize edges (both types with rendering hints)
