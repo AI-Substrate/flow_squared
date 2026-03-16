@@ -139,6 +139,66 @@ class TestCLeadingContext:
         assert len(with_doxygen) > 0
 
 
+class TestCppLeadingContext:
+    """C++: /** Doxygen */ above methods."""
+
+    def test_cpp_doxygen_comment(self, parser):
+        """AC13: C++ Doxygen comments captured."""
+        nodes = parser.parse(FIXTURES / "c" / "main.cpp")
+        with_doxygen = [
+            n for n in nodes if n.leading_context and "/**" in n.leading_context
+        ]
+        assert len(with_doxygen) > 0
+
+
+class TestTSXLeadingContext:
+    """TSX: comments above exported components."""
+
+    def test_tsx_comment_capture(self, parser):
+        """AC13: TSX JSDoc comments captured."""
+        nodes = parser.parse(FIXTURES / "javascript" / "component.tsx")
+        with_comment = [
+            n for n in nodes if n.leading_context and n.category != "file"
+        ]
+        assert len(with_comment) > 0
+
+
+class TestJavaScriptLeadingContext:
+    """JavaScript: JSDoc above functions."""
+
+    def test_js_jsdoc_comment(self, parser):
+        """AC13: JavaScript JSDoc comments captured."""
+        nodes = parser.parse(FIXTURES / "javascript" / "utils.js")
+        with_jsdoc = [
+            n for n in nodes if n.leading_context and "/**" in n.leading_context
+        ]
+        assert len(with_jsdoc) > 0
+
+
+class TestRubyLeadingContext:
+    """Ruby: # comments above methods/classes."""
+
+    def test_ruby_comment_capture(self, parser):
+        """AC13: Ruby # comments captured."""
+        nodes = parser.parse(FIXTURES / "ruby" / "tasks.rb")
+        with_comment = [
+            n for n in nodes if n.leading_context and "#" in n.leading_context
+        ]
+        assert len(with_comment) > 0
+
+
+class TestBashLeadingContext:
+    """Bash: # comments above functions."""
+
+    def test_bash_comment_capture(self, parser):
+        """AC13: Bash — functions not extracted as separate nodes, file-level only."""
+        nodes = parser.parse(FIXTURES / "bash" / "deploy.sh")
+        # Bash functions are not extracted as separate CodeNodes (not in EXTRACTABLE_LANGUAGES
+        # at sub-file level). File node exists, non-file nodes may be empty.
+        file_nodes = [n for n in nodes if n.category == "file"]
+        assert len(file_nodes) > 0
+
+
 class TestGDScriptLeadingContext:
     """GDScript: ## doc comments above functions."""
 

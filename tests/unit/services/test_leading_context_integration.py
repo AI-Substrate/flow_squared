@@ -6,10 +6,7 @@ and get_node/MCP output inclusion.
 
 import regex
 
-import pytest
-
 from fs2.core.models.code_node import CodeNode
-from fs2.core.models.content_type import ContentType
 from fs2.core.utils.hash import compute_content_hash
 
 
@@ -42,7 +39,7 @@ class TestLeadingContextSearch:
 
     def test_regex_matcher_finds_leading_context(self):
         """Search for text in leading_context returns match with score 0.6."""
-        from fs2.core.services.search.regex_matcher import FieldMatch, RegexMatcher
+        from fs2.core.services.search.regex_matcher import RegexMatcher
 
         matcher = RegexMatcher()
         node = _make_node(leading_context="# cross-border transactions handler")
@@ -108,10 +105,11 @@ class TestEmbeddingHashWithLeadingContext:
         content = "def foo(): pass"
         lc = "# important comment"
 
-        hash_with = compute_content_hash(content + lc)
+        # Must match the exact payload used by embedding_service: "\n".join([lc, content])
+        raw_text = "\n".join([lc, content])
+        hash_with = compute_content_hash(raw_text)
         hash_without = compute_content_hash(content)
 
-        # Different — leading_context changes the embedding hash
         assert hash_with != hash_without
 
     def test_embedding_hash_matches_content_hash_when_no_context(self):
@@ -143,3 +141,82 @@ class TestGetNodeOutput:
 
         assert "leading_context" in result
         assert result["leading_context"] is None
+
+
+class TestEmbeddingPayload:
+    """AC08: Verify embedding chunking prepends leading_context."""
+
+    def test_chunk_content_prepends_leading_context(self):
+        """Chunked text starts with leading_context when present."""
+        from unittest.mock import MagicMock
+
+        from fs2.config.objects import EmbeddingConfig
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        config = EmbeddingConfig()
+        token_counter = MagicMock()
+        token_counter.count_tokens.return_value = 10
+        service = EmbeddingService(
+            config=config,
+            embedding_adapter=MagicMock(),
+            token_counter=token_counter,
+        )
+
+        node = _make_node(
+            content="def foo(): pass",
+            leading_context="# important comment",
+        )
+        chunks = service._chunk_content(node, is_smart_content=False)
+        assert len(chunks) > 0
+        assert chunks[0].text.startswith("# important comment")
+
+
+class TestSmartContentContext:
+    """AC09: Verify smart content context includes leading_context."""
+
+    def test_build_context_includes_leading_context(self):
+        """_build_context dict includes leading_context."""
+        from unittest.mock import MagicMock
+
+        from fs2.config.objects import SmartContentConfig
+        from fs2.core.services.smart_content.smart_content_service import (
+            SmartContentService,
+        )
+
+        config = MagicMock()
+        config.require.return_value = SmartContentConfig()
+        service = SmartContentService(
+            config=config,
+            llm_service=MagicMock(),
+            template_service=MagicMock(),
+            token_counter=MagicMock(),
+        )
+
+        node = _make_node(
+            content="def foo(): pass",
+            leading_context="# important comment",
+        )
+        context = service._build_context(node, node.content)
+        assert context["leading_context"] == "# important comment"
+
+    def test_build_context_empty_when_no_leading_context(self):
+        """_build_context returns empty string when no leading_context."""
+        from unittest.mock import MagicMock
+
+        from fs2.config.objects import SmartContentConfig
+        from fs2.core.services.smart_content.smart_content_service import (
+            SmartContentService,
+        )
+
+        config = MagicMock()
+        config.require.return_value = SmartContentConfig()
+        service = SmartContentService(
+            config=config,
+            llm_service=MagicMock(),
+            template_service=MagicMock(),
+            token_counter=MagicMock(),
+        )
+
+        node = _make_node(content="def foo(): pass", leading_context=None)
+        context = service._build_context(node, node.content)
+        assert context["leading_context"] == ""

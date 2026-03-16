@@ -519,9 +519,8 @@ class EmbeddingService:
         # Check content has not changed (stale embedding detection)
         # Per Plan 037: embedding_hash includes leading_context when present
         if node.leading_context:
-            expected_hash = compute_content_hash(
-                node.content + node.leading_context
-            )
+            raw_text = "\n".join([node.leading_context, node.content])
+            expected_hash = compute_content_hash(raw_text)
         else:
             expected_hash = node.content_hash
         if expected_hash != node.embedding_hash:
@@ -773,7 +772,9 @@ class EmbeddingService:
                 embedding=embedding_tuple,
                 smart_content_embedding=smart_embedding_tuple,
                 embedding_hash=(
-                    compute_content_hash(node.content + node.leading_context)
+                    compute_content_hash(
+                        "\n".join([node.leading_context, node.content])
+                    )
                     if node.leading_context
                     else node.content_hash
                 ),
