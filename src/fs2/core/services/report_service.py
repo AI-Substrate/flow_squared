@@ -206,13 +206,30 @@ class ReportService:
             if s_dir in dir_files and t_dir in dir_files and s_dir != t_dir:
                 dir_graph.add_edge(s_dir, t_dir)
 
+        # Compute each system's radius so we can space them apart
+        dir_radius: dict[str, float] = {}
+        for dir_path in dir_list:
+            files = dir_files[dir_path]
+            num_files = len(files)
+            planet_orbit = max(150, num_files * 35)
+            # Largest moon orbit in this system
+            max_moon = 0.0
+            for fid in files:
+                nc = len(file_children.get(fid, []))
+                max_moon = max(max_moon, max(40, nc * 12) if nc else 0)
+            dir_radius[dir_path] = planet_orbit + max_moon + 80  # padding
+
+        # Scale macro layout so systems don't overlap
+        avg_radius = sum(dir_radius.values()) / max(len(dir_radius), 1)
         num_dirs = max(len(dir_list), 1)
+        macro_scale = max(8000, avg_radius * num_dirs * 0.6)
+
         dir_positions = nx.spring_layout(
             dir_graph,
-            k=6.0 / math.sqrt(num_dirs),
-            iterations=100,
+            k=8.0 / math.sqrt(num_dirs),
+            iterations=150,
             seed=42,
-            scale=5000,  # generous macro spacing
+            scale=macro_scale,
         ) if dir_list else {}
 
         # --- Step 3: Position files (planets) in orbits around dirs ---
