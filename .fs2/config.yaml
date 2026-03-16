@@ -79,14 +79,16 @@ other_graphs:
       path: ~/github/FastCode/.fs2/graph.pickle
       description: FastCode - reference implementation for cross-file relationships
 
-# ─── Local LLM (plan 034) ─────────────────────────────────────────
-llm:
-  provider: local
-  base_url: http://localhost:11434
-  model: qwen2.5-coder:7b
-  timeout: 120
+# ─── LLM (for smart content) ───────────────────────────────────────
+# Using global config (~/.config/fs2/config.yaml) for LLM provider.
+# Uncomment below to override per-project:
+# llm:
+#   provider: local
+#   base_url: http://localhost:11434
+#   model: qwen2.5-coder:7b
+#   timeout: 120
 
-smart_content:
-  max_workers: 1
-  max_input_tokens: 50000
-  enabled_categories: ["file"]
+# smart_content:
+#   max_workers: 1
+#   max_input_tokens: 50000
+#   enabled_categories: ["file"]
