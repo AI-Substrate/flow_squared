@@ -12,7 +12,6 @@
   var transform = d3.zoomIdentity;
   var canvas, ctx, width, height, searchTimer, zoomBehavior;
   var catColors = {};
-  var activeSim = null; // Track running force simulation for animated spread
   // Twinkling stars
   var stars = [];
   var starTimer = null;
@@ -199,28 +198,22 @@
     nodes.forEach(function (n) { n._ox = n.x; n._oy = n.y; });
   }
   function restorePositions() {
-    stopSim();
     allNodes.forEach(function (n) {
       if (n._ox !== undefined) { n.x = n._ox; n.y = n._oy; delete n._ox; delete n._oy; }
     });
   }
-  function stopSim() {
-    if (activeSim) { activeSim.stop(); activeSim = null; }
-  }
   function spreadNodes(centerNode, nodes, edges) {
-    stopSim();
     if (nodes.length < 2) return;
     var cx = centerNode.x, cy = centerNode.y;
     var radius = Math.min(600, Math.max(200, nodes.length * 20));
-    // Initial placement: tight cluster near center (sim pushes them out)
+    // Place nodes radially around center
     nodes.forEach(function (n, i) {
       if (n.node_id === centerNode.node_id) return;
       var angle = (2 * Math.PI * i) / (nodes.length - 1);
-      var startR = radius * 0.15;
-      n.x = cx + Math.cos(angle) * startR + (Math.random() - 0.5) * 10;
-      n.y = cy + Math.sin(angle) * startR + (Math.random() - 0.5) * 10;
+      n.x = cx + Math.cos(angle) * radius * 0.15 + (Math.random() - 0.5) * 10;
+      n.y = cy + Math.sin(angle) * radius * 0.15 + (Math.random() - 0.5) * 10;
     });
-    // Build link data for force sim
+    // Build link data
     var nodeIndex = {}; nodes.forEach(function (n, i) { nodeIndex[n.node_id] = i; });
     var links = [];
     edges.forEach(function (e) {
@@ -229,20 +222,25 @@
         links.push({ source: nodeIndex[e.source], target: nodeIndex[e.target] });
       }
     });
-    // Animated force simulation — driven by our own rAF loop, not D3's timer
-    activeSim = d3.forceSimulation(nodes)
-      .alpha(1)
-      .alphaDecay(0.03)
-      .velocityDecay(0.35)
+    // Run force sim synchronously to final positions
+    var sim = d3.forceSimulation(nodes)
+      .alpha(1).alphaDecay(0.03).velocityDecay(0.35)
       .force('center', d3.forceCenter(cx, cy))
       .force('charge', d3.forceManyBody().strength(-800))
       .force('collide', d3.forceCollide().radius(function (n) { return (n._r || 4) + 50; }))
       .force('link', d3.forceLink(links).distance(200).strength(0.2))
-      .stop(); // we tick manually in the rAF loop
-    activeSim._centerNode = centerNode;
-    activeSim._cx = cx;
-    activeSim._cy = cy;
-    activeSim._radius = radius;
+      .stop();
+    for (var i = 0; i < 300; i++) {
+      sim.tick();
+      centerNode.x = cx; centerNode.y = cy;
+      nodes.forEach(function (nd) {
+        if (nd === centerNode) return;
+        var dx = nd.x - cx, dy = nd.y - cy;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > radius) { nd.x = cx + dx * (radius / dist); nd.y = cy + dy * (radius / dist); }
+      });
+      if (sim.alpha() <= sim.alphaMin()) break;
+    }
   }
   function enterOverview() {
     state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null;
@@ -266,11 +264,12 @@
     var childSet = new Set(); children.forEach(function (c) { childSet.add(c.node_id); });
     visibleEdges = allEdges.filter(function (e) { return !e._containment && (childSet.has(e.source) || childSet.has(e.target)); });
     // Spread children around the file node
+    var fn = nodeMap[fileNodeId]; if (fn) zoomTo(fn.x, fn.y, 2.5);
     savePositions(children);
     spreadNodes(nodeMap[fileNodeId], children, visibleEdges);
     updateStatus('File: ' + ((nodeMap[fileNodeId] || {}).label || fileNodeId), children.length);
     showInfoPanel(fileNodeId); updateHelpHint('Click a symbol for connections - Click background to go back');
-    var fn = nodeMap[fileNodeId]; if (fn) zoomTo(fn.x, fn.y, 2.5); render();
+    render();
   }
   function enterFocus(nodeId) {
     state.mode = 'focus'; state.selectedNode = nodeId;
@@ -281,12 +280,13 @@
     visibleNodes = allNodes.filter(function (n) { return neighborSet.has(n.node_id); });
     visibleNodes.forEach(function (n) { n._dimmed = false; });
     // Spread neighbors around the focus node
+    var n = nodeMap[nodeId] || {};
+    if (n.x !== undefined) zoomTo(n.x, n.y, 3);
     savePositions(visibleNodes);
     spreadNodes(nodeMap[nodeId], visibleNodes, visibleEdges);
-    var n = nodeMap[nodeId] || {};
     updateStatus('Focus: ' + (n.label || nodeId) + ' (in:' + (n.in_degree || 0) + ' out:' + (n.out_degree || 0) + ')', visibleNodes.length);
     showInfoPanel(nodeId); updateHelpHint('Click a neighbor to walk - Click background to go back - Esc to reset');
-    if (n.x !== undefined) zoomTo(n.x, n.y, 3); render();
+    render();
   }
   function doSearch(query) {
     if (!query) { enterOverview(); return; } state.mode = 'search'; highlightId = null;
@@ -350,6 +350,8 @@
       savePositions(spreadSet);
       spreadNodes(n, spreadSet, visibleEdges);
     }
+    // Zoom to center on selected node BEFORE animation plays
+    zoomTo(n.x, n.y, 2.5);
     showInfoPanel(n.node_id);
     var name = n.label || n.node_id;
     updateStatus(state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + ' - selected: ' + name, visibleNodes.length);
@@ -400,39 +402,8 @@
     window.__fs2 = { allNodes: allNodes, allEdges: allEdges, nodeMap: nodeMap, enterOverview: enterOverview, enterContents: enterContents, enterFocus: enterFocus, showEntryPoints: showEntryPoints, doSearch: doSearch, state: state };
     initStars(300);
     fitGraph(); enterOverview();
-    // Main animation loop — drives stars AND force spread animation
+    // Main animation loop — drives twinkling stars
     function tick() {
-      if (activeSim && activeSim.alpha() > activeSim.alphaMin()) {
-        activeSim.tick();
-        activeSim._centerNode.x = activeSim._cx;
-        activeSim._centerNode.y = activeSim._cy;
-        // Keep spread nodes within radius bounds
-        var bR = activeSim._radius;
-        if (bR) {
-          activeSim.nodes().forEach(function (nd) {
-            if (nd === activeSim._centerNode) return;
-            var dx = nd.x - activeSim._cx, dy = nd.y - activeSim._cy;
-            var dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist > bR) { nd.x = activeSim._cx + dx * (bR / dist); nd.y = activeSim._cy + dy * (bR / dist); }
-          });
-        }
-      } else if (activeSim) {
-        // Simulation finished — auto-zoom to fit spread nodes
-        var simNodes = activeSim.nodes();
-        if (simNodes.length > 1) {
-          var xs = simNodes.map(function (sn) { return sn.x; }), ys = simNodes.map(function (sn) { return sn.y; });
-          var mnX = Math.min.apply(null, xs), mxX = Math.max.apply(null, xs);
-          var mnY = Math.min.apply(null, ys), mxY = Math.max.apply(null, ys);
-          var gW = (mxX - mnX) || 100, gH = (mxY - mnY) || 100;
-          var pad = 120;
-          var sc = Math.min(width / (gW + pad * 2), height / (gH + pad * 2));
-          sc = Math.min(Math.max(sc, 0.5), 5);
-          var fcx = (mnX + mxX) / 2, fcy = (mnY + mxY) / 2;
-          transform = d3.zoomIdentity.translate(width / 2 - fcx * sc, height / 2 - fcy * sc).scale(sc);
-          canvas.call(zoomBehavior.transform, transform);
-        }
-        activeSim = null;
-      }
       render();
       starTimer = requestAnimationFrame(tick);
     }

@@ -103,6 +103,10 @@ generate-fixtures-quick:
         --scan-path tests/fixtures/samples \
         --no-smart-content
 
+# Generate the interactive codebase graph report
+report:
+    uv run python -m fs2 --graph-file .fs2/graph-full-crossrefs.pickle report codebase-graph
+
 # === Watch Mode ===
 
 # Start watch mode with full scans (embeddings + smart content)
