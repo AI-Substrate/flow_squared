@@ -168,29 +168,81 @@ class ReportService:
             for n in nodes
         ]
 
-        # Compute force-directed layout using NetworkX spring_layout
+        # Compute hierarchical solar-system layout:
+        # Suns (directories) → Planets (files) → Moons (callables/types)
         import networkx as nx
 
-        G = nx.Graph()
-        node_ids = {n.node_id for n in nodes}
-        for n in nodes:
-            G.add_node(n.node_id)
-        # Add containment edges (parent-child) for structure
-        for source, target, _data in containment_edges:
-            if source in node_ids and target in node_ids:
-                G.add_edge(source, target)
-        # Add reference edges for connectivity
-        for source, target, _data in reference_edges:
-            if source in node_ids and target in node_ids:
-                G.add_edge(source, target)
+        node_map = {n.node_id: n for n in nodes}
 
-        positions = nx.spring_layout(
-            G,
-            k=3.5 / math.sqrt(max(len(nodes), 1)),  # more breathing room
+        # --- Step 1: Derive directory hierarchy ---
+        # Group file nodes by their parent directory
+        dir_files: dict[str, list[str]] = {}  # dir_path → [file_node_id]
+        file_children: dict[str, list[str]] = {}  # file_node_id → [child_node_ids]
+
+        for n in nodes:
+            if n.category == "file" and n.file_path:
+                dir_path = str(Path(n.file_path).parent)
+                dir_files.setdefault(dir_path, []).append(n.node_id)
+            elif n.parent_node_id:
+                file_children.setdefault(n.parent_node_id, []).append(n.node_id)
+
+        # --- Step 2: Macro layout — position directories (suns) ---
+        dir_graph = nx.Graph()
+        dir_list = list(dir_files.keys())
+        for d in dir_list:
+            dir_graph.add_node(d)
+        # Connect directories that have cross-dir reference edges
+        for source, target, data in reference_edges:
+            if data.get("edge_type") != "references":
+                continue
+            s_node = node_map.get(source)
+            t_node = node_map.get(target)
+            if not s_node or not t_node:
+                continue
+            s_file = s_node.file_path or ""
+            t_file = t_node.file_path or ""
+            s_dir = str(Path(s_file).parent) if s_file else ""
+            t_dir = str(Path(t_file).parent) if t_file else ""
+            if s_dir in dir_files and t_dir in dir_files and s_dir != t_dir:
+                dir_graph.add_edge(s_dir, t_dir)
+
+        num_dirs = max(len(dir_list), 1)
+        dir_positions = nx.spring_layout(
+            dir_graph,
+            k=6.0 / math.sqrt(num_dirs),
             iterations=100,
             seed=42,
-            scale=3500,  # wider spread for spacing
-        )
+            scale=5000,  # generous macro spacing
+        ) if dir_list else {}
+
+        # --- Step 3: Position files (planets) in orbits around dirs ---
+        positions: dict[str, tuple[float, float]] = {}
+        dir_centers: dict[str, tuple[float, float]] = {}
+
+        for dir_path in dir_list:
+            cx, cy = dir_positions.get(dir_path, (0.0, 0.0))
+            dir_centers[dir_path] = (float(cx), float(cy))
+            files = dir_files[dir_path]
+            num_files = len(files)
+            orbit_r = max(150, num_files * 35)
+            for i, fid in enumerate(files):
+                angle = (2 * math.pi * i) / max(num_files, 1)
+                fx = cx + math.cos(angle) * orbit_r
+                fy = cy + math.sin(angle) * orbit_r
+                positions[fid] = (round(fx, 2), round(fy, 2))
+
+        # --- Step 4: Position callables/types (moons) around files ---
+        for file_id, children in file_children.items():
+            if file_id not in positions:
+                continue
+            fx, fy = positions[file_id]
+            num_ch = len(children)
+            moon_orbit = max(40, num_ch * 12)
+            for i, cid in enumerate(children):
+                angle = (2 * math.pi * i) / max(num_ch, 1)
+                mx = fx + math.cos(angle) * moon_orbit
+                my = fy + math.sin(angle) * moon_orbit
+                positions[cid] = (round(mx, 2), round(my, 2))
 
         # Compute graph metrics (FX001-2: degree, depth, entry point detection)
         in_degree: dict[str, int] = {}
@@ -199,8 +251,6 @@ class ReportService:
             if data.get("edge_type") == "references":
                 out_degree[source] = out_degree.get(source, 0) + 1
                 in_degree[target] = in_degree.get(target, 0) + 1
-
-        node_map = {n.node_id: n for n in nodes}
 
         def _compute_depth(node_id: str) -> int:
             depth = 0
@@ -211,6 +261,14 @@ class ReportService:
                 if depth > 20:
                     break  # safety
             return depth
+
+        # Build lookup: node_id → dir_path
+        node_dir: dict[str, str] = {}
+        for dir_path, file_ids in dir_files.items():
+            for fid in file_ids:
+                node_dir[fid] = dir_path
+                for cid in file_children.get(fid, []):
+                    node_dir[cid] = dir_path
 
         # Apply positions, sizes, colors, and metrics to node dicts
         for nd in node_dicts:
@@ -225,6 +283,10 @@ class ReportService:
             # Category color — Python is single source of truth
             nd["color"] = _CATEGORY_COLORS.get(nd.get("category", ""), "#6b7280")
             nd["label"] = nd.get("name", "")
+            # Solar system level
+            cat = nd.get("category", "")
+            nd["level"] = "planet" if cat == "file" else "moon"
+            nd["dir_path"] = node_dir.get(nid, "")
 
             # Graph metrics
             nd_in = in_degree.get(nid, 0)
@@ -237,8 +299,7 @@ class ReportService:
                 nd_in == 0 and nd_out > 0 and nd.get("category") == "callable"
             )
 
-            # Size based on connections — more connections = bigger node
-            # For file nodes, aggregate all children's connections too
+            # Size based on level: planets bigger, moons smaller
             degree = nd["degree"]
             if nd.get("category") == "file":
                 for child_nd in node_dicts:
@@ -246,9 +307,48 @@ class ReportService:
                         degree += in_degree.get(child_nd["node_id"], 0)
                         degree += out_degree.get(child_nd["node_id"], 0)
             nd["agg_degree"] = degree
-            nd["size"] = round(
-                max(3.0, min(30.0, 3.0 + math.log2(degree + 1) * 4.0)), 2
-            )
+            level = nd["level"]
+            if level == "planet":
+                nd["size"] = round(
+                    max(8.0, min(35.0, 8.0 + math.log2(degree + 1) * 5.0)), 2
+                )
+            else:  # moon
+                nd["size"] = round(
+                    max(3.0, min(12.0, 3.0 + math.log2(degree + 1) * 2.0)), 2
+                )
+
+        # Inject virtual "sun" nodes for each directory
+        sun_color = "#fbbf24"  # amber/gold for suns
+        for dir_path in dir_list:
+            cx, cy = dir_centers.get(dir_path, (0.0, 0.0))
+            dir_name = Path(dir_path).name or dir_path
+            num_files = len(dir_files[dir_path])
+            sun_size = round(max(20.0, min(60.0, 20.0 + num_files * 3.0)), 2)
+            node_dicts.append({
+                "node_id": f"dir:{dir_path}",
+                "name": dir_name,
+                "category": "directory",
+                "file_path": dir_path,
+                "start_line": None,
+                "end_line": None,
+                "signature": None,
+                "smart_content": f"Directory with {num_files} files",
+                "language": None,
+                "parent_node_id": None,
+                "x": round(float(cx), 2),
+                "y": round(float(cy), 2),
+                "color": sun_color,
+                "label": dir_name,
+                "level": "sun",
+                "dir_path": dir_path,
+                "in_degree": 0,
+                "out_degree": 0,
+                "degree": 0,
+                "depth": 0,
+                "is_entry_point": False,
+                "agg_degree": num_files,
+                "size": sun_size,
+            })
 
         # Serialize edges (both types with rendering hints)
         edge_dicts = [

@@ -127,16 +127,17 @@
         ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(tx, ty); ctx.stroke();
       }); ctx.globalAlpha = 1; ctx.lineWidth = 1 * invK;
     }
-    // Node glow halos (only when zoomed enough to see them)
-    if (transform.k > 0.15) {
+    // Node glow halos — suns get bigger, warmer glow
+    if (transform.k > 0.05) {
       visibleNodes.forEach(function (n) {
         if (n._dimmed) return;
         var r = (n._r || 4);
-        var glowR = r * 3;
-        var grad = ctx.createRadialGradient(n.x, n.y, r * 0.5, n.x, n.y, glowR);
+        var isSun = n.level === 'sun';
+        var glowR = isSun ? r * 5 : r * 3;
+        var grad = ctx.createRadialGradient(n.x, n.y, r * 0.3, n.x, n.y, glowR);
         var col = n.node_id === highlightId ? '#38bdf8' : (n.color || '#60a5fa');
-        grad.addColorStop(0, col + '40'); // 25% alpha at center
-        grad.addColorStop(1, col + '00'); // transparent at edge
+        grad.addColorStop(0, col + (isSun ? '60' : '40'));
+        grad.addColorStop(1, col + '00');
         ctx.fillStyle = grad;
         ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, 2 * Math.PI); ctx.fill();
       });
@@ -167,8 +168,9 @@
         var isConnected = highlightId && _focusNeighbors && _focusNeighbors.has(n.node_id);
         var faded = highlightId && !isFocused && !isConnected;
         if (faded) return;
+        var levelPri = n.level === 'sun' ? 1000 : (n.level === 'planet' ? 100 : 0);
         if ((n._r || 4) * transform.k > 0.8) {
-          candidates.push({ n: n, focused: isFocused, priority: isFocused ? 9999 : (n._r || 4) });
+          candidates.push({ n: n, focused: isFocused, priority: isFocused ? 9999 : (levelPri + (n._r || 4)) });
         }
       });
       candidates.sort(function (a, b) { return b.priority - a.priority; });
@@ -288,11 +290,11 @@
     state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null;
     highlightId = null; _focusNeighbors = null;
     restorePositions();
-    visibleNodes = allNodes.filter(function (n) { return n.category === 'file'; });
+    visibleNodes = allNodes.slice(); // show everything — suns, planets, moons
     visibleNodes.forEach(function (n) { n._dimmed = false; });
     visibleEdges = getRefEdges();
-    updateStatus('Overview - click a file to explore', visibleNodes.length); showInfoPanel(null);
-    updateHelpHint('Click a file node - Scroll to zoom - Drag to pan - / to search - Esc to reset'); render();
+    updateStatus('Solar System - click to explore', visibleNodes.length); showInfoPanel(null);
+    updateHelpHint('Click a node - Scroll to zoom - Drag to pan - / to search - Esc to reset'); render();
   }
   function enterContents(fileNodeId) {
     state.mode = 'contents'; state.selectedFile = fileNodeId; state.selectedNode = null;
@@ -367,7 +369,7 @@
     if (highlightId === n.node_id) {
       // Already highlighted — drill in
       if (n.category === 'file') enterContents(n.node_id);
-      else enterFocus(n.node_id);
+      else if (n.category !== 'directory') enterFocus(n.node_id);
       return;
     }
     // Restore any previous spread before starting new one
@@ -398,7 +400,7 @@
       highlightId = null; _focusNeighbors = null;
       restorePositions();
       if (state.mode === 'overview') {
-        visibleNodes = allNodes.filter(function (n) { return n.category === 'file'; });
+        visibleNodes = allNodes.slice();
         visibleNodes.forEach(function (n) { n._dimmed = false; });
         visibleEdges = getRefEdges();
       }
@@ -410,7 +412,7 @@
   }
   function initGraph() {
     if (typeof GRAPH_DATA === 'undefined' || typeof d3 === 'undefined') throw new Error('Missing GRAPH_DATA or d3');
-    GRAPH_DATA.nodes.forEach(function (n) { n.label = n.label || n.name || ''; n._r = n.size || 4; nodeMap[n.node_id] = n; allNodes.push(n); });
+    GRAPH_DATA.nodes.forEach(function (n) { n.label = n.label || n.name || ''; n._r = n.size || 4; n.level = n.level || 'moon'; nodeMap[n.node_id] = n; allNodes.push(n); });
     GRAPH_DATA.edges.forEach(function (e) { e._containment = e.hidden; allEdges.push(e); });
     var container = $('sigma-container'); width = container.offsetWidth; height = container.offsetHeight;
     canvas = d3.select(container).append('canvas').attr('width', width).attr('height', height).style('width', '100%').style('height', '100%');
