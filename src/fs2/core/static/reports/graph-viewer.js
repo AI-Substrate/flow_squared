@@ -233,6 +233,14 @@
     // Highlight this node — keep current view but fade non-connected
     highlightId = n.node_id;
     _focusNeighbors = buildNeighbors(n.node_id);
+    // Ensure edges for this node are visible (search/entry modes start with none)
+    if (visibleEdges.length === 0) {
+      visibleEdges = allEdges.filter(function (e) {
+        if (e._containment) return false;
+        return e.source === n.node_id || e.target === n.node_id ||
+          _focusNeighbors.has(e.source) || _focusNeighbors.has(e.target);
+      });
+    }
     showInfoPanel(n.node_id);
     var name = n.label || n.node_id;
     updateStatus(state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + ' - selected: ' + name, visibleNodes.length);
