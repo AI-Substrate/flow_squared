@@ -61,7 +61,7 @@ scan:
 #   azure_deployment_name: gpt-4o
 #   azure_api_version: "2024-12-01-preview"
 #   model: gpt-4o
-#   # Requires: pip install fs2[azure-ad] && az login
+#   # Requires: az login (Azure AD auth)
 #
 # OpenAI:
 # llm:
@@ -80,7 +80,7 @@ smart_content:
 
 # ─── Embedding (for semantic search) ──────────────────────────────
 # Local embeddings (default — no API key needed):
-# Requires: pip install fs2[local-embeddings]
+# Included by default — no extra install needed
 embedding:
   mode: local
   dimensions: 384
@@ -107,7 +107,7 @@ embedding:
 #     endpoint: https://YOUR-RESOURCE.openai.azure.com/
 #     deployment_name: text-embedding-3-small
 #     api_version: "2024-02-01"
-#   # Requires: pip install fs2[azure-ad] && az login
+#   # Requires: az login (Azure AD auth)
 #
 # OpenAI-compatible:
 # embedding:

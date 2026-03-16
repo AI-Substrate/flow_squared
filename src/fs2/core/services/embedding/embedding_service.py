@@ -166,7 +166,7 @@ class EmbeddingService:
             except ImportError:
                 raise ValueError(
                     "sentence-transformers package is required for local embeddings. "
-                    "Install it with: pip install fs2[local-embeddings]"
+                    "Install with: uv pip install sentence-transformers torch"
                 ) from None
 
             from fs2.config.objects import LocalEmbeddingConfig

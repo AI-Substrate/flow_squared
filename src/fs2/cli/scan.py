@@ -678,7 +678,7 @@ def _create_embedding_service(config, console: ConsoleAdapter):
         return service, "enabled"
     except Exception as e:
         error_msg = str(e)
-        if len(error_msg) > 100:
-            error_msg = error_msg[:100] + "..."
+        if len(error_msg) > 150:
+            error_msg = error_msg[:150] + "..."
         console.print_warning(f"Embeddings setup error: {error_msg}")
-        return None, f"error: {type(e).__name__}"
+        return None, f"error: {error_msg}"

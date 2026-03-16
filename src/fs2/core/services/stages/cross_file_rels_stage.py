@@ -879,13 +879,16 @@ class CrossFileRelsStage:
         # T010: Graceful skip if Serena not available
         if not is_serena_available():
             logger.info(
-                "serena-mcp-server not found. Skipping cross-file relationships. "
-                "Install with: uv tool install serena-agent"
+                "serena-mcp-server not found. Skipping cross-file relationships."
             )
             context.metrics["cross_file_rels_skipped"] = True
             context.metrics["cross_file_rels_reason"] = "serena_not_available"
             if progress_cb:
-                progress_cb("skipped", "serena-mcp-server not found")
+                progress_cb(
+                    "skipped",
+                    "serena-mcp-server not found. "
+                    "Install with: uvx serena-agent --help"
+                )
             return context
 
         # Show banner immediately so user knows the stage is active
