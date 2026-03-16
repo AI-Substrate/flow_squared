@@ -254,15 +254,34 @@ class SmartContentStage:
                 continue
 
             if prior.smart_content is None:
-                # Prior exists but has no smart_content
-                merged.append(node)
+                # Prior exists but has no smart_content — still carry
+                # forward embedding fields so courtesy saves don't lose them
+                if prior.embedding is not None:
+                    merged_node = replace(
+                        node,
+                        embedding=prior.embedding,
+                        smart_content_embedding=prior.smart_content_embedding,
+                        embedding_hash=prior.embedding_hash,
+                        embedding_chunk_offsets=prior.embedding_chunk_offsets,
+                        leading_context=prior.leading_context,
+                    )
+                    merged.append(merged_node)
+                else:
+                    merged.append(node)
                 continue
 
             # Hash matches and prior has smart_content - copy it!
+            # Also preserve embedding fields and leading_context so
+            # courtesy saves don't erase them before embedding stage runs
             merged_node = replace(
                 node,
                 smart_content=prior.smart_content,
                 smart_content_hash=prior.smart_content_hash,
+                embedding=prior.embedding,
+                smart_content_embedding=prior.smart_content_embedding,
+                embedding_hash=prior.embedding_hash,
+                embedding_chunk_offsets=prior.embedding_chunk_offsets,
+                leading_context=prior.leading_context,
             )
             merged.append(merged_node)
             merged_count += 1
