@@ -206,23 +206,24 @@ class ReportService:
             if s_dir in dir_files and t_dir in dir_files and s_dir != t_dir:
                 dir_graph.add_edge(s_dir, t_dir)
 
-        # Compute each system's radius so we can space them apart
+        # Estimate each system's radius for macro spacing
         dir_radius: dict[str, float] = {}
         for dir_path in dir_list:
             files = dir_files[dir_path]
             num_files = len(files)
-            planet_orbit = max(150, num_files * 35)
-            # Largest moon orbit in this system
+            max_per_ring = max(6, int(math.sqrt(num_files) * 3))
+            num_rings = max(1, math.ceil(num_files / max_per_ring))
+            outer_ring = 120 + (num_rings - 1) * 100  # outermost ring
             max_moon = 0.0
             for fid in files:
                 nc = len(file_children.get(fid, []))
-                max_moon = max(max_moon, max(40, nc * 12) if nc else 0)
-            dir_radius[dir_path] = planet_orbit + max_moon + 80  # padding
+                max_moon = max(max_moon, max(30, min(80, nc * 8)) if nc else 0)
+            dir_radius[dir_path] = outer_ring + max_moon + 100
 
-        # Scale macro layout so systems don't overlap
+        # Scale macro layout generously
         avg_radius = sum(dir_radius.values()) / max(len(dir_radius), 1)
         num_dirs = max(len(dir_list), 1)
-        macro_scale = max(8000, avg_radius * num_dirs * 0.6)
+        macro_scale = max(10000, avg_radius * num_dirs * 0.8)
 
         dir_positions = nx.spring_layout(
             dir_graph,
@@ -232,21 +233,48 @@ class ReportService:
             scale=macro_scale,
         ) if dir_list else {}
 
-        # --- Step 3: Position files (planets) in orbits around dirs ---
+        # --- Step 3: Position files (planets) in valence rings around dirs ---
+        import random as _rng
+
         positions: dict[str, tuple[float, float]] = {}
         dir_centers: dict[str, tuple[float, float]] = {}
+        dir_actual_radius: dict[str, float] = {}  # measured outer boundary
 
         for dir_path in dir_list:
             cx, cy = dir_positions.get(dir_path, (0.0, 0.0))
             dir_centers[dir_path] = (float(cx), float(cy))
             files = dir_files[dir_path]
             num_files = len(files)
-            orbit_r = max(150, num_files * 35)
-            for i, fid in enumerate(files):
-                angle = (2 * math.pi * i) / max(num_files, 1)
-                fx = cx + math.cos(angle) * orbit_r
-                fy = cy + math.sin(angle) * orbit_r
-                positions[fid] = (round(fx, 2), round(fy, 2))
+
+            # Distribute across multiple valence rings (like electron shells)
+            max_per_ring = max(6, int(math.sqrt(num_files) * 3))
+            num_rings = max(1, math.ceil(num_files / max_per_ring))
+            ring_base = 120  # innermost ring radius
+            ring_gap = 100   # gap between rings
+
+            rng = _rng.Random(hash(dir_path))  # deterministic per directory
+            ring_assignments: list[tuple[int, float]] = []  # (ring_idx, angle)
+            slots_per_ring = [0] * num_rings
+            for i in range(num_files):
+                ring_idx = i % num_rings
+                slots_per_ring[ring_idx] += 1
+
+            fi = 0
+            for ring_idx in range(num_rings):
+                ring_r = ring_base + ring_idx * ring_gap
+                n_in_ring = slots_per_ring[ring_idx]
+                for j in range(n_in_ring):
+                    # Evenly space within ring + random jitter
+                    base_angle = (2 * math.pi * j) / max(n_in_ring, 1)
+                    jitter = rng.uniform(-0.3, 0.3)
+                    angle = base_angle + jitter
+                    r_jitter = rng.uniform(-20, 20)
+                    r = ring_r + r_jitter
+                    fid = files[fi]
+                    fx = cx + math.cos(angle) * r
+                    fy = cy + math.sin(angle) * r
+                    positions[fid] = (round(fx, 2), round(fy, 2))
+                    fi += 1
 
         # --- Step 4: Position callables/types (moons) around files ---
         for file_id, children in file_children.items():
@@ -254,12 +282,71 @@ class ReportService:
                 continue
             fx, fy = positions[file_id]
             num_ch = len(children)
-            moon_orbit = max(40, num_ch * 12)
+            moon_orbit = max(30, min(80, num_ch * 8))
+            rng = _rng.Random(hash(file_id))
             for i, cid in enumerate(children):
-                angle = (2 * math.pi * i) / max(num_ch, 1)
-                mx = fx + math.cos(angle) * moon_orbit
-                my = fy + math.sin(angle) * moon_orbit
+                angle = (2 * math.pi * i) / max(num_ch, 1) + rng.uniform(-0.2, 0.2)
+                r = moon_orbit + rng.uniform(-8, 8)
+                mx = fx + math.cos(angle) * r
+                my = fy + math.sin(angle) * r
                 positions[cid] = (round(mx, 2), round(my, 2))
+
+        # --- Step 5: Measure actual system radii and push apart overlapping ---
+        for dir_path in dir_list:
+            cx, cy = dir_centers[dir_path]
+            max_r = 0.0
+            for fid in dir_files[dir_path]:
+                if fid not in positions:
+                    continue
+                fx, fy = positions[fid]
+                dist = math.sqrt((fx - cx) ** 2 + (fy - cy) ** 2)
+                # Include moon orbit of this file
+                nc = len(file_children.get(fid, []))
+                moon_r = max(30, min(80, nc * 8)) if nc else 0
+                max_r = max(max_r, dist + moon_r)
+            dir_actual_radius[dir_path] = max_r + 60  # padding
+
+        # Push apart overlapping solar systems (iterative repulsion)
+        dir_pos_list = [(d, list(dir_centers[d])) for d in dir_list]
+        for _iteration in range(50):
+            moved = False
+            for i in range(len(dir_pos_list)):
+                for j in range(i + 1, len(dir_pos_list)):
+                    d1, p1 = dir_pos_list[i]
+                    d2, p2 = dir_pos_list[j]
+                    dx = p1[0] - p2[0]
+                    dy = p1[1] - p2[1]
+                    dist = math.sqrt(dx * dx + dy * dy) or 1.0
+                    min_dist = dir_actual_radius[d1] + dir_actual_radius[d2]
+                    if dist < min_dist:
+                        # Push apart
+                        overlap = (min_dist - dist) / 2 + 10
+                        nx_d = dx / dist
+                        ny_d = dy / dist
+                        p1[0] += nx_d * overlap
+                        p1[1] += ny_d * overlap
+                        p2[0] -= nx_d * overlap
+                        p2[1] -= ny_d * overlap
+                        moved = True
+            if not moved:
+                break
+
+        # Apply pushed positions back — shift all nodes in each system
+        for d, new_center in dir_pos_list:
+            old_cx, old_cy = dir_centers[d]
+            shift_x = new_center[0] - old_cx
+            shift_y = new_center[1] - old_cy
+            if abs(shift_x) < 0.01 and abs(shift_y) < 0.01:
+                continue
+            dir_centers[d] = (new_center[0], new_center[1])
+            for fid in dir_files[d]:
+                if fid in positions:
+                    ox, oy = positions[fid]
+                    positions[fid] = (round(ox + shift_x, 2), round(oy + shift_y, 2))
+                for cid in file_children.get(fid, []):
+                    if cid in positions:
+                        ox, oy = positions[cid]
+                        positions[cid] = (round(ox + shift_x, 2), round(oy + shift_y, 2))
 
         # Compute graph metrics (FX001-2: degree, depth, entry point detection)
         in_degree: dict[str, int] = {}
