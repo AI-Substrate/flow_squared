@@ -8,6 +8,7 @@
   var allNodes = [], allEdges = [], nodeMap = {};
   var visibleNodes = [], visibleEdges = [];
   var highlightId = null;
+  var _focusNeighbors = null; // Set of node_ids connected to highlightId
   var transform = d3.zoomIdentity;
   var canvas, ctx, width, height, searchTimer, zoomBehavior;
   var catColors = {};
@@ -55,26 +56,66 @@
     ctx.save(); ctx.clearRect(0, 0, width, height);
     ctx.translate(transform.x, transform.y); ctx.scale(transform.k, transform.k);
     var invK = 1 / transform.k;
+    // Edges — always draw, resolve endpoints to visible parent if needed
     if (visibleEdges.length > 0) {
-      ctx.lineWidth = 1.5 * invK;
-      // Fade edges when showing many, full opacity for focus
-      ctx.globalAlpha = visibleEdges.length > 500 ? 0.15 : (visibleEdges.length > 50 ? 0.4 : 0.8);
+      ctx.lineWidth = 1 * invK;
+      var baseAlpha = visibleEdges.length > 500 ? 0.2 : (visibleEdges.length > 50 ? 0.5 : 0.8);
       visibleEdges.forEach(function (e) {
-        var s = nodeMap[e.source], t = nodeMap[e.target]; if (!s || !t) return;
-        ctx.strokeStyle = '#d97706'; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y); ctx.stroke();
-        var dx = t.x - s.x, dy = t.y - s.y, len = Math.sqrt(dx * dx + dy * dy);
-        if (len > 0) { var ux = dx / len, uy = dy / len, tipX = t.x - ux * (t._r || 4), tipY = t.y - uy * (t._r || 4), as = 5 * invK;
-          ctx.fillStyle = '#d97706'; ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(tipX - ux * as - uy * as * 0.5, tipY - uy * as + ux * as * 0.5); ctx.lineTo(tipX - ux * as + uy * as * 0.5, tipY - uy * as - ux * as * 0.5); ctx.fill(); }
-      }); ctx.globalAlpha = 1;
+        var s = nodeMap[e.source], t = nodeMap[e.target];
+        if (!s || !t) return;
+        var sx = s.x, sy = s.y, tx = t.x, ty = t.y;
+        if (s.parent_node_id && nodeMap[s.parent_node_id]) { var p = nodeMap[s.parent_node_id]; sx = p.x; sy = p.y; }
+        if (t.parent_node_id && nodeMap[t.parent_node_id]) { var p2 = nodeMap[t.parent_node_id]; tx = p2.x; ty = p2.y; }
+        if (sx === tx && sy === ty) return;
+        // Highlight edges connected to focused node, fade others
+        var connected = highlightId && (e.source === highlightId || e.target === highlightId ||
+          (s.parent_node_id === highlightId) || (t.parent_node_id === highlightId));
+        ctx.globalAlpha = highlightId ? (connected ? 0.9 : 0.04) : baseAlpha;
+        ctx.strokeStyle = connected ? '#fbbf24' : '#fbbf24';
+        ctx.lineWidth = (connected ? 2 : 1) * invK;
+        ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(tx, ty); ctx.stroke();
+      }); ctx.globalAlpha = 1; ctx.lineWidth = 1 * invK;
     }
+    // Node glow halos (only when zoomed enough to see them)
+    if (transform.k > 0.15) {
+      visibleNodes.forEach(function (n) {
+        if (n._dimmed) return;
+        var r = (n._r || 4);
+        var glowR = r * 3;
+        var grad = ctx.createRadialGradient(n.x, n.y, r * 0.5, n.x, n.y, glowR);
+        var col = n.node_id === highlightId ? '#38bdf8' : (n.color || '#60a5fa');
+        grad.addColorStop(0, col + '40'); // 25% alpha at center
+        grad.addColorStop(1, col + '00'); // transparent at edge
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, 2 * Math.PI); ctx.fill();
+      });
+    }
+    // Node cores
     visibleNodes.forEach(function (n) {
-      ctx.fillStyle = n.node_id === highlightId ? '#0284c7' : (n._dimmed ? '#e2e8f0' : (n.color || '#6b7280'));
+      var isFocused = n.node_id === highlightId;
+      var isConnected = highlightId && _focusNeighbors && _focusNeighbors.has(n.node_id);
+      var faded = highlightId && !isFocused && !isConnected;
+      ctx.globalAlpha = faded ? 0.12 : 1;
+      var col = isFocused ? '#38bdf8' : (n._dimmed ? '#1e293b' : (n.color || '#60a5fa'));
+      ctx.fillStyle = col;
       ctx.beginPath(); ctx.arc(n.x, n.y, n._r || 4, 0, 2 * Math.PI); ctx.fill();
-      if (n.node_id === highlightId) { ctx.strokeStyle = '#0369a1'; ctx.lineWidth = 2 * invK; ctx.stroke(); }
+      if (isFocused) { ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 2 * invK; ctx.stroke(); }
+      ctx.globalAlpha = 1;
     });
+    // Labels
     if (transform.k > 0.3) {
-      ctx.fillStyle = '#1e293b'; ctx.font = Math.max(9, 12 * invK) + 'px Inter, sans-serif'; ctx.textBaseline = 'middle';
-      visibleNodes.forEach(function (n) { if (n._dimmed || !n.label) return; if ((n._r || 4) * transform.k > 2.5) ctx.fillText(n.label, n.x + (n._r || 4) + 3, n.y); });
+      ctx.font = Math.max(9, 12 * invK) + 'px Inter, sans-serif'; ctx.textBaseline = 'middle';
+      visibleNodes.forEach(function (n) {
+        if (n._dimmed || !n.label) return;
+        var isFocused = n.node_id === highlightId;
+        var isConnected = highlightId && _focusNeighbors && _focusNeighbors.has(n.node_id);
+        var faded = highlightId && !isFocused && !isConnected;
+        if (faded) return; // hide labels for faded nodes
+        if ((n._r || 4) * transform.k > 2.5) {
+          ctx.fillStyle = isFocused ? '#7dd3fc' : 'rgba(226,232,240,0.85)';
+          ctx.fillText(n.label, n.x + (n._r || 4) + 3, n.y);
+        }
+      });
     }
     ctx.restore();
   }
@@ -87,23 +128,47 @@
   function getRefEdges() {
     return allEdges.filter(function (e) { return !e._containment; });
   }
+  // Build neighbor set for a node (file-level: includes children's connections)
+  function buildNeighbors(nodeId) {
+    var neighbors = new Set();
+    var n = nodeMap[nodeId];
+    if (!n) return neighbors;
+    // Direct connections
+    allEdges.forEach(function (e) {
+      if (e._containment) return;
+      if (e.source === nodeId) neighbors.add(e.target);
+      if (e.target === nodeId) neighbors.add(e.source);
+    });
+    // If it's a file, also include connections of its children
+    if (n.category === 'file') {
+      allNodes.forEach(function (child) {
+        if (child.parent_node_id !== nodeId) return;
+        allEdges.forEach(function (e) {
+          if (e._containment) return;
+          if (e.source === child.node_id) { neighbors.add(e.target); var tp = nodeMap[e.target]; if (tp && tp.parent_node_id) neighbors.add(tp.parent_node_id); }
+          if (e.target === child.node_id) { neighbors.add(e.source); var sp = nodeMap[e.source]; if (sp && sp.parent_node_id) neighbors.add(sp.parent_node_id); }
+        });
+      });
+    }
+    return neighbors;
+  }
   function enterOverview() {
-    state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null; highlightId = null;
+    state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null;
+    highlightId = null; _focusNeighbors = null;
     visibleNodes = allNodes.filter(function (n) { return n.category === 'file'; });
     visibleNodes.forEach(function (n) { n._dimmed = false; });
-    // Show ALL reference edges — this is what the user wants to see
     visibleEdges = getRefEdges();
     updateStatus('Overview - click a file to explore', visibleNodes.length); showInfoPanel(null);
     updateHelpHint('Click a file node - Scroll to zoom - Drag to pan - / to search - Esc to reset'); render();
   }
   function enterContents(fileNodeId) {
-    state.mode = 'contents'; state.selectedFile = fileNodeId; state.selectedNode = null; highlightId = fileNodeId;
+    state.mode = 'contents'; state.selectedFile = fileNodeId; state.selectedNode = null;
+    highlightId = fileNodeId; _focusNeighbors = buildNeighbors(fileNodeId);
     var children = [nodeMap[fileNodeId]];
     allNodes.forEach(function (n) { if (n.parent_node_id === fileNodeId) children.push(n); });
     var bg = allNodes.filter(function (n) { return n.category === 'file' && n.node_id !== fileNodeId; });
     bg.forEach(function (n) { n._dimmed = true; }); children.forEach(function (n) { n._dimmed = false; });
     visibleNodes = children.concat(bg);
-    // Show edges involving this file's children
     var childSet = new Set(); children.forEach(function (c) { childSet.add(c.node_id); });
     visibleEdges = allEdges.filter(function (e) { return !e._containment && (childSet.has(e.source) || childSet.has(e.target)); });
     updateStatus('File: ' + ((nodeMap[fileNodeId] || {}).label || fileNodeId), children.length);
@@ -111,7 +176,8 @@
     var fn = nodeMap[fileNodeId]; if (fn) zoomTo(fn.x, fn.y, 2.5); render();
   }
   function enterFocus(nodeId) {
-    state.mode = 'focus'; state.selectedNode = nodeId; highlightId = nodeId;
+    state.mode = 'focus'; state.selectedNode = nodeId;
+    highlightId = nodeId; _focusNeighbors = buildNeighbors(nodeId);
     var neighborSet = new Set(); neighborSet.add(nodeId); visibleEdges = [];
     allEdges.forEach(function (e) { if (e._containment) return; if (e.source === nodeId) { neighborSet.add(e.target); visibleEdges.push(e); } if (e.target === nodeId) { neighborSet.add(e.source); visibleEdges.push(e); } });
     visibleNodes = allNodes.filter(function (n) { return neighborSet.has(n.node_id); });
@@ -148,11 +214,33 @@
     canvas.call(zoomBehavior.transform, transform);
   }
   function onClickNode(n) {
-    if (state.mode === 'overview' || state.mode === 'search') { n.category === 'file' ? enterContents(n.node_id) : enterFocus(n.node_id); }
-    else if (state.mode === 'contents') { if (n.category === 'file' && n.node_id !== state.selectedFile) enterContents(n.node_id); else { state.selectedFile = n.parent_node_id || state.selectedFile; enterFocus(n.node_id); } }
-    else enterFocus(n.node_id);
+    // First click: highlight in place (fade others, show connections)
+    // Second click on same node: drill into contents/focus
+    if (highlightId === n.node_id) {
+      // Already highlighted — drill in
+      if (n.category === 'file') enterContents(n.node_id);
+      else enterFocus(n.node_id);
+      return;
+    }
+    // Highlight this node — keep current view but fade non-connected
+    highlightId = n.node_id;
+    _focusNeighbors = buildNeighbors(n.node_id);
+    showInfoPanel(n.node_id);
+    var name = n.label || n.node_id;
+    updateStatus(state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + ' - selected: ' + name, visibleNodes.length);
+    updateHelpHint('Click again to drill in - Click background to deselect - Esc to reset');
+    render();
   }
-  function onClickStage() { if (state.mode === 'focus') state.selectedFile ? enterContents(state.selectedFile) : enterOverview(); else if (state.mode === 'contents') enterOverview(); }
+  function onClickStage() {
+    if (highlightId) {
+      // Deselect — clear highlight, keep current mode
+      highlightId = null; _focusNeighbors = null;
+      showInfoPanel(null); render();
+      return;
+    }
+    if (state.mode === 'focus') state.selectedFile ? enterContents(state.selectedFile) : enterOverview();
+    else if (state.mode === 'contents') enterOverview();
+  }
   function initGraph() {
     if (typeof GRAPH_DATA === 'undefined' || typeof d3 === 'undefined') throw new Error('Missing GRAPH_DATA or d3');
     GRAPH_DATA.nodes.forEach(function (n) { n.label = n.label || n.name || ''; n._r = n.size || 4; nodeMap[n.node_id] = n; allNodes.push(n); });

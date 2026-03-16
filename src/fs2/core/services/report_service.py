@@ -46,16 +46,16 @@ _NODE_FIELDS = (
 
 # DYK-08: Python is the single source of truth for category→color map
 _CATEGORY_COLORS: dict[str, str] = {
-    "callable": "#0891b2",   # cyan 600
-    "type": "#7c3aed",       # violet 600
-    "file": "#475569",       # slate 600
-    "section": "#4f46e5",    # indigo 600
-    "folder": "#334155",     # slate 700
-    "block": "#059669",      # emerald 600
-    "statement": "#e11d48",  # rose 600
-    "expression": "#ea580c", # orange 600
-    "definition": "#65a30d", # lime 600
-    "other": "#6b7280",      # gray 500
+    "callable": "#22d3ee",   # cyan 400 — bright on dark
+    "type": "#a78bfa",       # violet 400
+    "file": "#60a5fa",       # blue 400
+    "section": "#818cf8",    # indigo 400
+    "folder": "#94a3b8",     # slate 400
+    "block": "#34d399",      # emerald 400
+    "statement": "#fb7185",  # rose 400
+    "expression": "#fb923c", # orange 400
+    "definition": "#a3e635", # lime 400
+    "other": "#9ca3af",      # gray 400
 }
 
 

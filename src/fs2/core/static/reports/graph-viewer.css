@@ -9,23 +9,23 @@
 
 /* === CSS Custom Properties === */
 :root {
-  /* Canvas */
-  --bg: #f8fafc;
-  --canvas-bg: #ffffff;
+  /* Canvas — deep space */
+  --bg: #070b14;
+  --canvas-bg: #070b14;
 
-  /* Chrome */
-  --chrome: #f1f5f9;
-  --chrome-hover: #e2e8f0;
-  --border: #cbd5e1;
+  /* Chrome — dark panels */
+  --chrome: #0f1729;
+  --chrome-hover: #1a2744;
+  --border: #1e2d4a;
 
   /* Text */
-  --text: #1e293b;
-  --text-dim: #475569;
-  --text-muted: #94a3b8;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --text-muted: #64748b;
 
   /* Accent */
-  --accent: #0284c7;
-  --accent-hover: #0369a1;
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
 
   /* Node Category Colors */
   --cat-callable: #67e8f9;
@@ -172,7 +172,7 @@ html, body {
 
 .mode-btn.active {
   background: var(--accent);
-  color: #ffffff;
+  color: #070b14;
   border-color: var(--accent);
   font-weight: 600;
 }

@@ -92,19 +92,19 @@ class TestNodePositionAndColor:
         assert "label" in nd
 
     def test_callable_nodes_are_cyan(self):
-        """Callable nodes get cyan color #0891b2."""
+        """Callable nodes get cyan color #22d3ee."""
         from fs2.core.services.report_service import _CATEGORY_COLORS
-        assert _CATEGORY_COLORS["callable"] == "#0891b2"
+        assert _CATEGORY_COLORS["callable"] == "#22d3ee"
 
     def test_type_nodes_are_violet(self):
-        """Type nodes get violet color #7c3aed."""
+        """Type nodes get violet color #a78bfa."""
         from fs2.core.services.report_service import _CATEGORY_COLORS
-        assert _CATEGORY_COLORS["type"] == "#7c3aed"
+        assert _CATEGORY_COLORS["type"] == "#a78bfa"
 
     def test_file_nodes_are_slate(self):
-        """File nodes get slate color #475569."""
+        """File nodes get blue color #60a5fa."""
         from fs2.core.services.report_service import _CATEGORY_COLORS
-        assert _CATEGORY_COLORS["file"] == "#475569"
+        assert _CATEGORY_COLORS["file"] == "#60a5fa"
 
     def test_excludes_smart_content_when_flag_false(self):
         """Proves --no-smart-content works."""
