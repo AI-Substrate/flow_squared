@@ -1,8 +1,9 @@
 # Leading Context Capture
 
 **Plan**: 037-leading-context-capture
+**Mode**: Simple
 **Created**: 2026-03-16
-**Status**: Draft
+**Status**: Clarified
 
 📚 This specification incorporates findings from:
 - `workshops/001-leading-context-design.md` — Data model, search integration, embedding strategy
@@ -115,9 +116,40 @@ No new domains created. All changes are additive to existing boundaries.
 
 ## Open Questions
 
-1. **OQ1**: Should `leading_context` score 0.5 or 0.6 in text/regex search? [NEEDS CLARIFICATION: Workshop 001 suggests 0.6 for human-authored intent, but keeping it at 0.5 (same as content) avoids surprising rank changes]
-2. **OQ2**: Should smart content regeneration trigger when leading context changes? [Workshop recommends NO — only embedding re-triggers. But if a developer adds a detailed comment explaining an algorithm, the AI summary would benefit from re-generation]
-3. **OQ3**: For `get_node` output, should `leading_context` be shown alongside `content` or separately? [Impacts CLI display and MCP tool responses]
+All resolved — see Clarifications below.
+
+---
+
+## Testing Strategy
+
+- **Approach**: Hybrid — TDD for parser extraction, lightweight for search/embedding wiring
+- **Rationale**: Parser extraction has language-specific edge cases (Python `decorated_definition`, TS `export_statement`, blank-line gap) that benefit from test-first. Search/embedding integration is simpler additive wiring.
+- **Mock Usage**: No mocks — always parse real fixture files with real tree-sitter. Use project-standard fakes for adapter testing (per fs2 convention: fakes over mocks).
+- **Focus Areas**: Multi-language comment extraction, blank-line gap rule, wrapper parent handling
+- **Excluded**: Manual testing of every language × search mode combination (fixture-based tests cover this)
+
+## Documentation Strategy
+
+- **Location**: No new documentation files — `leading_context` is an internal field. Existing docs (configuration-guide.md) don't need updates since this is automatic behavior with no user config.
+- **Rationale**: Users don't configure leading context. It "just works" during scan.
+
+---
+
+## Clarifications
+
+### Session 2026-03-16
+
+**Q1: Workflow Mode** → **Simple** — Single-phase plan, inline tasks. Well-scoped, workshops done, low risk.
+
+**Q2: Testing Strategy** → **Hybrid** — TDD for parser extraction (language edge cases), lightweight for search/embedding wiring.
+
+**Q3: Mock Usage** → **No mocks** — Always parse real fixture files with real tree-sitter. Use project fakes (not mocks) per fs2 convention.
+
+**Q4 (OQ1): Search Score** → **0.6** — Leading context scores higher than raw content (0.5) since it's human-authored intent. Node_id still highest (0.8-1.0).
+
+**Q5 (OQ2): Smart content regen on comment change** → **No** — Only re-embed when leading context changes. Smart content hash stays based on code-only `content_hash`. Avoids expensive LLM calls for comment typo fixes.
+
+**Q6 (OQ3): get_node display** → **Separate field** — `leading_context` appears as its own key in JSON and tree output, not merged into content.
 
 ---
 
