@@ -887,7 +887,7 @@ class CrossFileRelsStage:
                 progress_cb(
                     "skipped",
                     "serena-mcp-server not found. "
-                    "Install with: uvx serena-agent --help"
+                    "Install with: uv tool install serena-agent"
                 )
             return context
 
