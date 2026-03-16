@@ -37,16 +37,16 @@ No harness configured. No domain registry exists.
 
 ```mermaid
 flowchart TD
-    classDef pending fill:#9E9E9E,stroke:#757575,color:#fff
+    classDef done fill:#4CAF50,stroke:#388E3C,color:#fff
 
     subgraph Pipeline["ScanPipeline.run()"]
-        T01["T01: Atomic save"]:::pending
-        T06["T06: PipelineContext callback"]:::pending
-        T02["T02: Save helper"]:::pending
-        T03["T03: Inter-stage saves"]:::pending
-        T04["T04: SmartContent intra-stage"]:::pending
-        T05["T05: Embedding intra-stage"]:::pending
-        T07["T07: Tests"]:::pending
+        T01["T01: Atomic save"]:::done
+        T06["T06: PipelineContext callback"]:::done
+        T02["T02: Save helper"]:::done
+        T03["T03: Inter-stage saves"]:::done
+        T04["T04: SmartContent intra-stage"]:::done
+        T05["T05: Embedding intra-stage"]:::done
+        T07["T07: Tests"]:::done
 
         T01 --> T02
         T06 --> T02
@@ -59,12 +59,12 @@ flowchart TD
     end
 
     subgraph Files["Files Modified"]
-        F1["graph_store_impl.py"]:::pending
-        F2["scan_pipeline.py"]:::pending
-        F3["pipeline_context.py"]:::pending
-        F4["smart_content_stage.py"]:::pending
-        F5["smart_content_service.py"]:::pending
-        F6["embedding_stage.py"]:::pending
+        F1["graph_store_impl.py"]:::done
+        F2["scan_pipeline.py"]:::done
+        F3["pipeline_context.py"]:::done
+        F4["smart_content_stage.py"]:::done
+        F5["smart_content_service.py"]:::done
+        F6["embedding_stage.py"]:::done
     end
 
     T01 -.-> F1
@@ -130,7 +130,11 @@ flowchart LR
 
 ## Discoveries & Learnings
 
-_Populated during implementation by plan-6._
-
 | Date | Task | Type | Discovery | Resolution | References |
 |------|------|------|-----------|------------|------------|
+| 2026-03-16 | T04 | gotcha | SmartContent courtesy_save callback must merge partial `stats["results"]` into `context.nodes` before saving — results don't reach context until overlay step | Created wrapper closure in SmartContentStage that snapshots `pre_batch_nodes`, merges partial results, then calls `context.courtesy_save()` | smart_content_stage.py L148-158 |
+| 2026-03-16 | T05 | insight | Embedding service processes chunks in batches, not individual nodes — courtesy save during chunk processing wouldn't reflect node-level progress | Placed courtesy save in the node reassembly loop (after chunks→nodes), not during batch processing | embedding_service.py L766-770 |
+| 2026-03-16 | T07 | gotcha | FakeFileScanner, FakeASTParser, FakeGraphStore all require `config` constructor arg — test helpers can't use bare `()` | Always pass `config_service` to all fakes | test_scan_pipeline.py |
+| 2026-03-16 | T04 | gotcha | Adding `courtesy_save` param to `process_batch()` broke 3 test fakes (FakeEmbeddingService × 2, mock capture_batch × 1) — fakes had hardcoded signatures | Updated all fakes to accept `courtesy_save=None` | test_embedding_stage.py, test_embedding_graph_config.py, test_smart_content_stage.py |
+| 2026-03-16 | T02 | insight | `contextlib.suppress(GraphStoreError)` required by ruff SIM105 — try/except/pass is a lint violation | Replaced 2 try/except/pass blocks with `with contextlib.suppress(...)` | scan_pipeline.py L81, L95 |
+| 2026-03-16 | ALL | insight | Integration test confirmed: killed scan at 49/903 nodes → restart only needed 853 nodes (49 recovered via hash-based skip). Graph timestamp advanced every ~30s during SmartContent processing. | N/A — working as designed | Integration test log |
