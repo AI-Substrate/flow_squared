@@ -186,10 +186,10 @@ class ReportService:
 
         positions = nx.spring_layout(
             G,
-            k=2.0 / math.sqrt(max(len(nodes), 1)),  # optimal spacing
-            iterations=80,
+            k=3.5 / math.sqrt(max(len(nodes), 1)),  # more breathing room
+            iterations=100,
             seed=42,
-            scale=2000,  # spread across large canvas
+            scale=3500,  # wider spread for spacing
         )
 
         # Compute graph metrics (FX001-2: degree, depth, entry point detection)
@@ -238,9 +238,16 @@ class ReportService:
             )
 
             # Size based on connections — more connections = bigger node
+            # For file nodes, aggregate all children's connections too
             degree = nd["degree"]
+            if nd.get("category") == "file":
+                for child_nd in node_dicts:
+                    if child_nd.get("parent_node_id") == nid:
+                        degree += in_degree.get(child_nd["node_id"], 0)
+                        degree += out_degree.get(child_nd["node_id"], 0)
+            nd["agg_degree"] = degree
             nd["size"] = round(
-                max(3.0, min(18.0, 3.0 + math.log2(degree + 1) * 3.0)), 2
+                max(3.0, min(30.0, 3.0 + math.log2(degree + 1) * 4.0)), 2
             )
 
         # Serialize edges (both types with rendering hints)
