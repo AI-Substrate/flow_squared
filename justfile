@@ -34,7 +34,7 @@ test-match PATTERN:
 # === Code Quality ===
 
 # Format, fix, and test (the main workflow)
-fft: fix test
+fft: fix test audit
 
 # Fix and format code (ruff replaces black, isort, autoflake)
 fix:
@@ -45,6 +45,10 @@ fix:
 lint:
     uv run ruff check src/ tests/
     uv run ruff format --check src/ tests/
+
+# Audit dependencies for known vulnerabilities
+audit:
+    uvx pip-audit
 
 # === CLI Examples ===
 
