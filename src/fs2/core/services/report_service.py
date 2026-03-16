@@ -46,16 +46,16 @@ _NODE_FIELDS = (
 
 # DYK-08: Python is the single source of truth for category→color map
 _CATEGORY_COLORS: dict[str, str] = {
-    "callable": "#67e8f9",   # cyan 300
-    "type": "#c4b5fd",       # violet 300
-    "file": "#94a3b8",       # slate
-    "section": "#a5b4fc",    # indigo 300
-    "folder": "#64748b",     # slate 500
-    "block": "#6ee7b7",      # emerald 300
-    "statement": "#fda4af",  # rose 300
-    "expression": "#fdba74", # orange 300
-    "definition": "#d9f99d", # lime 200
-    "other": "#9ca3af",      # gray 400
+    "callable": "#0891b2",   # cyan 600
+    "type": "#7c3aed",       # violet 600
+    "file": "#475569",       # slate 600
+    "section": "#4f46e5",    # indigo 600
+    "folder": "#334155",     # slate 700
+    "block": "#059669",      # emerald 600
+    "statement": "#e11d48",  # rose 600
+    "expression": "#ea580c", # orange 600
+    "definition": "#65a30d", # lime 600
+    "other": "#6b7280",      # gray 500
 }
 
 
@@ -168,10 +168,29 @@ class ReportService:
             for n in nodes
         ]
 
-        # Compute treemap layout positions
-        from fs2.core.services.report_layout import compute_treemap
+        # Compute force-directed layout using NetworkX spring_layout
+        import networkx as nx
 
-        positions = compute_treemap(nodes)
+        G = nx.Graph()
+        node_ids = {n.node_id for n in nodes}
+        for n in nodes:
+            G.add_node(n.node_id)
+        # Add containment edges (parent-child) for structure
+        for source, target, _data in containment_edges:
+            if source in node_ids and target in node_ids:
+                G.add_edge(source, target)
+        # Add reference edges for connectivity
+        for source, target, _data in reference_edges:
+            if source in node_ids and target in node_ids:
+                G.add_edge(source, target)
+
+        positions = nx.spring_layout(
+            G,
+            k=2.0 / math.sqrt(max(len(nodes), 1)),  # optimal spacing
+            iterations=80,
+            seed=42,
+            scale=2000,  # spread across large canvas
+        )
 
         # Compute graph metrics (FX001-2: degree, depth, entry point detection)
         in_degree: dict[str, int] = {}
@@ -193,20 +212,21 @@ class ReportService:
                     break  # safety
             return depth
 
-        # Apply positions, sizes, colors, and metrics to node dicts (DYK-08)
+        # Apply positions, sizes, colors, and metrics to node dicts
         for nd in node_dicts:
             nid = nd["node_id"]
             if nid in positions:
                 pos = positions[nid]
-                nd["x"] = pos.x
-                nd["y"] = pos.y
-                nd["size"] = pos.size
+                nd["x"] = round(float(pos[0]), 2)
+                nd["y"] = round(float(pos[1]), 2)
             else:
-                nd["x"] = 500.0
-                nd["y"] = 500.0
-                nd["size"] = 4.0
+                nd["x"] = 0.0
+                nd["y"] = 0.0
+            # Size based on line count
+            lines = nd.get("end_line", 0) - nd.get("start_line", 0) + 1
+            nd["size"] = round(max(3.0, min(12.0, 2.5 + math.log2(max(lines, 1)) * 1.2)), 2)
             # Category color — Python is single source of truth
-            nd["color"] = _CATEGORY_COLORS.get(nd.get("category", ""), "#9ca3af")
+            nd["color"] = _CATEGORY_COLORS.get(nd.get("category", ""), "#6b7280")
             nd["label"] = nd.get("name", "")
 
             # Graph metrics

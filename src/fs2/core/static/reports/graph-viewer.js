@@ -59,19 +59,19 @@
       ctx.lineWidth = 1.5 * invK; ctx.globalAlpha = 0.7;
       visibleEdges.forEach(function (e) {
         var s = nodeMap[e.source], t = nodeMap[e.target]; if (!s || !t) return;
-        ctx.strokeStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y); ctx.stroke();
+        ctx.strokeStyle = '#d97706'; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y); ctx.stroke();
         var dx = t.x - s.x, dy = t.y - s.y, len = Math.sqrt(dx * dx + dy * dy);
         if (len > 0) { var ux = dx / len, uy = dy / len, tipX = t.x - ux * (t._r || 4), tipY = t.y - uy * (t._r || 4), as = 5 * invK;
-          ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(tipX - ux * as - uy * as * 0.5, tipY - uy * as + ux * as * 0.5); ctx.lineTo(tipX - ux * as + uy * as * 0.5, tipY - uy * as - ux * as * 0.5); ctx.fill(); }
+          ctx.fillStyle = '#d97706'; ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(tipX - ux * as - uy * as * 0.5, tipY - uy * as + ux * as * 0.5); ctx.lineTo(tipX - ux * as + uy * as * 0.5, tipY - uy * as - ux * as * 0.5); ctx.fill(); }
       }); ctx.globalAlpha = 1;
     }
     visibleNodes.forEach(function (n) {
-      ctx.fillStyle = n.node_id === highlightId ? '#38bdf8' : (n._dimmed ? '#1a1f2e' : (n.color || '#9ca3af'));
+      ctx.fillStyle = n.node_id === highlightId ? '#0284c7' : (n._dimmed ? '#e2e8f0' : (n.color || '#6b7280'));
       ctx.beginPath(); ctx.arc(n.x, n.y, n._r || 4, 0, 2 * Math.PI); ctx.fill();
-      if (n.node_id === highlightId) { ctx.strokeStyle = '#0ea5e9'; ctx.lineWidth = 2 * invK; ctx.stroke(); }
+      if (n.node_id === highlightId) { ctx.strokeStyle = '#0369a1'; ctx.lineWidth = 2 * invK; ctx.stroke(); }
     });
     if (transform.k > 0.3) {
-      ctx.fillStyle = '#e2e8f0'; ctx.font = Math.max(9, 12 * invK) + 'px Inter, sans-serif'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#1e293b'; ctx.font = Math.max(9, 12 * invK) + 'px Inter, sans-serif'; ctx.textBaseline = 'middle';
       visibleNodes.forEach(function (n) { if (n._dimmed || !n.label) return; if ((n._r || 4) * transform.k > 2.5) ctx.fillText(n.label, n.x + (n._r || 4) + 3, n.y); });
     }
     ctx.restore();

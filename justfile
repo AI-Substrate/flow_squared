@@ -11,6 +11,10 @@ default:
 install:
     uv sync --extra dev
 
+# Install/reinstall the fs2 CLI tool (use after code changes)
+install-cli:
+    uv tool install --force --reinstall fs2 --from .
+
 # Run all tests
 test:
     uv run pytest tests/ -v

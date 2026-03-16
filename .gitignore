@@ -230,3 +230,4 @@ scratch/*
 scripts/semantic_search_results.json
 .vsc-bridgehost.json
 .fs2/graph.pickle.backup.*
+node_modules/

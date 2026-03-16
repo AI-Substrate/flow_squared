@@ -1,0 +1,874 @@
+diff --git a/pyproject.toml b/pyproject.toml
+index 0c05291..1370bab 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -79,6 +79,10 @@ dev = [
+ packages = ["src/fs2"]
+ include = [
+     "src/fs2/core/templates/**/*.j2",
++    "src/fs2/core/templates/**/*.html.j2",
++    "src/fs2/core/static/**/*.js",
++    "src/fs2/core/static/**/*.css",
++    "src/fs2/core/static/**/*.woff2",
+     "src/fs2/docs/**/*.yaml",
+     "src/fs2/docs/**/*.md",
+     "src/fs2/docs/**/*.example",
+@@ -87,6 +91,10 @@ include = [
+ [tool.hatch.build.targets.sdist]
+ include = [
+     "src/fs2/core/templates/**/*.j2",
++    "src/fs2/core/templates/**/*.html.j2",
++    "src/fs2/core/static/**/*.js",
++    "src/fs2/core/static/**/*.css",
++    "src/fs2/core/static/**/*.woff2",
+     "src/fs2/docs/**/*.yaml",
+     "src/fs2/docs/**/*.md",
+     "src/fs2/docs/**/*.example",
+diff --git a/src/fs2/cli/main.py b/src/fs2/cli/main.py
+index 071540b..2303294 100644
+--- a/src/fs2/cli/main.py
++++ b/src/fs2/cli/main.py
+@@ -31,6 +31,7 @@ from fs2.cli.init import init
+ from fs2.cli.install import get_version_string, install, upgrade
+ from fs2.cli.list_graphs import list_graphs
+ from fs2.cli.mcp import mcp
++from fs2.cli.report import report_app
+ from fs2.cli.scan import scan
+ from fs2.cli.search import search
+ from fs2.cli.tree import tree
+@@ -118,6 +119,7 @@ app.command(name="agents-start-here")(
+ )  # Per Plan 026: Agent onboarding
+ app.command(name="list-graphs")(list_graphs)  # Per subtask 001: diagnostic command
+ app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
++app.add_typer(require_init(report_app), name="report")  # Report generation (requires init)
+ app.command(name="install")(install)
+ app.command(name="upgrade")(upgrade)
+ 
+diff --git a/src/fs2/config/objects.py b/src/fs2/config/objects.py
+index ef4ed72..0092146 100644
+--- a/src/fs2/config/objects.py
++++ b/src/fs2/config/objects.py
+@@ -1046,6 +1046,44 @@ class CrossFileRelsConfig(BaseModel):
+         return v
+ 
+ 
++class ReportsConfig(BaseModel):
++    """Configuration for report generation.
++
++    Loaded from YAML or environment variables.
++    Path: reports (e.g., FS2_REPORTS__OUTPUT_DIR)
++
++    Controls report output location, content inclusion, and scale limits.
++
++    Attributes:
++        output_dir: Directory for generated reports (default: ".fs2/reports").
++        include_smart_content: Include AI summaries in report data (default: True).
++        max_nodes: Maximum nodes before clustering (default: 10000, range 100-500000).
++
++    YAML example:
++        ```yaml
++        # .fs2/config.yaml
++        reports:
++          output_dir: .fs2/reports
++          include_smart_content: true
++          max_nodes: 10000
++        ```
++    """
++
++    __config_path__: ClassVar[str] = "reports"
++
++    output_dir: str = ".fs2/reports"
++    include_smart_content: bool = True
++    max_nodes: int = 10000
++
++    @field_validator("max_nodes")
++    @classmethod
++    def validate_max_nodes(cls, v: int) -> int:
++        """Validate max_nodes is in 100-500000 range."""
++        if v < 100 or v > 500000:
++            raise ValueError("max_nodes must be between 100 and 500000")
++        return v
++
++
+ # Registry of config types to auto-load from YAML/env
+ # Only configs with __config_path__ != None should be in this list
+ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
+@@ -1062,4 +1100,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
+     WatchConfig,
+     OtherGraphsConfig,
+     CrossFileRelsConfig,
++    ReportsConfig,
+ ]
+diff --git a/src/fs2/cli/report.py b/src/fs2/cli/report.py
+new file mode 100644
+index 0000000..912a6ea
+--- /dev/null
++++ b/src/fs2/cli/report.py
+@@ -0,0 +1,124 @@
++"""fs2 report command implementation.
++
++Generates self-contained HTML reports from the code graph.
++First report type: codebase-graph — interactive visualization
++of all nodes and cross-file reference edges.
++
++Uses ConsoleAdapter ABC for all console output (no direct Rich usage).
++Delegates business logic to ReportService (per Clean Architecture).
++"""
++
++import webbrowser
++from pathlib import Path
++
++import typer
++from rich.console import Console
++
++from fs2.cli.utils import (
++    resolve_graph_from_context,
++)
++from fs2.core.adapters.console_adapter_rich import RichConsoleAdapter
++
++report_app = typer.Typer(
++    name="report",
++    help="Generate reports from the code graph",
++    no_args_is_help=True,
++)
++
++
++@report_app.command(name="codebase-graph")
++def codebase_graph(
++    ctx: typer.Context,
++    output: str = typer.Option(
++        None,
++        "--output",
++        "-o",
++        help="Output HTML file path (default: .fs2/reports/codebase-graph.html)",
++    ),
++    open_browser: bool = typer.Option(
++        False,
++        "--open",
++        help="Open report in default browser after generation",
++    ),
++    no_smart_content: bool = typer.Option(
++        False,
++        "--no-smart-content",
++        help="Exclude AI summaries from report (smaller file)",
++    ),
++) -> None:
++    """Generate an interactive codebase graph report.
++
++    Produces a self-contained HTML file with all nodes and cross-file
++    reference edges from the code graph. The report works offline —
++    no server or CDN needed.
++    """
++    console = RichConsoleAdapter()
++    stderr_console = Console(stderr=True)
++
++    try:
++        # Composition root: resolve graph from CLI context
++        config, graph_store = resolve_graph_from_context(ctx)
++
++        console.stage_banner("REPORT: CODEBASE GRAPH")
++
++        # Determine output path
++        if output:
++            output_path = Path(output).resolve()
++        else:
++            # Try to get configured output_dir
++            try:
++                from fs2.config.objects import ReportsConfig
++
++                reports_config = config.require(ReportsConfig)
++                output_dir = Path(reports_config.output_dir)
++            except Exception:
++                output_dir = Path(".fs2/reports")
++            output_path = (output_dir / "codebase-graph.html").resolve()
++
++        console.print_info(f"Graph: {graph_store.get_metadata().get('node_count', '?')} nodes")
++
++        # Determine graph_path for metadata
++        cli_context = ctx.obj
++        graph_path = None
++        if cli_context and cli_context.graph_file:
++            graph_path = Path(cli_context.graph_file)
++
++        # Generate report
++        from fs2.core.services.report_service import ReportService
++
++        service = ReportService(config=config, graph_store=graph_store)
++        console.print_progress("Generating report...")
++
++        include_smart = not no_smart_content
++        result = service.generate_codebase_graph(
++            include_smart_content=include_smart,
++            graph_path=graph_path,
++        )
++
++        # Write output
++        output_path.parent.mkdir(parents=True, exist_ok=True)
++        output_path.write_text(result.html, encoding="utf-8")
++
++        # Summary
++        meta = result.metadata
++        file_size_kb = len(result.html) / 1024
++        console.print_success(
++            f"Report saved to {output_path} "
++            f"({file_size_kb:.0f} KB, "
++            f"{meta.get('node_count', 0)} nodes, "
++            f"{meta.get('reference_edge_count', 0)} references)"
++        )
++
++        # Open in browser (DYK-02: graceful fallback)
++        if open_browser:
++            try:
++                webbrowser.open(f"file://{output_path}")
++                console.print_info("Opened in browser")
++            except (webbrowser.Error, OSError):
++                console.print_info(f"Could not open browser. Open manually: {output_path}")
++
++    except typer.Exit:
++        raise
++    except Exception as e:
++        stderr_console.print(f"[red]Error generating report:[/red] {e}")
++        raise typer.Exit(code=2) from None
+diff --git a/src/fs2/core/services/report_service.py b/src/fs2/core/services/report_service.py
+new file mode 100644
+index 0000000..e74cd71
+--- /dev/null
++++ b/src/fs2/core/services/report_service.py
+@@ -0,0 +1,201 @@
++"""ReportService — Generates HTML reports from the code graph.
++
++Extracts nodes and edges from GraphStore, serializes them safely
++(no embedding/hash leaks per DYK-01), renders via Jinja2 template,
++and returns a self-contained HTML string.
++
++Architecture:
++    CLI → ReportService → GraphStore (read-only) + Jinja2 template
++    Service receives ConfigurationService + GraphStore via constructor DI.
++"""
++
++from __future__ import annotations
++
++import importlib.resources as importlib_resources
++import json
++from dataclasses import dataclass
++from datetime import UTC, datetime
++from pathlib import Path
++from typing import TYPE_CHECKING, Any
++
++import jinja2
++
++if TYPE_CHECKING:
++    from fs2.config.service import ConfigurationService
++    from fs2.core.models.code_node import CodeNode
++    from fs2.core.repos.graph_store import GraphStore
++
++
++# Fields to include in report JSON (DYK-01: whitelist, not blacklist)
++_NODE_FIELDS = (
++    "node_id",
++    "name",
++    "category",
++    "file_path",
++    "start_line",
++    "end_line",
++    "signature",
++    "smart_content",
++    "language",
++    "parent_node_id",
++)
++
++
++@dataclass(frozen=True)
++class ReportResult:
++    """Output of report generation."""
++
++    html: str
++    metadata: dict[str, Any]
++
++
++def _serialize_node(node: CodeNode, include_smart_content: bool = True) -> dict[str, Any]:
++    """Serialize a CodeNode to a report-safe dict.
++
++    Whitelists only visualization-relevant fields.
++    Never includes content, embedding, or hash fields.
++    """
++    result: dict[str, Any] = {}
++    for f in _NODE_FIELDS:
++        if f == "smart_content" and not include_smart_content:
++            continue
++        result[f] = getattr(node, f, None)
++    return result
++
++
++def _serialize_edge(
++    source: str, target: str, edge_data: dict[str, Any]
++) -> dict[str, Any]:
++    """Serialize a graph edge to a report-safe dict."""
++    edge_type = edge_data.get("edge_type", "containment")
++    return {
++        "source": source,
++        "target": target,
++        "type": edge_type,
++    }
++
++
++class ReportService:
++    """Generates HTML reports from the code graph.
++
++    Follows TreeService DI pattern: receives ConfigurationService
++    and GraphStore in constructor. Service extracts graph data,
++    serializes safely, and renders HTML via Jinja2 template.
++    """
++
++    def __init__(
++        self,
++        config: ConfigurationService,
++        graph_store: GraphStore,
++    ):
++        self._config = config
++        self._graph_store = graph_store
++
++    def generate_codebase_graph(
++        self,
++        include_smart_content: bool = True,
++        graph_path: Path | None = None,
++    ) -> ReportResult:
++        """Generate a codebase graph HTML report.
++
++        Args:
++            include_smart_content: Include smart_content in node data.
++            graph_path: Path to graph file (for metadata display).
++
++        Returns:
++            ReportResult with HTML string and metadata dict.
++        """
++        # Extract all nodes and edges
++        nodes = self._graph_store.get_all_nodes()
++        all_edges = self._graph_store.get_all_edges()
++
++        # Separate containment and reference edges
++        containment_edges = []
++        reference_edges = []
++        for source, target, data in all_edges:
++            if data.get("edge_type") == "references":
++                reference_edges.append((source, target, data))
++            else:
++                containment_edges.append((source, target, data))
++
++        # Serialize nodes (DYK-01: whitelist fields only)
++        node_dicts = [
++            _serialize_node(n, include_smart_content=include_smart_content)
++            for n in nodes
++        ]
++
++        # Serialize edges
++        edge_dicts = [_serialize_edge(s, t, d) for s, t, d in reference_edges]
++
++        # Build rich metadata (DYK-04)
++        metadata = self._build_metadata(
++            nodes=nodes,
++            containment_count=len(containment_edges),
++            reference_count=len(reference_edges),
++            graph_path=graph_path,
++        )
++
++        # Build graph JSON
++        graph_data = {
++            "metadata": metadata,
++            "nodes": node_dicts,
++            "edges": edge_dicts,
++        }
++
++        # Render HTML
++        graph_json = json.dumps(graph_data, default=str)
++        metadata_json = json.dumps(metadata, default=str)
++        html = self._render_template(graph_json, metadata_json)
++
++        return ReportResult(html=html, metadata=metadata)
++
++    def _build_metadata(
++        self,
++        nodes: list[CodeNode],
++        containment_count: int,
++        reference_count: int,
++        graph_path: Path | None = None,
++    ) -> dict[str, Any]:
++        """Build rich report metadata beyond GraphStore.get_metadata()."""
++        project_name = graph_path.parent.parent.name if graph_path else Path.cwd().name
++
++        # fs2 version
++        try:
++            from importlib.metadata import version
++
++            fs2_version = version("fs2")
++        except Exception:
++            fs2_version = "unknown"
++
++        # Category breakdown
++        categories: dict[str, int] = {}
++        for node in nodes:
++            categories[node.category] = categories.get(node.category, 0) + 1
++
++        return {
++            "project_name": project_name,
++            "generated_at": datetime.now(UTC).isoformat(),
++            "fs2_version": fs2_version,
++            "node_count": len(nodes),
++            "containment_edge_count": containment_count,
++            "reference_edge_count": reference_count,
++            "categories": categories,
++        }
++
++    def _render_template(
++        self, graph_json: str, metadata_json: str
++    ) -> str:
++        """Render the HTML template with graph data.
++
++        DYK-03: Simple inline Jinja2, not full TemplateService.
++        """
++        template_pkg = importlib_resources.files("fs2.core.templates.reports")
++        template_text = (
++            template_pkg.joinpath("codebase_graph.html.j2").read_text(encoding="utf-8")
++        )
++
++        template = jinja2.Template(template_text, undefined=jinja2.StrictUndefined)
++        return template.render(
++            graph_json=graph_json,
++            metadata_json=metadata_json,
++        )
+diff --git a/src/fs2/core/static/__init__.py b/src/fs2/core/static/__init__.py
+new file mode 100644
+index 0000000..1c70cf9
+--- /dev/null
++++ b/src/fs2/core/static/__init__.py
+@@ -0,0 +1 @@
++"""Package marker for fs2 core static assets."""
+diff --git a/src/fs2/core/static/reports/__init__.py b/src/fs2/core/static/reports/__init__.py
+new file mode 100644
+index 0000000..388fb8d
+--- /dev/null
++++ b/src/fs2/core/static/reports/__init__.py
+@@ -0,0 +1,8 @@
++"""Vendored static assets for report generation.
++
++Contains Sigma.js, Graphology, fonts, and custom JS/CSS
++that get embedded into self-contained HTML reports.
++
++Populated in Phase 2. This package marker enables
++importlib.resources discovery.
++"""
+diff --git a/src/fs2/core/templates/reports/__init__.py b/src/fs2/core/templates/reports/__init__.py
+new file mode 100644
+index 0000000..305ba00
+--- /dev/null
++++ b/src/fs2/core/templates/reports/__init__.py
+@@ -0,0 +1,5 @@
++"""Jinja2 templates for report generation.
++
++Contains HTML templates that produce self-contained
++report files with embedded data and assets.
++"""
+diff --git a/src/fs2/core/templates/reports/codebase_graph.html.j2 b/src/fs2/core/templates/reports/codebase_graph.html.j2
+new file mode 100644
+index 0000000..e478f66
+--- /dev/null
++++ b/src/fs2/core/templates/reports/codebase_graph.html.j2
+@@ -0,0 +1,190 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++    <meta charset="utf-8">
++    <meta name="viewport" content="width=device-width, initial-scale=1.0">
++    <title>fs2 — Codebase Graph</title>
++    <style>
++        :root {
++            --bg: #0a0e1a;
++            --chrome: #111827;
++            --border: #1e293b;
++            --text: #e2e8f0;
++            --text-dim: #94a3b8;
++            --accent: #38bdf8;
++        }
++        * { margin: 0; padding: 0; box-sizing: border-box; }
++        body {
++            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
++            background: var(--bg);
++            color: var(--text);
++        }
++        .report-header {
++            padding: 32px;
++            border-bottom: 1px solid var(--border);
++        }
++        .report-header h1 {
++            font-size: 24px;
++            font-weight: 600;
++            margin-bottom: 8px;
++        }
++        .report-header h1 span { color: var(--accent); }
++        .report-header .meta {
++            font-size: 13px;
++            color: var(--text-dim);
++        }
++        .stats {
++            display: flex;
++            gap: 32px;
++            padding: 24px 32px;
++            border-bottom: 1px solid var(--border);
++        }
++        .stat {
++            display: flex;
++            flex-direction: column;
++        }
++        .stat .value {
++            font-size: 28px;
++            font-weight: 700;
++            color: var(--accent);
++        }
++        .stat .label {
++            font-size: 12px;
++            color: var(--text-dim);
++            text-transform: uppercase;
++            letter-spacing: 0.05em;
++        }
++        .categories {
++            padding: 24px 32px;
++            border-bottom: 1px solid var(--border);
++        }
++        .categories h2 {
++            font-size: 14px;
++            font-weight: 600;
++            margin-bottom: 12px;
++            color: var(--text-dim);
++            text-transform: uppercase;
++            letter-spacing: 0.05em;
++        }
++        .cat-grid {
++            display: flex;
++            flex-wrap: wrap;
++            gap: 8px;
++        }
++        .cat-badge {
++            display: inline-flex;
++            align-items: center;
++            gap: 6px;
++            padding: 6px 12px;
++            background: var(--chrome);
++            border: 1px solid var(--border);
++            border-radius: 6px;
++            font-size: 13px;
++        }
++        .cat-badge .dot {
++            width: 8px;
++            height: 8px;
++            border-radius: 50%;
++        }
++        .cat-badge .count {
++            color: var(--text-dim);
++            font-size: 12px;
++        }
++        .graph-placeholder {
++            padding: 48px 32px;
++            text-align: center;
++            color: var(--text-dim);
++            font-size: 14px;
++        }
++        .graph-placeholder .icon {
++            font-size: 48px;
++            margin-bottom: 16px;
++        }
++        .footer {
++            padding: 16px 32px;
++            font-size: 12px;
++            color: var(--text-dim);
++            border-top: 1px solid var(--border);
++        }
++    </style>
++</head>
++<body>
++    <script>
++        const GRAPH_DATA = {{ graph_json }};
++        const METADATA = {{ metadata_json }};
++    </script>
++
++    <div class="report-header">
++        <h1>fs2 — <span id="project-name"></span></h1>
++        <div class="meta">
++            Generated <span id="generated-at"></span> · fs2 <span id="fs2-version"></span>
++        </div>
++    </div>
++
++    <div class="stats">
++        <div class="stat">
++            <span class="value" id="node-count"></span>
++            <span class="label">Nodes</span>
++        </div>
++        <div class="stat">
++            <span class="value" id="containment-count"></span>
++            <span class="label">Containment Edges</span>
++        </div>
++        <div class="stat">
++            <span class="value" id="reference-count"></span>
++            <span class="label">Cross-File References</span>
++        </div>
++    </div>
++
++    <div class="categories">
++        <h2>Node Categories</h2>
++        <div class="cat-grid" id="cat-grid"></div>
++    </div>
++
++    <div class="graph-placeholder">
++        <div class="icon">◉</div>
++        <p>Interactive graph visualization coming in Phase 2.</p>
++        <p>Graph data is embedded — <strong id="data-size"></strong> of JSON ready for Sigma.js.</p>
++    </div>
++
++    <div class="footer">
++        <span>fs2 Codebase Graph Report · Phase 1 Foundation</span>
++    </div>
++
++    <script>
++        // Populate from embedded data
++        const m = METADATA;
++        document.getElementById('project-name').textContent = m.project_name || 'unknown';
++        document.getElementById('generated-at').textContent = new Date(m.generated_at).toLocaleString();
++        document.getElementById('fs2-version').textContent = m.fs2_version || '';
++        document.getElementById('node-count').textContent = (m.node_count || 0).toLocaleString();
++        document.getElementById('containment-count').textContent = (m.containment_edge_count || 0).toLocaleString();
++        document.getElementById('reference-count').textContent = (m.reference_edge_count || 0).toLocaleString();
++
++        // Category colors
++        const catColors = {
++            file: '#94a3b8', type: '#c4b5fd', callable: '#67e8f9',
++            section: '#a5b4fc', folder: '#64748b', block: '#6ee7b7',
++            statement: '#fda4af', expression: '#fdba74', definition: '#d9f99d',
++            other: '#9ca3af',
++        };
++
++        const grid = document.getElementById('cat-grid');
++        const cats = m.categories || {};
++        Object.entries(cats).sort((a, b) => b[1] - a[1]).forEach(([cat, count]) => {
++            const badge = document.createElement('div');
++            badge.className = 'cat-badge';
++            const color = catColors[cat] || '#9ca3af';
++            badge.innerHTML = `<span class="dot" style="background:${color}"></span>${cat}<span class="count">${count.toLocaleString()}</span>`;
++            grid.appendChild(badge);
++        });
++
++        // Data size
++        const jsonStr = JSON.stringify(GRAPH_DATA);
++        const sizeKB = (jsonStr.length / 1024).toFixed(0);
++        const sizeMB = (jsonStr.length / 1024 / 1024).toFixed(1);
++        document.getElementById('data-size').textContent =
++            jsonStr.length > 1048576 ? `${sizeMB} MB` : `${sizeKB} KB`;
++    </script>
++</body>
++</html>
+diff --git a/tests/unit/config/test_reports_config.py b/tests/unit/config/test_reports_config.py
+new file mode 100644
+index 0000000..877c952
+--- /dev/null
++++ b/tests/unit/config/test_reports_config.py
+@@ -0,0 +1,56 @@
++"""Tests for ReportsConfig model.
++
++Validates config loading, field defaults, and validation rules.
++Uses fakes over mocks per doctrine.
++"""
++
++import pytest
++
++from fs2.config.objects import ReportsConfig
++
++
++@pytest.mark.unit
++class TestReportsConfig:
++    """Tests for ReportsConfig model."""
++
++    def test_defaults(self):
++        """Proves default values are sensible."""
++        config = ReportsConfig()
++        assert config.output_dir == ".fs2/reports"
++        assert config.include_smart_content is True
++        assert config.max_nodes == 10000
++
++    def test_custom_values(self):
++        """Proves custom values override defaults."""
++        config = ReportsConfig(
++            output_dir="custom/reports",
++            include_smart_content=False,
++            max_nodes=50000,
++        )
++        assert config.output_dir == "custom/reports"
++        assert config.include_smart_content is False
++        assert config.max_nodes == 50000
++
++    def test_max_nodes_too_low(self):
++        """Proves max_nodes < 100 is rejected."""
++        with pytest.raises(ValueError, match="max_nodes must be between"):
++            ReportsConfig(max_nodes=50)
++
++    def test_max_nodes_too_high(self):
++        """Proves max_nodes > 500000 is rejected."""
++        with pytest.raises(ValueError, match="max_nodes must be between"):
++            ReportsConfig(max_nodes=1000000)
++
++    def test_max_nodes_boundary_low(self):
++        """Proves max_nodes = 100 is accepted."""
++        config = ReportsConfig(max_nodes=100)
++        assert config.max_nodes == 100
++
++    def test_max_nodes_boundary_high(self):
++        """Proves max_nodes = 500000 is accepted."""
++        config = ReportsConfig(max_nodes=500000)
++        assert config.max_nodes == 500000
++
++    def test_config_path(self):
++        """Proves __config_path__ is 'reports' for YAML registry."""
++        assert ReportsConfig.__config_path__ == "reports"
+diff --git a/tests/unit/services/test_report_service.py b/tests/unit/services/test_report_service.py
+new file mode 100644
+index 0000000..67d00aa
+--- /dev/null
++++ b/tests/unit/services/test_report_service.py
+@@ -0,0 +1,140 @@
++"""Tests for ReportService.
++
++Validates graph extraction, safe serialization (no embedding leak),
++metadata computation, and HTML rendering.
++Uses FakeGraphStore per doctrine (fakes over mocks).
++"""
++
++import json
++
++import pytest
++
++from fs2.config.objects import ReportsConfig
++from fs2.config.service import FakeConfigurationService
++from fs2.core.models.code_node import CodeNode
++from fs2.core.repos.graph_store_fake import FakeGraphStore
++from fs2.core.services.report_service import ReportService, _serialize_node
++
++
++def _make_node(
++    node_id: str = "callable:src/a.py:foo",
++    name: str = "foo",
++    category: str = "callable",
++    file_path: str = "src/a.py",
++    content: str = "def foo(): pass",
++) -> CodeNode:
++    return CodeNode.create_file(file_path, "python", name, 0, 10, 1, 5, content)
++
++
++@pytest.mark.unit
++class TestNodeSerialization:
++    """Proves safe node serialization (DYK-01)."""
++
++    def test_excludes_content_field(self):
++        """Proves content (source code) is excluded."""
++        node = _make_node(content="def foo():\n    return 42\n")
++        result = _serialize_node(node)
++        assert "content" not in result
++
++    def test_excludes_embedding_field(self):
++        """Proves embedding vectors are excluded."""
++        node = _make_node()
++        result = _serialize_node(node)
++        assert "embedding" not in result
++        assert "smart_content_embedding" not in result
++        assert "embedding_hash" not in result
++        assert "content_hash" not in result
++
++    def test_includes_whitelisted_fields(self):
++        """Proves visualization fields are present."""
++        node = _make_node()
++        result = _serialize_node(node)
++        assert "node_id" in result
++        assert "name" in result
++        assert "category" in result
++        assert "file_path" in result
++        assert "start_line" in result
++        assert "end_line" in result
++        assert "language" in result
++
++    def test_excludes_smart_content_when_flag_false(self):
++        """Proves --no-smart-content works."""
++        node = _make_node()
++        result = _serialize_node(node, include_smart_content=False)
++        assert "smart_content" not in result
++
++    def test_includes_smart_content_by_default(self):
++        """Proves smart_content included when not excluded."""
++        node = _make_node()
++        result = _serialize_node(node, include_smart_content=True)
++        assert "smart_content" in result
++
++
++@pytest.mark.unit
++class TestReportService:
++    """Proves ReportService generates valid HTML with correct data."""
++
++    def _make_service(self, nodes=None, edges=None):
++        """Create service with fake dependencies."""
++        from fs2.config.objects import ScanConfig
++
++        config = FakeConfigurationService(ReportsConfig(), ScanConfig())
++        store = FakeGraphStore(config)
++        if nodes:
++            for n in nodes:
++                store.add_node(n)
++        if edges:
++            for src, tgt, data in edges:
++                store.add_edge(src, tgt, **data)
++        return ReportService(config=config, graph_store=store)
++
++    def test_generates_valid_html(self):
++        """Proves output is valid HTML."""
++        node = CodeNode.create_file("src/a.py", "python", "a.py", 0, 100, 1, 10, "# file")
++        service = self._make_service(nodes=[node])
++        result = service.generate_codebase_graph()
++        assert result.html.startswith("<!DOCTYPE html>")
++        assert "</html>" in result.html
++
++    def test_metadata_contains_project_info(self):
++        """Proves metadata has project name, version, counts."""
++        node = CodeNode.create_file("src/a.py", "python", "a.py", 0, 100, 1, 10, "# file")
++        service = self._make_service(nodes=[node])
++        result = service.generate_codebase_graph()
++        meta = result.metadata
++        assert "project_name" in meta
++        assert "fs2_version" in meta
++        assert "generated_at" in meta
++        assert meta["node_count"] == 1
++        assert meta["reference_edge_count"] == 0
++
++    def test_reference_edges_in_output(self):
++        """Proves reference edges appear in graph data."""
++        n1 = CodeNode.create_file("src/a.py", "python", "a.py", 0, 100, 1, 10, "# a")
++        n2 = CodeNode.create_file("src/b.py", "python", "b.py", 0, 100, 1, 10, "# b")
++        service = self._make_service(
++            nodes=[n1, n2],
++            edges=[(n1.node_id, n2.node_id, {"edge_type": "references"})],
++        )
++        result = service.generate_codebase_graph()
++        assert '"references"' in result.html
++        meta = result.metadata
++        assert meta["reference_edge_count"] == 1
++
++    def test_empty_graph(self):
++        """Proves empty graph produces valid report."""
++        service = self._make_service()
++        result = service.generate_codebase_graph()
++        assert result.html.startswith("<!DOCTYPE html>")
++        assert result.metadata["node_count"] == 0
++
++    def test_no_content_in_html(self):
++        """Proves source code content is NOT in the HTML (DYK-01)."""
++        node = CodeNode.create_file(
++            "src/a.py", "python", "a.py", 0, 100, 1, 10,
++            "def secret_function():\n    password = 'hunter2'\n"
++        )
++        service = self._make_service(nodes=[node])
++        result = service.generate_codebase_graph()
++        assert "hunter2" not in result.html
++        assert "secret_function" not in result.html  # content excluded
