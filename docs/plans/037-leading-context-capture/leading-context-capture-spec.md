@@ -53,9 +53,11 @@ Comments, docstrings, and decorators that sit **above** a function, class, or me
 | search | existing | **modify** | Search `leading_context` as 4th text/regex field |
 | embedding | existing | **modify** | Prepend `leading_context` to content before chunking |
 | smart_content | existing | **modify** | Include `leading_context` in LLM prompt context |
-| fixtures | existing | **modify** | Updated GDScript, CUDA, Python, Ruby samples (DONE) |
+| cli | existing | **modify** | Add `leading_context` to get_node JSON output (RF-01: explicit field selection) |
+| mcp | existing | **modify** | Add `leading_context` to MCP max detail output (RF-01: explicit field selection) |
 
 No new domains created. All changes are additive to existing boundaries.
+Fixture updates (GDScript, CUDA, Python, Ruby) completed pre-plan.
 
 ---
 

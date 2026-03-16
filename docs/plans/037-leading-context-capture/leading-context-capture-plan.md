@@ -63,7 +63,7 @@ Comments, decorators, and doc-comments above functions/classes are invisible to 
 | [ ] | T02 | Define extraction constants: `COMMENT_NODE_TYPES`, `SIBLING_DECORATOR_TYPES`, `WRAPPER_PARENT_TYPES`, `MAX_LEADING_CONTEXT_CHARS=2000` | adapters | `src/fs2/core/adapters/ast_parser_impl.py` | Constants defined, types from Workshop 002 table | AC10: 2000 char cap |
 | [ ] | T03 | Implement `_extract_leading_context(ts_node, source_bytes)` — walk `prev_named_sibling`, collect comments/decorators, handle wrapper parents, blank-line gap rule | adapters | `src/fs2/core/adapters/ast_parser_impl.py` | Returns `str \| None`, handles Python `decorated_definition` + TS `export_statement`, stops at blank line | RF-04, RF-06, AC02-06 |
 | [ ] | T04 | Wire `_extract_leading_context()` into parsing: call before `_create_node()`, pass result to factory methods; also wire for file nodes in `parse()` | adapters | `src/fs2/core/adapters/ast_parser_impl.py` | All created CodeNodes have `leading_context` populated from tree-sitter siblings | RF-06 |
-| [ ] | T05 | Add `leading_context` to smart content: update `_build_context()` dict + add conditional block to all 6 `.j2` templates | smart_content | `src/fs2/core/services/smart_content/smart_content_service.py`, `src/fs2/core/templates/smart_content/*.j2` | LLM prompt includes developer comments when present | RF-08, AC09 |
+| [ ] | T05 | Add `leading_context` to smart content: update `_build_context()` dict + add conditional block to 6 templates (base, callable, file, block, type, section) | smart_content | `src/fs2/core/services/smart_content/smart_content_service.py`, `src/fs2/core/templates/smart_content/smart_content_{base,callable,file,block,type,section}.j2` | LLM prompt includes developer comments when present | RF-08, AC09 |
 | [ ] | T06 | Prepend `leading_context` to content before chunking in embedding service; compute `embedding_hash` from content + leading_context | embedding | `src/fs2/core/services/embedding/embedding_service.py` | Embedding vector includes comment semantics; hash changes when comments change | RF-03, AC08, AC12 |
 | [ ] | T07 | Add `leading_context` search to regex_matcher: 4th field with score 0.6 | search | `src/fs2/core/services/search/regex_matcher.py` | Text/regex search matches in leading_context with score 0.6 | RF-05, AC07 |
 | [ ] | T08 | Add `leading_context` to get_node CLI output: update `_code_node_to_cli_dict()` | cli | `src/fs2/cli/get_node.py` | `fs2 get-node` JSON output includes `leading_context` field | RF-01 |
@@ -93,7 +93,7 @@ Comments, decorators, and doc-comments above functions/classes are invisible to 
 |------|------------|--------|------------|
 | Language-specific wrapper parents beyond Python/TS/TSX | Low | Medium | Workshop 002 validated all 13 languages; WRAPPER_PARENT_TYPES frozenset is extensible |
 | `prev_named_sibling` walk could be O(N²) if unbounded | Low | Medium | Stop at first non-comment/decorator; blank-line gap rule limits walk depth |
-| Old graphs have `leading_context=None` — no migration | None | None | By design: field defaults to None, old graphs work unchanged |
+| Old graphs have `leading_context=None` — no migration | N/A | N/A | By design: field defaults to None, old graphs work unchanged |
 | Embedding vectors shift for nodes gaining leading_context | Expected | Low | Desirable behavior — next `fs2 scan --embed` re-embeds |
 
 ## Progress
