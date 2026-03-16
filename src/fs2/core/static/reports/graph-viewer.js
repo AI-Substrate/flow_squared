@@ -229,7 +229,7 @@
         links.push({ source: nodeIndex[e.source], target: nodeIndex[e.target] });
       }
     });
-    // Animated force simulation — nodes fly apart over ~2 seconds
+    // Animated force simulation — driven by our own rAF loop, not D3's timer
     activeSim = d3.forceSimulation(nodes)
       .alpha(1)
       .alphaDecay(0.03)
@@ -238,11 +238,10 @@
       .force('charge', d3.forceManyBody().strength(-200))
       .force('collide', d3.forceCollide().radius(function (n) { return (n._r || 4) + 15; }))
       .force('link', d3.forceLink(links).distance(100).strength(0.3))
-      .on('tick', function () {
-        centerNode.x = cx; centerNode.y = cy; // pin center
-        render(); // redraw each tick so nodes animate visually
-      })
-      .on('end', function () { activeSim = null; });
+      .stop(); // we tick manually in the rAF loop
+    activeSim._centerNode = centerNode;
+    activeSim._cx = cx;
+    activeSim._cy = cy;
   }
   function enterOverview() {
     state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null;
@@ -384,8 +383,18 @@
     window.__fs2 = { allNodes: allNodes, allEdges: allEdges, nodeMap: nodeMap, enterOverview: enterOverview, enterContents: enterContents, enterFocus: enterFocus, showEntryPoints: showEntryPoints, doSearch: doSearch, state: state };
     initStars(300);
     fitGraph(); enterOverview();
-    // Animate twinkling stars
-    function tick() { render(); starTimer = requestAnimationFrame(tick); }
+    // Main animation loop — drives stars AND force spread animation
+    function tick() {
+      if (activeSim && activeSim.alpha() > activeSim.alphaMin()) {
+        activeSim.tick();
+        activeSim._centerNode.x = activeSim._cx;
+        activeSim._centerNode.y = activeSim._cy;
+      } else if (activeSim) {
+        activeSim = null; // simulation finished
+      }
+      render();
+      starTimer = requestAnimationFrame(tick);
+    }
     tick();
   }
   function boot() {
