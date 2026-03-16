@@ -264,7 +264,6 @@
     var childSet = new Set(); children.forEach(function (c) { childSet.add(c.node_id); });
     visibleEdges = allEdges.filter(function (e) { return !e._containment && (childSet.has(e.source) || childSet.has(e.target)); });
     // Spread children around the file node
-    var fn = nodeMap[fileNodeId]; if (fn) zoomTo(fn.x, fn.y, 2.5);
     savePositions(children);
     spreadNodes(nodeMap[fileNodeId], children, visibleEdges);
     updateStatus('File: ' + ((nodeMap[fileNodeId] || {}).label || fileNodeId), children.length);
@@ -280,10 +279,9 @@
     visibleNodes = allNodes.filter(function (n) { return neighborSet.has(n.node_id); });
     visibleNodes.forEach(function (n) { n._dimmed = false; });
     // Spread neighbors around the focus node
-    var n = nodeMap[nodeId] || {};
-    if (n.x !== undefined) zoomTo(n.x, n.y, 3);
     savePositions(visibleNodes);
     spreadNodes(nodeMap[nodeId], visibleNodes, visibleEdges);
+    var n = nodeMap[nodeId] || {};
     updateStatus('Focus: ' + (n.label || nodeId) + ' (in:' + (n.in_degree || 0) + ' out:' + (n.out_degree || 0) + ')', visibleNodes.length);
     showInfoPanel(nodeId); updateHelpHint('Click a neighbor to walk - Click background to go back - Esc to reset');
     render();
@@ -341,17 +339,6 @@
     _focusNeighbors.forEach(function (nid) {
       if (!currentIds.has(nid) && nodeMap[nid]) { nodeMap[nid]._dimmed = false; visibleNodes.push(nodeMap[nid]); }
     });
-    // Spread selected + ALL neighbors to prevent hyperspace edges
-    var spreadSet = [n];
-    _focusNeighbors.forEach(function (nid) {
-      var nb = nodeMap[nid]; if (nb && nb !== n) spreadSet.push(nb);
-    });
-    if (spreadSet.length > 1) {
-      savePositions(spreadSet);
-      spreadNodes(n, spreadSet, visibleEdges);
-    }
-    // Zoom to center on selected node BEFORE animation plays
-    zoomTo(n.x, n.y, 2.5);
     showInfoPanel(n.node_id);
     var name = n.label || n.node_id;
     updateStatus(state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + ' - selected: ' + name, visibleNodes.length);
