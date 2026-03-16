@@ -47,7 +47,7 @@ PROJECT_MARKERS: dict[str, list[str]] = {
 # Defaults (Phase 3 adds CrossFileRelsConfig, Phase 4 wires through context)
 DEFAULT_PARALLEL_INSTANCES = 15
 DEFAULT_BASE_PORT = 8330
-DEFAULT_TIMEOUT_PER_NODE = 10.0
+DEFAULT_TIMEOUT_PER_NODE = 30.0
 DEFAULT_MICRO_BATCH_SIZE = 10
 PID_FILE_NAME = ".serena-pool.pid"
 
@@ -993,6 +993,13 @@ class CrossFileRelsStage:
             pool.start(n_instances, base_port, all_project_roots[0].path)
             if not pool.wait_ready(timeout=60.0):
                 logger.warning("Some Serena instances failed to start. Continuing with available.")
+
+            # Allow LSP language servers time to index the codebase.
+            # wait_ready() only checks HTTP availability, not LSP readiness.
+            # Without this, first find_referencing_symbols calls timeout on cold start.
+            lsp_warmup = 10.0
+            logger.info("Waiting %.0fs for LSP indexing warm-up...", lsp_warmup)
+            time.sleep(lsp_warmup)
 
             # T007: Shard nodes
             shards = shard_nodes(nodes_to_resolve, all_project_roots, pool.ports)
