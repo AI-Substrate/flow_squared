@@ -143,18 +143,43 @@
       if (isFocused) { ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 2 * invK; ctx.stroke(); }
       ctx.globalAlpha = 1;
     });
-    // Labels
+    // Labels — constant screen size + declutter (zoom in = more labels fit)
     if (transform.k > 0.08) {
-      ctx.font = Math.max(9, 12 * invK) + 'px Inter, sans-serif'; ctx.textBaseline = 'middle';
+      var fontSize = 11 / transform.k; // always ~11px on screen regardless of zoom
+      ctx.font = fontSize + 'px Inter, sans-serif'; ctx.textBaseline = 'middle';
+      // Collect candidate labels, sorted by node size (larger nodes get priority)
+      var candidates = [];
       visibleNodes.forEach(function (n) {
         if (n._dimmed || !n.label) return;
         var isFocused = n.node_id === highlightId;
         var isConnected = highlightId && _focusNeighbors && _focusNeighbors.has(n.node_id);
         var faded = highlightId && !isFocused && !isConnected;
-        if (faded) return; // hide labels for faded nodes
+        if (faded) return;
         if ((n._r || 4) * transform.k > 0.8) {
-          ctx.fillStyle = isFocused ? '#7dd3fc' : 'rgba(226,232,240,0.85)';
+          candidates.push({ n: n, focused: isFocused, priority: isFocused ? 9999 : (n._r || 4) });
+        }
+      });
+      candidates.sort(function (a, b) { return b.priority - a.priority; });
+      // Place labels, skipping those that overlap already-placed ones
+      var placed = [];
+      var labelH = fontSize;
+      candidates.forEach(function (c) {
+        var n = c.n;
+        var lx = (n.x + (n._r || 4) + 3) * transform.k + transform.x;
+        var ly = n.y * transform.k + transform.y;
+        var lw = ctx.measureText(n.label).width * transform.k;
+        // Check collision with placed labels
+        var ok = true;
+        for (var i = 0; i < placed.length; i++) {
+          var p = placed[i];
+          if (lx < p.x + p.w + 4 && lx + lw + 4 > p.x && ly - labelH < p.y + labelH && ly + labelH > p.y - labelH) {
+            ok = false; break;
+          }
+        }
+        if (ok) {
+          ctx.fillStyle = c.focused ? '#7dd3fc' : 'rgba(226,232,240,0.85)';
           ctx.fillText(n.label, n.x + (n._r || 4) + 3, n.y);
+          placed.push({ x: lx, y: ly, w: lw });
         }
       });
     }
