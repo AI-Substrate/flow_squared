@@ -107,6 +107,16 @@
         else if (t.parent_node_id && visSet.has(t.parent_node_id)) { var p2 = nodeMap[t.parent_node_id]; tx = p2.x; ty = p2.y; }
         else return; // skip — endpoint not in visible set
         if (sx === tx && sy === ty) return;
+        // Containment edges: subtle dotted lines
+        if (e._containment) {
+          ctx.globalAlpha = 0.3;
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 1 * invK;
+          ctx.setLineDash([4 * invK, 4 * invK]);
+          ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(tx, ty); ctx.stroke();
+          ctx.setLineDash([]);
+          return;
+        }
         // Directional colors: incoming (caller→selected) = cyan, outgoing (selected→callee) = amber
         var isIncoming = highlightId && (e.target === highlightId || (t.parent_node_id === highlightId));
         var isOutgoing = highlightId && (e.source === highlightId || (s.parent_node_id === highlightId));
@@ -140,7 +150,9 @@
       var col = isFocused ? '#38bdf8' : (n._dimmed ? '#1e293b' : (n.color || '#60a5fa'));
       ctx.fillStyle = col;
       ctx.beginPath(); ctx.arc(n.x, n.y, n._r || 4, 0, 2 * Math.PI); ctx.fill();
-      if (isFocused) { ctx.strokeStyle = '#7dd3fc'; ctx.lineWidth = 2 * invK; ctx.stroke(); }
+      ctx.strokeStyle = isFocused ? '#7dd3fc' : 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = (isFocused ? 2 : 1) * invK;
+      ctx.stroke();
       ctx.globalAlpha = 1;
     });
     // Labels — constant screen size + declutter (zoom in = more labels fit)
@@ -292,7 +304,12 @@
     bg.forEach(function (n) { n._dimmed = true; }); children.forEach(function (n) { n._dimmed = false; });
     visibleNodes = children.concat(bg);
     var childSet = new Set(); children.forEach(function (c) { childSet.add(c.node_id); });
-    visibleEdges = allEdges.filter(function (e) { return !e._containment && (childSet.has(e.source) || childSet.has(e.target)); });
+    visibleEdges = allEdges.filter(function (e) {
+      // Include containment edges from this file to its children
+      if (e._containment && e.source === fileNodeId && childSet.has(e.target)) return true;
+      // Include reference edges touching any child
+      return !e._containment && (childSet.has(e.source) || childSet.has(e.target));
+    });
     // Spread children around the file node
     savePositions(children);
     spreadNodes(nodeMap[fileNodeId], children, visibleEdges);
