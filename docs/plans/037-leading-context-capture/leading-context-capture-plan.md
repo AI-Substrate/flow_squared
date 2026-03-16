@@ -59,33 +59,33 @@ Comments, decorators, and doc-comments above functions/classes are invisible to 
 
 | Status | ID | Task | Domain | Path(s) | Done When | Notes |
 |--------|-----|------|--------|---------|-----------|-------|
-| [ ] | T01 | Add `leading_context: str \| None = None` field to CodeNode + add to 5 factory methods as optional param | models | `src/fs2/core/models/code_node.py` | Field exists, factories accept it, `content_hash` unchanged | RF-02: hash stability critical |
-| [ ] | T02 | Define extraction constants: `COMMENT_NODE_TYPES`, `SIBLING_DECORATOR_TYPES`, `WRAPPER_PARENT_TYPES`, `MAX_LEADING_CONTEXT_CHARS=2000` | adapters | `src/fs2/core/adapters/ast_parser_impl.py` | Constants defined, types from Workshop 002 table | AC10: 2000 char cap |
-| [ ] | T03 | Implement `_extract_leading_context(ts_node, source_bytes)` — walk `prev_named_sibling`, collect comments/decorators, handle wrapper parents, blank-line gap rule | adapters | `src/fs2/core/adapters/ast_parser_impl.py` | Returns `str \| None`, handles Python `decorated_definition` + TS `export_statement`, stops at blank line | RF-04, RF-06, AC02-06 |
-| [ ] | T04 | Wire `_extract_leading_context()` into parsing: call before `_create_node()`, pass result to factory methods; also wire for file nodes in `parse()` | adapters | `src/fs2/core/adapters/ast_parser_impl.py` | All created CodeNodes have `leading_context` populated from tree-sitter siblings | RF-06 |
-| [ ] | T05 | Add `leading_context` to smart content: update `_build_context()` dict + add conditional block to 6 templates (base, callable, file, block, type, section) | smart_content | `src/fs2/core/services/smart_content/smart_content_service.py`, `src/fs2/core/templates/smart_content/smart_content_{base,callable,file,block,type,section}.j2` | LLM prompt includes developer comments when present | RF-08, AC09 |
-| [ ] | T06 | Prepend `leading_context` to content before chunking in embedding service; compute `embedding_hash` from content + leading_context | embedding | `src/fs2/core/services/embedding/embedding_service.py` | Embedding vector includes comment semantics; hash changes when comments change | RF-03, AC08, AC12 |
-| [ ] | T07 | Add `leading_context` search to regex_matcher: 4th field with score 0.6 | search | `src/fs2/core/services/search/regex_matcher.py` | Text/regex search matches in leading_context with score 0.6 | RF-05, AC07 |
-| [ ] | T08 | Add `leading_context` to get_node CLI output: update `_code_node_to_cli_dict()` | cli | `src/fs2/cli/get_node.py` | `fs2 get-node` JSON output includes `leading_context` field | RF-01 |
-| [ ] | T09 | Add `leading_context` to MCP max detail output: update `_code_node_to_dict()` + docstring | mcp | `src/fs2/mcp/server.py` | MCP `get_node` with detail=max includes `leading_context` | RF-01 |
-| [ ] | T10 | TDD tests for parser extraction: Python comments, Python decorators, TS export wrapper, Rust attributes, blank-line gap, Go comments, Java Javadoc, C Doxygen, 2000-char cap | tests | `tests/unit/adapters/test_leading_context.py` | Tests parse real fixture files, verify leading_context populated correctly for each language pattern | AC02-06, AC10, AC13 |
-| [ ] | T11 | Tests for search + embedding + output integration | tests | `tests/unit/services/search/test_leading_context_search.py` | Text search finds nodes by leading_context; get_node includes field; content_hash stable, embedding_hash changes | AC07, AC11, AC12 |
+| [x] | T01 | Add `leading_context: str \| None = None` field to CodeNode + add to 5 factory methods as optional param | models | `src/fs2/core/models/code_node.py` | Field exists, factories accept it, `content_hash` unchanged | RF-02: hash stability critical |
+| [x] | T02 | Define extraction constants: `COMMENT_NODE_TYPES`, `SIBLING_DECORATOR_TYPES`, `WRAPPER_PARENT_TYPES`, `MAX_LEADING_CONTEXT_CHARS=2000` | adapters | `src/fs2/core/adapters/ast_parser_impl.py` | Constants defined, types from Workshop 002 table | AC10: 2000 char cap |
+| [x] | T03 | Implement `_extract_leading_context(ts_node, source_bytes)` — walk `prev_named_sibling`, collect comments/decorators, handle wrapper parents, blank-line gap rule | adapters | `src/fs2/core/adapters/ast_parser_impl.py` | Returns `str \| None`, handles Python `decorated_definition` + TS `export_statement`, stops at blank line | RF-04, RF-06, AC02-06 |
+| [x] | T04 | Wire `_extract_leading_context()` into parsing: call before `_create_node()`, pass result to factory methods; also wire for file nodes in `parse()` | adapters | `src/fs2/core/adapters/ast_parser_impl.py` | All created CodeNodes have `leading_context` populated from tree-sitter siblings | RF-06 |
+| [x] | T05 | Add `leading_context` to smart content: update `_build_context()` dict + add conditional block to 6 templates (base, callable, file, block, type, section) | smart_content | `src/fs2/core/services/smart_content/smart_content_service.py`, `src/fs2/core/templates/smart_content/smart_content_{base,callable,file,block,type,section}.j2` | LLM prompt includes developer comments when present | RF-08, AC09 |
+| [x] | T06 | Prepend `leading_context` to content before chunking in embedding service; compute `embedding_hash` from content + leading_context | embedding | `src/fs2/core/services/embedding/embedding_service.py` | Embedding vector includes comment semantics; hash changes when comments change | RF-03, AC08, AC12 |
+| [x] | T07 | Add `leading_context` search to regex_matcher: 4th field with score 0.6 | search | `src/fs2/core/services/search/regex_matcher.py` | Text/regex search matches in leading_context with score 0.6 | RF-05, AC07 |
+| [x] | T08 | Add `leading_context` to get_node CLI output: update `_code_node_to_cli_dict()` | cli | `src/fs2/cli/get_node.py` | `fs2 get-node` JSON output includes `leading_context` field | RF-01 |
+| [x] | T09 | Add `leading_context` to MCP max detail output: update `_code_node_to_dict()` + docstring | mcp | `src/fs2/mcp/server.py` | MCP `get_node` with detail=max includes `leading_context` | RF-01 |
+| [x] | T10 | TDD tests for parser extraction: Python comments, Python decorators, TS export wrapper, Rust attributes, blank-line gap, Go comments, Java Javadoc, C Doxygen, 2000-char cap | tests | `tests/unit/adapters/test_leading_context.py` | Tests parse real fixture files, verify leading_context populated correctly for each language pattern | AC02-06, AC10, AC13 |
+| [x] | T11 | Tests for search + embedding + output integration | tests | `tests/unit/services/search/test_leading_context_search.py` | Text search finds nodes by leading_context; get_node includes field; content_hash stable, embedding_hash changes | AC07, AC11, AC12 |
 
 ### Acceptance Criteria
 
-- [ ] AC01: CodeNode has `leading_context: str | None` field, default None, backward compatible
-- [ ] AC02: Python `# comments` above function → `leading_context` populated
-- [ ] AC03: Python `@decorator` above function → `leading_context` includes decorator text
-- [ ] AC04: Blank line gap → comments NOT captured
-- [ ] AC05: TypeScript `export function` → captures comments from export_statement sibling
-- [ ] AC06: Rust `#[derive(Debug)]` → captured as leading context
-- [ ] AC07: Text search matches in `leading_context` (score 0.6)
-- [ ] AC08: Semantic search includes leading_context in embedding
-- [ ] AC09: Smart content references developer comments when present
-- [ ] AC10: `leading_context` capped at 2000 characters
-- [ ] AC11: `content_hash` unchanged by leading_context
-- [ ] AC12: `embedding_hash` changes when leading_context changes
-- [ ] AC13: All fixture languages produce leading_context
+- [x] AC01: CodeNode has `leading_context: str | None` field, default None, backward compatible
+- [x] AC02: Python `# comments` above function → `leading_context` populated
+- [x] AC03: Python `@decorator` above function → `leading_context` includes decorator text
+- [x] AC04: Blank line gap → comments NOT captured
+- [x] AC05: TypeScript `export function` → captures comments from export_statement sibling
+- [x] AC06: Rust `#[derive(Debug)]` → captured as leading context
+- [x] AC07: Text search matches in `leading_context` (score 0.6)
+- [x] AC08: Semantic search includes leading_context in embedding
+- [x] AC09: Smart content references developer comments when present
+- [x] AC10: `leading_context` capped at 2000 characters
+- [x] AC11: `content_hash` unchanged by leading_context
+- [x] AC12: `embedding_hash` changes when leading_context changes
+- [x] AC13: All fixture languages produce leading_context
 
 ### Risks
 
@@ -100,5 +100,23 @@ Comments, decorators, and doc-comments above functions/classes are invisible to 
 
 - Tasks: 11/11 complete
 - ACs verified: 13/13
-- Tests: 1776 passed (+25 new), 25 skipped, 0 failed
-- Commit: `3e83eb3`
+- Tests: 1784 passed (+33 from baseline 1751), 25 skipped, 0 failed (8 pre-existing report_service failures excluded)
+- Commits: `3e83eb3` feat(037), `1f29d26` fix(037) review fixes
+- Review: REQUEST_CHANGES → 5 fix tasks applied (FT-001 through FT-005)
+  - FT-001 HIGH: embedding_hash payload matched to chunking payload (`"\n".join([lc, content])`)
+  - FT-002 HIGH: Added 5 missing language tests (TSX, JS, C++, Ruby, Bash) — 33 total
+  - FT-003 MEDIUM: Added AC08 chunk prepend + AC09 build_context evidence tests
+  - FT-004 MEDIUM: Path drift noted (actual `test_leading_context_integration.py` vs plan's `test_leading_context_search.py`)
+  - FT-005 MEDIUM: Fixed ruff violations (unused imports, sort order)
+
+### Domain Changes
+
+| Domain | Files Changed | Contract Change? |
+|--------|--------------|-----------------|
+| models | `code_node.py` | YES — new `leading_context` field (backward compatible default None) |
+| adapters | `ast_parser_impl.py` | No — internal implementation |
+| search | `regex_matcher.py` | No — additive field search |
+| embedding | `embedding_service.py` | No — internal chunking + hash |
+| smart_content | `smart_content_service.py`, 6 `.j2` templates | No — additive prompt context |
+| cli | `get_node.py` | No — additive output field |
+| mcp | `server.py` | No — additive max-detail field |

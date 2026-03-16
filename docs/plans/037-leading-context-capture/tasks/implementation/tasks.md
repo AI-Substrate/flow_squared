@@ -40,29 +40,29 @@ No harness configured. Standard testing approach.
 
 ```mermaid
 flowchart TD
-    classDef pending fill:#9E9E9E,stroke:#757575,color:#fff
+    classDef done fill:#4CAF50,stroke:#757575,color:#fff
 
     subgraph Foundation["Stage 1: Data Model"]
-        T001["T001: CodeNode field"]:::pending
+        T001["T001: CodeNode field"]:::done
     end
 
     subgraph Parser["Stage 2: Extraction"]
-        T002["T002: Constants"]:::pending
-        T003["T003: Extract logic"]:::pending
-        T004["T004: Wire into parsing"]:::pending
-        T010["T010: TDD parser tests"]:::pending
+        T002["T002: Constants"]:::done
+        T003["T003: Extract logic"]:::done
+        T004["T004: Wire into parsing"]:::done
+        T010["T010: TDD parser tests"]:::done
     end
 
     subgraph Integration["Stage 3: Search + Embed + Smart Content"]
-        T005["T005: Smart content templates"]:::pending
-        T006["T006: Embedding prepend"]:::pending
-        T007["T007: Regex search"]:::pending
+        T005["T005: Smart content templates"]:::done
+        T006["T006: Embedding prepend"]:::done
+        T007["T007: Regex search"]:::done
     end
 
     subgraph Output["Stage 4: CLI + MCP + Tests"]
-        T008["T008: get_node CLI"]:::pending
-        T009["T009: MCP output"]:::pending
-        T011["T011: Integration tests"]:::pending
+        T008["T008: get_node CLI"]:::done
+        T009["T009: MCP output"]:::done
+        T011["T011: Integration tests"]:::done
     end
 
     T001 --> T002
@@ -78,13 +78,13 @@ flowchart TD
     T009 --> T011
 
     subgraph Files["Key Files"]
-        F1["code_node.py"]:::pending
-        F2["ast_parser_impl.py"]:::pending
-        F3["regex_matcher.py"]:::pending
-        F4["embedding_service.py"]:::pending
-        F5["smart_content_service.py + 6 .j2"]:::pending
-        F6["get_node.py"]:::pending
-        F7["server.py"]:::pending
+        F1["code_node.py"]:::done
+        F2["ast_parser_impl.py"]:::done
+        F3["regex_matcher.py"]:::done
+        F4["embedding_service.py"]:::done
+        F5["smart_content_service.py + 6 .j2"]:::done
+        F6["get_node.py"]:::done
+        F7["server.py"]:::done
     end
 
     T001 -.-> F1
