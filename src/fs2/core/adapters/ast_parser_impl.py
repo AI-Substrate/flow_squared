@@ -337,6 +337,33 @@ EXTRACTABLE_LANGUAGES: set[str] = CODE_LANGUAGES | {
 }
 
 
+# === Leading Context Extraction (Plan 037) ===
+# Tree-sitter node types that constitute leading context
+
+COMMENT_NODE_TYPES: frozenset[str] = frozenset({
+    "comment",       # Python, Go, JS, TS, TSX, C, C++, Ruby, Bash, GDScript, CUDA
+    "line_comment",  # Rust
+    "block_comment", # Java
+})
+
+SIBLING_DECORATOR_TYPES: frozenset[str] = frozenset({
+    "attribute_item",  # Rust #[derive(...)]
+})
+
+CHILD_DECORATOR_TYPES: frozenset[str] = frozenset({
+    "decorator",  # Python @dataclass (child of decorated_definition)
+})
+
+WRAPPER_PARENT_TYPES: frozenset[str] = frozenset({
+    "decorated_definition",  # Python: wraps function + decorators
+    "export_statement",      # TypeScript/TSX/JS: wraps with export
+})
+
+LEADING_CONTEXT_TYPES: frozenset[str] = COMMENT_NODE_TYPES | SIBLING_DECORATOR_TYPES
+
+MAX_LEADING_CONTEXT_CHARS: int = 2000
+
+
 class TreeSitterParser(ASTParser):
     """Production implementation of ASTParser using tree-sitter.
 
@@ -739,6 +766,9 @@ class TreeSitterParser(ASTParser):
             # Extract signature (first line)
             signature = node_content.split("\n")[0] if node_content else ""
 
+            # Extract leading context (comments/decorators above this node)
+            leading_context = self._extract_leading_context(child, content)
+
             # Create CodeNode using appropriate factory
             code_node = self._create_node(
                 category=category,
@@ -760,6 +790,7 @@ class TreeSitterParser(ASTParser):
                 field_name=None,  # Would need index to use node.field_name_for_child(i)
                 is_error=ts_kind == "ERROR",
                 parent_node_id=parent_node_id,
+                leading_context=leading_context,
             )
             nodes.append(code_node)
 
@@ -817,6 +848,74 @@ class TreeSitterParser(ASTParser):
 
         return None
 
+    def _extract_leading_context(self, ts_node, source: str) -> str | None:
+        """Extract comments and decorators above a tree-sitter node.
+
+        Walks prev_named_sibling chain collecting comment and decorator nodes.
+        Handles wrapper parents (Python decorated_definition, TS export_statement).
+        Stops at blank-line gaps. Caps at MAX_LEADING_CONTEXT_CHARS.
+
+        Args:
+            ts_node: The tree-sitter node to extract context for.
+            source: Full file source content as string.
+
+        Returns:
+            Joined comment/decorator text, or None if no leading context.
+        """
+        source_bytes = source.encode("utf-8") if isinstance(source, str) else source
+        parts: list[str] = []
+        parent_decorators: list[str] = []
+
+        # Determine walk-from node
+        walk_node = ts_node
+
+        # Python: decorators are children of decorated_definition
+        if ts_node.parent and ts_node.parent.type == "decorated_definition":
+            for child in ts_node.parent.children:
+                if child.type in CHILD_DECORATOR_TYPES:
+                    text = source_bytes[child.start_byte:child.end_byte].decode(
+                        "utf-8", errors="replace"
+                    )
+                    parent_decorators.append(text.strip())
+            walk_node = ts_node.parent
+
+        # TS/TSX/JS: export wraps the definition
+        elif ts_node.parent and ts_node.parent.type in WRAPPER_PARENT_TYPES:
+            walk_node = ts_node.parent
+
+        # Walk backwards through siblings
+        comment_parts: list[tuple[str, int]] = []
+        current = walk_node.prev_named_sibling
+
+        while current is not None and current.type in LEADING_CONTEXT_TYPES:
+            # Check for blank-line gap BEFORE adding this comment
+            next_start = (
+                comment_parts[-1][1] if comment_parts else walk_node.start_byte
+            )
+            gap = source_bytes[current.end_byte:next_start].decode(
+                "utf-8", errors="replace"
+            )
+            if "\n\n" in gap:
+                break  # Gap found — this comment belongs to something else
+
+            text = source_bytes[current.start_byte:current.end_byte].decode(
+                "utf-8", errors="replace"
+            )
+            comment_parts.append((text.strip(), current.start_byte))
+            current = current.prev_named_sibling
+
+        comment_parts.reverse()
+        parts = [text for text, _ in comment_parts] + parent_decorators
+
+        if not parts:
+            return None
+
+        result = "\n".join(parts)
+        if len(result) > MAX_LEADING_CONTEXT_CHARS:
+            result = result[:MAX_LEADING_CONTEXT_CHARS] + "\n[TRUNCATED]"
+
+        return result
+
     def _create_node(
         self,
         category: str,
@@ -838,6 +937,7 @@ class TreeSitterParser(ASTParser):
         field_name: str | None,
         is_error: bool,
         parent_node_id: str | None,
+        leading_context: str | None = None,
     ) -> CodeNode:
         """Create appropriate CodeNode using factory methods.
 
@@ -870,6 +970,7 @@ class TreeSitterParser(ASTParser):
                 field_name=field_name,
                 is_error=is_error,
                 parent_node_id=parent_node_id,
+                leading_context=leading_context,
             )
         elif category == "callable":
             return CodeNode.create_callable(
@@ -891,6 +992,7 @@ class TreeSitterParser(ASTParser):
                 field_name=field_name,
                 is_error=is_error,
                 parent_node_id=parent_node_id,
+                leading_context=leading_context,
             )
         elif category == "section":
             return CodeNode.create_section(
@@ -912,6 +1014,7 @@ class TreeSitterParser(ASTParser):
                 field_name=field_name,
                 is_error=is_error,
                 parent_node_id=parent_node_id,
+                leading_context=leading_context,
             )
         else:  # block
             return CodeNode.create_block(
@@ -933,4 +1036,5 @@ class TreeSitterParser(ASTParser):
                 field_name=field_name,
                 is_error=is_error,
                 parent_node_id=parent_node_id,
+                leading_context=leading_context,
             )

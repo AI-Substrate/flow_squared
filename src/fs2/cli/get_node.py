@@ -54,6 +54,7 @@ def _code_node_to_cli_dict(
         "start_line": node.start_line,
         "end_line": node.end_line,
         "smart_content": node.smart_content,
+        "leading_context": node.leading_context,
         "language": node.language,
         "parent_node_id": node.parent_node_id,
         "qualified_name": node.qualified_name,

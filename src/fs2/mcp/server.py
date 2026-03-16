@@ -546,6 +546,7 @@ def _code_node_to_dict(
     # Extended fields (max detail only)
     if detail == "max":
         result["smart_content"] = node.smart_content
+        result["leading_context"] = node.leading_context
         result["language"] = node.language
         result["parent_node_id"] = node.parent_node_id
         result["qualified_name"] = node.qualified_name

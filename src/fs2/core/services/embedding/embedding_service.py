@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any
 
 from fs2.config.objects import EmbeddingConfig
 from fs2.core.models.content_type import ContentType
+from fs2.core.utils.hash import compute_content_hash
 
 if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
@@ -213,7 +214,15 @@ class EmbeddingService:
             Empty list if content is empty.
         """
         # Select content to chunk
-        content = node.smart_content or "" if is_smart_content else node.content
+        if is_smart_content:
+            content = node.smart_content or ""
+        else:
+            # Prepend leading_context for richer embeddings (Plan 037)
+            parts = []
+            if node.leading_context:
+                parts.append(node.leading_context)
+            parts.append(node.content)
+            content = "\n".join(parts)
 
         # Handle empty content
         if not content or not content.strip():
@@ -508,7 +517,14 @@ class EmbeddingService:
             return False
 
         # Check content has not changed (stale embedding detection)
-        if node.content_hash != node.embedding_hash:
+        # Per Plan 037: embedding_hash includes leading_context when present
+        if node.leading_context:
+            expected_hash = compute_content_hash(
+                node.content + node.leading_context
+            )
+        else:
+            expected_hash = node.content_hash
+        if expected_hash != node.embedding_hash:
             return False
 
         # Check smart_content embedding (if smart_content exists)
@@ -756,7 +772,11 @@ class EmbeddingService:
                 node,
                 embedding=embedding_tuple,
                 smart_content_embedding=smart_embedding_tuple,
-                embedding_hash=node.content_hash,  # Track which content this embedding is for
+                embedding_hash=(
+                    compute_content_hash(node.content + node.leading_context)
+                    if node.leading_context
+                    else node.content_hash
+                ),
                 embedding_chunk_offsets=chunk_offsets.get(node_id),
             )
 

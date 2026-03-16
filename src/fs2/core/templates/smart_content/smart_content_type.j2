@@ -9,7 +9,11 @@ Type Information:
 {% if signature %}- Signature: {{ signature }}{% endif %}
 
 Source Code:
-```{{ language }}
+{% if leading_context is defined and leading_context %}
+Developer Comments/Decorators:
+{{ leading_context }}
+
+{% endif %}```{{ language }}
 {{ content }}
 ```
 

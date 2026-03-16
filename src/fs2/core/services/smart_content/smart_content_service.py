@@ -241,6 +241,7 @@ class SmartContentService:
             "language": node.language,
             "content": content,
             "signature": node.signature or "",
+            "leading_context": node.leading_context or "",
         }
 
     async def _generate_with_error_handling(self, node: CodeNode, prompt: str) -> str:
