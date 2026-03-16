@@ -240,6 +240,7 @@
       .force('link', d3.forceLink(links).distance(100).strength(0.3))
       .on('tick', function () {
         centerNode.x = cx; centerNode.y = cy; // pin center
+        render(); // redraw each tick so nodes animate visually
       })
       .on('end', function () { activeSim = null; });
   }
