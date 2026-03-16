@@ -705,6 +705,7 @@ class EmbeddingService:
         # Run batches with as_completed for incremental progress
         # This reports progress as each batch finishes, not after all complete
         batch_futures = [process_single_batch(batch) for batch in batches]
+        batches_completed = 0
 
         for coro in asyncio.as_completed(batch_futures):
             result_list = await coro
@@ -714,6 +715,7 @@ class EmbeddingService:
 
             # Update progress after each batch
             chunks_processed += len(result_list)
+            batches_completed += 1
             if progress_callback and total_chunks > 0:
                 # Approximate node progress from chunk progress
                 approx_nodes = int(
@@ -724,6 +726,18 @@ class EmbeddingService:
                     len(nodes_to_process) + stats["skipped"],
                     stats["skipped"],
                 )
+
+            # Courtesy save every 10 batches during processing (Plan 036 T05)
+            if (
+                courtesy_save is not None
+                and batches_completed % 10 == 0
+            ):
+                # Build partial results from completed chunks so far
+                partial = self._reassemble_partial(
+                    chunk_embeddings, nodes_to_process, chunk_offsets
+                )
+                if partial:
+                    courtesy_save(partial)
 
         # Record any errors that occurred
         stats["errors"].extend(errors_list)
@@ -800,3 +814,55 @@ class EmbeddingService:
             )
 
         return stats
+
+    def _reassemble_partial(
+        self,
+        chunk_embeddings: dict[tuple[str, int, bool], list[float]],
+        nodes_to_process: dict[str, CodeNode],
+        chunk_offsets: dict[str, tuple[tuple[int, int], ...]],
+    ) -> dict[str, CodeNode]:
+        """Reassemble completed embeddings into CodeNodes for courtesy save.
+
+        Only includes nodes where at least one raw content chunk is complete.
+        Called during batch processing to enable crash recovery.
+        """
+        results: dict[str, CodeNode] = {}
+
+        for node_id, node in nodes_to_process.items():
+            raw_keys = [
+                k for k in chunk_embeddings if k[0] == node_id and k[2] is False
+            ]
+            if not raw_keys:
+                continue
+
+            raw_sorted = sorted(raw_keys, key=lambda k: k[1])
+            raw_embeddings = [chunk_embeddings[k] for k in raw_sorted]
+            embedding_tuple = tuple(tuple(e) for e in raw_embeddings)
+
+            smart_embedding_tuple = None
+            if node.smart_content:
+                smart_keys = [
+                    k for k in chunk_embeddings if k[0] == node_id and k[2] is True
+                ]
+                if smart_keys:
+                    smart_sorted = sorted(smart_keys, key=lambda k: k[1])
+                    smart_embedding_tuple = tuple(
+                        tuple(chunk_embeddings[k]) for k in smart_sorted
+                    )
+
+            updated = replace(
+                node,
+                embedding=embedding_tuple,
+                smart_content_embedding=smart_embedding_tuple,
+                embedding_hash=(
+                    compute_content_hash(
+                        "\n".join([node.leading_context, node.content])
+                    )
+                    if node.leading_context
+                    else node.content_hash
+                ),
+                embedding_chunk_offsets=chunk_offsets.get(node_id),
+            )
+            results[node_id] = updated
+
+        return results
