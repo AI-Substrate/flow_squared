@@ -56,16 +56,24 @@
     ctx.save(); ctx.clearRect(0, 0, width, height);
     ctx.translate(transform.x, transform.y); ctx.scale(transform.k, transform.k);
     var invK = 1 / transform.k;
-    // Edges — always draw, resolve endpoints to visible parent if needed
+    // Edges — resolve endpoints to visible parent when endpoint not visible
     if (visibleEdges.length > 0) {
       ctx.lineWidth = 1 * invK;
       var baseAlpha = visibleEdges.length > 500 ? 0.2 : (visibleEdges.length > 50 ? 0.5 : 0.8);
+      var visSet = new Set(); visibleNodes.forEach(function (n) { if (!n._dimmed) visSet.add(n.node_id); });
       visibleEdges.forEach(function (e) {
         var s = nodeMap[e.source], t = nodeMap[e.target];
         if (!s || !t) return;
-        var sx = s.x, sy = s.y, tx = t.x, ty = t.y;
-        if (s.parent_node_id && nodeMap[s.parent_node_id]) { var p = nodeMap[s.parent_node_id]; sx = p.x; sy = p.y; }
-        if (t.parent_node_id && nodeMap[t.parent_node_id]) { var p2 = nodeMap[t.parent_node_id]; tx = p2.x; ty = p2.y; }
+        // Resolve source: if not visible, try parent; if parent not visible, skip
+        var sVis = visSet.has(e.source);
+        var tVis = visSet.has(e.target);
+        var sx, sy, tx, ty;
+        if (sVis) { sx = s.x; sy = s.y; }
+        else if (s.parent_node_id && visSet.has(s.parent_node_id)) { var p = nodeMap[s.parent_node_id]; sx = p.x; sy = p.y; }
+        else return; // neither source nor its parent visible — skip
+        if (tVis) { tx = t.x; ty = t.y; }
+        else if (t.parent_node_id && visSet.has(t.parent_node_id)) { var p2 = nodeMap[t.parent_node_id]; tx = p2.x; ty = p2.y; }
+        else return; // neither target nor its parent visible — skip
         if (sx === tx && sy === ty) return;
         // Highlight edges connected to focused node, fade others
         var connected = highlightId && (e.source === highlightId || e.target === highlightId ||
