@@ -508,7 +508,7 @@ class TreeSitterParser(ASTParser):
         try:
             parser = get_parser(language)
         except Exception as e:
-            logger.warning(
+            logger.debug(
                 f"No grammar available for {language}: {e}. "
                 f"Returning file-only node for {file_path}"
             )
