@@ -124,19 +124,49 @@ class ReportService:
         self,
         include_smart_content: bool = True,
         graph_path: Path | None = None,
+        exclude_patterns: list[str] | None = None,
+        include_patterns: list[str] | None = None,
     ) -> ReportResult:
         """Generate a codebase graph HTML report.
 
         Args:
             include_smart_content: Include smart_content in node data.
             graph_path: Path to graph file (for metadata display).
+            exclude_patterns: Glob patterns to exclude nodes by node_id.
+            include_patterns: Glob patterns — only matching nodes kept.
 
         Returns:
             ReportResult with HTML string and metadata dict.
         """
+        import fnmatch
+
         # Extract all nodes and edges
         nodes = self._graph_store.get_all_nodes()
         all_edges = self._graph_store.get_all_edges()
+
+        # Apply include/exclude filters before any processing
+        if include_patterns:
+            nodes = [
+                n for n in nodes
+                if any(fnmatch.fnmatch(n.node_id, p) for p in include_patterns)
+            ]
+        if exclude_patterns:
+            nodes = [
+                n for n in nodes
+                if not any(fnmatch.fnmatch(n.node_id, p) for p in exclude_patterns)
+            ]
+
+        # Filter edges to only reference remaining nodes
+        if include_patterns or exclude_patterns:
+            valid_ids = {n.node_id for n in nodes}
+            all_edges = [
+                (s, t, d) for s, t, d in all_edges
+                if s in valid_ids and t in valid_ids
+            ]
+            logger.info(
+                "After filtering: %d nodes, %d edges",
+                len(nodes), len(all_edges),
+            )
 
         # Get max_nodes from config
         max_nodes = self._get_max_nodes()
@@ -168,187 +198,222 @@ class ReportService:
             for n in nodes
         ]
 
-        # Compute hierarchical solar-system layout:
-        # Suns (directories) → Planets (files) → Moons (callables/types)
-        import networkx as nx
+        # --- V3: Semantic clustering layout ---
+        # Position nodes by embedding similarity using PCA→t-SNE projection,
+        # cluster into ~20 groups with KMeans, compute convex hulls for rendering.
+        import re
+
+        import numpy as np
+        from scipy.spatial import ConvexHull
+        from sklearn.cluster import KMeans
+        from sklearn.decomposition import PCA
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.manifold import TSNE
 
         node_map = {n.node_id: n for n in nodes}
+        n_target_clusters = 20
 
-        # --- Step 1: Derive directory hierarchy ---
-        # Group file nodes by their parent directory
-        dir_files: dict[str, list[str]] = {}  # dir_path → [file_node_id]
-        file_children: dict[str, list[str]] = {}  # file_node_id → [child_node_ids]
+        # --- Step 1: Build embedding matrix from raw code node embeddings ---
+        embed_ids: list[str] = []
+        embed_vecs: list[list[float]] = []
+        no_embed_ids: list[str] = []
 
         for n in nodes:
-            if n.category == "file" and n.file_path:
-                dir_path = str(Path(n.file_path).parent)
-                dir_files.setdefault(dir_path, []).append(n.node_id)
-            elif n.parent_node_id:
-                file_children.setdefault(n.parent_node_id, []).append(n.node_id)
+            if n.embedding is not None and len(n.embedding) > 0:
+                # Average chunks for multi-chunk embeddings
+                chunks = [list(chunk) for chunk in n.embedding]
+                avg_vec = np.mean(chunks, axis=0).tolist()
+                embed_ids.append(n.node_id)
+                embed_vecs.append(avg_vec)
+            else:
+                no_embed_ids.append(n.node_id)
 
-        # --- Step 2: Macro layout — position directories (suns) ---
-        dir_graph = nx.Graph()
-        dir_list = list(dir_files.keys())
-        for d in dir_list:
-            dir_graph.add_node(d)
-        # Connect directories that have cross-dir reference edges
-        for source, target, data in reference_edges:
-            if data.get("edge_type") != "references":
-                continue
-            s_node = node_map.get(source)
-            t_node = node_map.get(target)
-            if not s_node or not t_node:
-                continue
-            s_file = s_node.file_path or ""
-            t_file = t_node.file_path or ""
-            s_dir = str(Path(s_file).parent) if s_file else ""
-            t_dir = str(Path(t_file).parent) if t_file else ""
-            if s_dir in dir_files and t_dir in dir_files and s_dir != t_dir:
-                dir_graph.add_edge(s_dir, t_dir)
+        logger.info(
+            "Embedding matrix: %d nodes with embeddings, %d without",
+            len(embed_ids), len(no_embed_ids),
+        )
 
-        # Estimate each system's radius for macro spacing
-        dir_radius: dict[str, float] = {}
-        for dir_path in dir_list:
-            files = dir_files[dir_path]
-            num_files = len(files)
-            max_per_ring = max(6, int(math.sqrt(num_files) * 3))
-            num_rings = max(1, math.ceil(num_files / max_per_ring))
-            outer_ring = 120 + (num_rings - 1) * 100  # outermost ring
-            max_moon = 0.0
-            for fid in files:
-                nc = len(file_children.get(fid, []))
-                max_moon = max(max_moon, max(30, min(80, nc * 8)) if nc else 0)
-            dir_radius[dir_path] = outer_ring + max_moon + 100
+        # If too few embeddings, fall back to TF-IDF on all nodes
+        use_tfidf_fallback = len(embed_ids) < len(nodes) * 0.5
+        if use_tfidf_fallback:
+            logger.warning(
+                "Less than 50%% of nodes have embeddings — falling back to TF-IDF"
+            )
+            corpus = []
+            all_node_ids = []
+            for n in nodes:
+                text = " ".join(filter(None, [
+                    n.name or "",
+                    n.signature or "",
+                    (n.content or "")[:500],
+                ]))
+                if not text.strip():
+                    text = n.node_id
+                corpus.append(text)
+                all_node_ids.append(n.node_id)
+            tfidf_vec = TfidfVectorizer(
+                max_features=500,
+                token_pattern=r"(?u)\b[a-zA-Z_][a-zA-Z0-9_]{2,}\b",
+            )
+            matrix = tfidf_vec.fit_transform(corpus).toarray().astype(np.float32)
+            embed_ids = all_node_ids
+        else:
+            matrix = np.array(embed_vecs, dtype=np.float32)
+            # Place non-embedded nodes at their parent's position later
+        n_samples = matrix.shape[0]
 
-        # Scale macro layout generously
-        avg_radius = sum(dir_radius.values()) / max(len(dir_radius), 1)
-        num_dirs = max(len(dir_list), 1)
-        macro_scale = max(10000, avg_radius * num_dirs * 0.8)
+        # --- Step 2: PCA → t-SNE projection to 2D ---
+        pca_dims = min(50, matrix.shape[1], n_samples)
+        pca = PCA(n_components=pca_dims, random_state=42)
+        reduced = pca.fit_transform(matrix)
+        logger.info("PCA: %d → %d dims (%.1f%% variance)",
+                     matrix.shape[1], pca_dims,
+                     sum(pca.explained_variance_ratio_) * 100)
 
-        dir_positions = nx.spring_layout(
-            dir_graph,
-            k=8.0 / math.sqrt(num_dirs),
-            iterations=150,
-            seed=42,
-            scale=macro_scale,
-        ) if dir_list else {}
+        perplexity = min(30, n_samples - 1)
+        tsne = TSNE(
+            n_components=2,
+            perplexity=perplexity,
+            random_state=42,
+            max_iter=1000,
+            learning_rate="auto",
+            init="pca",
+        )
+        coords_2d = tsne.fit_transform(reduced)
 
-        # --- Step 3: Position files (planets) in valence rings around dirs ---
-        import random as _rng
+        # Scale to canvas area
+        canvas_scale = 5000.0
+        for dim in range(2):
+            mn, mx = coords_2d[:, dim].min(), coords_2d[:, dim].max()
+            rng = mx - mn if mx != mn else 1.0
+            coords_2d[:, dim] = (
+                (coords_2d[:, dim] - mn) / rng * canvas_scale * 2 - canvas_scale
+            )
 
+        # --- Step 3: KMeans clustering on 2D positions ---
+        # Cluster on the projected 2D coords so clusters are spatially coherent
+        # in the visualization (not on original high-dim embeddings which may
+        # overlap heavily after projection).
+        actual_k = min(n_target_clusters, n_samples)
+        km = KMeans(n_clusters=actual_k, random_state=42, n_init=10)
+        cluster_labels = km.fit_predict(coords_2d)
+        logger.info("KMeans: %d clusters (on 2D projection)", actual_k)
+
+        # Build position + cluster lookups
         positions: dict[str, tuple[float, float]] = {}
-        dir_centers: dict[str, tuple[float, float]] = {}
-        dir_actual_radius: dict[str, float] = {}  # measured outer boundary
+        node_cluster: dict[str, int] = {}
+        for i, nid in enumerate(embed_ids):
+            positions[nid] = (round(float(coords_2d[i, 0]), 2),
+                              round(float(coords_2d[i, 1]), 2))
+            node_cluster[nid] = int(cluster_labels[i])
 
-        for dir_path in dir_list:
-            cx, cy = dir_positions.get(dir_path, (0.0, 0.0))
-            dir_centers[dir_path] = (float(cx), float(cy))
-            files = dir_files[dir_path]
-            num_files = len(files)
+        # Place non-embedded nodes near their parent's position
+        if not use_tfidf_fallback:
+            import random as _rng
+            for nid in no_embed_ids:
+                n = node_map[nid]
+                parent_id = n.parent_node_id
+                if parent_id and parent_id in positions:
+                    px, py = positions[parent_id]
+                    rng = _rng.Random(hash(nid))
+                    jx = rng.uniform(-30, 30)
+                    jy = rng.uniform(-30, 30)
+                    positions[nid] = (round(px + jx, 2), round(py + jy, 2))
+                    node_cluster[nid] = node_cluster.get(parent_id, 0)
+                else:
+                    positions[nid] = (0.0, 0.0)
+                    node_cluster[nid] = 0
 
-            # Distribute across multiple valence rings (like electron shells)
-            max_per_ring = max(6, int(math.sqrt(num_files) * 3))
-            num_rings = max(1, math.ceil(num_files / max_per_ring))
-            ring_base = 120  # innermost ring radius
-            ring_gap = 100   # gap between rings
+        # --- Step 4: Auto-generate cluster labels from node names ---
+        _CODE_NOISE = {
+            "test", "self", "def", "return", "none", "true", "false",
+            "str", "int", "bool", "list", "dict", "set", "tuple",
+            "class", "init", "given", "when", "then", "assert",
+            "raises", "error", "type", "value", "result", "data",
+            "name", "path", "file", "that", "with", "from", "this",
+            "not", "for", "and", "the", "min", "max", "get", "has",
+            "function", "const", "var", "let", "length", "new",
+            "args", "kwargs", "param", "call", "obj", "src",
+        }
+        cluster_id_set = sorted(set(int(l) for l in cluster_labels))
+        cluster_texts: dict[int, str] = {}
+        for cid in cluster_id_set:
+            texts = []
+            for i, nid in enumerate(embed_ids):
+                if int(cluster_labels[i]) == cid:
+                    n = node_map.get(nid)
+                    if not n:
+                        continue
+                    parts = []
+                    nm = n.name or ""
+                    name_parts = re.sub(r"([a-z])([A-Z])", r"\1 \2", nm).lower().split()
+                    for p in name_parts:
+                        parts.extend(p.split("_"))
+                    if n.file_path:
+                        stem = Path(n.file_path).stem
+                        parts.extend(stem.replace("test_", "").split("_"))
+                        parent_dir = Path(n.file_path).parent.name
+                        if parent_dir and parent_dir != ".":
+                            parts.append(parent_dir)
+                    texts.append(" ".join(parts))
+            cluster_texts[cid] = " ".join(texts)
 
-            rng = _rng.Random(hash(dir_path))  # deterministic per directory
-            ring_assignments: list[tuple[int, float]] = []  # (ring_idx, angle)
-            slots_per_ring = [0] * num_rings
-            for i in range(num_files):
-                ring_idx = i % num_rings
-                slots_per_ring[ring_idx] += 1
+        label_corpus = [cluster_texts.get(cid, "") for cid in cluster_id_set]
+        label_tfidf = TfidfVectorizer(
+            max_features=300,
+            stop_words=list(_CODE_NOISE),
+            token_pattern=r"(?u)\b[a-zA-Z][a-zA-Z0-9]{2,}\b",
+            min_df=1,
+            max_df=0.8,
+        )
+        label_matrix = label_tfidf.fit_transform(label_corpus)
+        feature_names = label_tfidf.get_feature_names_out()
 
-            fi = 0
-            for ring_idx in range(num_rings):
-                ring_r = ring_base + ring_idx * ring_gap
-                n_in_ring = slots_per_ring[ring_idx]
-                for j in range(n_in_ring):
-                    # Evenly space within ring + random jitter
-                    base_angle = (2 * math.pi * j) / max(n_in_ring, 1)
-                    jitter = rng.uniform(-0.3, 0.3)
-                    angle = base_angle + jitter
-                    r_jitter = rng.uniform(-20, 20)
-                    r = ring_r + r_jitter
-                    fid = files[fi]
-                    fx = cx + math.cos(angle) * r
-                    fy = cy + math.sin(angle) * r
-                    positions[fid] = (round(fx, 2), round(fy, 2))
-                    fi += 1
+        cluster_name_map: dict[int, str] = {}
+        for idx, cid in enumerate(cluster_id_set):
+            scores = label_matrix[idx].toarray()[0]
+            top_indices = scores.argsort()[-4:][::-1]
+            top_terms = [feature_names[i] for i in top_indices if scores[i] > 0]
+            cluster_name_map[cid] = " · ".join(top_terms) if top_terms else f"Cluster {cid}"
 
-        # --- Step 4: Position callables/types (moons) around files ---
-        for file_id, children in file_children.items():
-            if file_id not in positions:
-                continue
-            fx, fy = positions[file_id]
-            num_ch = len(children)
-            moon_orbit = max(30, min(80, num_ch * 8))
-            rng = _rng.Random(hash(file_id))
-            for i, cid in enumerate(children):
-                angle = (2 * math.pi * i) / max(num_ch, 1) + rng.uniform(-0.2, 0.2)
-                r = moon_orbit + rng.uniform(-8, 8)
-                mx = fx + math.cos(angle) * r
-                my = fy + math.sin(angle) * r
-                positions[cid] = (round(mx, 2), round(my, 2))
+        # --- Step 5: Compute convex hulls per cluster ---
+        # Distinct cluster colors (20 well-separated hues)
+        _CLUSTER_COLORS = [
+            "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16",
+            "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9",
+            "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef",
+            "#ec4899", "#f43f5e", "#78716c", "#64748b", "#a1a1aa",
+        ]
 
-        # --- Step 5: Measure actual system radii and push apart overlapping ---
-        for dir_path in dir_list:
-            cx, cy = dir_centers[dir_path]
-            max_r = 0.0
-            for fid in dir_files[dir_path]:
-                if fid not in positions:
-                    continue
-                fx, fy = positions[fid]
-                dist = math.sqrt((fx - cx) ** 2 + (fy - cy) ** 2)
-                # Include moon orbit of this file
-                nc = len(file_children.get(fid, []))
-                moon_r = max(30, min(80, nc * 8)) if nc else 0
-                max_r = max(max_r, dist + moon_r)
-            dir_actual_radius[dir_path] = max_r + 60  # padding
+        cluster_hull_data: list[dict[str, Any]] = []
+        for cid in cluster_id_set:
+            mask = np.array([int(cluster_labels[i]) == cid
+                             for i in range(len(embed_ids))])
+            points = coords_2d[mask]
+            cx_c, cy_c = float(points[:, 0].mean()), float(points[:, 1].mean())
+            color = _CLUSTER_COLORS[cid % len(_CLUSTER_COLORS)]
 
-        # Push apart overlapping solar systems (iterative repulsion)
-        dir_pos_list = [(d, list(dir_centers[d])) for d in dir_list]
-        for _iteration in range(50):
-            moved = False
-            for i in range(len(dir_pos_list)):
-                for j in range(i + 1, len(dir_pos_list)):
-                    d1, p1 = dir_pos_list[i]
-                    d2, p2 = dir_pos_list[j]
-                    dx = p1[0] - p2[0]
-                    dy = p1[1] - p2[1]
-                    dist = math.sqrt(dx * dx + dy * dy) or 1.0
-                    min_dist = dir_actual_radius[d1] + dir_actual_radius[d2]
-                    if dist < min_dist:
-                        # Push apart
-                        overlap = (min_dist - dist) / 2 + 10
-                        nx_d = dx / dist
-                        ny_d = dy / dist
-                        p1[0] += nx_d * overlap
-                        p1[1] += ny_d * overlap
-                        p2[0] -= nx_d * overlap
-                        p2[1] -= ny_d * overlap
-                        moved = True
-            if not moved:
-                break
+            polygon: list[list[float]] = []
+            if len(points) >= 3:
+                try:
+                    hull = ConvexHull(points)
+                    polygon = [
+                        [float(points[v, 0]), float(points[v, 1])]
+                        for v in hull.vertices
+                    ]
+                except Exception:
+                    pass
 
-        # Apply pushed positions back — shift all nodes in each system
-        for d, new_center in dir_pos_list:
-            old_cx, old_cy = dir_centers[d]
-            shift_x = new_center[0] - old_cx
-            shift_y = new_center[1] - old_cy
-            if abs(shift_x) < 0.01 and abs(shift_y) < 0.01:
-                continue
-            dir_centers[d] = (new_center[0], new_center[1])
-            for fid in dir_files[d]:
-                if fid in positions:
-                    ox, oy = positions[fid]
-                    positions[fid] = (round(ox + shift_x, 2), round(oy + shift_y, 2))
-                for cid in file_children.get(fid, []):
-                    if cid in positions:
-                        ox, oy = positions[cid]
-                        positions[cid] = (round(ox + shift_x, 2), round(oy + shift_y, 2))
+            cluster_hull_data.append({
+                "id": cid,
+                "label": cluster_name_map.get(cid, f"Cluster {cid}"),
+                "centroid": [round(cx_c, 2), round(cy_c, 2)],
+                "polygon": polygon,
+                "color": color,
+                "count": int(mask.sum()),
+            })
 
-        # Compute graph metrics (FX001-2: degree, depth, entry point detection)
+        # --- Compute graph metrics ---
         in_degree: dict[str, int] = {}
         out_degree: dict[str, int] = {}
         for source, target, data in all_edges:
@@ -363,18 +428,10 @@ class ReportService:
                 depth += 1
                 current = node_map.get(current.parent_node_id)
                 if depth > 20:
-                    break  # safety
+                    break
             return depth
 
-        # Build lookup: node_id → dir_path
-        node_dir: dict[str, str] = {}
-        for dir_path, file_ids in dir_files.items():
-            for fid in file_ids:
-                node_dir[fid] = dir_path
-                for cid in file_children.get(fid, []):
-                    node_dir[cid] = dir_path
-
-        # Apply positions, sizes, colors, and metrics to node dicts
+        # Apply positions, sizes, colors, metrics, and cluster_id to node dicts
         for nd in node_dicts:
             nid = nd["node_id"]
             if nid in positions:
@@ -384,15 +441,11 @@ class ReportService:
             else:
                 nd["x"] = 0.0
                 nd["y"] = 0.0
-            # Category color — Python is single source of truth
             nd["color"] = _CATEGORY_COLORS.get(nd.get("category", ""), "#6b7280")
             nd["label"] = nd.get("name", "")
-            # Solar system level
-            cat = nd.get("category", "")
-            nd["level"] = "planet" if cat == "file" else "moon"
-            nd["dir_path"] = node_dir.get(nid, "")
+            nd["cluster_id"] = node_cluster.get(nid, -1)
+            nd["dir_path"] = str(Path(nd.get("file_path") or ".").parent)
 
-            # Graph metrics
             nd_in = in_degree.get(nid, 0)
             nd_out = out_degree.get(nid, 0)
             nd["in_degree"] = nd_in
@@ -403,56 +456,28 @@ class ReportService:
                 nd_in == 0 and nd_out > 0 and nd.get("category") == "callable"
             )
 
-            # Size based on level: planets bigger, moons smaller
+            # Size by degree — highly connected nodes much larger
             degree = nd["degree"]
-            if nd.get("category") == "file":
+            cat = nd.get("category", "")
+            if cat == "file":
+                # Files: aggregate children's degrees too
+                child_deg = 0
                 for child_nd in node_dicts:
                     if child_nd.get("parent_node_id") == nid:
-                        degree += in_degree.get(child_nd["node_id"], 0)
-                        degree += out_degree.get(child_nd["node_id"], 0)
-            nd["agg_degree"] = degree
-            level = nd["level"]
-            if level == "planet":
+                        child_deg += in_degree.get(child_nd["node_id"], 0)
+                        child_deg += out_degree.get(child_nd["node_id"], 0)
+                total = degree + child_deg
                 nd["size"] = round(
-                    max(8.0, min(35.0, 8.0 + math.log2(degree + 1) * 5.0)), 2
+                    max(6.0, min(40.0, 6.0 + math.log2(total + 1) * 5.0)), 2
                 )
-            else:  # moon
+            elif cat in ("callable", "type"):
                 nd["size"] = round(
-                    max(3.0, min(12.0, 3.0 + math.log2(degree + 1) * 2.0)), 2
+                    max(3.0, min(25.0, 3.0 + math.log2(degree + 1) * 4.0)), 2
                 )
-
-        # Inject virtual "sun" nodes for each directory
-        sun_color = "#fbbf24"  # amber/gold for suns
-        for dir_path in dir_list:
-            cx, cy = dir_centers.get(dir_path, (0.0, 0.0))
-            dir_name = Path(dir_path).name or dir_path
-            num_files = len(dir_files[dir_path])
-            sun_size = round(max(20.0, min(60.0, 20.0 + num_files * 3.0)), 2)
-            node_dicts.append({
-                "node_id": f"dir:{dir_path}",
-                "name": dir_name,
-                "category": "directory",
-                "file_path": dir_path,
-                "start_line": None,
-                "end_line": None,
-                "signature": None,
-                "smart_content": f"Directory with {num_files} files",
-                "language": None,
-                "parent_node_id": None,
-                "x": round(float(cx), 2),
-                "y": round(float(cy), 2),
-                "color": sun_color,
-                "label": dir_name,
-                "level": "sun",
-                "dir_path": dir_path,
-                "in_degree": 0,
-                "out_degree": 0,
-                "degree": 0,
-                "depth": 0,
-                "is_entry_point": False,
-                "agg_degree": num_files,
-                "size": sun_size,
-            })
+            else:
+                nd["size"] = round(
+                    max(2.0, min(12.0, 2.0 + math.log2(degree + 1) * 2.0)), 2
+                )
 
         # Serialize edges (both types with rendering hints)
         edge_dicts = [
@@ -474,6 +499,7 @@ class ReportService:
             "metadata": metadata,
             "nodes": node_dicts,
             "edges": edge_dicts,
+            "clusters": cluster_hull_data,
         }
 
         # Render HTML

@@ -1,18 +1,20 @@
 /**
  * graph-viewer.js - D3.js Canvas codebase explorer for fs2 reports
- * Uses D3 Canvas rendering (not WebGL) for reliable 5000+ node graphs.
+ * V3: Semantic clustering layout — nodes positioned by embedding similarity.
  */
 (function () {
   'use strict';
   var state = { mode: 'overview', selectedNode: null, selectedFile: null };
   var allNodes = [], allEdges = [], nodeMap = {};
+  var clusters = []; // cluster hull data from Python
   var visibleNodes = [], visibleEdges = [];
   var highlightId = null;
-  var _focusNeighbors = null; // Set of node_ids connected to highlightId
+  var _focusNeighbors = null;
+  var hoverClusterId = -1;  // cluster id under mouse cursor
+  var activeClusterId = -1; // cluster id selected via panel click
   var transform = d3.zoomIdentity;
   var canvas, ctx, width, height, searchTimer, zoomBehavior;
   var catColors = {};
-  // Twinkling stars
   var stars = [];
   var starTimer = null;
   function initStars(count) {
@@ -29,7 +31,7 @@
   }
   function renderStars(now) {
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // screen space
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     for (var i = 0; i < stars.length; i++) {
       var s = stars[i];
       var alpha = s.base + Math.sin(now * 0.001 * s.speed + s.phase) * 0.3;
@@ -81,35 +83,126 @@
     var se = $('info-summary'); if (se) { se.textContent = n.smart_content || ''; se.parentElement.style.display = n.smart_content ? 'block' : 'none'; }
     panel.querySelectorAll('.info-link').forEach(function (link) { link.addEventListener('click', function () { var t = this.getAttribute('data-node'); if (t && nodeMap[t]) enterFocus(t); }); });
   }
+
+  // --- Cluster hull rendering ---
+  function renderClusterHulls() {
+    if (!clusters || clusters.length === 0) return;
+    var invK = 1 / transform.k;
+    clusters.forEach(function (cl) {
+      if (!cl.polygon || cl.polygon.length < 3) return;
+      var isHover = cl.id === hoverClusterId;
+      var isActive = cl.id === activeClusterId;
+      var emphasized = isHover || isActive;
+      ctx.beginPath();
+      var cx = cl.centroid[0], cy = cl.centroid[1];
+      var pad = 80;
+      var pts = cl.polygon;
+      for (var i = 0; i < pts.length; i++) {
+        var dx = pts[i][0] - cx, dy = pts[i][1] - cy;
+        var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        var px = pts[i][0] + (dx / dist) * pad;
+        var py = pts[i][1] + (dy / dist) * pad;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      // Fill only on hover/active
+      if (emphasized) {
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = cl.color;
+        ctx.fill();
+      }
+      // Outline always visible
+      ctx.globalAlpha = emphasized ? 0.6 : 0.2;
+      ctx.strokeStyle = cl.color;
+      ctx.lineWidth = (emphasized ? 2.5 : 1.2) * invK;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    });
+  }
+
+  function pointInHull(px, py, polygon) {
+    // Ray-casting point-in-polygon test
+    var inside = false;
+    for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      var xi = polygon[i][0], yi = polygon[i][1];
+      var xj = polygon[j][0], yj = polygon[j][1];
+      if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  function findClusterAt(graphX, graphY) {
+    // Check expanded hulls (with padding)
+    for (var i = 0; i < clusters.length; i++) {
+      var cl = clusters[i];
+      if (!cl.polygon || cl.polygon.length < 3) continue;
+      // Build padded polygon
+      var cx = cl.centroid[0], cy = cl.centroid[1], pad = 80;
+      var padded = cl.polygon.map(function (pt) {
+        var dx = pt[0] - cx, dy = pt[1] - cy;
+        var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        return [pt[0] + (dx / dist) * pad, pt[1] + (dy / dist) * pad];
+      });
+      if (pointInHull(graphX, graphY, padded)) return cl.id;
+    }
+    return -1;
+  }
+
+  function renderClusterLabels() {
+    if (!clusters || clusters.length === 0) return;
+    var invK = 1 / transform.k;
+    var fontSize = 16 / transform.k;
+    ctx.font = 'bold ' + fontSize + 'px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    clusters.forEach(function (cl) {
+      if (!cl.label) return;
+      var isHover = cl.id === hoverClusterId;
+      var isActive = cl.id === activeClusterId;
+      // Show labels at overview zoom OR when hovered/active
+      if (transform.k > 0.5 && !isHover && !isActive) return;
+      var cx = cl.centroid[0], cy = cl.centroid[1];
+      ctx.globalAlpha = (isHover || isActive) ? 0.7 : 0.35;
+      ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+      ctx.lineWidth = 4 * invK;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(cl.label, cx, cy);
+      ctx.fillStyle = cl.color;
+      ctx.fillText(cl.label, cx, cy);
+      var smallFont = 11 / transform.k;
+      ctx.font = smallFont + 'px Inter, sans-serif';
+      ctx.globalAlpha = (isHover || isActive) ? 0.5 : 0.25;
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(cl.count + ' nodes', cx, cy + fontSize * 0.8);
+      ctx.font = 'bold ' + fontSize + 'px Inter, sans-serif';
+    });
+    ctx.textAlign = 'start';
+    ctx.globalAlpha = 1;
+  }
+
   function render() {
     var now = performance.now();
     ctx.save(); ctx.clearRect(0, 0, width, height);
-    // Twinkling stars background (screen space)
     renderStars(now);
     ctx.translate(transform.x, transform.y); ctx.scale(transform.k, transform.k);
     var invK = 1 / transform.k;
-    // Edges — resolve endpoints to visible parent when endpoint not visible
+
+    // Cluster background hulls (behind everything)
+    renderClusterHulls();
+
+    // Edges
     if (visibleEdges.length > 0) {
       ctx.lineWidth = 1 * invK;
-      var baseAlpha = visibleEdges.length > 500 ? 0.2 : (visibleEdges.length > 50 ? 0.5 : 0.8);
-      var visSet = new Set(); visibleNodes.forEach(function (n) { visSet.add(n.node_id); });
+      var baseAlpha = visibleEdges.length > 500 ? 0.7 : (visibleEdges.length > 50 ? 0.8 : 0.9);
       visibleEdges.forEach(function (e) {
         var s = nodeMap[e.source], t = nodeMap[e.target];
         if (!s || !t) return;
-        // Resolve source: if not visible, try parent; if parent not visible, skip
-        var sVis = visSet.has(e.source);
-        var tVis = visSet.has(e.target);
-        var sx, sy, tx, ty;
-        if (sVis) { sx = s.x; sy = s.y; }
-        else if (s.parent_node_id && visSet.has(s.parent_node_id)) { var p = nodeMap[s.parent_node_id]; sx = p.x; sy = p.y; }
-        else return; // skip — endpoint not in visible set
-        if (tVis) { tx = t.x; ty = t.y; }
-        else if (t.parent_node_id && visSet.has(t.parent_node_id)) { var p2 = nodeMap[t.parent_node_id]; tx = p2.x; ty = p2.y; }
-        else return; // skip — endpoint not in visible set
+        var sx = s.x, sy = s.y, tx = t.x, ty = t.y;
         if (sx === tx && sy === ty) return;
-        // Containment edges: subtle dotted lines
         if (e._containment) {
-          ctx.globalAlpha = 0.3;
+          ctx.globalAlpha = 0.2;
           ctx.strokeStyle = '#94a3b8';
           ctx.lineWidth = 1 * invK;
           ctx.setLineDash([4 * invK, 4 * invK]);
@@ -117,31 +210,35 @@
           ctx.setLineDash([]);
           return;
         }
-        // Directional colors: incoming (caller→selected) = cyan, outgoing (selected→callee) = amber
-        var isIncoming = highlightId && (e.target === highlightId || (t.parent_node_id === highlightId));
-        var isOutgoing = highlightId && (e.source === highlightId || (s.parent_node_id === highlightId));
+        var isIncoming = highlightId && (e.target === highlightId);
+        var isOutgoing = highlightId && (e.source === highlightId);
         var connected = isIncoming || isOutgoing;
-        ctx.globalAlpha = highlightId ? (connected ? 0.9 : 0.04) : baseAlpha;
-        ctx.strokeStyle = !highlightId ? '#fbbf24' : (isIncoming ? '#22d3ee' : (isOutgoing ? '#fb923c' : '#fbbf2440'));
-        ctx.lineWidth = (connected ? 2.5 : 1) * invK;
+        ctx.globalAlpha = highlightId ? (connected ? 0.9 : 0.06) : baseAlpha;
+        ctx.strokeStyle = !highlightId ? '#fbbf24' : (isIncoming ? '#22d3ee' : (isOutgoing ? '#fb923c' : '#fbbf24'));
+        ctx.lineWidth = (connected ? 2.5 : 0.8) * invK;
         ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(tx, ty); ctx.stroke();
       }); ctx.globalAlpha = 1; ctx.lineWidth = 1 * invK;
     }
-    // Node glow halos — suns get bigger, warmer glow
+
+    // Node glow halos
     if (transform.k > 0.05) {
       visibleNodes.forEach(function (n) {
         if (n._dimmed) return;
+        var isFocused = n.node_id === highlightId;
+        var isConnected = highlightId && _focusNeighbors && _focusNeighbors.has(n.node_id);
+        var faded = highlightId && !isFocused && !isConnected;
+        if (faded) return;
         var r = (n._r || 4);
-        var isSun = n.level === 'sun';
-        var glowR = isSun ? r * 5 : r * 3;
+        var glowR = r * 3;
         var grad = ctx.createRadialGradient(n.x, n.y, r * 0.3, n.x, n.y, glowR);
-        var col = n.node_id === highlightId ? '#38bdf8' : (n.color || '#60a5fa');
-        grad.addColorStop(0, col + (isSun ? '60' : '40'));
+        var col = isFocused ? '#38bdf8' : (n.color || '#60a5fa');
+        grad.addColorStop(0, col + '40');
         grad.addColorStop(1, col + '00');
         ctx.fillStyle = grad;
         ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, 2 * Math.PI); ctx.fill();
       });
     }
+
     // Node cores
     visibleNodes.forEach(function (n) {
       var isFocused = n.node_id === highlightId;
@@ -156,11 +253,14 @@
       ctx.stroke();
       ctx.globalAlpha = 1;
     });
-    // Labels — constant screen size + declutter (zoom in = more labels fit)
+
+    // Cluster labels (at overview zoom)
+    renderClusterLabels();
+
+    // Node labels — constant screen size + declutter
     if (transform.k > 0.08) {
-      var fontSize = 11 / transform.k; // always ~11px on screen regardless of zoom
-      ctx.font = fontSize + 'px Inter, sans-serif'; ctx.textBaseline = 'middle';
-      // Collect candidate labels, sorted by node size (larger nodes get priority)
+      var fontSize = 11 / transform.k;
+      ctx.font = fontSize + 'px Inter, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'start';
       var candidates = [];
       visibleNodes.forEach(function (n) {
         if (n._dimmed || !n.label) return;
@@ -168,13 +268,12 @@
         var isConnected = highlightId && _focusNeighbors && _focusNeighbors.has(n.node_id);
         var faded = highlightId && !isFocused && !isConnected;
         if (faded) return;
-        var levelPri = n.level === 'sun' ? 1000 : (n.level === 'planet' ? 100 : 0);
+        var catPri = n.category === 'file' ? 100 : (n.category === 'type' ? 50 : 0);
         if ((n._r || 4) * transform.k > 0.8) {
-          candidates.push({ n: n, focused: isFocused, priority: isFocused ? 9999 : (levelPri + (n._r || 4)) });
+          candidates.push({ n: n, focused: isFocused, priority: isFocused ? 9999 : (catPri + (n._r || 4)) });
         }
       });
       candidates.sort(function (a, b) { return b.priority - a.priority; });
-      // Place labels, skipping those that overlap already-placed ones
       var placed = [];
       var labelH = fontSize;
       candidates.forEach(function (c) {
@@ -182,7 +281,6 @@
         var lx = (n.x + (n._r || 4) + 3) * transform.k + transform.x;
         var ly = n.y * transform.k + transform.y;
         var lw = ctx.measureText(n.label).width * transform.k;
-        // Check collision with placed labels
         var ok = true;
         for (var i = 0; i < placed.length; i++) {
           var p = placed[i];
@@ -204,16 +302,15 @@
     }
     ctx.restore();
   }
+
   function findNodeAt(sx, sy) {
     var pt = transform.invert([sx, sy]), px = pt[0], py = pt[1], best = null, bestDist = Infinity;
     visibleNodes.forEach(function (n) { if (n._dimmed) return; var dx = px - n.x, dy = py - n.y, d2 = dx * dx + dy * dy, r = (n._r || 4) + 4; if (d2 < r * r && d2 < bestDist) { bestDist = d2; best = n; } });
     return best;
   }
-  // Build reference edges list (non-containment) — shared across modes
   function getRefEdges() {
     return allEdges.filter(function (e) { return !e._containment; });
   }
-  // Build neighbor set for a node (file-level: includes children's connections)
   function buildNeighbors(nodeId) {
     var neighbors = new Set();
     var n = nodeMap[nodeId];
@@ -230,14 +327,13 @@
         if (child.parent_node_id !== nodeId) return;
         allEdges.forEach(function (e) {
           if (e._containment) return;
-          if (e.source === child.node_id) { neighbors.add(e.target); var tp = nodeMap[e.target]; if (tp && tp.parent_node_id) neighbors.add(tp.parent_node_id); }
-          if (e.target === child.node_id) { neighbors.add(e.source); var sp = nodeMap[e.source]; if (sp && sp.parent_node_id) neighbors.add(sp.parent_node_id); }
+          if (e.source === child.node_id) { neighbors.add(e.target); }
+          if (e.target === child.node_id) { neighbors.add(e.source); }
         });
       });
     }
     return neighbors;
   }
-  // Save original positions and spread nodes using D3 force simulation
   function savePositions(nodes) {
     nodes.forEach(function (n) { n._ox = n.x; n._oy = n.y; });
   }
@@ -250,14 +346,12 @@
     if (nodes.length < 2) return;
     var cx = centerNode.x, cy = centerNode.y;
     var radius = Math.min(600, Math.max(200, nodes.length * 20));
-    // Place nodes radially around center
     nodes.forEach(function (n, i) {
       if (n.node_id === centerNode.node_id) return;
       var angle = (2 * Math.PI * i) / (nodes.length - 1);
       n.x = cx + Math.cos(angle) * radius * 0.15 + (Math.random() - 0.5) * 10;
       n.y = cy + Math.sin(angle) * radius * 0.15 + (Math.random() - 0.5) * 10;
     });
-    // Build link data
     var nodeIndex = {}; nodes.forEach(function (n, i) { nodeIndex[n.node_id] = i; });
     var links = [];
     edges.forEach(function (e) {
@@ -266,7 +360,6 @@
         links.push({ source: nodeIndex[e.source], target: nodeIndex[e.target] });
       }
     });
-    // Run force sim synchronously to final positions
     var sim = d3.forceSimulation(nodes)
       .alpha(1).alphaDecay(0.03).velocityDecay(0.35)
       .force('center', d3.forceCenter(cx, cy))
@@ -286,15 +379,85 @@
       if (sim.alpha() <= sim.alphaMin()) break;
     }
   }
+  function buildClusterPanel() {
+    var body = $('cluster-panel-body');
+    if (!body || !clusters.length) return;
+    body.innerHTML = '';
+    // Sort clusters by count (largest first)
+    var sorted = clusters.slice().sort(function (a, b) { return b.count - a.count; });
+    sorted.forEach(function (cl) {
+      var item = document.createElement('div');
+      item.className = 'cluster-item';
+      item.setAttribute('data-cluster-id', cl.id);
+      item.innerHTML = '<span class="cluster-dot" style="background:' + cl.color + '"></span>' +
+        '<span class="cluster-label" title="' + esc(cl.label) + '">' + esc(cl.label) + '</span>' +
+        '<span class="cluster-count">' + cl.count + '</span>';
+      item.addEventListener('click', function () {
+        var cid = parseInt(this.getAttribute('data-cluster-id'));
+        if (activeClusterId === cid) {
+          // Deselect — show all
+          activeClusterId = -1;
+          enterOverview();
+        } else {
+          filterToCluster(cid);
+        }
+        updateClusterPanelActive();
+      });
+      body.appendChild(item);
+    });
+    // Toggle collapse
+    var header = $('cluster-panel-toggle');
+    if (header) {
+      header.addEventListener('click', function (e) {
+        e.stopPropagation();
+        body.classList.toggle('collapsed');
+        this.textContent = body.classList.contains('collapsed') ? '▸' : '▾';
+      });
+    }
+    $('cluster-panel').querySelector('.cluster-panel-header').addEventListener('click', function () {
+      body.classList.toggle('collapsed');
+      var btn = $('cluster-panel-toggle');
+      if (btn) btn.textContent = body.classList.contains('collapsed') ? '▸' : '▾';
+    });
+  }
+  function updateClusterPanelActive() {
+    var items = document.querySelectorAll('.cluster-item');
+    items.forEach(function (item) {
+      var cid = parseInt(item.getAttribute('data-cluster-id'));
+      item.classList.toggle('active', cid === activeClusterId);
+    });
+  }
+  function filterToCluster(clusterId) {
+    state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null;
+    highlightId = null; _focusNeighbors = null;
+    activeClusterId = clusterId;
+    restorePositions();
+    visibleNodes = allNodes.filter(function (n) { return n.cluster_id === clusterId; });
+    visibleNodes.forEach(function (n) { n._dimmed = false; });
+    // Show edges within this cluster
+    var clusterIds = new Set(); visibleNodes.forEach(function (n) { clusterIds.add(n.node_id); });
+    visibleEdges = allEdges.filter(function (e) {
+      return !e._containment && (clusterIds.has(e.source) || clusterIds.has(e.target));
+    });
+    var cl = clusters.find(function (c) { return c.id === clusterId; });
+    var label = cl ? cl.label : 'Cluster ' + clusterId;
+    updateStatus('Cluster: ' + label, visibleNodes.length);
+    showInfoPanel(null);
+    updateHelpHint('Showing cluster "' + label + '" — Click a cluster in panel to switch — Esc to reset');
+    render();
+  }
   function enterOverview() {
     state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null;
     highlightId = null; _focusNeighbors = null;
+    activeClusterId = -1;
     restorePositions();
-    visibleNodes = allNodes.slice(); // show everything — suns, planets, moons
+    visibleNodes = allNodes.slice();
     visibleNodes.forEach(function (n) { n._dimmed = false; });
     visibleEdges = getRefEdges();
-    updateStatus('Solar System - click to explore', visibleNodes.length); showInfoPanel(null);
-    updateHelpHint('Click a node - Scroll to zoom - Drag to pan - / to search - Esc to reset'); render();
+    updateStatus('Semantic Clusters — click to explore', visibleNodes.length); showInfoPanel(null);
+    updateHelpHint('Click a node — Scroll to zoom — Drag to pan — / to search — Esc to reset');
+    updateClusterPanelActive();
+    render();
   }
   function enterContents(fileNodeId) {
     state.mode = 'contents'; state.selectedFile = fileNodeId; state.selectedNode = null;
@@ -307,16 +470,13 @@
     visibleNodes = children.concat(bg);
     var childSet = new Set(); children.forEach(function (c) { childSet.add(c.node_id); });
     visibleEdges = allEdges.filter(function (e) {
-      // Include containment edges from this file to its children
       if (e._containment && e.source === fileNodeId && childSet.has(e.target)) return true;
-      // Include reference edges touching any child
       return !e._containment && (childSet.has(e.source) || childSet.has(e.target));
     });
-    // Spread children around the file node
     savePositions(children);
     spreadNodes(nodeMap[fileNodeId], children, visibleEdges);
     updateStatus('File: ' + ((nodeMap[fileNodeId] || {}).label || fileNodeId), children.length);
-    showInfoPanel(fileNodeId); updateHelpHint('Click a symbol for connections - Click background to go back');
+    showInfoPanel(fileNodeId); updateHelpHint('Click a symbol for connections — Click background to go back');
     render();
   }
   function enterFocus(nodeId) {
@@ -327,12 +487,11 @@
     allEdges.forEach(function (e) { if (e._containment) return; if (e.source === nodeId) { neighborSet.add(e.target); visibleEdges.push(e); } if (e.target === nodeId) { neighborSet.add(e.source); visibleEdges.push(e); } });
     visibleNodes = allNodes.filter(function (n) { return neighborSet.has(n.node_id); });
     visibleNodes.forEach(function (n) { n._dimmed = false; });
-    // Spread neighbors around the focus node
     savePositions(visibleNodes);
     spreadNodes(nodeMap[nodeId], visibleNodes, visibleEdges);
     var n = nodeMap[nodeId] || {};
     updateStatus('Focus: ' + (n.label || nodeId) + ' (in:' + (n.in_degree || 0) + ' out:' + (n.out_degree || 0) + ')', visibleNodes.length);
-    showInfoPanel(nodeId); updateHelpHint('Click a neighbor to walk - Click background to go back - Esc to reset');
+    showInfoPanel(nodeId); updateHelpHint('Click a neighbor to walk — Click background to go back — Esc to reset');
     render();
   }
   function doSearch(query) {
@@ -349,7 +508,7 @@
     visibleNodes = allNodes.filter(function (n) { return n.is_entry_point; });
     visibleNodes.forEach(function (n) { n._dimmed = false; }); visibleEdges = [];
     updateStatus('Entry Points (no callers, has calls)', visibleNodes.length); showInfoPanel(null);
-    updateHelpHint('Showing entry points - Click one to explore - Esc to reset'); render();
+    updateHelpHint('Showing entry points — Click one to explore — Esc to reset'); render();
   }
   function zoomTo(x, y, k) { var tx = width / 2 - x * k, ty = height / 2 - y * k; transform = d3.zoomIdentity.translate(tx, ty).scale(k); canvas.call(zoomBehavior.transform, transform); }
   function zoomFit() { fitGraph(); render(); }
@@ -364,39 +523,26 @@
     canvas.call(zoomBehavior.transform, transform);
   }
   function onClickNode(n) {
-    // First click: highlight in place (fade others, show connections)
-    // Second click on same node: drill into contents/focus
     if (highlightId === n.node_id) {
-      // Already highlighted — drill in
       if (n.category === 'file') enterContents(n.node_id);
-      else if (n.category !== 'directory') enterFocus(n.node_id);
+      else enterFocus(n.node_id);
       return;
     }
-    // Restore any previous spread before starting new one
     restorePositions();
     highlightId = n.node_id;
     _focusNeighbors = buildNeighbors(n.node_id);
-    // Add edges and neighbor nodes so edges render correctly
-    visibleEdges = allEdges.filter(function (e) {
-      if (e._containment) return false;
-      return e.source === n.node_id || e.target === n.node_id ||
-        (nodeMap[e.source] && nodeMap[e.source].parent_node_id === n.node_id) ||
-        (nodeMap[e.target] && nodeMap[e.target].parent_node_id === n.node_id);
-    });
-    // Ensure neighbor nodes are in visibleNodes (add as non-dimmed)
-    var currentIds = new Set(); visibleNodes.forEach(function (v) { currentIds.add(v.node_id); });
-    _focusNeighbors.forEach(function (nid) {
-      if (!currentIds.has(nid) && nodeMap[nid]) { nodeMap[nid]._dimmed = false; visibleNodes.push(nodeMap[nid]); }
-    });
+    // Keep ALL nodes and ALL ref edges visible — render() handles fading
+    visibleNodes = allNodes.slice();
+    visibleNodes.forEach(function (nd) { nd._dimmed = false; });
+    visibleEdges = getRefEdges();
     showInfoPanel(n.node_id);
     var name = n.label || n.node_id;
-    updateStatus(state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + ' - selected: ' + name, visibleNodes.length);
-    updateHelpHint('Click again to drill in - Click background to deselect - Esc to reset');
+    updateStatus(state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + ' — selected: ' + name, visibleNodes.length);
+    updateHelpHint('Click again to drill in — Click background to deselect — Esc to reset');
     render();
   }
   function onClickStage() {
     if (highlightId) {
-      // Deselect — clear highlight, restore spread positions, keep current mode
       highlightId = null; _focusNeighbors = null;
       restorePositions();
       if (state.mode === 'overview') {
@@ -412,15 +558,28 @@
   }
   function initGraph() {
     if (typeof GRAPH_DATA === 'undefined' || typeof d3 === 'undefined') throw new Error('Missing GRAPH_DATA or d3');
-    GRAPH_DATA.nodes.forEach(function (n) { n.label = n.label || n.name || ''; n._r = n.size || 4; n.level = n.level || 'moon'; nodeMap[n.node_id] = n; allNodes.push(n); });
+    GRAPH_DATA.nodes.forEach(function (n) { n.label = n.label || n.name || ''; n._r = n.size || 4; nodeMap[n.node_id] = n; allNodes.push(n); });
     GRAPH_DATA.edges.forEach(function (e) { e._containment = e.hidden; allEdges.push(e); });
+    clusters = GRAPH_DATA.clusters || [];
     var container = $('sigma-container'); width = container.offsetWidth; height = container.offsetHeight;
     canvas = d3.select(container).append('canvas').attr('width', width).attr('height', height).style('width', '100%').style('height', '100%');
     ctx = canvas.node().getContext('2d');
-    zoomBehavior = d3.zoom().scaleExtent([0.05, 20]).on('zoom', function (event) { transform = event.transform; render(); });
+    zoomBehavior = d3.zoom().scaleExtent([0.01, 20]).on('zoom', function (event) { transform = event.transform; render(); });
     canvas.call(zoomBehavior);
     canvas.on('click', function (event) { var rect = canvas.node().getBoundingClientRect(); var n = findNodeAt(event.clientX - rect.left, event.clientY - rect.top); n ? onClickNode(n) : onClickStage(); });
-    canvas.on('mousemove', function (event) { var rect = canvas.node().getBoundingClientRect(); var n = findNodeAt(event.clientX - rect.left, event.clientY - rect.top); canvas.node().style.cursor = n && !n._dimmed ? 'pointer' : 'default'; });
+    canvas.on('mousemove', function (event) {
+      var rect = canvas.node().getBoundingClientRect();
+      var sx = event.clientX - rect.left, sy = event.clientY - rect.top;
+      var n = findNodeAt(sx, sy);
+      canvas.node().style.cursor = n && !n._dimmed ? 'pointer' : 'default';
+      // Cluster hover detection
+      var pt = transform.invert([sx, sy]);
+      var newHover = findClusterAt(pt[0], pt[1]);
+      if (newHover !== hoverClusterId) {
+        hoverClusterId = newHover;
+        render();
+      }
+    });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { var s = $('search-input'); if (s) s.value = ''; enterOverview(); }
       if (e.key === '/' && e.target === document.body) { e.preventDefault(); $('search-input').focus(); }
@@ -435,14 +594,12 @@
     var si = $('search-input');
     if (si) si.addEventListener('input', function () { clearTimeout(searchTimer); var q = this.value.trim(); searchTimer = setTimeout(function () { doSearch(q); }, 200); });
     if ((e = $('info-close'))) e.addEventListener('click', function () { $('info-panel').style.display = 'none'; });
-    window.__fs2 = { allNodes: allNodes, allEdges: allEdges, nodeMap: nodeMap, enterOverview: enterOverview, enterContents: enterContents, enterFocus: enterFocus, showEntryPoints: showEntryPoints, doSearch: doSearch, state: state };
+    window.__fs2 = { allNodes: allNodes, allEdges: allEdges, nodeMap: nodeMap, clusters: clusters, enterOverview: enterOverview, enterContents: enterContents, enterFocus: enterFocus, showEntryPoints: showEntryPoints, doSearch: doSearch, state: state };
+    // Populate cluster panel
+    buildClusterPanel();
     initStars(300);
     fitGraph(); enterOverview();
-    // Main animation loop — drives twinkling stars
-    function tick() {
-      render();
-      starTimer = requestAnimationFrame(tick);
-    }
+    function tick() { render(); starTimer = requestAnimationFrame(tick); }
     tick();
   }
   function boot() {

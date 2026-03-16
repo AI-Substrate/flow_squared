@@ -105,7 +105,13 @@ generate-fixtures-quick:
 
 # Generate the interactive codebase graph report
 report:
-    uv run python -m fs2 --graph-file .fs2/graph-full-crossrefs.pickle report codebase-graph
+    uv run python -m fs2 --graph-file .fs2/graph.pickle report codebase-graph
+
+# Generate report excluding test files
+report-no-tests:
+    uv run python -m fs2 --graph-file .fs2/graph.pickle report codebase-graph \
+        --exclude "*tests/*" --exclude "*test_*" --exclude "*test-report*" \
+        --exclude "*conftest*"
 
 # === Watch Mode ===
 

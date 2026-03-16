@@ -47,6 +47,16 @@ def codebase_graph(
         "--no-smart-content",
         help="Exclude AI summaries from report (smaller file)",
     ),
+    exclude: list[str] = typer.Option(
+        [],
+        "--exclude",
+        help="Glob patterns to exclude nodes by node_id (e.g. 'test_*', '*.test.*'). Repeatable.",
+    ),
+    include: list[str] = typer.Option(
+        [],
+        "--include",
+        help="Glob patterns to include — only matching nodes kept. Repeatable.",
+    ),
 ) -> None:
     """Generate an interactive codebase graph report.
 
@@ -98,6 +108,8 @@ def codebase_graph(
         result = service.generate_codebase_graph(
             include_smart_content=include_smart,
             graph_path=graph_path,
+            exclude_patterns=exclude or None,
+            include_patterns=include or None,
         )
 
         # Write output (reuse CLI safe-write helper for cleanup on failure)
