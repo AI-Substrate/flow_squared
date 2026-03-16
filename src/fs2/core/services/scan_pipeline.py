@@ -102,7 +102,7 @@ def _courtesy_save_graph(
 
     try:
         graph_store.save(context.graph_path)
-        logger.debug(
+        logger.info(
             "Courtesy save: %d nodes to %s", len(context.nodes), context.graph_path
         )
     except GraphStoreError as e:

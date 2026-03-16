@@ -208,11 +208,40 @@ The `llm` section configures the Large Language Model used for smart content gen
 
 ### Provider Options
 
-| Provider | Description | Required Fields |
-|----------|-------------|-----------------|
-| `azure` | Azure OpenAI Service | `base_url`, `azure_deployment_name`, `azure_api_version` |
-| `openai` | OpenAI API | `api_key` |
-| `fake` | Mock provider for testing | None |
+| Provider | Description | Required Fields | API Key? |
+|----------|-------------|-----------------|----------|
+| `local` | **Local Ollama** (recommended) | `base_url`, `model` | No |
+| `azure` | Azure OpenAI Service | `base_url`, `azure_deployment_name`, `azure_api_version` | Yes/AD |
+| `openai` | OpenAI API | `api_key` | Yes |
+| `fake` | Mock provider for testing | None | No |
+
+### Local Ollama Configuration (Recommended)
+
+Run a local LLM on your machine — no API keys, no network access, no cost.
+
+**Setup:**
+1. Install Ollama: https://ollama.com/download
+2. Pull a model: `ollama pull qwen2.5-coder:7b`
+
+```yaml
+llm:
+  provider: local
+  base_url: http://localhost:11434
+  model: qwen2.5-coder:7b
+  temperature: 0.1                # Lower = more consistent summaries
+  max_tokens: 1024
+  timeout: 60                     # Up to 300s for CPU-only machines
+```
+
+**Recommended models:**
+| Model | Size | Quality | Use Case |
+|-------|------|---------|----------|
+| `qwen2.5-coder:7b` | 4.7 GB | Best | Default — best code understanding |
+| `qwen2.5-coder:3b` | 2.0 GB | Good | Limited RAM/VRAM |
+
+Ollama auto-detects your GPU (Metal on Mac, CUDA on NVIDIA, CPU fallback).
+
+See [Local LLM Guide](local-llm.md) for detailed setup and troubleshooting.
 
 ### Azure OpenAI Configuration (API Key)
 
@@ -335,11 +364,62 @@ The `embedding` section configures vector embeddings for semantic search.
 
 ### Mode Options
 
-| Mode | Description | Required Fields |
-|------|-------------|-----------------|
-| `azure` | Azure OpenAI Embeddings | `azure.endpoint`, `azure.api_key` |
-| `openai_compatible` | OpenAI-compatible API | Depends on provider |
-| `fake` | Mock embeddings for testing | None |
+| Mode | Description | Required Fields | Install |
+|------|-------------|-----------------|---------|
+| `local` **(default)** | On-device SentenceTransformer | None (uses defaults) | `pip install fs2[local-embeddings]` |
+| `azure` | Azure OpenAI Embeddings | `azure.endpoint` | Built-in (optional: `pip install fs2[azure-ad]`) |
+| `openai_compatible` | OpenAI-compatible API | `openai.api_key` | Built-in |
+| `fake` | Mock embeddings for testing | None | Built-in |
+
+### Local Embedding Configuration (Default — No API Key Needed)
+
+Local mode uses SentenceTransformer models to generate embeddings entirely on-device.
+No API keys, no network access, no per-token costs.
+
+**Prerequisites**:
+```bash
+# Install sentence-transformers and torch (adds ~2 GB)
+pip install fs2[local-embeddings]
+
+# Or if installed via uv tool:
+uv tool install --force fs2 --with sentence-transformers --with torch
+```
+
+**Minimal config** (these are the defaults from `fs2 init`):
+```yaml
+embedding:
+  mode: local
+  dimensions: 384
+```
+
+**Full config with all options**:
+```yaml
+embedding:
+  mode: local
+  dimensions: 384                   # Fixed by model (384 for BGE-small/MiniLM)
+  batch_size: 32                    # Texts per encode call
+
+  local:
+    model: BAAI/bge-small-en-v1.5   # Default — best retrieval quality per size
+    device: auto                     # auto-detects: CUDA > MPS > CPU
+    max_seq_length: 512              # Maximum token sequence length
+```
+
+**Device auto-detection**: The adapter picks the fastest available hardware:
+1. **CUDA** — NVIDIA GPU (Linux/Windows)
+2. **MPS** — Apple Silicon M1/M2/M3/M4 (macOS, ~3× faster than CPU)
+3. **CPU** — Always available
+
+**Model options**:
+
+| Model | Dim | Size | Speed (MPS) | Best For |
+|-------|----:|-----:|------------:|----------|
+| `BAAI/bge-small-en-v1.5` | 384 | 130 MB | 947/s | **Default** — best retrieval quality per size |
+| `sentence-transformers/all-MiniLM-L6-v2` | 384 | 90 MB | 1,582/s | Maximum throughput |
+| `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` | 384 | 470 MB | 838/s | Multilingual codebases |
+
+> **Note**: The model downloads from HuggingFace Hub on first use (~130 MB for default).
+> After the first download, it's cached locally and works fully offline.
 
 ### Azure Embedding Configuration (API Key)
 
@@ -553,6 +633,11 @@ smart_content:
   # Token limit for prompt input
   max_input_tokens: 50000
 
+  # Category filter — limit which node types get AI summaries
+  # Default (absent or null): all categories processed
+  # enabled_categories: ["file"]          # Files only (~85% faster)
+  # enabled_categories: ["file", "type"]  # Files + classes (~67% faster)
+
   # Per-category output token limits
   token_limits:
     file: 200
@@ -565,6 +650,21 @@ smart_content:
     expression: 100
     other: 100
 ```
+
+### Category Filter
+
+Use `enabled_categories` to reduce scan time by limiting smart content to high-value node types:
+
+| Setting | Nodes Processed | Time Savings |
+|---------|----------------|-------------|
+| `null` (default) | All | None |
+| `["file"]` | Files only | ~85% |
+| `["file", "type"]` | Files + classes | ~67% |
+| `["file", "type", "callable"]` | Files + classes + functions | ~3% |
+
+Valid categories: `file`, `callable`, `type`, `block`, `section`, `definition`, `statement`, `expression`, `other`.
+
+> **Note**: Filtered nodes still exist in the graph with full source code, embeddings, and relationships — only the `smart_content` AI summary field is skipped.
 
 ---
 
