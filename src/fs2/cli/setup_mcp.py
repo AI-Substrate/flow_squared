@@ -63,18 +63,13 @@ def setup_mcp(
 
 def _install_copilot_cli() -> None:
     """Install fs2 MCP server into GitHub Copilot CLI (~/.claude.json)."""
-    if not CLAUDE_CONFIG.exists():
-        console.print(
-            "[red]✗[/red] ~/.claude.json not found.\n"
-            "  Is Claude Code installed? Run [bold]claude[/bold] first."
-        )
-        raise typer.Exit(code=1)
-
-    try:
-        config = json.loads(CLAUDE_CONFIG.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as e:
-        console.print(f"[red]✗[/red] Failed to read ~/.claude.json: {e}")
-        raise typer.Exit(code=1) from None
+    config: dict = {}
+    if CLAUDE_CONFIG.exists():
+        try:
+            config = json.loads(CLAUDE_CONFIG.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as e:
+            console.print(f"[red]✗[/red] Failed to read {CLAUDE_CONFIG}: {e}")
+            raise typer.Exit(code=1) from None
 
     servers = config.get("mcpServers", {})
 
