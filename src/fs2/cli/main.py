@@ -34,6 +34,7 @@ from fs2.cli.mcp import mcp
 from fs2.cli.report import report_app
 from fs2.cli.scan import scan
 from fs2.cli.search import search
+from fs2.cli.setup_mcp import setup_mcp
 from fs2.cli.tree import tree
 from fs2.cli.watch import watch
 
@@ -122,6 +123,7 @@ app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
 app.add_typer(require_init(report_app), name="report")  # Report generation (requires init)
 app.command(name="install")(install)
 app.command(name="upgrade")(upgrade)
+app.command(name="setup-mcp")(setup_mcp)
 
 
 if __name__ == "__main__":
