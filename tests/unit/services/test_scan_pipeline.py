@@ -865,7 +865,7 @@ class TestCourtesySaves:
         class StageA:
             @property
             def name(self):
-                return "stage_a"
+                return "smart_content"
 
             def process(self, context):
                 return context
@@ -873,7 +873,7 @@ class TestCourtesySaves:
         class StageB:
             @property
             def name(self):
-                return "stage_b"
+                return "embedding"
 
             def process(self, context):
                 return context
@@ -907,7 +907,7 @@ class TestCourtesySaves:
             )
             pipeline.run()
 
-            # Should be called after StageA and StageB, NOT after StageStorage
+            # Should be called after smart_content and embedding, NOT after storage
             assert len(save_calls) == 2
         finally:
             sp_module._courtesy_save_graph = original_fn

@@ -296,8 +296,9 @@ class ScanPipeline:
         # Run each stage sequentially
         for stage in self._stages:
             context = stage.process(context)
-            # Courtesy save after each stage except storage (Plan 036 T03)
-            if stage.name != "storage" and context.courtesy_save is not None:
+            # Courtesy save only after slow stages (smart_content, embedding, cross_file_rels)
+            # Parsing and storage are fast — no need to save after them
+            if stage.name in ("smart_content", "embedding", "cross_file_rels") and context.courtesy_save is not None:
                 context.courtesy_save()
 
         # Build summary from final context

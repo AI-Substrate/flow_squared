@@ -120,6 +120,8 @@ All critical workshops have been completed:
 | CLI Changes | CLI Flow | ✅ Done | [003-cli-changes.md](workshops/003-cli-changes.md) |
 | Multi-Project | Integration Pattern | ✅ Done | [004-multi-project.md](workshops/004-multi-project.md) |
 | stdio vs HTTP | Integration Pattern | ✅ Done | [005-stdio-vs-http.md](workshops/005-stdio-vs-http.md) |
+| SCIP Language Boot | Integration Pattern | ✅ Done | [007-scip-language-boot.md](workshops/007-scip-language-boot.md) |
+| SCIP Cross-Language Standardisation | Integration Pattern | ✅ Done | [008-scip-cross-language-standardisation.md](workshops/008-scip-cross-language-standardisation.md) |
 
 No further workshops are needed before architecture.
 
