@@ -12,6 +12,35 @@
   var transform = d3.zoomIdentity;
   var canvas, ctx, width, height, searchTimer, zoomBehavior;
   var catColors = {};
+  // Twinkling stars
+  var stars = [];
+  var starTimer = null;
+  function initStars(count) {
+    stars = [];
+    for (var i = 0; i < count; i++) {
+      stars.push({
+        x: Math.random(), y: Math.random(),
+        r: 0.3 + Math.random() * 1.2,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.3 + Math.random() * 0.8,
+        base: 0.15 + Math.random() * 0.4
+      });
+    }
+  }
+  function renderStars(now) {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // screen space
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      var alpha = s.base + Math.sin(now * 0.001 * s.speed + s.phase) * 0.3;
+      if (alpha < 0.02) continue;
+      ctx.globalAlpha = Math.min(alpha, 0.85);
+      ctx.fillStyle = '#c8d6e5';
+      ctx.beginPath(); ctx.arc(s.x * width, s.y * height, s.r, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
   function fmt(n) { return (n || 0).toLocaleString(); }
   function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
   function $(id) { return document.getElementById(id); }
@@ -53,7 +82,10 @@
     panel.querySelectorAll('.info-link').forEach(function (link) { link.addEventListener('click', function () { var t = this.getAttribute('data-node'); if (t && nodeMap[t]) enterFocus(t); }); });
   }
   function render() {
+    var now = performance.now();
     ctx.save(); ctx.clearRect(0, 0, width, height);
+    // Twinkling stars background (screen space)
+    renderStars(now);
     ctx.translate(transform.x, transform.y); ctx.scale(transform.k, transform.k);
     var invK = 1 / transform.k;
     // Edges — resolve endpoints to visible parent when endpoint not visible
@@ -70,17 +102,18 @@
         var sx, sy, tx, ty;
         if (sVis) { sx = s.x; sy = s.y; }
         else if (s.parent_node_id && visSet.has(s.parent_node_id)) { var p = nodeMap[s.parent_node_id]; sx = p.x; sy = p.y; }
-        else return; // neither source nor its parent visible — skip
+        else { sx = s.x; sy = s.y; } // fallback to actual position
         if (tVis) { tx = t.x; ty = t.y; }
         else if (t.parent_node_id && visSet.has(t.parent_node_id)) { var p2 = nodeMap[t.parent_node_id]; tx = p2.x; ty = p2.y; }
-        else return; // neither target nor its parent visible — skip
+        else { tx = t.x; ty = t.y; } // fallback to actual position
         if (sx === tx && sy === ty) return;
-        // Highlight edges connected to focused node, fade others
-        var connected = highlightId && (e.source === highlightId || e.target === highlightId ||
-          (s.parent_node_id === highlightId) || (t.parent_node_id === highlightId));
+        // Directional colors: incoming (caller→selected) = cyan, outgoing (selected→callee) = amber
+        var isIncoming = highlightId && (e.target === highlightId || (t.parent_node_id === highlightId));
+        var isOutgoing = highlightId && (e.source === highlightId || (s.parent_node_id === highlightId));
+        var connected = isIncoming || isOutgoing;
         ctx.globalAlpha = highlightId ? (connected ? 0.9 : 0.04) : baseAlpha;
-        ctx.strokeStyle = connected ? '#fbbf24' : '#fbbf24';
-        ctx.lineWidth = (connected ? 2 : 1) * invK;
+        ctx.strokeStyle = !highlightId ? '#fbbf24' : (isIncoming ? '#22d3ee' : (isOutgoing ? '#fb923c' : '#fbbf2440'));
+        ctx.lineWidth = (connected ? 2.5 : 1) * invK;
         ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(tx, ty); ctx.stroke();
       }); ctx.globalAlpha = 1; ctx.lineWidth = 1 * invK;
     }
@@ -233,14 +266,18 @@
     // Highlight this node — keep current view but fade non-connected
     highlightId = n.node_id;
     _focusNeighbors = buildNeighbors(n.node_id);
-    // Ensure edges for this node are visible (search/entry modes start with none)
-    if (visibleEdges.length === 0) {
-      visibleEdges = allEdges.filter(function (e) {
-        if (e._containment) return false;
-        return e.source === n.node_id || e.target === n.node_id ||
-          _focusNeighbors.has(e.source) || _focusNeighbors.has(e.target);
-      });
-    }
+    // Add edges and neighbor nodes so edges render correctly
+    visibleEdges = allEdges.filter(function (e) {
+      if (e._containment) return false;
+      return e.source === n.node_id || e.target === n.node_id ||
+        (nodeMap[e.source] && nodeMap[e.source].parent_node_id === n.node_id) ||
+        (nodeMap[e.target] && nodeMap[e.target].parent_node_id === n.node_id);
+    });
+    // Ensure neighbor nodes are in visibleNodes (add as non-dimmed)
+    var currentIds = new Set(); visibleNodes.forEach(function (v) { currentIds.add(v.node_id); });
+    _focusNeighbors.forEach(function (nid) {
+      if (!currentIds.has(nid) && nodeMap[nid]) { nodeMap[nid]._dimmed = false; visibleNodes.push(nodeMap[nid]); }
+    });
     showInfoPanel(n.node_id);
     var name = n.label || n.node_id;
     updateStatus(state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + ' - selected: ' + name, visibleNodes.length);
@@ -283,7 +320,11 @@
     if (si) si.addEventListener('input', function () { clearTimeout(searchTimer); var q = this.value.trim(); searchTimer = setTimeout(function () { doSearch(q); }, 200); });
     if ((e = $('info-close'))) e.addEventListener('click', function () { $('info-panel').style.display = 'none'; });
     window.__fs2 = { allNodes: allNodes, allEdges: allEdges, nodeMap: nodeMap, enterOverview: enterOverview, enterContents: enterContents, enterFocus: enterFocus, showEntryPoints: showEntryPoints, doSearch: doSearch, state: state };
+    initStars(300);
     fitGraph(); enterOverview();
+    // Animate twinkling stars
+    function tick() { render(); starTimer = requestAnimationFrame(tick); }
+    tick();
   }
   function boot() {
     showLoadingScreen(); buildCategoryLegend(); populateStatusBar();
