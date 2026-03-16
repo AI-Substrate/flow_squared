@@ -42,6 +42,8 @@ class AuthToken:
         return self.expires_at - datetime.utcnow()
 
 
+# Custom exception for authentication failures.
+# Includes an error code for programmatic handling.
 class AuthenticationError(Exception):
     """Base exception for authentication failures."""
 
@@ -50,6 +52,8 @@ class AuthenticationError(Exception):
         self.code = code
 
 
+# Raised when a token has passed its expiration time.
+# The expired token is automatically removed from the store.
 class TokenExpiredError(AuthenticationError):
     """Raised when an authentication token has expired."""
 
@@ -146,6 +150,8 @@ class AuthHandler:
             return True
         return False
 
+    # Check if the user has sufficient permissions for an action.
+    # Compares the token's role against a role hierarchy.
     def has_permission(self, token: AuthToken, required_role: AuthRole) -> bool:
         """Check if a token has the required permission level.
 
