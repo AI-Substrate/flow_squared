@@ -4,7 +4,7 @@
 **Plan Version**: 1.0.0
 **Created**: 2026-03-16
 **Spec**: [leading-context-capture-spec.md](leading-context-capture-spec.md)
-**Status**: DRAFT
+**Status**: COMPLETE
 
 ## Summary
 
@@ -98,5 +98,7 @@ Comments, decorators, and doc-comments above functions/classes are invisible to 
 
 ## Progress
 
-- Tasks: 0/11 complete
-- ACs verified: 0/13
+- Tasks: 11/11 complete
+- ACs verified: 13/13
+- Tests: 1776 passed (+25 new), 25 skipped, 0 failed
+- Commit: `3e83eb3`

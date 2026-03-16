@@ -3,7 +3,7 @@
 **Plan**: [leading-context-capture-plan.md](../../leading-context-capture-plan.md)
 **Phase**: Single phase (Simple mode)
 **Generated**: 2026-03-16
-**Status**: Ready for takeoff
+**Status**: Landed
 
 ---
 
@@ -58,7 +58,7 @@ stateDiagram-v2
     S3 --> S4
     S4 --> [*]
 
-    class S1,S2,S3,S4 pending
+    class S1,S2,S3,S4 done
 ```
 
 **Legend**: grey = pending | yellow = active | red = blocked/needs input | green = done
@@ -67,10 +67,10 @@ stateDiagram-v2
 
 ## Stages
 
-- [ ] **Stage 1: Data model** — Add `leading_context` field to CodeNode + 5 factory methods (`code_node.py`)
-- [ ] **Stage 2: Parser extraction** — Implement `_extract_leading_context()`, wire into parsing, TDD tests (`ast_parser_impl.py`, `test_leading_context.py` — new)
-- [ ] **Stage 3: Search + embed + LLM** — Add 4th search field, prepend to embedding, update templates (`regex_matcher.py`, `embedding_service.py`, `smart_content_service.py`, 6 `.j2` files)
-- [ ] **Stage 4: Output + tests** — Add to get_node/MCP, integration tests (`get_node.py`, `server.py`, `test_leading_context_search.py` — new)
+- [x] **Stage 1: Data model** — Add `leading_context` field to CodeNode + 5 factory methods (`code_node.py`)
+- [x] **Stage 2: Parser extraction** — Implement `_extract_leading_context()`, wire into parsing, TDD tests (`ast_parser_impl.py`, `test_leading_context.py` — new)
+- [x] **Stage 3: Search + embed + LLM** — Add 4th search field, prepend to embedding, update templates (`regex_matcher.py`, `embedding_service.py`, `smart_content_service.py`, 6 `.j2` files)
+- [x] **Stage 4: Output + tests** — Add to get_node/MCP, integration tests (`get_node.py`, `server.py`, `test_leading_context_search.py` — new)
 
 ---
 
@@ -113,19 +113,19 @@ flowchart LR
 
 ## Acceptance Criteria
 
-- [ ] AC01: CodeNode has `leading_context: str | None`, default None, backward compatible
-- [ ] AC02: Python `# comments` above function → leading_context populated
-- [ ] AC03: Python `@decorator` above function → leading_context includes decorator
-- [ ] AC04: Blank line gap → comments NOT captured
-- [ ] AC05: TS `export function` → captures from export_statement sibling
-- [ ] AC06: Rust `#[derive(Debug)]` → captured
-- [ ] AC07: Text search matches in leading_context (score 0.6)
-- [ ] AC08: Semantic search includes leading_context in embedding
-- [ ] AC09: Smart content references developer comments
-- [ ] AC10: Capped at 2000 characters
-- [ ] AC11: content_hash unchanged by leading_context
-- [ ] AC12: embedding_hash changes when leading_context changes
-- [ ] AC13: All fixture languages produce leading_context
+- [x] AC01: CodeNode has `leading_context: str | None`, default None, backward compatible
+- [x] AC02: Python `# comments` above function → leading_context populated
+- [x] AC03: Python `@decorator` above function → leading_context includes decorator
+- [x] AC04: Blank line gap → comments NOT captured
+- [x] AC05: TS `export function` → captures from export_statement sibling
+- [x] AC06: Rust `#[derive(Debug)]` → captured
+- [x] AC07: Text search matches in leading_context (score 0.6)
+- [x] AC08: Semantic search includes leading_context in embedding
+- [x] AC09: Smart content references developer comments
+- [x] AC10: Capped at 2000 characters
+- [x] AC11: content_hash unchanged by leading_context
+- [x] AC12: embedding_hash changes when leading_context changes
+- [x] AC13: All fixture languages produce leading_context
 
 ## Goals & Non-Goals
 
@@ -137,14 +137,14 @@ flowchart LR
 
 ## Checklist
 
-- [ ] T001: CodeNode `leading_context` field + 5 factory methods
-- [ ] T002: Extraction constants (COMMENT_NODE_TYPES, WRAPPER_PARENT_TYPES, etc.)
-- [ ] T003: `_extract_leading_context()` implementation
-- [ ] T004: Wire into parsing loop
-- [ ] T005: Smart content templates (6 .j2 files + _build_context)
-- [ ] T006: Embedding prepend + embedding_hash update
-- [ ] T007: Regex search 4th field (score 0.6)
-- [ ] T008: get_node CLI output
-- [ ] T009: MCP max detail output
-- [ ] T010: TDD parser tests (13 languages)
-- [ ] T011: Integration tests (search + hash stability)
+- [x] T001: CodeNode `leading_context` field + 5 factory methods
+- [x] T002: Extraction constants (COMMENT_NODE_TYPES, WRAPPER_PARENT_TYPES, etc.)
+- [x] T003: `_extract_leading_context()` implementation
+- [x] T004: Wire into parsing loop
+- [x] T005: Smart content templates (6 .j2 files + _build_context)
+- [x] T006: Embedding prepend + embedding_hash update
+- [x] T007: Regex search 4th field (score 0.6)
+- [x] T008: get_node CLI output
+- [x] T009: MCP max detail output
+- [x] T010: TDD parser tests (13 languages)
+- [x] T011: Integration tests (search + hash stability)
