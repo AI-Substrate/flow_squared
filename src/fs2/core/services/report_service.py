@@ -517,7 +517,7 @@ class ReportService:
             reports_config = self._config.require(ReportsConfig)
             return reports_config.max_nodes
         except Exception:
-            return 10000
+            return 50000
 
     def _cluster_nodes(
         self,
