@@ -12,6 +12,7 @@
   var transform = d3.zoomIdentity;
   var canvas, ctx, width, height, searchTimer, zoomBehavior;
   var catColors = {};
+  var activeSim = null; // Track running force simulation for animated spread
   // Twinkling stars
   var stars = [];
   var starTimer = null;
@@ -193,9 +194,59 @@
     }
     return neighbors;
   }
+  // Save original positions and spread nodes using D3 force simulation
+  function savePositions(nodes) {
+    nodes.forEach(function (n) { n._ox = n.x; n._oy = n.y; });
+  }
+  function restorePositions() {
+    stopSim();
+    allNodes.forEach(function (n) {
+      if (n._ox !== undefined) { n.x = n._ox; n.y = n._oy; delete n._ox; delete n._oy; }
+    });
+  }
+  function stopSim() {
+    if (activeSim) { activeSim.stop(); activeSim = null; }
+  }
+  function spreadNodes(centerNode, nodes, edges) {
+    stopSim();
+    if (nodes.length < 2) return;
+    var cx = centerNode.x, cy = centerNode.y;
+    var radius = Math.max(80, nodes.length * 12);
+    // Initial placement: tight cluster near center (sim pushes them out)
+    nodes.forEach(function (n, i) {
+      if (n.node_id === centerNode.node_id) return;
+      var angle = (2 * Math.PI * i) / (nodes.length - 1);
+      var startR = radius * 0.15;
+      n.x = cx + Math.cos(angle) * startR + (Math.random() - 0.5) * 10;
+      n.y = cy + Math.sin(angle) * startR + (Math.random() - 0.5) * 10;
+    });
+    // Build link data for force sim
+    var nodeIndex = {}; nodes.forEach(function (n, i) { nodeIndex[n.node_id] = i; });
+    var links = [];
+    edges.forEach(function (e) {
+      if (e._containment) return;
+      if (nodeIndex[e.source] !== undefined && nodeIndex[e.target] !== undefined) {
+        links.push({ source: nodeIndex[e.source], target: nodeIndex[e.target] });
+      }
+    });
+    // Animated force simulation — nodes fly apart over ~2 seconds
+    activeSim = d3.forceSimulation(nodes)
+      .alpha(1)
+      .alphaDecay(0.03)
+      .velocityDecay(0.35)
+      .force('center', d3.forceCenter(cx, cy))
+      .force('charge', d3.forceManyBody().strength(-200))
+      .force('collide', d3.forceCollide().radius(function (n) { return (n._r || 4) + 15; }))
+      .force('link', d3.forceLink(links).distance(100).strength(0.3))
+      .on('tick', function () {
+        centerNode.x = cx; centerNode.y = cy; // pin center
+      })
+      .on('end', function () { activeSim = null; });
+  }
   function enterOverview() {
     state.mode = 'overview'; state.selectedNode = null; state.selectedFile = null;
     highlightId = null; _focusNeighbors = null;
+    restorePositions();
     visibleNodes = allNodes.filter(function (n) { return n.category === 'file'; });
     visibleNodes.forEach(function (n) { n._dimmed = false; });
     visibleEdges = getRefEdges();
@@ -205,6 +256,7 @@
   function enterContents(fileNodeId) {
     state.mode = 'contents'; state.selectedFile = fileNodeId; state.selectedNode = null;
     highlightId = fileNodeId; _focusNeighbors = buildNeighbors(fileNodeId);
+    restorePositions();
     var children = [nodeMap[fileNodeId]];
     allNodes.forEach(function (n) { if (n.parent_node_id === fileNodeId) children.push(n); });
     var bg = allNodes.filter(function (n) { return n.category === 'file' && n.node_id !== fileNodeId; });
@@ -212,6 +264,9 @@
     visibleNodes = children.concat(bg);
     var childSet = new Set(); children.forEach(function (c) { childSet.add(c.node_id); });
     visibleEdges = allEdges.filter(function (e) { return !e._containment && (childSet.has(e.source) || childSet.has(e.target)); });
+    // Spread children around the file node
+    savePositions(children);
+    spreadNodes(nodeMap[fileNodeId], children, visibleEdges);
     updateStatus('File: ' + ((nodeMap[fileNodeId] || {}).label || fileNodeId), children.length);
     showInfoPanel(fileNodeId); updateHelpHint('Click a symbol for connections - Click background to go back');
     var fn = nodeMap[fileNodeId]; if (fn) zoomTo(fn.x, fn.y, 2.5); render();
@@ -219,10 +274,14 @@
   function enterFocus(nodeId) {
     state.mode = 'focus'; state.selectedNode = nodeId;
     highlightId = nodeId; _focusNeighbors = buildNeighbors(nodeId);
+    restorePositions();
     var neighborSet = new Set(); neighborSet.add(nodeId); visibleEdges = [];
     allEdges.forEach(function (e) { if (e._containment) return; if (e.source === nodeId) { neighborSet.add(e.target); visibleEdges.push(e); } if (e.target === nodeId) { neighborSet.add(e.source); visibleEdges.push(e); } });
     visibleNodes = allNodes.filter(function (n) { return neighborSet.has(n.node_id); });
     visibleNodes.forEach(function (n) { n._dimmed = false; });
+    // Spread neighbors around the focus node
+    savePositions(visibleNodes);
+    spreadNodes(nodeMap[nodeId], visibleNodes, visibleEdges);
     var n = nodeMap[nodeId] || {};
     updateStatus('Focus: ' + (n.label || nodeId) + ' (in:' + (n.in_degree || 0) + ' out:' + (n.out_degree || 0) + ')', visibleNodes.length);
     showInfoPanel(nodeId); updateHelpHint('Click a neighbor to walk - Click background to go back - Esc to reset');
@@ -230,6 +289,7 @@
   }
   function doSearch(query) {
     if (!query) { enterOverview(); return; } state.mode = 'search'; highlightId = null;
+    restorePositions();
     var q = query.toLowerCase();
     visibleNodes = allNodes.filter(function (n) { return (n.label || '').toLowerCase().indexOf(q) >= 0 || (n.file_path || '').toLowerCase().indexOf(q) >= 0 || n.node_id.toLowerCase().indexOf(q) >= 0; });
     visibleNodes.forEach(function (n) { n._dimmed = false; }); visibleEdges = [];
@@ -237,6 +297,7 @@
   }
   function showEntryPoints() {
     state.mode = 'search'; highlightId = null;
+    restorePositions();
     visibleNodes = allNodes.filter(function (n) { return n.is_entry_point; });
     visibleNodes.forEach(function (n) { n._dimmed = false; }); visibleEdges = [];
     updateStatus('Entry Points (no callers, has calls)', visibleNodes.length); showInfoPanel(null);
