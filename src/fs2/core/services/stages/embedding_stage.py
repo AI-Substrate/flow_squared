@@ -15,6 +15,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from fs2.core.adapters.exceptions import EmbeddingAuthenticationError, GraphStoreError
+from fs2.core.models.code_node import compute_content_hash
 
 if TYPE_CHECKING:
     from fs2.core.models.code_node import CodeNode
@@ -211,7 +212,16 @@ class EmbeddingStage:
                 merged.append(node)
                 continue
 
-            if prior.embedding_hash != node.content_hash:
+            # Compute expected hash same way as embedding service:
+            # includes leading_context when present
+            if node.leading_context:
+                expected_hash = compute_content_hash(
+                    "\n".join([node.leading_context, node.content])
+                )
+            else:
+                expected_hash = node.content_hash
+
+            if prior.embedding_hash != expected_hash:
                 merged.append(node)
                 continue
 
@@ -224,6 +234,7 @@ class EmbeddingStage:
                 embedding=prior.embedding,
                 smart_content_embedding=prior.smart_content_embedding,
                 embedding_hash=prior.embedding_hash,
+                embedding_chunk_offsets=prior.embedding_chunk_offsets,
             )
             merged.append(merged_node)
             merged_count += 1

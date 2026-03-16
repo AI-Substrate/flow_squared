@@ -122,6 +122,7 @@ All critical workshops have been completed:
 | stdio vs HTTP | Integration Pattern | ✅ Done | [005-stdio-vs-http.md](workshops/005-stdio-vs-http.md) |
 | SCIP Language Boot | Integration Pattern | ✅ Done | [007-scip-language-boot.md](workshops/007-scip-language-boot.md) |
 | SCIP Cross-Language Standardisation | Integration Pattern | ✅ Done | [008-scip-cross-language-standardisation.md](workshops/008-scip-cross-language-standardisation.md) |
+| SCIP Project Configuration | Storage Design / CLI Flow | ✅ Done | [009-scip-project-config.md](workshops/009-scip-project-config.md) |
 
 No further workshops are needed before architecture.
 
