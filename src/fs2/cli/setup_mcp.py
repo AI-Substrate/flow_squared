@@ -35,23 +35,34 @@ def _find_fs2_command() -> str:
     return path if path else "fs2"
 
 
-def setup_mcp() -> None:
-    """Install the fs2 MCP server into Claude Code configuration.
-
-    Adds fs2 as an MCP server in ~/.claude.json so Claude Code
-    can use fs2's code intelligence tools in every session.
+def setup_mcp(
+    copilot_cli: bool = typer.Option(
+        False,
+        "--copilot-cli",
+        help="Install fs2 MCP server into GitHub Copilot CLI (~/.claude.json)",
+    ),
+) -> None:
+    """Install the fs2 MCP server into an AI coding agent.
 
     \b
     Usage:
-        $ fs2 setup-mcp
+        $ fs2 setup-mcp --copilot-cli
         > fs2 MCP server added to ~/.claude.json
           Restart Claude Code to activate.
-
-    \b
-    Already configured:
-        $ fs2 setup-mcp
-        > fs2 MCP server already configured in ~/.claude.json
     """
+    if not copilot_cli:
+        console.print(
+            "[yellow]![/yellow] Specify a target:\n"
+            "  [bold]fs2 setup-mcp --copilot-cli[/bold]  Install into GitHub Copilot CLI"
+        )
+        raise typer.Exit(code=1)
+
+    if copilot_cli:
+        _install_copilot_cli()
+
+
+def _install_copilot_cli() -> None:
+    """Install fs2 MCP server into GitHub Copilot CLI (~/.claude.json)."""
     if not CLAUDE_CONFIG.exists():
         console.print(
             "[red]✗[/red] ~/.claude.json not found.\n"
