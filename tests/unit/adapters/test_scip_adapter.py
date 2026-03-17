@@ -14,7 +14,10 @@ from fs2.core.adapters.exceptions import (
     SCIPIndexError,
     SCIPMappingError,
 )
-from fs2.core.adapters.scip_adapter import SCIPAdapterBase
+from fs2.core.adapters.scip_adapter import (
+    SCIPAdapterBase,
+    normalise_language,
+)
 from fs2.core.adapters.scip_adapter_fake import SCIPFakeAdapter
 
 # ── Exception hierarchy ───────────────────────────────────────────
@@ -284,3 +287,161 @@ def _build_simple_index() -> scip_pb2.Index:
     occ_main.symbol_roles = 1
 
     return index
+
+
+# ── Descriptor segment splitting ─────────────────────────────────
+
+
+class TestSplitDescriptorSegments:
+    def test_python_descriptor(self):
+        result = SCIPAdapterBase._split_descriptor_segments(
+            "`test.model`/Item#__init__()."
+        )
+        assert result == ["`test.model`", "Item#__init__()."]
+
+    def test_typescript_descriptor(self):
+        result = SCIPAdapterBase._split_descriptor_segments(
+            "`service.ts`/TaskService#addTask()."
+        )
+        assert result == ["`service.ts`", "TaskService#addTask()."]
+
+    def test_go_descriptor_with_slashes_in_backticks(self):
+        result = SCIPAdapterBase._split_descriptor_segments(
+            "`example.com/taskapp/service`/TaskService#AddTask()."
+        )
+        assert result == [
+            "`example.com/taskapp/service`",
+            "TaskService#AddTask().",
+        ]
+
+    def test_csharp_descriptor_no_backticks(self):
+        result = SCIPAdapterBase._split_descriptor_segments(
+            "TaskApp/TaskService#AddTask()."
+        )
+        assert result == ["TaskApp", "TaskService#AddTask()."]
+
+    def test_empty_descriptor(self):
+        assert SCIPAdapterBase._split_descriptor_segments("") == []
+
+    def test_no_slashes(self):
+        result = SCIPAdapterBase._split_descriptor_segments("simple#")
+        assert result == ["simple#"]
+
+
+# ── Extract names across all languages ───────────────────────────
+
+
+class TestExtractNameFromDescriptorAllLanguages:
+    """Verify universal parser works for all languages."""
+
+    def test_python_class_method(self):
+        assert SCIPAdapterBase.extract_name_from_descriptor(
+            "`test.model`/Item#__init__()."
+        ) == ["Item", "__init__"]
+
+    def test_typescript_class_method(self):
+        assert SCIPAdapterBase.extract_name_from_descriptor(
+            "`service.ts`/TaskService#addTask()."
+        ) == ["TaskService", "addTask"]
+
+    def test_go_struct_method(self):
+        assert SCIPAdapterBase.extract_name_from_descriptor(
+            "`example.com/taskapp/service`/TaskService#AddTask()."
+        ) == ["TaskService", "AddTask"]
+
+    def test_go_top_level_function(self):
+        assert SCIPAdapterBase.extract_name_from_descriptor(
+            "`example.com/taskapp/model`/NewTask()."
+        ) == ["NewTask"]
+
+    def test_go_constant_field(self):
+        assert SCIPAdapterBase.extract_name_from_descriptor(
+            "`example.com/taskapp/model`/Priority#High."
+        ) == ["Priority", "High"]
+
+    def test_csharp_class_method(self):
+        assert SCIPAdapterBase.extract_name_from_descriptor(
+            "TaskApp/TaskService#AddTask()."
+        ) == ["TaskService", "AddTask"]
+
+    def test_csharp_nested_namespace(self):
+        assert SCIPAdapterBase.extract_name_from_descriptor(
+            "TaskApp/Services/TaskService#AddTask()."
+        ) == ["TaskService", "AddTask"]
+
+
+# ── Fuzzy match ──────────────────────────────────────────────────
+
+
+class TestFuzzyMatchNodeId:
+    def test_matches_callable(self):
+        adapter = SCIPFakeAdapter()
+        result = adapter._fuzzy_match_node_id(
+            ["TaskService", "AddTask"],
+            "service.py",
+            {"callable:service.py:TaskService.AddTask"},
+        )
+        assert result == "callable:service.py:TaskService.AddTask"
+
+    def test_matches_class(self):
+        adapter = SCIPFakeAdapter()
+        result = adapter._fuzzy_match_node_id(
+            ["TaskService"],
+            "service.py",
+            {"class:service.py:TaskService"},
+        )
+        assert result == "class:service.py:TaskService"
+
+    def test_tries_short_name(self):
+        adapter = SCIPFakeAdapter()
+        result = adapter._fuzzy_match_node_id(
+            ["TaskApp", "TaskService"],
+            "service.py",
+            {"class:service.py:TaskService"},
+        )
+        assert result == "class:service.py:TaskService"
+
+    def test_falls_back_to_file(self):
+        adapter = SCIPFakeAdapter()
+        result = adapter._fuzzy_match_node_id(
+            ["Unknown"],
+            "service.py",
+            {"file:service.py"},
+        )
+        assert result == "file:service.py"
+
+    def test_returns_none_when_nothing_matches(self):
+        adapter = SCIPFakeAdapter()
+        result = adapter._fuzzy_match_node_id(
+            ["Unknown"],
+            "unknown.py",
+            {"file:other.py"},
+        )
+        assert result is None
+
+
+# ── Language normalisation ───────────────────────────────────────
+
+
+class TestNormaliseLanguage:
+    def test_canonical_passthrough(self):
+        assert normalise_language("python") == "python"
+        assert normalise_language("typescript") == "typescript"
+        assert normalise_language("go") == "go"
+        assert normalise_language("dotnet") == "dotnet"
+
+    def test_aliases(self):
+        assert normalise_language("ts") == "typescript"
+        assert normalise_language("js") == "javascript"
+        assert normalise_language("cs") == "dotnet"
+        assert normalise_language("csharp") == "dotnet"
+        assert normalise_language("py") == "python"
+
+    def test_case_insensitive(self):
+        assert normalise_language("Python") == "python"
+        assert normalise_language("TS") == "typescript"
+        assert normalise_language("GO") == "go"
+
+    def test_unknown_raises(self):
+        with pytest.raises(ValueError, match="Unknown language"):
+            normalise_language("brainfuck")

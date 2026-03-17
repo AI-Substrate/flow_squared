@@ -2,14 +2,18 @@
 
 Provides the abstract base for all SCIP language adapters. Handles
 universal protobuf parsing, cross-file edge extraction, deduplication,
-and filtering. Per-language subclasses only override symbol_to_node_id().
+and filtering. Per-language subclasses only need to override language_name().
 
 Architecture:
-- This file: SCIPAdapterBase ABC (contract)
+- This file: SCIPAdapterBase ABC (contract) + factory + language aliases
 - Implementations: scip_adapter_python.py, scip_adapter_fake.py, etc.
 - Protobuf bindings: scip_pb2.py (generated from SCIP proto schema)
 
 Edge format matches current Serena output: {"edge_type": "references"}
+
+Design pattern: Template Method — symbol_to_node_id() is concrete in the
+base class; subclasses override _extract_symbol_names() only if the
+universal descriptor parser doesn't handle their language. See workshop 004.
 """
 
 from __future__ import annotations
@@ -20,18 +24,98 @@ from pathlib import Path
 from typing import Any
 
 from fs2.core.adapters import scip_pb2
-from fs2.core.adapters.exceptions import SCIPIndexError
+from fs2.core.adapters.exceptions import SCIPAdapterError, SCIPIndexError
 
 logger = logging.getLogger(__name__)
+
+
+# ── Language aliases ──────────────────────────────────────
+
+LANGUAGE_ALIASES: dict[str, str] = {
+    "ts": "typescript",
+    "js": "javascript",
+    "cs": "dotnet",
+    "csharp": "dotnet",
+    "py": "python",
+    "python": "python",
+    "typescript": "typescript",
+    "javascript": "javascript",
+    "go": "go",
+    "dotnet": "dotnet",
+    "java": "java",
+    "rust": "rust",
+    "cpp": "cpp",
+    "ruby": "ruby",
+}
+
+
+def normalise_language(language: str) -> str:
+    """Normalise a language name/alias to its canonical form.
+
+    Args:
+        language: Language name or alias (e.g., "ts", "csharp", "python").
+
+    Returns:
+        Canonical language name (e.g., "typescript", "dotnet", "python").
+
+    Raises:
+        ValueError: If the language is not recognised.
+    """
+    canonical = LANGUAGE_ALIASES.get(language.lower())
+    if canonical is None:
+        known = sorted(set(LANGUAGE_ALIASES.values()))
+        raise ValueError(
+            f"Unknown language: {language!r}. "
+            f"Known languages: {', '.join(known)}"
+        )
+    return canonical
+
+
+def create_scip_adapter(language: str) -> SCIPAdapterBase:
+    """Create the appropriate SCIP adapter for a language.
+
+    Args:
+        language: Canonical language name (use normalise_language() first).
+
+    Returns:
+        Language-specific SCIPAdapterBase subclass instance.
+
+    Raises:
+        SCIPAdapterError: If no adapter exists for the language.
+    """
+    from fs2.core.adapters.scip_adapter_dotnet import SCIPDotNetAdapter
+    from fs2.core.adapters.scip_adapter_go import SCIPGoAdapter
+    from fs2.core.adapters.scip_adapter_python import SCIPPythonAdapter
+    from fs2.core.adapters.scip_adapter_typescript import SCIPTypeScriptAdapter
+
+    adapters: dict[str, type[SCIPAdapterBase]] = {
+        "python": SCIPPythonAdapter,
+        "typescript": SCIPTypeScriptAdapter,
+        "go": SCIPGoAdapter,
+        "dotnet": SCIPDotNetAdapter,
+    }
+
+    adapter_cls = adapters.get(language)
+    if adapter_cls is None:
+        supported = ", ".join(sorted(adapters.keys()))
+        raise SCIPAdapterError(
+            f"No SCIP adapter for language: {language!r}. "
+            f"Supported: {supported}. "
+            f"Install the SCIP indexer and add adapter support."
+        )
+    return adapter_cls()
 
 
 class SCIPAdapterBase(ABC):
     """Abstract base for SCIP language adapters.
 
-    Subclasses override:
-    1. language_name() — return language identifier (e.g., "python")
-    2. symbol_to_node_id() — map SCIP symbol to fs2 node_id
-    3. should_skip_document() — optionally filter generated files
+    Subclasses MUST override:
+    1. language_name() — return language identifier
+
+    Subclasses MAY override:
+    2. _extract_symbol_names() — custom descriptor-to-name-parts logic
+    3. should_skip_document() — filter generated/unwanted files
+    4. symbol_to_node_id() — entirely custom mapping (rarely needed)
     """
 
     # ── Public API ─────────────────────────────────────────
@@ -53,28 +137,52 @@ class SCIPAdapterBase(ABC):
         deduped = self._deduplicate(mapped_edges)
         return deduped
 
-    # ── Abstract methods (per-language) ────────────────────
+    # ── Abstract methods (MUST override) ──────────────────
 
     @abstractmethod
     def language_name(self) -> str:
         """Return the language identifier (e.g., 'python', 'typescript')."""
         ...
 
-    @abstractmethod
+    # ── Template method: symbol_to_node_id ────────────────
+
     def symbol_to_node_id(
         self, symbol: str, file_path: str, known_node_ids: set[str]
     ) -> str | None:
         """Map a SCIP symbol + file to an fs2 node_id.
 
-        Args:
-            symbol: Full SCIP symbol string.
-            file_path: Document relative path where the symbol is defined.
-            known_node_ids: Set of valid fs2 node_ids to match against.
-
-        Returns:
-            Matching fs2 node_id, or None if unmappable.
+        Template method: parses symbol, extracts names, fuzzy-matches.
+        Override _extract_symbol_names() for custom descriptor parsing.
+        Override this entirely for fundamentally different mapping.
         """
-        ...
+        parsed = self.parse_symbol(symbol)
+        if not parsed:
+            return None
+
+        name_parts = self._extract_symbol_names(parsed["descriptor"])
+        if not name_parts:
+            return None
+
+        return self._fuzzy_match_node_id(name_parts, file_path, known_node_ids)
+
+    # ── Virtual hooks (MAY override) ──────────────────────
+
+    def _extract_symbol_names(self, descriptor: str) -> list[str]:
+        """Extract symbol name parts from a SCIP descriptor.
+
+        Default uses the universal extract_name_from_descriptor() which
+        handles all known languages (Python, TypeScript, Go, C#).
+        Override for languages with fundamentally different descriptor formats.
+        """
+        return self.extract_name_from_descriptor(descriptor)
+
+    def should_skip_document(self, doc: scip_pb2.Document) -> bool:
+        """Override to skip generated/unwanted documents.
+
+        Default: skip nothing. C# overrides to skip
+        GlobalUsings.g.cs and similar generated files.
+        """
+        return False
 
     # ── Protobuf parsing (universal) ──────────────────────
 
@@ -182,27 +290,50 @@ class SCIPAdapterBase(ABC):
 
         Tries the symbol first (more precise), falls back to file node.
         """
-        # Try mapping the referencing symbol itself
         source_id = self.symbol_to_node_id(symbol, file_path, known_node_ids)
         if source_id:
             return source_id
 
-        # Fall back to file-level node
         file_node = f"file:{file_path}"
         if file_node in known_node_ids:
             return file_node
 
         return None
 
-    # ── Filtering ─────────────────────────────────────────
+    # ── Fuzzy match (shared lookup logic) ─────────────────
 
-    def should_skip_document(self, doc: scip_pb2.Document) -> bool:
-        """Override to skip generated/unwanted documents.
+    def _fuzzy_match_node_id(
+        self,
+        name_parts: list[str],
+        file_path: str,
+        known_node_ids: set[str],
+    ) -> str | None:
+        """Try multiple category prefixes, then shorter names, then file-level.
 
-        Default: skip nothing. C# overrides to skip
-        GlobalUsings.g.cs and similar generated files.
+        Lookup order:
+        1. callable:path:Full.Name, class:path:Full.Name, type:path:Full.Name
+        2. callable:path:ShortName (drop first part), etc.
+        3. file:path (file-level fallback)
         """
-        return False
+        symbol_name = ".".join(name_parts)
+
+        for category in ("callable", "class", "type"):
+            candidate = f"{category}:{file_path}:{symbol_name}"
+            if candidate in known_node_ids:
+                return candidate
+
+        if len(name_parts) > 1:
+            short_name = ".".join(name_parts[1:])
+            for category in ("callable", "class", "type"):
+                candidate = f"{category}:{file_path}:{short_name}"
+                if candidate in known_node_ids:
+                    return candidate
+
+        file_node = f"file:{file_path}"
+        if file_node in known_node_ids:
+            return file_node
+
+        return None
 
     # ── Deduplication ─────────────────────────────────────
 
@@ -242,15 +373,57 @@ class SCIPAdapterBase(ABC):
         }
 
     @staticmethod
+    def _split_descriptor_segments(descriptor: str) -> list[str]:
+        """Split SCIP descriptor by / while respecting backtick quoting.
+
+        Backtick-quoted segments can contain / (e.g. Go import paths)
+        and must be kept as single segments.
+
+        Examples:
+            `test.model`/Item#           → [`test.model`, Item#]
+            `example.com/x/svc`/Type#    → [`example.com/x/svc`, Type#]
+            TaskApp/TaskService#         → [TaskApp, TaskService#]
+        """
+        segments: list[str] = []
+        current: list[str] = []
+        in_backtick = False
+
+        for char in descriptor:
+            if char == "`":
+                in_backtick = not in_backtick
+                current.append(char)
+            elif char == "/" and not in_backtick:
+                if current:
+                    segments.append("".join(current))
+                current = []
+            else:
+                current.append(char)
+
+        if current:
+            segments.append("".join(current))
+
+        return segments
+
+    @staticmethod
     def extract_name_from_descriptor(descriptor: str) -> list[str]:
         """Extract symbol name parts from a SCIP descriptor.
 
-        Handles: `module.path`/Class#method().
-        Returns: ["Class", "method"] (name parts for node_id construction)
+        Handles backtick-quoted segments (skipped — module/import paths)
+        and standard descriptor suffixes: # = type, (). = method, . = field.
+
+        Examples:
+            `pkg.module`/MyClass#method().  → ["MyClass", "method"]
+            `example.com/x/y`/Type#Field.   → ["Type", "Field"]
+            TaskApp/TaskService#AddTask().   → ["TaskService", "AddTask"]
         """
+        segments = SCIPAdapterBase._split_descriptor_segments(descriptor)
         name_parts = []
-        for segment in descriptor.split("/"):
-            segment = segment.strip("`")
+
+        for segment in segments:
+            # Skip backtick-quoted segments (module/import/file paths)
+            if segment.startswith("`"):
+                continue
+
             if "#" in segment:
                 class_part, rest = segment.split("#", 1)
                 if class_part and not class_part.startswith("__"):

@@ -62,20 +62,3 @@ class SCIPFakeAdapter(SCIPAdapterBase):
             return self._deduplicate(mapped)
 
         return []
-
-    def symbol_to_node_id(
-        self, symbol: str, file_path: str, known_node_ids: set[str]
-    ) -> str | None:
-        """Simple identity mapping for testing."""
-        parsed = self.parse_symbol(symbol)
-        if not parsed:
-            return None
-        name_parts = self.extract_name_from_descriptor(parsed["descriptor"])
-        if not name_parts:
-            return None
-        symbol_name = ".".join(name_parts)
-        for category in ("callable", "class", "type", "file"):
-            candidate = f"{category}:{file_path}:{symbol_name}"
-            if candidate in known_node_ids:
-                return candidate
-        return None
