@@ -91,6 +91,7 @@ def create_scip_adapter(language: str) -> SCIPAdapterBase:
     adapters: dict[str, type[SCIPAdapterBase]] = {
         "python": SCIPPythonAdapter,
         "typescript": SCIPTypeScriptAdapter,
+        "javascript": SCIPTypeScriptAdapter,
         "go": SCIPGoAdapter,
         "dotnet": SCIPDotNetAdapter,
     }

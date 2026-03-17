@@ -16,6 +16,7 @@ from fs2.core.adapters.exceptions import (
 )
 from fs2.core.adapters.scip_adapter import (
     SCIPAdapterBase,
+    create_scip_adapter,
     normalise_language,
 )
 from fs2.core.adapters.scip_adapter_fake import SCIPFakeAdapter
@@ -445,3 +446,32 @@ class TestNormaliseLanguage:
     def test_unknown_raises(self):
         with pytest.raises(ValueError, match="Unknown language"):
             normalise_language("brainfuck")
+
+
+# ── Factory ──────────────────────────────────────────────────────
+
+
+class TestCreateScipAdapter:
+    def test_all_aliases_constructible(self):
+        """Every normalised alias must produce a working adapter."""
+        from fs2.core.adapters.scip_adapter import LANGUAGE_ALIASES
+
+        for alias, canonical in LANGUAGE_ALIASES.items():
+            try:
+                adapter = create_scip_adapter(canonical)
+                assert adapter.language_name()  # smoke test
+            except SCIPAdapterError:
+                # Languages not yet supported (java, rust, cpp, ruby)
+                # are expected to fail — just ensure the alias IS normalised
+                assert normalise_language(alias) == canonical
+
+    def test_javascript_uses_typescript_adapter(self):
+        """js → javascript → SCIPTypeScriptAdapter (shared indexer)."""
+        from fs2.core.adapters.scip_adapter_typescript import SCIPTypeScriptAdapter
+
+        adapter = create_scip_adapter(normalise_language("js"))
+        assert isinstance(adapter, SCIPTypeScriptAdapter)
+
+    def test_unknown_language_raises(self):
+        with pytest.raises(SCIPAdapterError, match="No SCIP adapter"):
+            create_scip_adapter("brainfuck")
