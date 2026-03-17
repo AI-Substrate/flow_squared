@@ -121,12 +121,12 @@ flowchart LR
 
 ## Acceptance Criteria
 
-- [ ] AC2: TypeScript SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
-- [ ] AC3: Go SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
-- [ ] AC4: C# SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
-- [ ] AC11: Cross-file edges from all adapters are deduplicated
-- [ ] AC12: Local symbols, stdlib refs, and self-refs filtered out across all languages
-- [ ] AC13: Type aliases (`ts`, `cs`, `js`, `csharp`) normalised to canonical names
+- [x] AC2: TypeScript SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
+- [x] AC3: Go SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
+- [x] AC4: C# SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
+- [x] AC11: Cross-file edges from all adapters are deduplicated
+- [x] AC12: Local symbols, stdlib refs, and self-refs filtered out across all languages
+- [x] AC13: Type aliases (`ts`, `cs`, `js`, `csharp`) normalised to canonical names
 
 ## Goals & Non-Goals
 

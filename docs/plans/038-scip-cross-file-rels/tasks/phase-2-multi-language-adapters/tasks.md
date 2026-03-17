@@ -234,6 +234,10 @@ _Populated during implementation by plan-6._
 
 | Date | Task | Type | Discovery | Resolution | References |
 |------|------|------|-----------|------------|------------|
+| 2026-03-17 | T000 | insight | Template method eliminated ~75% of per-adapter code. Python adapter went from 68→23 lines; new adapters are 28-38 lines vs estimated 60-65 | Workshop 004 design validated — universal parser + fuzzy match handles all 4 languages | workshop 004, scip_adapter.py |
+| 2026-03-17 | T001 | gotcha | Go SCIP symbols contain commit hash as version (e.g. `c9daf1dc5d7c`), not a semver — changes every commit. Not relevant for us (we use the descriptor, not the version) but worth noting | No action needed — version field not used in symbol mapping | go/index.scip inspection |
+| 2026-03-17 | T001 | insight | C# generated docs ALL have `obj/` prefix — a single prefix check is sufficient (no need for `.g.cs`, `.AssemblyInfo.` pattern matching) | Used simple `_SKIP_PREFIXES = ("obj/",)` instead of complex pattern list | dotnet/index.scip inspection |
+| 2026-03-17 | T001 | insight | Go `Low.`, `Medium.`, `High.` constants use `.` suffix (field/property) not `#` (type). Our parser's `#` handling extracts them as sub-parts of Priority type via `Priority#High.` → `["Priority", "High"]` | Works correctly — the `rest.rstrip("().")` logic handles the trailing `.` | go/index.scip inspection |
 
 **Types**: `gotcha` | `research-needed` | `unexpected-behavior` | `workaround` | `decision` | `debt` | `insight`
 
