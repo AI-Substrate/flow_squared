@@ -111,21 +111,33 @@ class SentenceTransformerEmbeddingAdapter(EmbeddingAdapter):
 
             self._device = self._detect_device()
 
-            # DYK-5: Log before download so user knows what's happening
-            logger.info(
-                f"Loading embedding model: {self._local_config.model} "
-                f"on device: {self._device} (first load may download ~130MB)"
-            )
             # Suppress noisy "position_ids UNEXPECTED" and load report from HuggingFace
             _transformers_logger = logging.getLogger("transformers.modeling_utils")
             prev_level = _transformers_logger.level
             _transformers_logger.setLevel(logging.ERROR)
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", message=".*position_ids.*")
-                self._model = SentenceTransformer(
-                    self._local_config.model,
-                    device=self._device,
-                )
+                # Try offline first to avoid HF Hub connection when model is cached
+                try:
+                    self._model = SentenceTransformer(
+                        self._local_config.model,
+                        device=self._device,
+                        local_files_only=True,
+                    )
+                    logger.info(
+                        f"Loaded embedding model: {self._local_config.model} "
+                        f"on device: {self._device} (from cache)"
+                    )
+                except OSError:
+                    # Model not cached yet — download it
+                    logger.info(
+                        f"Downloading embedding model: {self._local_config.model} "
+                        f"on device: {self._device} (first load may download ~130MB)"
+                    )
+                    self._model = SentenceTransformer(
+                        self._local_config.model,
+                        device=self._device,
+                    )
             _transformers_logger.setLevel(prev_level)
             self._model.max_seq_length = self._local_config.max_seq_length
 
