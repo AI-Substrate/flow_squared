@@ -161,6 +161,20 @@ def watch(
             help="Pass --no-smart-content to scan commands",
         ),
     ] = False,
+    no_cross_refs: Annotated[
+        bool,
+        typer.Option(
+            "--no-cross-refs",
+            help="Pass --no-cross-refs to scan commands",
+        ),
+    ] = False,
+    cross_refs_instances: Annotated[
+        int | None,
+        typer.Option(
+            "--cross-refs-instances",
+            help="Number of parallel Serena instances (passed to scan)",
+        ),
+    ] = None,
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Show detailed output"),
@@ -208,6 +222,10 @@ def watch(
             scan_args.append("--no-embeddings")
         if no_smart_content:
             scan_args.append("--no-smart-content")
+        if no_cross_refs:
+            scan_args.append("--no-cross-refs")
+        if cross_refs_instances is not None:
+            scan_args.extend(["--cross-refs-instances", str(cross_refs_instances)])
         if verbose:
             scan_args.append("--verbose")
 
