@@ -113,7 +113,7 @@ class SCIPAdapterBase(ABC):
         4. Yield edges where ref_file ≠ def_file
         """
         definitions: dict[str, str] = {}
-        references: dict[str, list[str]] = {}
+        references: dict[str, set[str]] = {}
 
         for doc in index.documents:
             if self.should_skip_document(doc):
@@ -128,7 +128,7 @@ class SCIPAdapterBase(ABC):
                 if occ.symbol_roles & 1:  # Definition bit
                     definitions[sym] = rel_path
                 else:
-                    references.setdefault(sym, []).append(rel_path)
+                    references.setdefault(sym, set()).add(rel_path)
 
         edges = []
         for sym, ref_files in references.items():
