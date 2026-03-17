@@ -139,8 +139,7 @@ All critical workshops have been completed:
 | SCIP Language Boot | Integration Pattern | ✅ Done | [001-scip-language-boot.md](workshops/001-scip-language-boot.md) |
 | SCIP Cross-Language Standardisation | Integration Pattern | ✅ Done | [002-scip-cross-language-standardisation.md](workshops/002-scip-cross-language-standardisation.md) |
 | SCIP Project Configuration | Storage Design / CLI Flow | ✅ Done | [003-scip-project-config.md](workshops/003-scip-project-config.md) |
-
-No further workshops are needed before architecture.
+| SCIP Adapter Base Class Design | Integration Pattern | ✅ Done | [004-scip-adapter-base-design.md](workshops/004-scip-adapter-base-design.md) |
 
 ## Testing Strategy
 

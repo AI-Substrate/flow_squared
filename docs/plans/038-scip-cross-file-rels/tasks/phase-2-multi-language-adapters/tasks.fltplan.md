@@ -46,14 +46,16 @@ stateDiagram-v2
     classDef done fill:#4CAF50,stroke:#388E3C,color:#fff
     classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
 
+    state "0: Refactor base" as S0
     state "1: Generate fixtures" as S1
     state "2: TS adapter" as S2
     state "3: Go adapter" as S3
     state "4: C# adapter" as S4
-    state "5: Type aliases" as S5
+    state "5: Type aliases + factory" as S5
     state "6: Integration tests" as S6
 
-    [*] --> S1
+    [*] --> S0
+    S0 --> S1
     S1 --> S2
     S2 --> S3
     S3 --> S4
@@ -61,7 +63,7 @@ stateDiagram-v2
     S5 --> S6
     S6 --> [*]
 
-    class S1,S2,S3,S4,S5,S6 pending
+    class S0,S1,S2,S3,S4,S5,S6 pending
 ```
 
 **Legend**: grey = pending | yellow = active | red = blocked/needs input | green = done
@@ -72,11 +74,12 @@ stateDiagram-v2
 
 <!-- Updated by /plan-6-v2 during implementation: [ ] → [~] → [x] -->
 
-- [ ] **Stage 1: Generate fixture .scip files** — Run scip-typescript, scip-go, scip-dotnet on fixture projects; commit index.scip files (`scripts/scip/fixtures/*/index.scip`)
-- [ ] **Stage 2: TypeScript adapter** — Create `SCIPTypeScriptAdapter` with backtick file-path extraction + TDD tests (`scip_adapter_typescript.py` — new file)
-- [ ] **Stage 3: Go adapter** — Create `SCIPGoAdapter` with import-path descriptor handling + TDD tests (`scip_adapter_go.py` — new file)
-- [ ] **Stage 4: C# adapter** — Create `SCIPDotNetAdapter` with namespace descriptor handling + `should_skip_document()` + TDD tests (`scip_adapter_dotnet.py` — new file)
-- [ ] **Stage 5: Type alias normalisation** — Add `LANGUAGE_ALIASES` dict and `normalise_language()` to `SCIPAdapterBase` + tests (`scip_adapter.py` — modify)
+- [ ] **Stage 0: Refactor base class** — Template method for `symbol_to_node_id()`, fix `_split_descriptor_segments()` for backtick-quoted `/`, extract `_fuzzy_match_node_id()`, simplify Python adapter; all 39 existing tests must pass (`scip_adapter.py` + `scip_adapter_python.py` — modify)
+- [ ] **Stage 1: Generate fixture .scip files + deep inspection** — Run indexers, `scip print` each, capture exact symbol formats, identify C# generated document paths (`scripts/scip/fixtures/*/index.scip`)
+- [ ] **Stage 2: TypeScript adapter** — Create `SCIPTypeScriptAdapter` (~8 lines, inherits template method) + TDD tests (`scip_adapter_typescript.py` — new file)
+- [ ] **Stage 3: Go adapter** — Create `SCIPGoAdapter` (~8 lines, inherits template method) + TDD tests (`scip_adapter_go.py` — new file)
+- [ ] **Stage 4: C# adapter** — Create `SCIPDotNetAdapter` (~25 lines, + `should_skip_document()` with patterns from T001) + TDD tests (`scip_adapter_dotnet.py` — new file)
+- [ ] **Stage 5: Type alias normalisation + factory** — Add `LANGUAGE_ALIASES`, `normalise_language()`, `create_scip_adapter()` to `scip_adapter.py` + tests (`scip_adapter.py` — modify)
 - [ ] **Stage 6: Integration tests** — Validate all adapters against fixture .scip files; verify handler→service→model edges (`test_scip_adapter_*.py` — add integration classes)
 
 ---
@@ -142,9 +145,10 @@ flowchart LR
 
 ## Checklist
 
-- [ ] T001: Generate fixture `.scip` index files for TypeScript, Go, C#
+- [ ] T000: Refactor `SCIPAdapterBase` — template method + fix descriptor parsing
+- [ ] T001: Generate fixture `.scip` index files + deep inspection
 - [ ] T002: Create `SCIPTypeScriptAdapter` with TDD unit tests
 - [ ] T003: Create `SCIPGoAdapter` with TDD unit tests
 - [ ] T004: Create `SCIPDotNetAdapter` with TDD unit tests + `should_skip_document()`
-- [ ] T005: Add type alias normalisation to `SCIPAdapterBase`
+- [ ] T005: Add type alias normalisation + adapter factory
 - [ ] T006: Integration tests — all adapters against fixture `.scip` files
