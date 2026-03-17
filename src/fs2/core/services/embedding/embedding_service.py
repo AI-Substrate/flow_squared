@@ -798,13 +798,6 @@ class EmbeddingService:
             stats["results"][node_id] = updated_node
             stats["processed"] += 1
 
-            # Courtesy save every 50 nodes during reassembly (Plan 036 T05)
-            if (
-                courtesy_save is not None
-                and stats["processed"] % 50 == 0
-            ):
-                courtesy_save(dict(stats["results"]))
-
         # Final progress callback with accurate counts
         if progress_callback and stats["processed"] > 0:
             progress_callback(
