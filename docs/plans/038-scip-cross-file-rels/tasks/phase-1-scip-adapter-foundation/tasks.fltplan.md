@@ -3,7 +3,7 @@
 **Plan**: [scip-cross-file-rels-plan.md](../../scip-cross-file-rels-plan.md)
 **Phase**: Phase 1: SCIP Adapter Foundation
 **Generated**: 2026-03-16
-**Status**: Ready for takeoff
+**Status**: Landed
 
 ---
 
@@ -55,7 +55,7 @@ stateDiagram-v2
     S3 --> S4
     S4 --> [*]
 
-    class S1,S2,S3,S4 pending
+    class S1,S2,S3,S4 done
 ```
 
 **Legend**: grey = pending | yellow = active | red = blocked/needs input | green = done
@@ -66,10 +66,10 @@ stateDiagram-v2
 
 <!-- Updated by /plan-6-v2 during implementation: [ ] → [~] → [x] -->
 
-- [ ] **Stage 1: Add protobuf dep + generate bindings** — Add `protobuf>=4.25` to pyproject.toml, generate and commit `scip_pb2.py` (`pyproject.toml`, `scip_pb2.py`)
-- [ ] **Stage 2: Exception hierarchy + SCIPAdapterBase ABC** — Add SCIP errors to exceptions.py, create base adapter with protobuf parsing + edge extraction + dedup + filtering (`exceptions.py`, `scip_adapter.py` — new file)
-- [ ] **Stage 3: Python adapter** — Implement symbol-to-node-id mapping for Python (`scip_adapter_python.py` — new file)
-- [ ] **Stage 4: Fake adapter + full TDD suite** — Create SCIPFakeAdapter, write comprehensive tests for base + Python adapters (`scip_adapter_fake.py` — new file, `test_scip_adapter.py`, `test_scip_adapter_python.py` — new files)
+- [x] **Stage 1: Add protobuf dep + generate bindings** — Added `protobuf>=6.0` to pyproject.toml, generated and committed `scip_pb2.py` (`pyproject.toml`, `scip_pb2.py`)
+- [x] **Stage 2: Exception hierarchy + SCIPAdapterBase ABC** — Added SCIP errors to exceptions.py, created base adapter with protobuf parsing + edge extraction + dedup + filtering (`exceptions.py`, `scip_adapter.py` — new file)
+- [x] **Stage 3: Python adapter** — Implemented symbol-to-node-id mapping for Python (`scip_adapter_python.py` — new file)
+- [x] **Stage 4: Fake adapter + full TDD suite** — Created SCIPFakeAdapter, wrote 39 tests for base + Python adapters (`scip_adapter_fake.py` — new file, `test_scip_adapter.py`, `test_scip_adapter_python.py` — new files)
 
 ---
 
@@ -109,17 +109,17 @@ flowchart LR
 
 ## Acceptance Criteria
 
-- [ ] `from fs2.core.adapters.scip_pb2 import Index` imports cleanly
-- [ ] `SCIPAdapterError` inherits from `AdapterError`
-- [ ] `SCIPAdapterBase` is abstract — cannot be instantiated directly
-- [ ] `SCIPPythonAdapter.extract_cross_file_edges()` returns correct edges for `tests/fixtures/cross_file_sample/`
-- [ ] Edges use `{"edge_type": "references"}` format (no ref_kind — matches Serena)
-- [ ] Local symbols (`local N`) filtered out
-- [ ] Stdlib symbols filtered out (not in known_node_ids)
-- [ ] Self-references (same source and target) filtered out
-- [ ] Duplicate edges deduplicated
-- [ ] `SCIPFakeAdapter.set_edges()` returns injected edges
-- [ ] All tests pass: `uv run python -m pytest tests/unit/adapters/test_scip_adapter*.py`
+- [x] `from fs2.core.adapters.scip_pb2 import Index` imports cleanly
+- [x] `SCIPAdapterError` inherits from `AdapterError`
+- [x] `SCIPAdapterBase` is abstract — cannot be instantiated directly
+- [x] `SCIPPythonAdapter.extract_cross_file_edges()` returns correct edges for `tests/fixtures/cross_file_sample/`
+- [x] Edges use `{"edge_type": "references"}` format (no ref_kind — matches Serena)
+- [x] Local symbols (`local N`) filtered out
+- [x] Stdlib symbols filtered out (not in known_node_ids)
+- [x] Self-references (same source and target) filtered out
+- [x] Duplicate edges deduplicated
+- [x] `SCIPFakeAdapter.set_edges()` returns injected edges
+- [x] All tests pass: `uv run python -m pytest tests/unit/adapters/test_scip_adapter*.py`
 
 ## Goals & Non-Goals
 
@@ -130,11 +130,11 @@ flowchart LR
 
 ## Checklist
 
-- [ ] T001: Add `protobuf>=4.25` to pyproject.toml
-- [ ] T002: Generate and commit `scip_pb2.py`
-- [ ] T003: Add SCIPAdapterError hierarchy to exceptions.py
-- [ ] T004: Create SCIPAdapterBase ABC
-- [ ] T005: ~~DROPPED~~ ref_kind inference
-- [ ] T006: Create SCIPPythonAdapter
-- [ ] T007: Create SCIPFakeAdapter
-- [ ] T008: TDD tests for base + Python adapters
+- [x] T001: Add `protobuf>=6.0` to pyproject.toml
+- [x] T002: Generate and commit `scip_pb2.py`
+- [x] T003: Add SCIPAdapterError hierarchy to exceptions.py
+- [x] T004: Create SCIPAdapterBase ABC
+- [x] T005: ~~DROPPED~~ ref_kind inference
+- [x] T006: Create SCIPPythonAdapter
+- [x] T007: Create SCIPFakeAdapter
+- [x] T008: TDD tests for base + Python adapters
