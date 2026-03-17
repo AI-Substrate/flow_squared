@@ -11,7 +11,7 @@
 
 **Purpose**: Build the core SCIP adapter infrastructure — protobuf parsing, edge extraction, and a working Python adapter — so that Phase 2 (multi-language) and Phase 4 (stage integration) have a solid foundation to build on.
 
-**What We're Building**: An `SCIPAdapterBase` ABC that can read any `.scip` protobuf file, extract cross-file relationship edges (definition in file A, reference in file B), deduplicate them, filter noise (stdlib, local symbols, self-refs), and infer `ref_kind` (call/import/type) from SCIP descriptor suffixes. Plus a concrete `SCIPPythonAdapter` that translates Python SCIP symbols to fs2 `node_id` format, a `SCIPFakeAdapter` for testing, and the exception hierarchy.
+**What We're Building**: An `SCIPAdapterBase` ABC that can read any `.scip` protobuf file, extract cross-file relationship edges (definition in file A, reference in file B), deduplicate them, and filter noise (stdlib, local symbols, self-refs). Plus a concrete `SCIPPythonAdapter` that translates Python SCIP symbols to fs2 `node_id` format, a `SCIPFakeAdapter` for testing, and the exception hierarchy. Edge format matches current Serena output: `{"edge_type": "references"}`.
 
 **Goals**:
 - ✅ Generated `scip_pb2.py` protobuf bindings committed to repo
@@ -20,7 +20,6 @@
 - ✅ `SCIPPythonAdapter` mapping Python SCIP symbols to fs2 node_ids
 - ✅ `SCIPFakeAdapter` with `set_edges()` for test injection
 - ✅ `SCIPAdapterError` hierarchy in exceptions.py
-- ✅ `ref_kind` inference from descriptor suffixes (`#`→type, `().`→call, import→import)
 - ✅ Full TDD test suite against fixture `.scip` files
 
 **Non-Goals**:
@@ -68,7 +67,6 @@ flowchart TD
         T002["T002: Generate scip_pb2.py"]:::pending
         T003["T003: SCIP exception hierarchy"]:::pending
         T004["T004: SCIPAdapterBase ABC"]:::pending
-        T005["T005: ref_kind inference"]:::pending
         T006["T006: SCIPPythonAdapter"]:::pending
         T007["T007: SCIPFakeAdapter"]:::pending
         T008["T008: TDD test suite"]:::pending
@@ -76,10 +74,8 @@ flowchart TD
         T001 --> T002
         T002 --> T004
         T003 --> T004
-        T004 --> T005
         T004 --> T006
         T004 --> T007
-        T005 --> T006
         T006 --> T008
         T007 --> T008
     end
@@ -106,11 +102,11 @@ flowchart TD
 | [ ] | T001 | Add `protobuf>=4.25` to pyproject.toml dependencies | config | `pyproject.toml` | `uv run python -c "import google.protobuf"` succeeds; `uv run python -m pytest` still passes | Per finding 02: protobuf NOT in deps |
 | [ ] | T002 | Generate `scip_pb2.py` from SCIP proto schema and commit | core/adapters | `src/fs2/core/adapters/scip_pb2.py` | `from fs2.core.adapters.scip_pb2 import Index, Document, Occurrence` imports cleanly | Proto at `/tmp/scip.proto`; use `grpc_tools.protoc` |
 | [ ] | T003 | Add `SCIPAdapterError` hierarchy to exceptions.py | core/adapters | `src/fs2/core/adapters/exceptions.py` | `SCIPAdapterError(AdapterError)`, `SCIPIndexError`, `SCIPMappingError` defined with actionable docstrings | Per finding 06: follow existing pattern |
-| [ ] | T004 | Create `SCIPAdapterBase` ABC in scip_adapter.py | core/adapters | `src/fs2/core/adapters/scip_adapter.py` | ABC with: `extract_cross_file_edges(index_path, known_node_ids) → edges`, `_load_index()`, `_extract_raw_edges()`, `_deduplicate()`, `_filter_edges()`, abstract `symbol_to_node_id()`, abstract `language_name()` | Per workshop 002: base handles 90% |
-| [ ] | T005 | Add `ref_kind` inference from SCIP descriptor suffixes | core/adapters | `src/fs2/core/adapters/scip_adapter.py` | `_infer_ref_kind(symbol)` returns `"call"` for `().` suffix, `"type"` for `#` suffix, `"import"` for `/` package refs, `"unknown"` as fallback | Per spec Q7: ref_kind in edge metadata |
+| [ ] | T004 | Create `SCIPAdapterBase` ABC in scip_adapter.py | core/adapters | `src/fs2/core/adapters/scip_adapter.py` | ABC with: `extract_cross_file_edges(index_path, known_node_ids) → edges`, `_load_index()`, `_extract_raw_edges()`, `_deduplicate()`, `_filter_edges()`, abstract `symbol_to_node_id()`, abstract `language_name()`. Edges use `{"edge_type": "references"}` | Per workshop 002: base handles 90% |
+| [ ] | T005 | ~~DROPPED: ref_kind inference~~ | — | — | DYK analysis: descriptor suffix = target kind, not reference kind. Edges use `{"edge_type": "references"}` only, matching Serena format | DYK-038-01 |
 | [ ] | T006 | Create `SCIPPythonAdapter` in scip_adapter_python.py | core/adapters | `src/fs2/core/adapters/scip_adapter_python.py` | `symbol_to_node_id()` maps Python SCIP symbols (`scip-python python pkg ver \`module\`/Class#method().`) to fs2 node_ids (`callable:path:Class.method`); tested against `tests/fixtures/cross_file_sample/` | Per workshop 001: Python boot spec |
 | [ ] | T007 | Create `SCIPFakeAdapter` in scip_adapter_fake.py | core/adapters | `src/fs2/core/adapters/scip_adapter_fake.py` | `set_edges(edges)` for test injection; `set_index(index)` for protobuf injection; passes ABC compliance; tracks `call_history` | Per finding 06: fakes over mocks |
-| [ ] | T008 | TDD tests for SCIPAdapterBase + SCIPPythonAdapter | tests | `tests/unit/adapters/test_scip_adapter.py`, `tests/unit/adapters/test_scip_adapter_python.py` | Tests cover: protobuf loading, edge extraction, dedup, local symbol filtering, stdlib filtering, self-ref filtering, ref_kind inference, Python symbol mapping; all pass | Use `scripts/scip/fixtures/python/` and `tests/fixtures/cross_file_sample/` |
+| [ ] | T008 | TDD tests for SCIPAdapterBase + SCIPPythonAdapter | tests | `tests/unit/adapters/test_scip_adapter.py`, `tests/unit/adapters/test_scip_adapter_python.py` | Tests cover: protobuf loading, edge extraction, dedup, local symbol filtering, stdlib filtering, self-ref filtering, Python symbol mapping; all pass | Use `scripts/scip/fixtures/python/` and `tests/fixtures/cross_file_sample/` |
 
 ---
 
@@ -120,7 +116,7 @@ flowchart TD
 - **Finding 01**: `detect_project_roots()` already exists — not needed in Phase 1, but informs adapter design
 - **Finding 02**: Protobuf NOT in pyproject.toml — must add before any SCIP code (T001)
 - **Finding 03**: Config types need `YAML_CONFIG_TYPES` registration — not Phase 1 concern but noted
-- **Finding 04**: `ref_kind` goes in edge_data dict, NOT as tuple element — `{"edge_type": "references", "ref_kind": "call"}`
+- **Finding 04**: Edges use `{"edge_type": "references"}` only — no ref_kind (DYK-038-01: descriptor suffix = target kind, not reference kind; matches current Serena format)
 - **Finding 06**: Follow existing adapter pattern: ABC → Fake → Impl; exceptions follow `AdapterError` hierarchy
 
 **Domain dependencies**:
@@ -166,7 +162,7 @@ sequenceDiagram
     Adapter->>Adapter: symbol_to_node_id(symbol, file)
     Adapter->>Adapter: _filter_edges(mapped, known_ids)
     Adapter->>Adapter: _deduplicate(filtered)
-    Adapter-->>Stage: list[(src_id, tgt_id, {edge_type, ref_kind})]
+    Adapter-->>Stage: list[(src_id, tgt_id, {edge_type: "references"})]
 ```
 
 ---

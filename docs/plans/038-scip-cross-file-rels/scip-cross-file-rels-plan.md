@@ -53,8 +53,8 @@ The current cross-file relationship system uses Serena (LSP/Pyright) running as 
 | 01 | Critical | `detect_project_roots()` already exists in cross_file_rels_stage.py (lines 136-194) with PROJECT_MARKERS for 6 languages — extract for reuse | Extract to shared module; extend markers for C#, Ruby |
 | 02 | Critical | Protobuf is NOT in pyproject.toml dependencies — imports will fail | Add `protobuf>=4.25` to dependencies in Phase 1 |
 | 03 | High | Config types must be registered in `YAML_CONFIG_TYPES` list (objects.py:1132) or they silently don't load | Add ProjectsConfig to registry; add registry completeness test |
-| 04 | High | `ref_kind` must go in edge_data dict, NOT as 4th tuple element — cross_file_edges tuple `(str, str, dict)` is hardcoded in 4 files | Keep `{"edge_type": "references", "ref_kind": "call"}` — dict is extensible |
-| 05 | High | FORMAT_VERSION must bump 1.1→1.2 when adding ref_kind; use `.get("ref_kind", "unknown")` everywhere for backward compat | Bump version; add migration backfill on load; test old graphs |
+| 04 | High | Edge data uses `{"edge_type": "references"}` only — no ref_kind (DYK analysis: descriptor suffixes describe target kind, not reference kind; lowest effort matches Serena) | Keep minimal edge format; can add classification later |
+| 05 | ~~High~~ | ~~FORMAT_VERSION bump for ref_kind~~ | **DROPPED** — no ref_kind means no format change needed. Existing edges already use `{"edge_type": "references"}` |
 | 06 | High | Existing adapter pattern: ABC in `*_adapter.py`, impl in `*_adapter_{provider}.py`, fake in `*_adapter_fake.py`, factory function for creation | Follow exactly for SCIP adapters |
 
 ## Harness Strategy
@@ -97,7 +97,7 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 | 1.4 | Create `SCIPAdapterBase` ABC in scip_adapter.py | core/adapters | `extract_cross_file_edges()`, `symbol_to_node_id()` abstract, protobuf parsing, dedup, filtering implemented | Per workshop 002 |
 | 1.5 | Create `SCIPPythonAdapter` in scip_adapter_python.py | core/adapters | Maps Python SCIP symbols to fs2 node_ids; tested against `tests/fixtures/cross_file_sample/` .scip | Per workshop 001 |
 | 1.6 | Create `SCIPFakeAdapter` in scip_adapter_fake.py | core/adapters | `set_edges()` for test injection; passes ABC compliance | Per finding 06 |
-| 1.7 | Add `ref_kind` inference from SCIP descriptor suffixes | core/adapters | `#` → type, `().` → call, import occurrences → import; default "unknown" | Per spec Q7 clarification |
+| 1.7 | ~~Add `ref_kind` inference from SCIP descriptor suffixes~~ | ~~core/adapters~~ | ~~`#` → type, `().` → call, import occurrences → import; default "unknown"~~ | **DROPPED** — DYK: descriptor suffix = target kind, not reference kind; keep `{"edge_type": "references"}` only |
 | 1.8 | TDD tests for SCIPAdapterBase + SCIPPythonAdapter | tests | Protobuf loading, edge extraction, dedup, filtering, symbol mapping all tested | Use scripts/scip/fixtures/ |
 
 ---
@@ -157,7 +157,7 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 **Delivers**:
 - CrossFileRelsStage routes to SCIP or Serena based on `provider` config
 - SCIP indexer invocation via subprocess
-- `ref_kind` in edge metadata
+- Edge metadata: `{"edge_type": "references"}` (matches current Serena format — no ref_kind)
 - FORMAT_VERSION 1.1 → 1.2 with migration logic
 - `.fs2/scip/` cache directory for index files
 - End-to-end integration tests
@@ -170,9 +170,9 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 | 4.2 | Implement indexer invocation via subprocess | core/services/stages | `scip-python index .` runs, produces index.scip; errors logged gracefully | Per workshop 001 boot specs |
 | 4.3 | Wire adapter selection based on project type | core/services/stages | Python project → SCIPPythonAdapter; TypeScript → SCIPTypeScriptAdapter; etc. | Factory function or dict lookup |
 | 4.4 | Add `.fs2/scip/` cache directory management | core/services/stages | index.scip cached per project slug; re-used if source unchanged | Per spec Q6 clarification |
-| 4.5 | Bump FORMAT_VERSION 1.1 → 1.2 | core/repos | Old graphs load with warning; `ref_kind` defaults to "unknown" for old edges | Per finding 05 |
-| 4.6 | Add backward compat migration logic | core/repos | `.get("ref_kind", "unknown")` used everywhere; test loading v1.1 graphs | Per finding 05 |
-| 4.7 | Integration tests: end-to-end SCIP → edges → graph | tests | Run indexer on fixture, parse index, verify edges in graph with ref_kind | Marked @pytest.mark.slow |
+| 4.5 | ~~Bump FORMAT_VERSION 1.1 → 1.2~~ | ~~core/repos~~ | ~~Old graphs load with warning; `ref_kind` defaults to "unknown" for old edges~~ | **DROPPED** — no format change needed (edge format unchanged) |
+| 4.6 | ~~Add backward compat migration logic~~ | ~~core/repos~~ | ~~`.get("ref_kind", "unknown")` used everywhere; test loading v1.1 graphs~~ | **DROPPED** — no migration needed |
+| 4.7 | Integration tests: end-to-end SCIP → edges → graph | tests | Run indexer on fixture, parse index, verify edges in graph with `edge_type="references"` | Marked @pytest.mark.slow |
 | 4.8 | Update documentation (README + docs/how/) | docs | SCIP section in README; detailed guide in docs/how/ | Per spec clarification Q2 |
 
 ---
@@ -192,7 +192,7 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 - [ ] AC11: Edges deduplicated — no duplicate source→target pairs
 - [ ] AC12: Local symbols, stdlib refs, self-refs filtered out
 - [ ] AC13: Type aliases (ts, cs, js, csharp) normalised to canonical names
-- [ ] AC14: Edges include ref_kind (call/import/type) from descriptor suffixes
+- [ ] AC14: ~~ref_kind~~ DROPPED — edges use `{"edge_type": "references"}` only
 - [ ] AC15: index.scip cached in `.fs2/scip/` for re-use
 
 ### Risks
@@ -203,5 +203,5 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 | Symbol-to-node-id mismatch | Medium | High | Per-language unit tests; fallback to file-level edges |
 | Go import path resolution | Medium | Medium | Use go.mod module path; fall back to package-level |
 | Config silent load failure | Medium | High | Registry completeness test (finding 03) |
-| ref_kind on old graphs | Medium | Medium | `.get("ref_kind", "unknown")` everywhere; format bump |
+| ref_kind on old graphs | ~~Medium~~ | ~~Medium~~ | **DROPPED** — no ref_kind, no format change, no migration |
 | Protobuf version conflict | Low | High | Pin `protobuf>=4.25`; test in clean venv |

@@ -40,7 +40,7 @@ This gives fs2 cross-file relationships for **10+ languages** (vs 2-3 with Seren
 - **Real-time/live indexing**: SCIP indexes are computed at scan time, not continuously updated
 - **Cross-project references**: Edges are within-project only — no references between a Python backend and a TypeScript frontend
 - **Auto-installing SCIP indexers**: fs2 will detect and report missing indexers with install instructions, but will not auto-install them (user must install)
-- **Call expression classification**: Edges store `references` type with a `ref_kind` field (`call`, `import`, or `type`) inferred from SCIP descriptor suffixes — not from call expression text or argument types
+- **Call expression classification**: Edges store `references` type only (`{"edge_type": "references"}`) — no attempt to classify as call/import/type. Can be added later if needed
 - **Third-party library resolution**: Only project-internal references stored — stdlib/pip/npm imports resolved by SCIP but only edges to nodes in the fs2 graph are kept
 - **Docker-based indexers**: v1 supports locally-installed indexers only — Docker support is a future enhancement
 - **Removing Serena**: Serena remains as an alternative provider; deprecation is a separate future decision
@@ -99,7 +99,7 @@ No new domains are created. This feature threads through existing domains.
 11. **AC11**: Cross-file edges from SCIP are deduplicated — no duplicate source→target pairs in the graph
 12. **AC12**: Local symbols (`local N`), stdlib references, and self-references are filtered out of SCIP edges before storage
 13. **AC13**: Project type accepts aliases (`ts` for `typescript`, `cs`/`csharp` for `dotnet`, `js` for `javascript`) — normalised internally to canonical names
-14. **AC14**: Cross-file edges include `ref_kind` metadata (`call`, `import`, or `type`) inferred from SCIP descriptor suffixes
+14. **AC14**: ~~Cross-file edges include `ref_kind`~~ **DROPPED** — edges use `{"edge_type": "references"}` only, matching current Serena format. Lowest effort, can add classification later
 15. **AC15**: SCIP index files are cached in `.fs2/scip/{project-slug}/index.scip` for re-use and debugging
 
 ## Risks & Assumptions
@@ -170,5 +170,5 @@ No further workshops are needed before architecture.
 | Q4 | Harness | **Continue without** — Unit tests + fixture .scip files + pytest suite sufficient |
 | Q5 | Type aliases | **Accept everywhere** — `ts`, `cs`, `csharp`, `js` normalised internally to canonical names |
 | Q6 | Index.scip storage | **Cache in `.fs2/scip/`** — enables re-use across incremental scans and debugging with `scip print` |
-| Q7 | Edge metadata | **Add `ref_kind`** — `{"edge_type": "references", "ref_kind": "call\|import\|type"}` inferred from SCIP descriptor suffixes |
+| Q7 | Edge metadata | **Minimal: `{"edge_type": "references"}` only** — matches current Serena format. Descriptor-based classification (ref_kind) dropped after DYK analysis showed suffix describes target symbol kind, not reference kind. Can add later if needed |
 | Q8 | Monorepo workspaces | **Require user specification** in project `options` — docs must be detailed enough for MCP agents to guide users. No auto-detection of workspace manager |

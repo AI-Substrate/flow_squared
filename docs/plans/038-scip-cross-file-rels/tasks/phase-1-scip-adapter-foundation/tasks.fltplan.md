@@ -11,7 +11,7 @@
 
 **Where we are**: fs2 has a working cross-file relationship system powered by Serena (LSP/Pyright) with parallel MCP server instances. There is no SCIP code anywhere in the codebase. Protobuf is not a dependency. The SCIP proto schema has been downloaded and tested externally (`scripts/scip/`), confirming that cross-file edges can be extracted from any SCIP index.
 
-**Where we're going**: A developer can instantiate `SCIPPythonAdapter`, point it at an `index.scip` file and a set of known fs2 node_ids, and get back a deduplicated, filtered list of cross-file edge tuples `(source_id, target_id, {"edge_type": "references", "ref_kind": "call"})` — ready for graph storage. The adapter handles protobuf parsing, symbol mapping, noise filtering, and ref_kind inference. A `SCIPFakeAdapter` enables testing without real SCIP indexers.
+**Where we're going**: A developer can instantiate `SCIPPythonAdapter`, point it at an `index.scip` file and a set of known fs2 node_ids, and get back a deduplicated, filtered list of cross-file edge tuples `(source_id, target_id, {"edge_type": "references"})` — ready for graph storage, identical in format to current Serena edges. The adapter handles protobuf parsing, symbol mapping, and noise filtering. A `SCIPFakeAdapter` enables testing without real SCIP indexers.
 
 ---
 
@@ -46,7 +46,7 @@ stateDiagram-v2
 
     state "1: Protobuf dep + bindings" as S1
     state "2: Exceptions + ABC" as S2
-    state "3: Python adapter + ref_kind" as S3
+    state "3: Python adapter" as S3
     state "4: Fake + TDD tests" as S4
 
     [*] --> S1
@@ -68,7 +68,7 @@ stateDiagram-v2
 
 - [ ] **Stage 1: Add protobuf dep + generate bindings** — Add `protobuf>=4.25` to pyproject.toml, generate and commit `scip_pb2.py` (`pyproject.toml`, `scip_pb2.py`)
 - [ ] **Stage 2: Exception hierarchy + SCIPAdapterBase ABC** — Add SCIP errors to exceptions.py, create base adapter with protobuf parsing + edge extraction + dedup + filtering (`exceptions.py`, `scip_adapter.py` — new file)
-- [ ] **Stage 3: Python adapter + ref_kind inference** — Implement symbol-to-node-id mapping for Python, add ref_kind inference from descriptors (`scip_adapter_python.py` — new file)
+- [ ] **Stage 3: Python adapter** — Implement symbol-to-node-id mapping for Python (`scip_adapter_python.py` — new file)
 - [ ] **Stage 4: Fake adapter + full TDD suite** — Create SCIPFakeAdapter, write comprehensive tests for base + Python adapters (`scip_adapter_fake.py` — new file, `test_scip_adapter.py`, `test_scip_adapter_python.py` — new files)
 
 ---
@@ -113,7 +113,7 @@ flowchart LR
 - [ ] `SCIPAdapterError` inherits from `AdapterError`
 - [ ] `SCIPAdapterBase` is abstract — cannot be instantiated directly
 - [ ] `SCIPPythonAdapter.extract_cross_file_edges()` returns correct edges for `tests/fixtures/cross_file_sample/`
-- [ ] `ref_kind` is inferred: `().` → `"call"`, `#` → `"type"`, `/` → `"import"`, fallback → `"unknown"`
+- [ ] Edges use `{"edge_type": "references"}` format (no ref_kind — matches Serena)
 - [ ] Local symbols (`local N`) filtered out
 - [ ] Stdlib symbols filtered out (not in known_node_ids)
 - [ ] Self-references (same source and target) filtered out
@@ -123,8 +123,8 @@ flowchart LR
 
 ## Goals & Non-Goals
 
-**Goals**: Protobuf parsing, edge extraction, Python symbol mapping, ref_kind inference, fake adapter, full tests
-**Non-Goals**: Other languages (Phase 2), config/CLI (Phase 3), stage wiring (Phase 4)
+**Goals**: Protobuf parsing, edge extraction, Python symbol mapping, fake adapter, full tests
+**Non-Goals**: ref_kind classification (dropped), other languages (Phase 2), config/CLI (Phase 3), stage wiring (Phase 4)
 
 ---
 
@@ -134,7 +134,7 @@ flowchart LR
 - [ ] T002: Generate and commit `scip_pb2.py`
 - [ ] T003: Add SCIPAdapterError hierarchy to exceptions.py
 - [ ] T004: Create SCIPAdapterBase ABC
-- [ ] T005: Add ref_kind inference from descriptors
+- [ ] T005: ~~DROPPED~~ ref_kind inference
 - [ ] T006: Create SCIPPythonAdapter
 - [ ] T007: Create SCIPFakeAdapter
 - [ ] T008: TDD tests for base + Python adapters
