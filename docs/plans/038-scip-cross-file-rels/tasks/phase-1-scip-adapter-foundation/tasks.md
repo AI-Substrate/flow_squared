@@ -15,7 +15,7 @@
 
 **Goals**:
 - ✅ Generated `scip_pb2.py` protobuf bindings committed to repo
-- ✅ `protobuf>=4.25` added to pyproject.toml
+- ✅ `protobuf>=6.0` added to pyproject.toml
 - ✅ `SCIPAdapterBase` ABC with universal protobuf parsing, edge extraction, dedup, filtering
 - ✅ `SCIPPythonAdapter` mapping Python SCIP symbols to fs2 node_ids
 - ✅ `SCIPFakeAdapter` with `set_edges()` for test injection
@@ -41,7 +41,7 @@ _Phase 1 — no prior phases._
 
 | File | Exists? | Domain Check | Notes |
 |------|---------|-------------|-------|
-| `pyproject.toml` | ✅ exists | config | MODIFY — add `protobuf>=4.25` to dependencies |
+| `pyproject.toml` | ✅ exists | config | MODIFY — add `protobuf>=6.0` to dependencies |
 | `src/fs2/core/adapters/scip_pb2.py` | ❌ create | core/adapters | Generated from `/tmp/scip.proto` — committed, not hand-written |
 | `src/fs2/core/adapters/scip_adapter.py` | ❌ create | core/adapters | NEW — SCIPAdapterBase ABC (contract) |
 | `src/fs2/core/adapters/scip_adapter_python.py` | ❌ create | core/adapters | NEW — Python implementation |
@@ -99,12 +99,12 @@ flowchart TD
 
 | Status | ID | Task | Domain | Path(s) | Done When | Notes |
 |--------|-----|------|--------|---------|-----------|-------|
-| [ ] | T001 | Add `protobuf>=4.25` to pyproject.toml dependencies | config | `pyproject.toml` | `uv run python -c "import google.protobuf"` succeeds; `uv run python -m pytest` still passes | Per finding 02: protobuf NOT in deps |
-| [ ] | T002 | Generate `scip_pb2.py` from SCIP proto schema and commit | core/adapters | `src/fs2/core/adapters/scip_pb2.py` | `from fs2.core.adapters.scip_pb2 import Index, Document, Occurrence` imports cleanly | Proto at `/tmp/scip.proto`; use `grpc_tools.protoc` |
+| [ ] | T001 | Add `protobuf>=6.0` to pyproject.toml dependencies | config | `pyproject.toml` | `uv run python -c "import google.protobuf"` succeeds; `uv run python -m pytest` still passes | Per finding 02. DYK-038-05: pin >=6.0 — scip_pb2.py generated with v6 won't work on v4 |
+| [ ] | T002 | Generate `scip_pb2.py` from SCIP proto schema and commit | core/adapters | `src/fs2/core/adapters/scip_pb2.py` | `from fs2.core.adapters.scip_pb2 import Index, Document, Occurrence` imports cleanly | Proto at `/tmp/scip.proto`; use `grpc_tools.protoc`. DYK-038-05: generate with same protobuf version pinned in T001 |
 | [ ] | T003 | Add `SCIPAdapterError` hierarchy to exceptions.py | core/adapters | `src/fs2/core/adapters/exceptions.py` | `SCIPAdapterError(AdapterError)`, `SCIPIndexError`, `SCIPMappingError` defined with actionable docstrings | Per finding 06: follow existing pattern |
 | [ ] | T004 | Create `SCIPAdapterBase` ABC in scip_adapter.py | core/adapters | `src/fs2/core/adapters/scip_adapter.py` | ABC with: `extract_cross_file_edges(index_path, known_node_ids) → edges`, `_load_index()`, `_extract_raw_edges()`, `_deduplicate()`, `_filter_edges()`, abstract `symbol_to_node_id()`, abstract `language_name()`. Edges use `{"edge_type": "references"}` | Per workshop 002: base handles 90% |
 | [ ] | T005 | ~~DROPPED: ref_kind inference~~ | — | — | DYK analysis: descriptor suffix = target kind, not reference kind. Edges use `{"edge_type": "references"}` only, matching Serena format | DYK-038-01 |
-| [ ] | T006 | Create `SCIPPythonAdapter` in scip_adapter_python.py | core/adapters | `src/fs2/core/adapters/scip_adapter_python.py` | `symbol_to_node_id()` maps Python SCIP symbols (`scip-python python pkg ver \`module\`/Class#method().`) to fs2 node_ids (`callable:path:Class.method`); tested against `tests/fixtures/cross_file_sample/` | Per workshop 001: Python boot spec |
+| [ ] | T006 | Create `SCIPPythonAdapter` in scip_adapter_python.py | core/adapters | `src/fs2/core/adapters/scip_adapter_python.py` | `symbol_to_node_id()` maps Python SCIP symbols (`scip-python python pkg ver \`module\`/Class#method().`) to fs2 node_ids (`callable:path:Class.method`); tested against `tests/fixtures/cross_file_sample/` | Per workshop 001. DYK-038-04: symbol mapping is fuzzy lookup — try multiple candidate patterns (callable/class/type), fall back to file-level match, log unmatched symbols for debugging |
 | [ ] | T007 | Create `SCIPFakeAdapter` in scip_adapter_fake.py | core/adapters | `src/fs2/core/adapters/scip_adapter_fake.py` | `set_edges(edges)` for test injection; `set_index(index)` for protobuf injection; passes ABC compliance; tracks `call_history` | Per finding 06: fakes over mocks |
 | [ ] | T008 | TDD tests for SCIPAdapterBase + SCIPPythonAdapter | tests | `tests/unit/adapters/test_scip_adapter.py`, `tests/unit/adapters/test_scip_adapter_python.py` | Tests cover: protobuf loading, edge extraction, dedup, local symbol filtering, stdlib filtering, self-ref filtering, Python symbol mapping; all pass | Use `scripts/scip/fixtures/python/` and `tests/fixtures/cross_file_sample/` |
 

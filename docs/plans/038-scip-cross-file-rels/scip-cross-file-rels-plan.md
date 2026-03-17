@@ -91,11 +91,11 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 
 | # | Task | Domain | Success Criteria | Notes |
 |---|------|--------|-----------------|-------|
-| 1.1 | Add `protobuf>=4.25` to pyproject.toml dependencies | config | `uv run python -c "import google.protobuf"` succeeds | Per finding 02 |
-| 1.2 | Generate and commit `scip_pb2.py` from SCIP proto schema | core/adapters | `from fs2.core.adapters.scip_pb2 import Index` imports cleanly | Use `/tmp/scip.proto` already downloaded |
+| 1.1 | Add `protobuf>=6.0` to pyproject.toml dependencies | config | `uv run python -c "import google.protobuf"` succeeds | DYK-038-05: pin >=6.0 — generated code requires matching runtime |
+| 1.2 | Generate and commit `scip_pb2.py` from SCIP proto schema | core/adapters | `from fs2.core.adapters.scip_pb2 import Index` imports cleanly | Use `/tmp/scip.proto`; DYK-038-05: generate with same version |
 | 1.3 | Add `SCIPAdapterError` hierarchy to exceptions.py | core/adapters | `SCIPAdapterError`, `SCIPIndexError`, `SCIPMappingError` defined | Per finding 06 |
 | 1.4 | Create `SCIPAdapterBase` ABC in scip_adapter.py | core/adapters | `extract_cross_file_edges()`, `symbol_to_node_id()` abstract, protobuf parsing, dedup, filtering implemented | Per workshop 002 |
-| 1.5 | Create `SCIPPythonAdapter` in scip_adapter_python.py | core/adapters | Maps Python SCIP symbols to fs2 node_ids; tested against `tests/fixtures/cross_file_sample/` .scip | Per workshop 001 |
+| 1.5 | Create `SCIPPythonAdapter` in scip_adapter_python.py | core/adapters | Maps Python SCIP symbols to fs2 node_ids; tested against `tests/fixtures/cross_file_sample/` .scip | DYK-038-04: symbol mapping is fuzzy lookup — try callable/class/type prefixes, fall back to file-level, log unmatched |
 | 1.6 | Create `SCIPFakeAdapter` in scip_adapter_fake.py | core/adapters | `set_edges()` for test injection; passes ABC compliance | Per finding 06 |
 | 1.7 | ~~Add `ref_kind` inference from SCIP descriptor suffixes~~ | ~~core/adapters~~ | ~~`#` → type, `().` → call, import occurrences → import; default "unknown"~~ | **DROPPED** — DYK: descriptor suffix = target kind, not reference kind; keep `{"edge_type": "references"}` only |
 | 1.8 | TDD tests for SCIPAdapterBase + SCIPPythonAdapter | tests | Protobuf loading, edge extraction, dedup, filtering, symbol mapping all tested | Use scripts/scip/fixtures/ |
@@ -169,7 +169,7 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 | 4.1 | Add SCIP provider path to CrossFileRelsStage | core/services/stages | `if provider == "scip"`: iterate projects, run indexer, parse edges | Keep Serena path intact |
 | 4.2 | Implement indexer invocation via subprocess | core/services/stages | `scip-python index .` runs, produces index.scip; errors logged gracefully | Per workshop 001 boot specs |
 | 4.3 | Wire adapter selection based on project type | core/services/stages | Python project → SCIPPythonAdapter; TypeScript → SCIPTypeScriptAdapter; etc. | Factory function or dict lookup |
-| 4.4 | Add `.fs2/scip/` cache directory management | core/services/stages | index.scip cached per project slug; re-used if source unchanged | Per spec Q6 clarification |
+| 4.4 | Add `.fs2/scip/` cache directory management | core/services/stages | index.scip cached per project slug; re-used if source unchanged | Per spec Q6 clarification. DYK-038-03: add `.fs2/scip/` to .gitignore — binary files must not be committed |
 | 4.5 | ~~Bump FORMAT_VERSION 1.1 → 1.2~~ | ~~core/repos~~ | ~~Old graphs load with warning; `ref_kind` defaults to "unknown" for old edges~~ | **DROPPED** — no format change needed (edge format unchanged) |
 | 4.6 | ~~Add backward compat migration logic~~ | ~~core/repos~~ | ~~`.get("ref_kind", "unknown")` used everywhere; test loading v1.1 graphs~~ | **DROPPED** — no migration needed |
 | 4.7 | Integration tests: end-to-end SCIP → edges → graph | tests | Run indexer on fixture, parse index, verify edges in graph with `edge_type="references"` | Marked @pytest.mark.slow |
