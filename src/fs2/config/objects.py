@@ -1035,58 +1035,115 @@ class SearchConfig(BaseModel):
         return v
 
 
+# Canonical SCIP language names and their aliases.
+# Kept as a local set — does NOT import from scip_adapter (dependency boundary).
+_KNOWN_LANGUAGE_TYPES: set[str] = {
+    "python", "typescript", "javascript", "go", "dotnet", "rust", "java",
+}
+_LANGUAGE_TYPE_ALIASES: dict[str, str] = {
+    "ts": "typescript",
+    "js": "javascript",
+    "cs": "dotnet",
+    "csharp": "dotnet",
+    "c#": "dotnet",
+}
+
+
+class ProjectConfig(BaseModel):
+    """Configuration for a single language project.
+
+    Attributes:
+        type: Language type (python, typescript, go, dotnet, etc.). Aliases accepted.
+        path: Path to the project root, relative to the repository root.
+        project_file: Override the marker file (e.g., tsconfig.json).
+        enabled: Whether this project is indexed (default: True).
+        options: Extra indexer-specific options (default: empty).
+
+    YAML example:
+        ```yaml
+        - type: python
+          path: .
+        - type: typescript
+          path: frontend
+          project_file: tsconfig.json
+        ```
+    """
+
+    type: str
+    path: str = "."
+    project_file: str | None = None
+    enabled: bool = True
+    options: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("type")
+    @classmethod
+    def normalise_type(cls, v: str) -> str:
+        """Normalise type aliases to canonical names."""
+        v = v.strip().lower()
+        v = _LANGUAGE_TYPE_ALIASES.get(v, v)
+        if v not in _KNOWN_LANGUAGE_TYPES:
+            raise ValueError(
+                f"Unknown project type '{v}'. "
+                f"Known types: {', '.join(sorted(_KNOWN_LANGUAGE_TYPES))}"
+            )
+        return v
+
+
+class ProjectsConfig(BaseModel):
+    """Configuration for SCIP-indexed language projects.
+
+    Loaded from YAML or environment variables.
+    Path: projects (e.g., FS2_PROJECTS__AUTO_DISCOVER)
+
+    Attributes:
+        entries: List of project configurations.
+        auto_discover: Auto-discover projects from markers when entries is empty (default: True).
+        scip_cache_dir: Directory for cached SCIP index files (default: .fs2/scip).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        projects:
+          entries:
+            - type: python
+              path: .
+            - type: typescript
+              path: frontend
+          auto_discover: true
+          scip_cache_dir: .fs2/scip
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "projects"
+
+    entries: list[ProjectConfig] = Field(default_factory=list)
+    auto_discover: bool = True
+    scip_cache_dir: str = ".fs2/scip"
+
+
 class CrossFileRelsConfig(BaseModel):
     """Configuration for cross-file relationship extraction.
 
     Loaded from YAML or environment variables.
-    Path: cross_file_rels (e.g., FS2_CROSS_FILE_RELS__PARALLEL_INSTANCES)
+    Path: cross_file_rels (e.g., FS2_CROSS_FILE_RELS__ENABLED)
 
-    Controls Serena-powered cross-file reference resolution during scan.
-    Enabled by default when serena-mcp-server is on PATH.
+    Controls whether cross-file reference resolution runs during scan.
+    Uses SCIP indexers for offline analysis.
 
     Attributes:
         enabled: Whether cross-file relationship extraction is enabled (default: True).
-        parallel_instances: Number of parallel Serena instances (default: 2, range 1-50).
-        serena_base_port: Starting port for Serena instances (default: 8330).
-        timeout_per_node: Seconds per node before giving up (default: 5.0).
-        languages: Languages to resolve references for (default: ["python"]).
 
     YAML example:
         ```yaml
         # .fs2/config.yaml
         cross_file_rels:
           enabled: true
-          parallel_instances: 2
-          serena_base_port: 8330
-          timeout_per_node: 5.0
-          languages:
-            - python
         ```
     """
 
     __config_path__: ClassVar[str] = "cross_file_rels"
 
     enabled: bool = True
-    parallel_instances: int = 15
-    serena_base_port: int = 8330
-    timeout_per_node: float = 5.0
-    languages: list[str] = ["python"]
-
-    @field_validator("parallel_instances")
-    @classmethod
-    def validate_parallel_instances(cls, v: int) -> int:
-        """Validate parallel_instances is in 1-50 range."""
-        if v < 1 or v > 50:
-            raise ValueError("parallel_instances must be between 1 and 50")
-        return v
-
-    @field_validator("timeout_per_node")
-    @classmethod
-    def validate_timeout_per_node(cls, v: float) -> float:
-        """Validate timeout_per_node is positive."""
-        if v <= 0:
-            raise ValueError("timeout_per_node must be > 0")
-        return v
 
 
 class ReportsConfig(BaseModel):
@@ -1143,5 +1200,6 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     WatchConfig,
     OtherGraphsConfig,
     CrossFileRelsConfig,
+    ProjectsConfig,
     ReportsConfig,
 ]

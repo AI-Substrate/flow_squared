@@ -34,21 +34,16 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Project marker files for language detection (per workshop 004)
-PROJECT_MARKERS: dict[str, list[str]] = {
-    "python": ["pyproject.toml", "setup.py", "setup.cfg", "Pipfile"],
-    "typescript": ["tsconfig.json"],
-    "javascript": ["package.json"],
-    "go": ["go.mod"],
-    "rust": ["Cargo.toml"],
-    "java": ["pom.xml", "build.gradle", "build.gradle.kts"],
-}
+# Re-export project discovery for backward compatibility
+from fs2.core.services.project_discovery import (  # noqa: F401, E402
+    PROJECT_MARKERS,
+    DiscoveredProject,
+    detect_project_roots,
+)
 
-# Defaults (Phase 3 adds CrossFileRelsConfig, Phase 4 wires through context)
-DEFAULT_PARALLEL_INSTANCES = 15
-DEFAULT_BASE_PORT = 8330
-DEFAULT_TIMEOUT_PER_NODE = 30.0
+# Defaults (Phase 4 wires through config)
 DEFAULT_MICRO_BATCH_SIZE = 10
+DEFAULT_TIMEOUT_PER_NODE = 30.0
 PID_FILE_NAME = ".serena-pool.pid"
 
 
@@ -59,7 +54,7 @@ PID_FILE_NAME = ".serena-pool.pid"
 
 @dataclass(frozen=True)
 class ProjectRoot:
-    """Detected project root with its languages."""
+    """Detected project root with its languages (legacy, kept for stage use)."""
 
     path: str
     languages: list[str] = field(default_factory=list)
@@ -122,80 +117,8 @@ def is_serena_available() -> bool:
 # ---------------------------------------------------------------------------
 
 
-_SKIP_DIRS = frozenset({
-    ".venv", "venv", ".env", "env",
-    "node_modules",
-    ".git", ".hg", ".svn",
-    "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache",
-    ".tox", ".nox",
-    "site-packages",
-    "dist", "build", ".eggs",
-})
-
-
-def detect_project_roots(scan_root: str) -> list[ProjectRoot]:
-    """Detect project roots by walking for marker files.
-
-    Walks the scan_root directory tree looking for project marker files
-    (pyproject.toml, package.json, go.mod, etc.). Returns detected roots
-    sorted deepest-first so child projects match before parents.
-
-    Skips vendored/dependency directories (.venv, node_modules, etc.)
-    to avoid detecting projects inside installed packages.
-
-    Args:
-        scan_root: Root directory to scan.
-
-    Returns:
-        List of ProjectRoot with path and detected languages.
-        Sorted deepest-first.
-    """
-    root_path = Path(scan_root).resolve()
-    found: dict[str, set[str]] = {}  # path → set of languages
-
-    # Collect all marker filenames and glob patterns
-    plain_markers: dict[str, str] = {}  # filename → language
-    glob_markers: list[tuple[str, str]] = []  # (pattern, language)
-    for language, markers in PROJECT_MARKERS.items():
-        for marker in markers:
-            if "*" in marker:
-                glob_markers.append((marker, language))
-            else:
-                plain_markers[marker] = language
-
-    # Single walk with directory pruning
-    for dirpath, dirnames, filenames in os.walk(root_path):
-        # Prune vendored/dependency directories in-place
-        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
-
-        for fname in filenames:
-            if fname in plain_markers:
-                found.setdefault(dirpath, set()).add(plain_markers[fname])
-            else:
-                for pattern, language in glob_markers:
-                    if Path(fname).match(pattern):
-                        found.setdefault(dirpath, set()).add(language)
-
-    # Deduplicate: if a root is a subdirectory of another root, drop the child.
-    # The parent's LSP covers children, and child "projects" are often
-    # test fixtures or vendored code (e.g. tests/fixtures/samples/json/package.json).
-    all_paths = sorted(found.keys())
-    kept: set[str] = set()
-    for p in all_paths:
-        if not any(p.startswith(parent + os.sep) for parent in kept):
-            kept.add(p)
-
-    roots = [
-        ProjectRoot(path=p, languages=sorted(langs))
-        for p, langs in found.items()
-        if p in kept
-    ]
-    roots.sort(key=lambda r: r.path.count(os.sep), reverse=True)
-    return roots
-
-
 # ---------------------------------------------------------------------------
-# T005: Serena project auto-creation
+# Subprocess runner
 # ---------------------------------------------------------------------------
 
 

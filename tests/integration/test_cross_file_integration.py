@@ -1,6 +1,5 @@
 """Integration tests for cross-file relationship feature.
 
-Phase 4 T006: End-to-end test with FakeSerenaPool.
 Verifies the full pipeline flow: scan → CrossFileRelsStage → graph has edges → get_node shows relationships.
 
 Uses tests/fixtures/cross_file_sample/ project with known cross-file references.
@@ -19,11 +18,11 @@ from fs2.core.services.stages.cross_file_rels_stage import CrossFileRelsStage
 
 
 # ---------------------------------------------------------------------------
-# FakeSerenaPool for integration testing (no real Serena needed)
+# Helper pool for integration testing
 # ---------------------------------------------------------------------------
 
 
-class FakeSerenaPool:
+class FakePool:
     """Fake pool that produces canned edges matching cross_file_sample fixture."""
 
     def __init__(self):
@@ -54,10 +53,8 @@ class TestCrossFileRelsIntegration:
     ) -> tuple:
         """Helper: scan a project and manually inject cross-file edges.
 
-        Since FakeSerenaPool doesn't actually resolve references (it requires
-        async MCP calls), we inject edges after the stage runs. The stage
-        will skip (no serena on PATH in CI) and we manually set the edges
-        to verify downstream behavior (StorageStage, get_node, etc).
+        Injects edges after the stage runs to verify downstream behavior
+        (StorageStage, get_node, etc).
         """
         graph_path = tmp_path / "graph.pickle"
 
@@ -87,7 +84,7 @@ class TestCrossFileRelsIntegration:
         assert summary.success, f"Scan failed: {summary.errors}"
         assert summary.nodes_created > 0
 
-        # Now inject cross-file edges manually (simulating what Serena would produce)
+        # Now inject cross-file edges manually (simulating what SCIP would produce)
         all_nodes = store.get_all_nodes()
         node_ids = {n.node_id for n in all_nodes}
 

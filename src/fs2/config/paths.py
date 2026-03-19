@@ -3,7 +3,7 @@
 This module provides path helpers following XDG Base Directory spec.
 
 Per Insight #3: CWD-relative path for project; XDG for user config.
-Per Serena analysis: Use XDG_CONFIG_HOME with ~/.config fallback.
+Use XDG_CONFIG_HOME with ~/.config fallback.
 
 Functions:
     get_user_config_dir: Returns user config directory (~/.config/fs2 or XDG)

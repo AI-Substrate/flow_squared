@@ -761,39 +761,3 @@ class TestNoCrossRefsFlag:
         assert result.exit_code == 0
         graph_file = simple_project / ".fs2" / "graph.pickle"
         assert graph_file.exists(), "Graph file should be created"
-
-
-class TestCrossRefsInstancesFlag:
-    """Tests for --cross-refs-instances CLI flag.
-
-    Per Phase 3 cross-file-rels: Overrides parallel Serena instances.
-    Not wired to pipeline yet (Phase 4), but must be accepted by CLI.
-    """
-
-    def test_given_cross_refs_instances_flag_when_scan_then_exits_zero(
-        self, simple_project, monkeypatch
-    ):
-        """Flag is accepted with integer value and scan completes normally."""
-        from fs2.cli.main import app
-
-        monkeypatch.chdir(simple_project)
-        monkeypatch.setenv("NO_COLOR", "1")
-
-        result = runner.invoke(app, ["scan", "--cross-refs-instances", "5"])
-
-        assert result.exit_code == 0, f"Failed with: {result.stdout}"
-
-    def test_given_both_cross_ref_flags_when_scan_then_exits_zero(
-        self, simple_project, monkeypatch
-    ):
-        """Both flags can be used together without conflict."""
-        from fs2.cli.main import app
-
-        monkeypatch.chdir(simple_project)
-        monkeypatch.setenv("NO_COLOR", "1")
-
-        result = runner.invoke(
-            app, ["scan", "--no-cross-refs", "--cross-refs-instances", "10"]
-        )
-
-        assert result.exit_code == 0, f"Failed with: {result.stdout}"

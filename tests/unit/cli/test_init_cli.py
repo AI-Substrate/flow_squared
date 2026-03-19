@@ -562,19 +562,19 @@ class TestDefaultConfigTemplate:
 
 
 class TestInitCrossFileRelsGuidance:
-    """DYK-P3-05: DEFAULT_CONFIG includes cross-file rels guidance."""
+    """DEFAULT_CONFIG includes cross-file rels and project config guidance."""
 
-    def test_default_config_mentions_serena(self):
-        """Config template mentions Serena installation."""
+    def test_default_config_mentions_scip(self):
+        """Config template mentions SCIP indexers."""
         from fs2.cli.init import DEFAULT_CONFIG
 
-        assert "serena" in DEFAULT_CONFIG.lower()
+        assert "scip" in DEFAULT_CONFIG.lower()
 
-    def test_default_config_mentions_serena_gitignore(self):
-        """Config template warns about .serena/ gitignore."""
+    def test_default_config_mentions_projects(self):
+        """Config template shows projects section."""
         from fs2.cli.init import DEFAULT_CONFIG
 
-        assert ".serena/" in DEFAULT_CONFIG
+        assert "projects:" in DEFAULT_CONFIG
 
     def test_default_config_mentions_cross_file_rels(self):
         """Config template shows cross_file_rels section."""

@@ -101,15 +101,15 @@ flowchart TD
     end
 
     subgraph Phase3["Phase 3: Config & Discovery CLI"]
-        T000["T000: Add ruamel.yaml dep"]:::pending
-        T001["T001: ProjectConfig models"]:::pending
-        T002["T002: Serena cleanup"]:::pending
-        T003["T003: Register in YAML_CONFIG_TYPES"]:::pending
-        T004["T004: Extract detect_project_roots()"]:::pending
-        T005["T005: discover-projects CLI"]:::pending
-        T006["T006: add-project CLI"]:::pending
-        T007["T007: Register CLI commands"]:::pending
-        T008["T008: Tests"]:::pending
+        T000["T000: Add ruamel.yaml dep"]:::completed
+        T001["T001: ProjectConfig models"]:::completed
+        T002["T002: Serena cleanup"]:::completed
+        T003["T003: Register in YAML_CONFIG_TYPES"]:::completed
+        T004["T004: Extract detect_project_roots()"]:::completed
+        T005["T005: discover-projects CLI"]:::completed
+        T006["T006: add-project CLI"]:::completed
+        T007["T007: Register CLI commands"]:::completed
+        T008["T008: Tests"]:::completed
 
         T000 --> T006
         T001 --> T003
@@ -123,10 +123,10 @@ flowchart TD
     end
 
     subgraph Files["New/Modified Files"]
-        F1["config/objects.py"]:::pending
-        F2["services/project_discovery.py"]:::pending
-        F3["cli/projects.py"]:::pending
-        F4["cli/main.py"]:::pending
+        F1["config/objects.py"]:::completed
+        F2["services/project_discovery.py"]:::completed
+        F3["cli/projects.py"]:::completed
+        F4["cli/main.py"]:::completed
     end
 
     ALIASES -.->|"canonical names for validation"| T001
@@ -144,15 +144,15 @@ flowchart TD
 
 | Status | ID | Task | Domain | Path(s) | Done When | Notes |
 |--------|-----|------|--------|---------|-----------|-------|
-| [ ] | T000 | Add `ruamel.yaml` to pyproject.toml dependencies | config | `pyproject.toml` | `uv run python -c "import ruamel.yaml"` succeeds | DYK #4: needed for comment-preserving YAML writes in T006. |
-| [ ] | T001 | Add `ProjectConfig` and `ProjectsConfig` to config/objects.py | config | `src/fs2/config/objects.py` | `ProjectConfig(type, path, project_file, enabled, options)` validates; `ProjectsConfig(entries, auto_discover, scip_cache_dir)` loads from YAML `projects:` section; type field accepts aliases via validator | DYK #1: inner field is `entries` not `projects` (avoids YAML stutter). Type validation: accept same aliases as LANGUAGE_ALIASES (ts, cs, etc.) using a local set — do NOT import from scip_adapter. |
-| [ ] | T002 | Remove Serena-specific fields and references from entire codebase | config, core/services, cli, tests | `src/fs2/config/objects.py`, `src/fs2/config/paths.py`, `src/fs2/cli/init.py`, `src/fs2/cli/scan.py`, `src/fs2/cli/watch.py`, `src/fs2/core/services/pipeline_context.py`, `src/fs2/core/services/stages/cross_file_rels_stage.py`, `src/fs2/docs/cross-file-relationships.md`, `tests/unit/config/test_cross_file_rels_config.py`, `tests/unit/services/stages/test_cross_file_rels_stage.py`, `tests/unit/cli/test_init_cli.py`, `tests/unit/cli/test_scan_cli.py`, `tests/integration/test_cross_file_acceptance.py`, `tests/integration/test_cross_file_integration.py` | `CrossFileRelsConfig` has only `enabled: bool = True`; `parallel_instances`, `serena_base_port`, `timeout_per_node`, `languages` removed; ALL references across src/ and tests/ cleaned up; `.serena/` fixture dirs may remain (harmless marker files) | DYK #3: Full codebase grep found Serena refs in 14 source files + 8 fixture `.serena/project.yml` files. Config fields, CLI options, stage Serena code paths, pipeline context Serena fields, tests asserting Serena config — all must be cleaned. |
-| [ ] | T003 | Register `ProjectsConfig` in `YAML_CONFIG_TYPES` | config | `src/fs2/config/objects.py` | `ProjectsConfig` in `YAML_CONFIG_TYPES` list; config loads from YAML `projects:` section | Per finding 03. Silent load failure if not registered. |
-| [ ] | T004 | Extract `detect_project_roots()` to shared module | core/services | `src/fs2/core/services/project_discovery.py`, `src/fs2/core/services/stages/cross_file_rels_stage.py` | Function importable from `fs2.core.services.project_discovery`; stage imports from new location; `PROJECT_MARKERS` extended with C# (`.csproj`, `.sln`) and Ruby (`Gemfile`); child project dedup REMOVED; discovery returns one entry per (path, language) pair; existing stage tests updated to import from new module and expect no child dedup | DYK #2: Serena-era dedup drops child projects — wrong for SCIP. GPT-5.4 review #4: stage tests assert dedup behavior — must update those tests. GPT-5.4 review #5: split multi-language roots into separate entries (one per type). |
-| [ ] | T005 | Create `fs2 discover-projects` CLI command | cli | `src/fs2/cli/projects.py` | Runs `detect_project_roots()` on cwd; displays Rich table with #, type, path, project file, indexer status (✅/⚠️/❌); shows install instructions for missing indexers; suggests `fs2 add-project` | Per workshop 003. Check indexer with `shutil.which()`. Follow `list_graphs.py` pattern (Rich table, JSON output, stderr errors). |
-| [ ] | T006 | Create `fs2 add-project` CLI command | cli | `src/fs2/cli/projects.py` | Accepts project numbers from discover output or `--all`; uses `ruamel.yaml` to read-modify-write `.fs2/config.yaml` preserving comments; displays written entries; idempotent (re-runnable) | DYK #4: must preserve comments. Read existing config, merge entries into `projects.entries` section, write back. Handle "no projects discovered", "config doesn't exist", "project already in config" edge cases. |
-| [ ] | T007 | Register commands in main.py | cli | `src/fs2/cli/main.py` | `fs2 discover-projects` and `fs2 add-project` appear in `fs2 --help`; both work WITHOUT `fs2 init` (setup commands) | Register like `list-graphs` (no `require_init` guard). |
-| [ ] | T008 | Tests for config models + CLI commands + project discovery | tests | `tests/unit/config/test_projects_config.py`, `tests/unit/services/test_project_discovery.py`, `tests/unit/cli/test_projects_cli.py` | Pydantic validation (type aliases, defaults, required fields, entries field name); discovery (marker detection, skip dirs, NO child dedup, C#/Ruby markers); CLI output assertions; Serena field removal verified | Lightweight tests per testing strategy. Use `tmp_path` fixtures for discovery. CLI tests via typer test runner. |
+| [x] | T000 | Add `ruamel.yaml` to pyproject.toml dependencies | config | `pyproject.toml` | `uv run python -c "import ruamel.yaml"` succeeds | DYK #4: needed for comment-preserving YAML writes in T006. |
+| [x] | T001 | Add `ProjectConfig` and `ProjectsConfig` to config/objects.py | config | `src/fs2/config/objects.py` | `ProjectConfig(type, path, project_file, enabled, options)` validates; `ProjectsConfig(entries, auto_discover, scip_cache_dir)` loads from YAML `projects:` section; type field accepts aliases via validator | DYK #1: inner field is `entries` not `projects` (avoids YAML stutter). Type validation: accept same aliases as LANGUAGE_ALIASES (ts, cs, etc.) using a local set — do NOT import from scip_adapter. |
+| [x] | T002 | Remove Serena-specific fields and references from entire codebase | config, core/services, cli, tests | 14 source files + tests | `CrossFileRelsConfig` has only `enabled: bool = True`; ALL references across src/ and tests/ cleaned up | DYK #3: Full codebase grep found Serena refs in 14 source files. |
+| [x] | T003 | Register `ProjectsConfig` in `YAML_CONFIG_TYPES` | config | `src/fs2/config/objects.py` | `ProjectsConfig` in `YAML_CONFIG_TYPES` list; config loads from YAML `projects:` section | Per finding 03. |
+| [x] | T004 | Extract `detect_project_roots()` to shared module | core/services | `src/fs2/core/services/project_discovery.py`, `src/fs2/core/services/stages/cross_file_rels_stage.py` | Function importable from `fs2.core.services.project_discovery`; stage imports from new location; `PROJECT_MARKERS` extended with C# and Ruby; child project dedup REMOVED; discovery returns one entry per (path, language) pair | DYK #2: child dedup wrong for SCIP. |
+| [x] | T005 | Create `fs2 discover-projects` CLI command | cli | `src/fs2/cli/projects.py` | Rich table with #, type, path, marker, indexer status (✅/❌); install hints for missing indexers; suggests `fs2 add-project` | Per workshop 003. |
+| [x] | T006 | Create `fs2 add-project` CLI command | cli | `src/fs2/cli/projects.py` | Accepts project numbers or `--all`; uses `ruamel.yaml` for comment-preserving YAML; idempotent | DYK #4: preserves comments. |
+| [x] | T007 | Register commands in main.py | cli | `src/fs2/cli/main.py` | `fs2 discover-projects` and `fs2 add-project` appear in `fs2 --help`; no `require_init` guard | |
+| [x] | T008 | Tests for config models + CLI commands + project discovery | tests | 3 new test files | 84 tests: 22 config validation, 20 discovery, 12 CLI, 5 cross-file-rels config, 20 stage, 5 integration | |
 
 ---
 

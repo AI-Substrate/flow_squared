@@ -18,6 +18,7 @@ dependencies = [
     "pyyaml>=6.0",
     "regex>=2025.11.3",
     "rich>=13.0",
+    "ruamel-yaml>=0.18",
     "sentence-transformers>=3.0",
     "tiktoken>=0.7.0",
     "torch>=2.0",

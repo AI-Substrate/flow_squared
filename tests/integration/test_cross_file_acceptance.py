@@ -1,9 +1,9 @@
-"""Real acceptance test for cross-file relationships with actual Serena.
+"""Acceptance test for cross-file relationships with real SCIP indexers.
 
-Phase 4 T007 (AC12): Scans tests/fixtures/cross_file_sample/ with real Serena,
+Scans tests/fixtures/cross_file_sample/ with SCIP indexer,
 verifies known reference edges match actual source code imports/calls.
 
-Requires: serena-mcp-server on PATH (skip if unavailable).
+Requires: scip-python on PATH (skip if unavailable).
 Marked @pytest.mark.slow — excluded from default test run.
 """
 
@@ -18,21 +18,21 @@ from fs2.core.adapters import FileSystemScanner, TreeSitterParser
 from fs2.core.repos import NetworkXGraphStore
 from fs2.core.services import ScanPipeline
 
-SERENA_AVAILABLE = shutil.which("serena-mcp-server") is not None
+SCIP_PYTHON_AVAILABLE = shutil.which("scip-python") is not None
 
 FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "cross_file_sample"
 
 
 @pytest.mark.slow
 @pytest.mark.skipif(
-    not SERENA_AVAILABLE,
-    reason="serena-mcp-server not on PATH — install with: uv tool install serena-agent",
+    not SCIP_PYTHON_AVAILABLE,
+    reason="scip-python not on PATH — install with: npm install -g @sourcegraph/scip-python",
 )
-class TestRealSerenaAcceptance:
-    """AC12: Real Serena acceptance test — edges match actual source code."""
+class TestRealSCIPAcceptance:
+    """Acceptance test — SCIP edges match actual source code."""
 
-    def test_scan_with_real_serena_produces_reference_edges(self, tmp_path):
-        """Real Serena resolves references in cross_file_sample fixture."""
+    def test_scan_with_real_scip_produces_reference_edges(self, tmp_path):
+        """Real SCIP resolves references in cross_file_sample fixture."""
         graph_path = tmp_path / "graph.pickle"
 
         scan_config = ScanConfig(
@@ -40,11 +40,7 @@ class TestRealSerenaAcceptance:
             respect_gitignore=False,
         )
         graph_config = GraphConfig(graph_path=str(graph_path))
-        cross_file_config = CrossFileRelsConfig(
-            enabled=True,
-            parallel_instances=2,  # Small for test speed
-            timeout_per_node=15.0,
-        )
+        cross_file_config = CrossFileRelsConfig(enabled=True)
 
         config = FakeConfigurationService(scan_config, graph_config)
 

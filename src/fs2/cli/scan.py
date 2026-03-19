@@ -86,13 +86,6 @@ def scan(
             help="Force re-embedding when dimensions change (clears existing embeddings)",
         ),
     ] = False,
-    cross_refs_instances: Annotated[
-        int | None,
-        typer.Option(
-            "--cross-refs-instances",
-            help="Number of parallel Serena instances (default: 20)",
-        ),
-    ] = None,
 ) -> None:
     """Scan the codebase and build the code graph.
 
@@ -200,24 +193,14 @@ def scan(
             else:
                 console.print_warning(f"Embeddings: {embedding_status}")
 
-        # Create CrossFileRelsConfig (Phase 4 T003)
+        # Create CrossFileRelsConfig
         cross_file_rels_config = None
         if not no_cross_refs:
             from fs2.config.objects import CrossFileRelsConfig
 
             cross_file_rels_config = config.get(CrossFileRelsConfig) or CrossFileRelsConfig()
-            # CLI flag overrides config parallel_instances
-            if cross_refs_instances is not None:
-                cross_file_rels_config = CrossFileRelsConfig(
-                    enabled=cross_file_rels_config.enabled,
-                    parallel_instances=cross_refs_instances,
-                    serena_base_port=cross_file_rels_config.serena_base_port,
-                    timeout_per_node=cross_file_rels_config.timeout_per_node,
-                    languages=cross_file_rels_config.languages,
-                )
             console.print_info(
                 f"Cross-file refs: {'enabled' if cross_file_rels_config.enabled else 'disabled'}"
-                f" ({cross_file_rels_config.parallel_instances} instances)"
             )
         else:
             from fs2.config.objects import CrossFileRelsConfig

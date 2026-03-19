@@ -88,17 +88,17 @@ class PipelineContext:
     # None on first scan (no prior graph exists), dict[str, CodeNode] on subsequent scans.
     prior_nodes: "dict[str, CodeNode] | None" = None
 
-    # Prior graph reference edges for incremental cross-file resolution (Phase 3 T008).
+    # Prior graph reference edges for incremental cross-file resolution.
     # Populated by ScanPipeline.run() from existing graph before clear().
     # Each tuple: (source_node_id, target_node_id, edge_data_dict).
-    # Enables skipping Serena calls for unchanged files by reusing prior edges.
+    # Enables skipping resolution for unchanged files by reusing prior edges.
     # None on first scan.
     prior_cross_file_edges: "list[tuple[str, str, dict[str, Any]]] | None" = None
 
-    # Cross-file relationship config (Phase 4 T002).
+    # Cross-file relationship config.
     # Populated by ScanPipeline from constructor param.
-    # CrossFileRelsStage reads this for enabled, parallel_instances, etc.
-    # None when config not provided (stage skips per DYK-P4-02).
+    # CrossFileRelsStage reads this for enabled flag.
+    # None when config not provided (stage skips).
     cross_file_rels_config: "CrossFileRelsConfig | None" = None
 
     # Scan root directory (Phase 4 DYK-P4-04).

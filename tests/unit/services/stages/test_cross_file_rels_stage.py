@@ -1,10 +1,8 @@
 """Tests for CrossFileRelsStage — cross-file relationship resolution.
 
-Phase 2 Tasks: T003-T010
-Purpose: Verify Serena detection, project detection, instance pool,
-         node sharding, reference resolution, and orchestration.
+Purpose: Verify project detection, incremental resolution, and orchestration.
 
-Uses fakes over mocks per doctrine (FakeSubprocessRunner, FakeSerenaClient).
+Uses fakes over mocks per doctrine.
 """
 
 import asyncio
@@ -15,75 +13,6 @@ from typing import Any
 import pytest
 
 from fs2.core.models.code_node import CodeNode
-
-
-# ---------------------------------------------------------------------------
-# Fakes (per doctrine: fakes over mocks)
-# ---------------------------------------------------------------------------
-
-
-class FakeSubprocessRunner:
-    """Fake subprocess runner for testing."""
-
-    def __init__(self):
-        self.commands_run: list[list[str]] = []
-        self.processes_started: list[list[str]] = []
-        self.fail_run: bool = False
-
-    def run(self, cmd: list[str], **kwargs: Any):
-        self.commands_run.append(cmd)
-        if self.fail_run:
-            import subprocess
-
-            raise subprocess.CalledProcessError(1, cmd)
-
-        @dataclass
-        class FakeResult:
-            returncode: int = 0
-            stdout: str = ""
-            stderr: str = ""
-
-        return FakeResult()
-
-    def popen(self, cmd: list[str], **kwargs: Any):
-        self.processes_started.append(cmd)
-
-        @dataclass
-        class FakeProcess:
-            pid: int = 99999 + len(self.processes_started)
-
-            def poll(self):
-                return None
-
-            def wait(self, timeout=None):
-                pass
-
-            def kill(self):
-                pass
-
-        return FakeProcess()
-
-
-class FakeSerenaClient:
-    """Fake Serena MCP client for testing."""
-
-    def __init__(self):
-        self.responses: dict[str, list[dict[str, Any]]] = {}
-        self.calls: list[dict[str, str]] = []
-        self.fail_for: set[str] = set()
-
-    def set_response(self, name_path: str, refs: list[dict[str, Any]]):
-        self.responses[name_path] = refs
-
-    async def find_referencing_symbols(
-        self, name_path: str, relative_path: str, port: int
-    ) -> list[dict[str, Any]]:
-        self.calls.append(
-            {"name_path": name_path, "relative_path": relative_path, "port": str(port)}
-        )
-        if name_path in self.fail_for:
-            raise TimeoutError(f"Simulated timeout for {name_path}")
-        return self.responses.get(name_path, [])
 
 
 # ---------------------------------------------------------------------------
@@ -138,359 +67,101 @@ def make_type_node(
 
 
 # ===========================================================================
-# T003: Serena availability detection
-# ===========================================================================
-
-
-@pytest.mark.unit
-class TestSerenaAvailability:
-    """Tests for is_serena_available() (T003)."""
-
-    def test_returns_bool(self):
-        """Proves is_serena_available returns a boolean."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            is_serena_available,
-        )
-
-        result = is_serena_available()
-        assert isinstance(result, bool)
-
-    def test_detects_serena_when_on_path(self, monkeypatch):
-        """Proves detection works when serena-mcp-server is on PATH."""
-        from fs2.core.services.stages import cross_file_rels_stage
-
-        monkeypatch.setattr("shutil.which", lambda cmd: "/usr/bin/serena-mcp-server")
-        assert cross_file_rels_stage.is_serena_available() is True
-
-    def test_returns_false_when_not_on_path(self, monkeypatch):
-        """Proves False when serena-mcp-server not on PATH."""
-        from fs2.core.services.stages import cross_file_rels_stage
-
-        monkeypatch.setattr("shutil.which", lambda cmd: None)
-        assert cross_file_rels_stage.is_serena_available() is False
-
-
-# ===========================================================================
 # T004: Project detection
 # ===========================================================================
 
 
 @pytest.mark.unit
 class TestProjectDetection:
-    """Tests for detect_project_roots() (T004)."""
+    """Tests for detect_project_roots() — now in project_discovery module."""
 
     def test_detects_python_project(self, tmp_path):
         """Proves pyproject.toml triggers python project detection."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            detect_project_roots,
-        )
+        from fs2.core.services.project_discovery import detect_project_roots
 
         (tmp_path / "pyproject.toml").write_text("[build-system]")
         roots = detect_project_roots(str(tmp_path))
         assert len(roots) == 1
-        assert "python" in roots[0].languages
+        assert roots[0].language == "python"
 
     def test_detects_typescript_project(self, tmp_path):
         """Proves tsconfig.json triggers typescript detection."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            detect_project_roots,
-        )
+        from fs2.core.services.project_discovery import detect_project_roots
 
         (tmp_path / "tsconfig.json").write_text("{}")
         roots = detect_project_roots(str(tmp_path))
         assert len(roots) == 1
-        assert "typescript" in roots[0].languages
+        assert roots[0].language == "typescript"
 
-    def test_detects_multi_language_project(self, tmp_path):
-        """Proves a project with both pyproject.toml and package.json gets both languages."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            detect_project_roots,
-        )
+    def test_multi_language_produces_separate_entries(self, tmp_path):
+        """Multi-language root produces one entry per language."""
+        from fs2.core.services.project_discovery import detect_project_roots
 
         (tmp_path / "pyproject.toml").write_text("[build-system]")
         (tmp_path / "package.json").write_text("{}")
         roots = detect_project_roots(str(tmp_path))
-        assert len(roots) == 1
-        assert "python" in roots[0].languages
-        assert "javascript" in roots[0].languages
+        languages = {r.language for r in roots}
+        assert "python" in languages
+        assert "javascript" in languages
+        assert len(roots) == 2  # separate entries, not combined
 
-    def test_detects_nested_projects(self, tmp_path):
-        """Proves child projects nested under a parent root are deduplicated."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            detect_project_roots,
-        )
+    def test_nested_projects_not_deduped(self, tmp_path):
+        """Nested projects are preserved (no child dedup)."""
+        from fs2.core.services.project_discovery import detect_project_roots
 
         (tmp_path / "pyproject.toml").write_text("[build-system]")
         sub = tmp_path / "packages" / "sub"
         sub.mkdir(parents=True)
         (sub / "package.json").write_text("{}")
         roots = detect_project_roots(str(tmp_path))
-        # Parent-child dedup: only the shallowest root is kept
-        assert len(roots) == 1
-        assert roots[0].path == str(tmp_path.resolve())
+        # Both parent and child kept (no dedup)
+        assert len(roots) == 2
 
     def test_returns_empty_for_no_markers(self, tmp_path):
         """Proves empty list when no project markers found."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            detect_project_roots,
-        )
+        from fs2.core.services.project_discovery import detect_project_roots
 
         (tmp_path / "readme.txt").write_text("hello")
         roots = detect_project_roots(str(tmp_path))
         assert roots == []
 
+    def test_detects_csharp_project(self, tmp_path):
+        """Proves .csproj triggers dotnet detection (new marker)."""
+        from fs2.core.services.project_discovery import detect_project_roots
 
-# ===========================================================================
-# T005: Serena project auto-creation
-# ===========================================================================
+        (tmp_path / "MyApp.csproj").write_text("<Project/>")
+        roots = detect_project_roots(str(tmp_path))
+        assert len(roots) == 1
+        assert roots[0].language == "dotnet"
 
+    def test_detects_ruby_project(self, tmp_path):
+        """Proves Gemfile triggers ruby detection (new marker)."""
+        from fs2.core.services.project_discovery import detect_project_roots
 
-@pytest.mark.unit
-class TestSerenaProjectCreation:
-    """Tests for ensure_serena_project() (T005)."""
+        (tmp_path / "Gemfile").write_text("source 'https://rubygems.org'")
+        roots = detect_project_roots(str(tmp_path))
+        assert len(roots) == 1
+        assert roots[0].language == "ruby"
 
-    def test_creates_project_when_not_exists(self, tmp_path):
-        """Proves creates .serena/project.yml via subprocess."""
+    def test_skips_obj_directory(self, tmp_path):
+        """Proves obj/ build output is skipped."""
+        from fs2.core.services.project_discovery import detect_project_roots
+
+        obj_dir = tmp_path / "obj" / "Debug"
+        obj_dir.mkdir(parents=True)
+        (obj_dir / "MyApp.csproj").write_text("<Project/>")
+        roots = detect_project_roots(str(tmp_path))
+        assert roots == []
+
+    def test_backward_compat_import_from_stage(self, tmp_path):
+        """Proves detect_project_roots is importable from stage module."""
         from fs2.core.services.stages.cross_file_rels_stage import (
-            ensure_serena_project,
+            detect_project_roots,
         )
 
-        runner = FakeSubprocessRunner()
-        result = ensure_serena_project(str(tmp_path), runner=runner)
-        assert result is True
-        assert len(runner.commands_run) == 1
-        assert "serena" in runner.commands_run[0]
-        assert "project" in runner.commands_run[0]
-        assert "create" in runner.commands_run[0]
-
-    def test_skips_when_already_exists(self, tmp_path):
-        """Proves skips creation when .serena/project.yml exists."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            ensure_serena_project,
-        )
-
-        serena_dir = tmp_path / ".serena"
-        serena_dir.mkdir()
-        (serena_dir / "project.yml").write_text("name: test")
-
-        runner = FakeSubprocessRunner()
-        result = ensure_serena_project(str(tmp_path), runner=runner)
-        assert result is False
-        assert len(runner.commands_run) == 0
-
-    def test_handles_creation_failure(self, tmp_path):
-        """Proves handles subprocess failure gracefully."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            ensure_serena_project,
-        )
-
-        runner = FakeSubprocessRunner()
-        runner.fail_run = True
-        result = ensure_serena_project(str(tmp_path), runner=runner)
-        assert result is False
-
-
-# ===========================================================================
-# T007: Node sharding
-# ===========================================================================
-
-
-@pytest.mark.unit
-class TestNodeSharding:
-    """Tests for shard_nodes() (T007)."""
-
-    def test_distributes_nodes_round_robin(self):
-        """Proves nodes distributed evenly across ports."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            ProjectRoot,
-            shard_nodes,
-        )
-
-        nodes = [
-            make_callable_node("src/a.py", f"func{i}", f"func{i}")
-            for i in range(6)
-        ]
-        ports = [8330, 8331, 8332]
-        roots = [ProjectRoot(path="/project", languages=["python"])]
-
-        shards = shard_nodes(nodes, roots, ports)
-
-        assert len(shards) == 3
-        assert len(shards[8330]) == 2
-        assert len(shards[8331]) == 2
-        assert len(shards[8332]) == 2
-
-    def test_filters_to_callable_and_type_only(self):
-        """Proves file and block nodes are excluded."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            ProjectRoot,
-            shard_nodes,
-        )
-
-        nodes = [
-            make_file_node("src/a.py"),  # file — excluded
-            make_callable_node("src/a.py", "func", "func"),  # callable — included
-            make_type_node("src/a.py", "Cls", "Cls"),  # type — included
-        ]
-        ports = [8330]
-        roots = [ProjectRoot(path="/project", languages=["python"])]
-
-        shards = shard_nodes(nodes, roots, ports)
-        assert len(shards[8330]) == 2  # func + Cls, not file
-
-    def test_returns_empty_for_no_ports(self):
-        """Proves empty dict when no ports available."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            ProjectRoot,
-            shard_nodes,
-        )
-
-        nodes = [make_callable_node("src/a.py", "func", "func")]
-        assert shard_nodes(nodes, [], []) == {}
-
-
-# ===========================================================================
-# T008: Reference resolution
-# ===========================================================================
-
-
-@pytest.mark.unit
-class TestReferenceResolution:
-    """Tests for resolve_node_batch() and build_node_lookup() (T008)."""
-
-    def test_build_node_lookup_creates_index(self):
-        """Proves lookup index maps (file_path, qname) → node_id."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            build_node_lookup,
-        )
-
-        node = make_callable_node("src/a.py", "foo", "MyClass.foo")
-        lookup = build_node_lookup([node])
-        assert ("src/a.py", "MyClass.foo") in lookup
-        assert lookup[("src/a.py", "MyClass.foo")] == node.node_id
-
-    def test_resolve_batch_creates_edges(self):
-        """Proves resolution maps Serena refs to edge tuples."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            build_node_lookup,
-            resolve_node_batch,
-        )
-
-        target = make_callable_node("src/b.py", "target", "target")
-        source = make_callable_node("src/a.py", "caller", "caller")
-
-        node_lookup = build_node_lookup([target, source])
-        known_ids = {target.node_id, source.node_id}
-
-        client = FakeSerenaClient()
-        client.set_response("target", [
-            {"file": "src/a.py", "kind": "reference", "name_path": "caller"},
-        ])
-
-        edges = asyncio.run(
-            resolve_node_batch([target], 8330, node_lookup, known_ids, client=client)
-        )
-
-        assert len(edges) == 1
-        assert edges[0][0] == source.node_id  # source
-        assert edges[0][1] == target.node_id  # target
-        assert edges[0][2] == {"edge_type": "references"}
-
-    def test_resolve_batch_skips_unknown_refs(self):
-        """Proves refs to nodes not in graph are skipped."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            build_node_lookup,
-            resolve_node_batch,
-        )
-
-        target = make_callable_node("src/b.py", "target", "target")
-        node_lookup = build_node_lookup([target])
-        known_ids = {target.node_id}
-
-        client = FakeSerenaClient()
-        client.set_response("target", [
-            {"file": "src/stdlib.py", "kind": "import", "name_path": "os.path.join"},
-        ])
-
-        edges = asyncio.run(
-            resolve_node_batch([target], 8330, node_lookup, known_ids, client=client)
-        )
-        assert len(edges) == 0
-
-    def test_resolve_batch_handles_timeout(self):
-        """Proves timeout doesn't crash, just skips the node."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            build_node_lookup,
-            resolve_node_batch,
-        )
-
-        target = make_callable_node("src/b.py", "target", "target")
-        node_lookup = build_node_lookup([target])
-        known_ids = {target.node_id}
-
-        client = FakeSerenaClient()
-        client.fail_for.add("target")
-
-        edges = asyncio.run(
-            resolve_node_batch([target], 8330, node_lookup, known_ids, client=client)
-        )
-        assert len(edges) == 0  # Timeout, no crash
-
-    def test_resolve_batch_skips_self_references(self):
-        """Proves self-references (node referencing itself) are filtered."""
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            build_node_lookup,
-            resolve_node_batch,
-        )
-
-        target = make_callable_node("src/a.py", "recursive", "recursive")
-        node_lookup = build_node_lookup([target])
-        known_ids = {target.node_id}
-
-        client = FakeSerenaClient()
-        client.set_response("recursive", [
-            {"file": "src/a.py", "kind": "reference", "symbol": "recursive"},
-        ])
-
-        edges = asyncio.run(
-            resolve_node_batch([target], 8330, node_lookup, known_ids, client=client)
-        )
-        assert len(edges) == 0  # Self-reference filtered
-
-
-# ===========================================================================
-# T010: Graceful skip
-# ===========================================================================
-
-
-@pytest.mark.unit
-class TestGracefulSkip:
-    """Tests for graceful skip when Serena unavailable (T010)."""
-
-    def test_skips_when_serena_not_available(self, monkeypatch):
-        """Proves stage skips cleanly when serena-mcp-server not on PATH."""
-        from fs2.config.objects import CrossFileRelsConfig, ScanConfig
-        from fs2.core.services.pipeline_context import PipelineContext
-        from fs2.core.services.stages.cross_file_rels_stage import (
-            CrossFileRelsStage,
-        )
-
-        monkeypatch.setattr(
-            "fs2.core.services.stages.cross_file_rels_stage.is_serena_available",
-            lambda: False,
-        )
-
-        ctx = PipelineContext(scan_config=ScanConfig())
-        ctx.cross_file_rels_config = CrossFileRelsConfig()
-        ctx.nodes = [make_callable_node("src/a.py", "func", "func")]
-
-        stage = CrossFileRelsStage()
-        result = stage.process(ctx)
-
-        assert result.metrics["cross_file_rels_skipped"] is True
-        assert result.metrics["cross_file_rels_reason"] == "serena_not_available"
-        assert len(result.cross_file_edges) == 0
-        assert len(result.errors) == 0
+        (tmp_path / "pyproject.toml").write_text("[build-system]")
+        roots = detect_project_roots(str(tmp_path))
+        assert len(roots) >= 1
 
 
 # ===========================================================================

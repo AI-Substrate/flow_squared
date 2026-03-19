@@ -118,19 +118,22 @@ embedding:
 #     api_key: ${OPENAI_API_KEY}
 #     model: text-embedding-3-small
 
-# ─── Cross-File Relationships (LSP-powered) ──────────────────────
-# Resolves call/reference relationships between code nodes using Serena (LSP).
-# Enabled by default when serena-mcp-server is available on PATH.
-# Install: uv tool install "serena-agent @ git+https://github.com/oraios/serena.git"
-# NOTE: Add .serena/ to your project .gitignore (created at project root by Serena)
+# ─── Cross-File Relationships (SCIP-powered) ─────────────────────
+# Resolves call/reference relationships between code nodes using SCIP indexers.
+# Enabled by default. Use `fs2 discover-projects` to detect language projects,
+# then `fs2 add-project` to register them for indexing.
 #
 # cross_file_rels:
 #   enabled: true
-#   parallel_instances: 20
-#   serena_base_port: 8330
-#   timeout_per_node: 5.0
-#   languages:
-#     - python
+#
+# projects:
+#   entries:
+#     - type: python
+#       path: .
+#     - type: typescript
+#       path: frontend
+#   auto_discover: true
+#   scip_cache_dir: .fs2/scip
 """
 
 # .gitignore for .fs2 directory - ignores everything except config.yaml
