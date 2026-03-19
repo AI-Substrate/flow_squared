@@ -3,30 +3,49 @@
 **Plan**: [scip-cross-file-rels-plan.md](../../scip-cross-file-rels-plan.md)
 **Phase**: Phase 3: Config & Discovery CLI
 **Generated**: 2026-03-18
+**Updated**: 2026-03-19 (DYK analysis: Serena removal, field rename, ruamel.yaml)
 **Status**: Ready
 
 ---
 
 ## Executive Briefing
 
-**Purpose**: Add configuration models and CLI commands so users can declare, discover, and manage language projects for SCIP indexing. This bridges the gap between "where to scan files" (`scan_paths`) and "what compilable projects to index" (`projects`). Also adds the `provider` field to `CrossFileRelsConfig` so users can switch between SCIP and Serena.
+**Purpose**: Add configuration models and CLI commands so users can declare, discover, and manage language projects for SCIP indexing. Also clean up Serena-specific code — SCIP is now the only cross-file relationship provider.
 
-**What We're Building**: A new `ProjectConfig` / `ProjectsConfig` pydantic config model, a `provider` field on the existing `CrossFileRelsConfig`, extraction of `detect_project_roots()` to a shared module (currently buried in `cross_file_rels_stage.py`), and two CLI commands: `fs2 discover-projects` (lists detected projects) and `fs2 add-project` (writes to config).
+**What We're Building**:
+- `ProjectConfig` / `ProjectsConfig` pydantic config models (YAML field: `entries`, not `projects` — avoids `projects.projects` stutter)
+- Serena removal from `CrossFileRelsConfig` (strip 4 Serena-specific fields, remove provider concept)
+- Extraction of `detect_project_roots()` to shared module (remove Serena-era child dedup)
+- `fs2 discover-projects` CLI (numbered table with indexer status)
+- `fs2 add-project 1 2 3` CLI (comment-preserving YAML write via `ruamel.yaml`)
+- `ruamel.yaml` dependency for safe config modification
 
 **Goals**:
 - ✅ `ProjectConfig` and `ProjectsConfig` pydantic models with type alias validation
-- ✅ `provider` field on `CrossFileRelsConfig` (`"scip"` default, `"serena"` backward compat)
+- ✅ Serena-specific fields removed from `CrossFileRelsConfig`
 - ✅ `ProjectsConfig` registered in `YAML_CONFIG_TYPES`
-- ✅ `detect_project_roots()` extracted to shared module, extended with C# markers
+- ✅ `detect_project_roots()` extracted to shared module, child dedup removed, C#/Ruby markers added
 - ✅ `fs2 discover-projects` CLI command with indexer status display
-- ✅ `fs2 add-project` CLI command writing to `.fs2/config.yaml`
+- ✅ `fs2 add-project` CLI command with comment-preserving YAML write
 - ✅ Tests for config validation, CLI output, and project discovery
 
 **Non-Goals**:
 - ❌ Wiring SCIP into CrossFileRelsStage (Phase 4)
 - ❌ Subprocess indexer invocation (Phase 4)
 - ❌ `fs2 init` integration with project discovery (future)
-- ❌ Modifying Serena code paths (Phase 4)
+
+---
+
+## DYK Analysis Changes (2026-03-19)
+
+| DYK | Issue | Resolution |
+|-----|-------|------------|
+| #1 | `projects.projects` YAML stutter | Renamed inner field to `entries` |
+| #2 | `detect_project_roots()` drops child projects (Serena-era dedup) | Remove dedup — SCIP needs per-project indexes |
+| #3 | 4 Serena-specific fields in `CrossFileRelsConfig` | Remove entirely — SCIP is the only provider |
+| #4 | `add-project` YAML write destroys comments | Use `ruamel.yaml` for comment-preserving read-modify-write |
+
+**Net task changes**: T002 (provider field) dropped → replaced with T002 (Serena cleanup). T006 now uses `ruamel.yaml`. New dep: `ruamel.yaml` in pyproject.toml.
 
 ---
 
@@ -34,36 +53,18 @@
 
 ### Phase 1: SCIP Adapter Foundation (Complete ✅)
 
-**A. Deliverables**: SCIPAdapterBase ABC, SCIPPythonAdapter, SCIPFakeAdapter, protobuf bindings, exception hierarchy
-
-**B. Dependencies Exported**: `normalise_language()` and `LANGUAGE_ALIASES` in `scip_adapter.py` — Phase 3 config validation should NOT import these directly (config shouldn't depend on adapters); normalisation happens at consumption in the stage layer.
-
-**C. Gotchas**: Protobuf v7 strictness; `uv sync` pytest-asyncio regression (unrelated)
-
-**D. Incomplete Items**: None
-
-**E. Patterns to Follow**: Adapter file naming; exception hierarchy under `AdapterError`
+**Deliverables**: SCIPAdapterBase ABC, SCIPPythonAdapter, SCIPFakeAdapter, protobuf bindings, exception hierarchy. 39 → 61 tests after Phase 2 refactor.
 
 ### Phase 2: Multi-Language Adapters (Complete ✅)
 
-**A. Deliverables**: SCIPTypeScriptAdapter, SCIPGoAdapter, SCIPDotNetAdapter, `create_scip_adapter()` factory, `normalise_language()` function, LANGUAGE_ALIASES dict, fixture `.scip` files
+**Deliverables**: SCIPTypeScriptAdapter, SCIPGoAdapter, SCIPDotNetAdapter, `create_scip_adapter()` factory, `normalise_language()`, `LANGUAGE_ALIASES`. 111 tests.
 
-**B. Dependencies Exported**:
-- `create_scip_adapter(language: str) → SCIPAdapterBase` — factory supporting python/typescript/javascript/go/dotnet
-- `normalise_language(language: str) → str` — alias resolution (ts→typescript, cs→dotnet, etc.)
-- `LANGUAGE_ALIASES: dict[str, str]` — all known aliases and canonicals
+**Dependencies Exported**:
+- `LANGUAGE_ALIASES: dict[str, str]` — canonical names for type validation
+- `normalise_language(language: str) → str` — alias resolution
+- `create_scip_adapter(language: str) → SCIPAdapterBase` — factory
 
-**C. Gotchas**:
-- `js` normalises to `javascript` which resolves to `SCIPTypeScriptAdapter` (shared indexer)
-- Go SCIP version field is commit hash, not semver (irrelevant but notable)
-- C# `obj/` prefix is the only skip pattern needed for generated files
-
-**D. Incomplete Items**: None
-
-**E. Patterns to Follow**:
-- Template method in base class — new adapters just override `language_name()`
-- Factory uses lazy imports to avoid circular deps
-- Type aliases normalise at consumption, not in config
+**Key Decision**: Type aliases normalise at consumption (stage layer), not in config. But config CAN validate type is a known alias/canonical using a simple set — no adapter import needed.
 
 ---
 
@@ -71,18 +72,19 @@
 
 | File | Exists? | Domain Check | Notes |
 |------|---------|-------------|-------|
-| `src/fs2/config/objects.py` | ✅ exists | config | MODIFY — add `ProjectConfig`, `ProjectsConfig`; add `provider` to `CrossFileRelsConfig` |
-| `src/fs2/core/services/project_discovery.py` | ❌ create | core/services | NEW — extracted `detect_project_roots()` + extended markers |
-| `src/fs2/core/services/stages/cross_file_rels_stage.py` | ✅ exists | core/services/stages | MODIFY — import from project_discovery instead of local definition |
+| `pyproject.toml` | ✅ exists | config | MODIFY — add `ruamel.yaml` dependency |
+| `src/fs2/config/objects.py` | ✅ exists | config | MODIFY — add ProjectConfig, ProjectsConfig; clean Serena fields from CrossFileRelsConfig |
+| `src/fs2/core/services/project_discovery.py` | ❌ create | core/services | NEW — extracted detect_project_roots() + extended markers |
+| `src/fs2/core/services/stages/cross_file_rels_stage.py` | ✅ exists | core/services/stages | MODIFY — import from project_discovery; remove local detect_project_roots/PROJECT_MARKERS/_SKIP_DIRS/ProjectRoot |
 | `src/fs2/cli/projects.py` | ❌ create | cli | NEW — discover-projects + add-project commands |
 | `src/fs2/cli/main.py` | ✅ exists | cli | MODIFY — register new commands |
 | `tests/unit/config/test_projects_config.py` | ❌ create | tests | NEW — pydantic validation tests |
 | `tests/unit/services/test_project_discovery.py` | ❌ create | tests | NEW — discovery + marker tests |
 | `tests/unit/cli/test_projects_cli.py` | ❌ create | tests | NEW — CLI output tests |
 
-**Concept duplication check**: `detect_project_roots()` and `PROJECT_MARKERS` already exist in `cross_file_rels_stage.py` — must extract, not duplicate. No existing `ProjectConfig` concept in codebase. Config pattern well-established with ~15 existing models.
+**Concept duplication check**: `detect_project_roots()` and `PROJECT_MARKERS` exist in `cross_file_rels_stage.py` — extract, don't duplicate. `ProjectRoot` dataclass also moves. No existing `ProjectConfig` concept.
 
-**Harness**: No agent harness configured. Standard testing: `uv run python -m pytest`.
+**Harness**: No agent harness. Standard testing: `uv run python -m pytest`.
 
 ---
 
@@ -99,8 +101,9 @@ flowchart TD
     end
 
     subgraph Phase3["Phase 3: Config & Discovery CLI"]
+        T000["T000: Add ruamel.yaml dep"]:::pending
         T001["T001: ProjectConfig models"]:::pending
-        T002["T002: provider field"]:::pending
+        T002["T002: Serena cleanup"]:::pending
         T003["T003: Register in YAML_CONFIG_TYPES"]:::pending
         T004["T004: Extract detect_project_roots()"]:::pending
         T005["T005: discover-projects CLI"]:::pending
@@ -108,6 +111,7 @@ flowchart TD
         T007["T007: Register CLI commands"]:::pending
         T008["T008: Tests"]:::pending
 
+        T000 --> T006
         T001 --> T003
         T002 --> T003
         T004 --> T005
@@ -125,7 +129,7 @@ flowchart TD
         F4["cli/main.py"]:::pending
     end
 
-    ALIASES -.->|"consumed at stage layer"| T001
+    ALIASES -.->|"canonical names for validation"| T001
     T001 -.-> F1
     T002 -.-> F1
     T004 -.-> F2
@@ -140,64 +144,66 @@ flowchart TD
 
 | Status | ID | Task | Domain | Path(s) | Done When | Notes |
 |--------|-----|------|--------|---------|-----------|-------|
-| [ ] | T001 | Add `ProjectConfig` and `ProjectsConfig` to config/objects.py | config | `src/fs2/config/objects.py` | `ProjectConfig(type, path, project_file, enabled, options)` validates; `ProjectsConfig(projects, auto_discover, scip_cache_dir)` loads from YAML; type field accepts aliases (`ts`, `cs`, etc.) via validator | Per workshop 003. Type validation should accept aliases and normalise them — config CAN do alias resolution since the alias list is just a dict of strings, not an adapter import. Use same canonical names as LANGUAGE_ALIASES. |
-| [ ] | T002 | Add `provider` field to `CrossFileRelsConfig` | config | `src/fs2/config/objects.py` | `provider: str = "scip"` field added; `"serena"` accepted for backward compat; existing fields unchanged | Non-breaking default. Serena fields remain but are only relevant when provider="serena". |
+| [ ] | T000 | Add `ruamel.yaml` to pyproject.toml dependencies | config | `pyproject.toml` | `uv run python -c "import ruamel.yaml"` succeeds | DYK #4: needed for comment-preserving YAML writes in T006. |
+| [ ] | T001 | Add `ProjectConfig` and `ProjectsConfig` to config/objects.py | config | `src/fs2/config/objects.py` | `ProjectConfig(type, path, project_file, enabled, options)` validates; `ProjectsConfig(entries, auto_discover, scip_cache_dir)` loads from YAML `projects:` section; type field accepts aliases via validator | DYK #1: inner field is `entries` not `projects` (avoids YAML stutter). Type validation: accept same aliases as LANGUAGE_ALIASES (ts, cs, etc.) using a local set — do NOT import from scip_adapter. |
+| [ ] | T002 | Remove Serena-specific fields from `CrossFileRelsConfig` | config, core/services/stages | `src/fs2/config/objects.py`, `src/fs2/core/services/stages/cross_file_rels_stage.py`, affected tests | `CrossFileRelsConfig` has only `enabled: bool = True`; `parallel_instances`, `serena_base_port`, `timeout_per_node`, `languages` removed; all references in stage and tests cleaned up | DYK #3: Serena is being removed entirely. SCIP is the only provider. Clean up all Serena-specific code paths in the stage too if they reference these config fields. |
 | [ ] | T003 | Register `ProjectsConfig` in `YAML_CONFIG_TYPES` | config | `src/fs2/config/objects.py` | `ProjectsConfig` in `YAML_CONFIG_TYPES` list; config loads from YAML `projects:` section | Per finding 03. Silent load failure if not registered. |
-| [ ] | T004 | Extract `detect_project_roots()` to shared module | core/services | `src/fs2/core/services/project_discovery.py`, `src/fs2/core/services/stages/cross_file_rels_stage.py` | Function importable from `fs2.core.services.project_discovery`; `cross_file_rels_stage.py` imports from new location; `PROJECT_MARKERS` extended with C# (`.csproj`, `.sln`) and Ruby (`Gemfile`); existing stage tests still pass | Per finding 01. Move `detect_project_roots()`, `PROJECT_MARKERS`, `_SKIP_DIRS`, and `ProjectRoot` dataclass. Stage imports from new module. |
-| [ ] | T005 | Create `fs2 discover-projects` CLI command | cli | `src/fs2/cli/projects.py` | Runs `detect_project_roots()` on current dir; displays table with #, type, path, project file, indexer status (✅/⚠️/❌); suggests `fs2 add-project` | Per workshop 003. Check indexer availability with `shutil.which()`. Use Rich table output. Follow `list_graphs.py` pattern. |
-| [ ] | T006 | Create `fs2 add-project` CLI command | cli | `src/fs2/cli/projects.py` | Accepts project numbers from discover output or `--all`; writes `projects:` section to `.fs2/config.yaml`; displays written YAML | Per workshop 003. Read existing config, merge projects section, write back. Handle "no projects discovered" and "config doesn't exist" edge cases. |
-| [ ] | T007 | Register commands in main.py | cli | `src/fs2/cli/main.py` | `fs2 discover-projects` and `fs2 add-project` appear in `fs2 --help`; both work without `fs2 init` | These commands should NOT require init (they help with setup). Register like `list-graphs` not like `scan`. |
-| [ ] | T008 | Tests for config models + CLI commands + project discovery | tests | `tests/unit/config/test_projects_config.py`, `tests/unit/services/test_project_discovery.py`, `tests/unit/cli/test_projects_cli.py` | Pydantic validation (type aliases, defaults, required fields); discovery (marker detection, skip dirs, priority rules); CLI output assertions | Lightweight tests per testing strategy. Use `tmp_path` fixtures for discovery tests. CLI tests via typer test runner. |
+| [ ] | T004 | Extract `detect_project_roots()` to shared module | core/services | `src/fs2/core/services/project_discovery.py`, `src/fs2/core/services/stages/cross_file_rels_stage.py` | Function importable from `fs2.core.services.project_discovery`; stage imports from new location; `PROJECT_MARKERS` extended with C# (`.csproj`, `.sln`) and Ruby (`Gemfile`); child project dedup REMOVED; existing stage tests still pass | DYK #2: Serena-era dedup logic drops child projects — wrong for SCIP. Move `detect_project_roots()`, `PROJECT_MARKERS`, `_SKIP_DIRS`, `ProjectRoot` to shared module. Remove the `kept` dedup loop. |
+| [ ] | T005 | Create `fs2 discover-projects` CLI command | cli | `src/fs2/cli/projects.py` | Runs `detect_project_roots()` on cwd; displays Rich table with #, type, path, project file, indexer status (✅/⚠️/❌); shows install instructions for missing indexers; suggests `fs2 add-project` | Per workshop 003. Check indexer with `shutil.which()`. Follow `list_graphs.py` pattern (Rich table, JSON output, stderr errors). |
+| [ ] | T006 | Create `fs2 add-project` CLI command | cli | `src/fs2/cli/projects.py` | Accepts project numbers from discover output or `--all`; uses `ruamel.yaml` to read-modify-write `.fs2/config.yaml` preserving comments; displays written entries; idempotent (re-runnable) | DYK #4: must preserve comments. Read existing config, merge entries into `projects.entries` section, write back. Handle "no projects discovered", "config doesn't exist", "project already in config" edge cases. |
+| [ ] | T007 | Register commands in main.py | cli | `src/fs2/cli/main.py` | `fs2 discover-projects` and `fs2 add-project` appear in `fs2 --help`; both work WITHOUT `fs2 init` (setup commands) | Register like `list-graphs` (no `require_init` guard). |
+| [ ] | T008 | Tests for config models + CLI commands + project discovery | tests | `tests/unit/config/test_projects_config.py`, `tests/unit/services/test_project_discovery.py`, `tests/unit/cli/test_projects_cli.py` | Pydantic validation (type aliases, defaults, required fields, entries field name); discovery (marker detection, skip dirs, NO child dedup, C#/Ruby markers); CLI output assertions; Serena field removal verified | Lightweight tests per testing strategy. Use `tmp_path` fixtures for discovery. CLI tests via typer test runner. |
 
 ---
 
 ## Context Brief
 
 **Key findings from plan**:
-- **Finding 01**: `detect_project_roots()` exists in `cross_file_rels_stage.py` (lines 136-194) with `PROJECT_MARKERS` for 6 languages — extract and extend for C#, Ruby
-- **Finding 03**: Config types MUST be registered in `YAML_CONFIG_TYPES` (objects.py line 1132) or they silently don't load
+- **Finding 01**: `detect_project_roots()` in `cross_file_rels_stage.py` (lines 136-194) with 6 language markers — extract and extend
+- **Finding 03**: Config types MUST be in `YAML_CONFIG_TYPES` or silently don't load
 
 **Domain dependencies**:
-- `config`: `BaseModel` pattern with `__config_path__`, `field_validator`, `YAML_CONFIG_TYPES` registry — follow exactly
-- `cli`: `app.command()` registration in `main.py`, `require_init()` guard for commands needing config, Rich + typer pattern from `list_graphs.py`
-- `core/services/stages`: `cross_file_rels_stage.py` owns `detect_project_roots()`, `PROJECT_MARKERS`, `_SKIP_DIRS`, `ProjectRoot` — extract to shared module
+- `config`: `BaseModel` + `__config_path__` + `field_validator` + `YAML_CONFIG_TYPES` registry
+- `cli`: `app.command()` in `main.py`; `require_init()` guard (NOT used for these commands); Rich + typer from `list_graphs.py`
+- `core/services/stages`: `cross_file_rels_stage.py` owns `detect_project_roots()` — extract to shared module
 
 **Domain constraints**:
-- Config models must NOT import from `core/adapters` (dependency flow violation)
-- CLI commands delegate to services — no business logic in CLI
-- Type alias normalisation for config: use a simple dict in the config validator (NOT importing from `scip_adapter.py`)
-- `detect_project_roots()` must remain importable from both stage and CLI
+- Config models must NOT import from `core/adapters`
+- CLI delegates to services — no business logic in CLI
+- Type alias validation in config uses a local set matching LANGUAGE_ALIASES canonical names
 
-**Reusable from prior phases**:
-- `LANGUAGE_ALIASES` pattern from Phase 2 — replicate alias dict in config validator (same canonical names)
-- `list_graphs.py` CLI pattern — Rich table, JSON output, error handling
-- Workshop 003 — complete design spec for config models, CLI workflow, YAML format
+**YAML format after DYK changes**:
+```yaml
+# .fs2/config.yaml
+projects:
+  entries:                    # ← DYK #1: 'entries' not 'projects'
+    - type: python
+      path: .
+    - type: typescript
+      path: frontend
+      project_file: tsconfig.json
+  auto_discover: true         # ← default
+  scip_cache_dir: .fs2/scip   # ← default
 
-**Mermaid flow diagram** (config + discovery flow):
-```mermaid
-flowchart LR
-    A["fs2 discover-projects"] --> B["detect_project_roots()"]
-    B --> C["Display table"]
-    C --> D["fs2 add-project 1 2 3"]
-    D --> E["Write .fs2/config.yaml\nprojects: section"]
-    E --> F["fs2 scan reads\nProjectsConfig"]
+cross_file_rels:
+  enabled: true               # ← only field remaining (DYK #3)
 ```
 
-**Mermaid sequence diagram** (discover-projects CLI):
-```mermaid
-sequenceDiagram
-    participant User
-    participant CLI as discover-projects
-    participant Discovery as detect_project_roots()
-    participant FS as filesystem
+**Indexer install commands** (for discover-projects display):
+```
+python:     npm install -g @sourcegraph/scip-python
+typescript: npm install -g @sourcegraph/scip-typescript
+go:         go install github.com/sourcegraph/scip-go/cmd/scip-go@latest
+dotnet:     dotnet tool install --global scip-dotnet
+```
 
-    User->>CLI: fs2 discover-projects
-    CLI->>Discovery: detect_project_roots(cwd)
-    Discovery->>FS: os.walk() + marker matching
-    FS-->>Discovery: marker files found
-    Discovery-->>CLI: list[ProjectRoot]
-    CLI->>CLI: check indexer availability
-    CLI-->>User: Rich table with status
+**Indexer binary names** (for `shutil.which()` detection):
+```
+python:     scip-python
+typescript: scip-typescript
+javascript: scip-typescript  (shared)
+go:         scip-go
+dotnet:     scip-dotnet
 ```
 
 ---
@@ -217,19 +223,11 @@ _Populated during implementation by plan-6._
 
 ```
 docs/plans/038-scip-cross-file-rels/
-  ├── scip-cross-file-rels-spec.md
-  ├── scip-cross-file-rels-plan.md
-  ├── exploration.md
-  ├── workshops/
-  │   ├── 001-scip-language-boot.md
-  │   ├── 002-scip-cross-language-standardisation.md
-  │   ├── 003-scip-project-config.md
-  │   └── 004-scip-adapter-base-design.md
   └── tasks/
       ├── phase-1-scip-adapter-foundation/  (complete)
       ├── phase-2-multi-language-adapters/   (complete)
       └── phase-3-config-discovery-cli/
           ├── tasks.md                  ← this file
-          ├── tasks.fltplan.md          ← generated below
+          ├── tasks.fltplan.md
           └── execution.log.md          # created by plan-6
 ```
