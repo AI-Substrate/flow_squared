@@ -75,7 +75,7 @@ stateDiagram-v2
 
 - [ ] **Stage 0: Add ruamel.yaml dependency** — `pyproject.toml` modification, `uv sync`
 - [ ] **Stage 1: Config models** — `ProjectConfig` + `ProjectsConfig` with `entries` field (not `projects`) and type alias validation (`config/objects.py` — modify)
-- [ ] **Stage 2: Serena cleanup** — Remove `parallel_instances`, `serena_base_port`, `timeout_per_node`, `languages` from `CrossFileRelsConfig`; clean up stage + test references (`config/objects.py` + `cross_file_rels_stage.py` — modify)
+- [ ] **Stage 2: Serena cleanup** — Remove `parallel_instances`, `serena_base_port`, `timeout_per_node`, `languages` from `CrossFileRelsConfig`; clean ALL Serena references across 14 source files + tests (`config/objects.py`, `paths.py`, `cli/init.py`, `cli/scan.py`, `cli/watch.py`, `pipeline_context.py`, `cross_file_rels_stage.py`, docs, tests — full codebase)
 - [ ] **Stage 3: Register config** — Add `ProjectsConfig` to `YAML_CONFIG_TYPES` (`config/objects.py` — modify)
 - [ ] **Stage 4: Extract discovery** — Move `detect_project_roots()`, `PROJECT_MARKERS`, `_SKIP_DIRS`, `ProjectRoot` to `project_discovery.py`; remove child dedup; extend markers; update stage import (`services/project_discovery.py` — new, `stages/cross_file_rels_stage.py` — modify)
 - [ ] **Stage 5: discover-projects CLI** — Rich table showing type, path, project file, indexer status (`cli/projects.py` — new)
@@ -116,8 +116,10 @@ flowchart LR
 - [ ] AC6: `fs2 discover-projects` lists detected projects with type, path, project file, indexer status
 - [ ] AC7: `fs2 add-project 1 2 3` writes selected projects to `.fs2/config.yaml`
 - [ ] AC8: `projects` config accepts entries with type, path, project_file, enabled, options
-- [ ] AC9: Empty entries + auto_discover=true → auto-discovers from markers
 - [ ] AC13: Type aliases (ts, cs, js, csharp) normalised in project type validator
+
+_AC9 (auto_discover wiring into scan) moved to Phase 4 — Phase 3 builds config model, Phase 4 wires it._
+_AC10 (provider: serena) dropped — Serena removed entirely._
 
 ---
 

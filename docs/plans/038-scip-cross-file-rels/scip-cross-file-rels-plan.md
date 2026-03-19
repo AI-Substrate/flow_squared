@@ -126,39 +126,41 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 
 ### Phase 3: Config & Discovery CLI
 
-**Objective**: Add project configuration model and CLI commands for project discovery and config management
-**Domain**: config, cli
+**Objective**: Add project configuration model, CLI commands for project discovery, and remove Serena — SCIP is the only cross-file rels provider
+**Domain**: config, cli, core/services
 **Delivers**:
-- `ProjectConfig` and `ProjectsConfig` pydantic models
-- `provider` field on `CrossFileRelsConfig`
+- `ProjectConfig` and `ProjectsConfig` pydantic models (YAML field: `entries`)
+- Serena removal from `CrossFileRelsConfig` and all codebase references
+- `ruamel.yaml` dependency for comment-preserving config writes
 - `fs2 discover-projects` command
-- `fs2 add-project` command
-- Extract `detect_project_roots()` to shared module
+- `fs2 add-project` command (comment-preserving YAML)
+- Extract `detect_project_roots()` to shared module (remove child dedup, add C#/Ruby markers)
 **Depends on**: Phase 1
-**Key risks**: Config registration silent failure; CLI UX for edge cases
+**Key risks**: Config registration silent failure; Serena cleanup scope; CLI UX for edge cases
 
 | # | Task | Domain | Success Criteria | Notes |
 |---|------|--------|-----------------|-------|
-| 3.1 | Add `ProjectConfig` and `ProjectsConfig` to config/objects.py | config | Models validate type, path, project_file, enabled, options; type aliases normalised | Per workshop 003 |
-| 3.2 | Add `provider` field to `CrossFileRelsConfig` | config | `provider: str = "scip"` accepted; `"serena"` for backward compat | Non-breaking default |
+| 3.0 | Add `ruamel.yaml` to pyproject.toml | config | Import succeeds | DYK #4: comment-preserving YAML writes |
+| 3.1 | Add `ProjectConfig` and `ProjectsConfig` to config/objects.py | config | Models validate type, path, project_file, enabled, options; type aliases normalised; YAML field is `entries` | DYK #1: avoids `projects.projects` stutter |
+| 3.2 | Remove Serena from CrossFileRelsConfig + all codebase refs | config, stages, cli, tests | 4 Serena fields removed; all 14 source files + tests cleaned | DYK #3: Serena removed entirely |
 | 3.3 | Register `ProjectsConfig` in `YAML_CONFIG_TYPES` | config | Config loads from YAML; add registry completeness test | Per finding 03 |
-| 3.4 | Extract `detect_project_roots()` to shared module | core/services | Function importable from both CLI and stage; extend markers for C# (`.csproj`, `.sln`) | Per finding 01 |
+| 3.4 | Extract `detect_project_roots()` to shared module | core/services | Function in shared module; child dedup removed; markers extended; one entry per (path, type) | DYK #2: child dedup wrong for SCIP |
 | 3.5 | Create `fs2 discover-projects` CLI command | cli | Lists detected projects with type, path, project file, indexer status (✅/⚠️/❌) | Per workshop 003 |
-| 3.6 | Create `fs2 add-project` CLI command | cli | Writes selected projects to `.fs2/config.yaml` `projects` section | Per workshop 003 |
-| 3.7 | Register commands in main.py | cli | `fs2 discover-projects` and `fs2 add-project` appear in `fs2 --help` | Per finding 03 (CLI) |
-| 3.8 | Tests for config models + CLI commands | tests | Pydantic validation, alias normalisation, CLI output assertions | |
+| 3.6 | Create `fs2 add-project` CLI command | cli | Comment-preserving YAML write via ruamel.yaml; idempotent | DYK #4: must preserve comments |
+| 3.7 | Register commands in main.py | cli | `fs2 discover-projects` and `fs2 add-project` appear in `fs2 --help` | No require_init guard |
+| 3.8 | Tests for config models + CLI commands + discovery | tests | Pydantic validation, discovery markers, CLI output, Serena removal verified | |
 
 ---
 
-### Phase 4: Stage Integration & Migration
+### Phase 4: Stage Integration
 
-**Objective**: Wire SCIP adapters into CrossFileRelsStage, bump graph format version, ensure backward compatibility
-**Domain**: core/services/stages, core/repos
+**Objective**: Wire SCIP adapters into CrossFileRelsStage with subprocess indexer invocation and auto-discovery support
+**Domain**: core/services/stages
 **Delivers**:
-- CrossFileRelsStage routes to SCIP or Serena based on `provider` config
+- CrossFileRelsStage uses SCIP adapters (Serena removed in Phase 3)
 - SCIP indexer invocation via subprocess
-- Edge metadata: `{"edge_type": "references"}` (matches current Serena format — no ref_kind)
-- FORMAT_VERSION 1.1 → 1.2 with migration logic
+- Auto-discovery from `ProjectsConfig.auto_discover` when no explicit entries
+- Edge metadata: `{"edge_type": "references"}`
 - `.fs2/scip/` cache directory for index files
 - End-to-end integration tests
 **Depends on**: Phases 1-3
@@ -166,14 +168,15 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 
 | # | Task | Domain | Success Criteria | Notes |
 |---|------|--------|-----------------|-------|
-| 4.1 | Add SCIP provider path to CrossFileRelsStage | core/services/stages | `if provider == "scip"`: iterate projects, run indexer, parse edges | Keep Serena path intact |
+| 4.1 | Wire SCIP into CrossFileRelsStage | core/services/stages | Iterate ProjectsConfig entries, run indexer per project, parse edges | Serena path removed in Phase 3 |
 | 4.2 | Implement indexer invocation via subprocess | core/services/stages | `scip-python index .` runs, produces index.scip; errors logged gracefully | Per workshop 001 boot specs |
-| 4.3 | Wire adapter selection based on project type | core/services/stages | Python project → SCIPPythonAdapter; TypeScript → SCIPTypeScriptAdapter; etc. | Factory function or dict lookup |
-| 4.4 | Add `.fs2/scip/` cache directory management | core/services/stages | index.scip cached per project slug; re-used if source unchanged | Per spec Q6 clarification. DYK-038-03: add `.fs2/scip/` to .gitignore — binary files must not be committed |
-| 4.5 | ~~Bump FORMAT_VERSION 1.1 → 1.2~~ | ~~core/repos~~ | ~~Old graphs load with warning; `ref_kind` defaults to "unknown" for old edges~~ | **DROPPED** — no format change needed (edge format unchanged) |
-| 4.6 | ~~Add backward compat migration logic~~ | ~~core/repos~~ | ~~`.get("ref_kind", "unknown")` used everywhere; test loading v1.1 graphs~~ | **DROPPED** — no migration needed |
-| 4.7 | Integration tests: end-to-end SCIP → edges → graph | tests | Run indexer on fixture, parse index, verify edges in graph with `edge_type="references"` | Marked @pytest.mark.slow |
-| 4.8 | Update documentation (README + docs/how/) | docs | SCIP section in README; detailed guide in docs/how/ | Per spec clarification Q2 |
+| 4.3 | Wire adapter selection based on project type | core/services/stages | Use `create_scip_adapter()` factory from Phase 2 | Factory + normalise_language() |
+| 4.4 | Add `.fs2/scip/` cache directory management | core/services/stages | index.scip cached per project slug; re-used if source unchanged | DYK-038-03: add to .gitignore |
+| 4.5 | ~~Bump FORMAT_VERSION 1.1 → 1.2~~ | ~~core/repos~~ | ~~Old graphs load with warning~~ | **DROPPED** — no format change |
+| 4.6 | ~~Add backward compat migration logic~~ | ~~core/repos~~ | ~~Migration for old edges~~ | **DROPPED** — no migration needed |
+| 4.7 | Wire auto_discover: read ProjectsConfig, fall back to detect_project_roots() | core/services/stages | AC9: empty entries + auto_discover=true → discovers from markers | Moved from Phase 3 — config model built there, wiring here |
+| 4.8 | Integration tests: end-to-end SCIP → edges → graph | tests | Run indexer on fixture, parse index, verify edges in graph | Marked @pytest.mark.slow |
+| 4.9 | Update documentation (README + docs/how/) | docs | SCIP section in README; detailed guide in docs/how/ | Per spec clarification Q2 |
 
 ---
 
@@ -187,12 +190,12 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 - [ ] AC6: `fs2 discover-projects` lists detected projects with indexer status
 - [ ] AC7: `fs2 add-project 1 2 3` writes projects to config
 - [ ] AC8: `projects` config accepts type, path, project_file, enabled, options
-- [ ] AC9: Empty projects + auto_discover=true → auto-discovers from markers
-- [ ] AC10: `provider: serena` → existing Serena path (backward compat)
+- [ ] AC9: Empty entries + auto_discover=true → auto-discovers from markers
+- [x] ~~AC10~~: DROPPED — Serena removed entirely, no backward compat needed
 - [ ] AC11: Edges deduplicated — no duplicate source→target pairs
 - [ ] AC12: Local symbols, stdlib refs, self-refs filtered out
 - [ ] AC13: Type aliases (ts, cs, js, csharp) normalised to canonical names
-- [ ] AC14: ~~ref_kind~~ DROPPED — edges use `{"edge_type": "references"}` only
+- [x] ~~AC14~~: DROPPED — edges use `{"edge_type": "references"}` only
 - [ ] AC15: index.scip cached in `.fs2/scip/` for re-use
 
 ### Risks
@@ -203,5 +206,5 @@ Harness: Not applicable (user override — continue without; unit tests + fixtur
 | Symbol-to-node-id mismatch | Medium | High | Per-language unit tests; fallback to file-level edges |
 | Go import path resolution | Medium | Medium | Use go.mod module path; fall back to package-level |
 | Config silent load failure | Medium | High | Registry completeness test (finding 03) |
-| ref_kind on old graphs | ~~Medium~~ | ~~Medium~~ | **DROPPED** — no ref_kind, no format change, no migration |
-| Protobuf version conflict | Low | High | Pin `protobuf>=4.25`; test in clean venv |
+| ~~ref_kind on old graphs~~ | ~~Medium~~ | ~~Medium~~ | **DROPPED** — no ref_kind, no format change |
+| Protobuf version conflict | Low | High | Pin `protobuf>=6.0`; test in clean venv |

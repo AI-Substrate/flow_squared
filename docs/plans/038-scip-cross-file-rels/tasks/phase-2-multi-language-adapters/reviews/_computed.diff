@@ -1,0 +1,1597 @@
+diff --git a/.chainglass/data/activity-log.jsonl b/.chainglass/data/activity-log.jsonl
+index dcf4d42..dc2f898 100644
+--- a/.chainglass/data/activity-log.jsonl
++++ b/.chainglass/data/activity-log.jsonl
+@@ -2538,3 +2538,189 @@
+ {"id":"copilot:2.0","source":"copilot","label":"opus-4.6-1m (high) 111k","timestamp":"2026-03-17T00:30:05.261Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":110635,"contextWindow":1000000,"pct":11.1,"lastActivityTime":"2026-03-17T00:30:00.741Z"}}
+ {"id":"tmux:2.0","source":"tmux","label":"🤖 Removing reassembly courtesy saves","timestamp":"2026-03-17T00:30:40.744Z","meta":{"pane":"2.0","windowName":"node","session":"031-cross-file-rels-take-2"}}
+ {"id":"copilot:2.0","source":"copilot","label":"opus-4.6-1m (high) 112k","timestamp":"2026-03-17T00:30:53.958Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":111799,"contextWindow":1000000,"pct":11.2,"lastActivityTime":"2026-03-17T00:30:47.516Z"}}
++{"id":"tmux:2.0","source":"tmux","label":"Benchmark FastCode Embeddings","timestamp":"2026-03-17T00:31:10.750Z","meta":{"pane":"2.0","windowName":"node","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:2.0","source":"copilot","label":"opus-4.6-1m (high) 113k","timestamp":"2026-03-17T00:31:23.959Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":112636,"contextWindow":1000000,"pct":11.3,"lastActivityTime":"2026-03-17T00:31:09.810Z"}}
++{"id":"copilot:2.0","source":"copilot","label":"opus-4.6-1m (high) 110k","timestamp":"2026-03-17T00:32:53.971Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":110414,"contextWindow":1000000,"pct":11,"lastActivityTime":"2026-03-17T00:32:51.957Z"}}
++{"id":"tmux:2.0","source":"tmux","label":"🤖 Investigating HF Hub connection","timestamp":"2026-03-17T00:33:00.756Z","meta":{"pane":"2.0","windowName":"node","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:2.0","source":"copilot","label":"opus-4.6-1m (high) 48k","timestamp":"2026-03-17T00:33:05.259Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":48120,"contextWindow":1000000,"pct":4.8,"lastActivityTime":"2026-03-17T00:33:00.721Z"}}
++{"id":"copilot:2.0","source":"copilot","label":"opus-4.6-1m (high) 51k","timestamp":"2026-03-17T00:33:23.971Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":51253,"contextWindow":1000000,"pct":5.1,"lastActivityTime":"2026-03-17T00:33:05.431Z"}}
++{"id":"copilot:2.0","source":"copilot","label":"haiku-4.5 (high) 52k","timestamp":"2026-03-17T00:33:35.285Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-haiku-4.5","reasoningEffort":"high","promptTokens":52316,"contextWindow":200000,"pct":26.2,"lastActivityTime":"2026-03-17T00:33:32.196Z"}}
++{"id":"copilot:2.0","source":"copilot","label":"haiku-4.5 (high) 21k","timestamp":"2026-03-17T00:33:53.966Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-haiku-4.5","reasoningEffort":"high","promptTokens":20828,"contextWindow":200000,"pct":10.4,"lastActivityTime":"2026-03-17T00:33:50.363Z"}}
++{"id":"copilot:2.0","source":"copilot","label":"haiku-4.5 (high) 28k","timestamp":"2026-03-17T00:34:05.265Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-haiku-4.5","reasoningEffort":"high","promptTokens":28179,"contextWindow":200000,"pct":14.1,"lastActivityTime":"2026-03-17T00:34:04.586Z"}}
++{"id":"copilot:2.0","source":"copilot","label":"haiku-4.5 (high) 32k","timestamp":"2026-03-17T00:34:23.952Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-haiku-4.5","reasoningEffort":"high","promptTokens":32333,"contextWindow":200000,"pct":16.2,"lastActivityTime":"2026-03-17T00:34:15.307Z"}}
++{"id":"copilot:2.0","source":"copilot","label":"haiku-4.5 (high) 35k","timestamp":"2026-03-17T00:34:53.951Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-haiku-4.5","reasoningEffort":"high","promptTokens":34913,"contextWindow":200000,"pct":17.5,"lastActivityTime":"2026-03-17T00:34:51.106Z"}}
++{"id":"copilot:2.0","source":"copilot","label":"opus-4.6-1m (high) 55k","timestamp":"2026-03-17T00:35:05.266Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":55174,"contextWindow":1000000,"pct":5.5,"lastActivityTime":"2026-03-17T00:35:01.274Z"}}
++{"id":"tmux:2.0","source":"tmux","label":"🤖 Fixing HF Hub offline loading","timestamp":"2026-03-17T00:35:10.766Z","meta":{"pane":"2.0","windowName":"node","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:2.0","source":"copilot","label":"opus-4.6-1m (high) 58k","timestamp":"2026-03-17T00:35:23.972Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":57787,"contextWindow":1000000,"pct":5.8,"lastActivityTime":"2026-03-17T00:35:22.917Z"}}
++{"id":"tmux:2.0","source":"tmux","label":"Benchmark FastCode Embeddings","timestamp":"2026-03-17T00:35:40.774Z","meta":{"pane":"2.0","windowName":"node","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:2.0","source":"copilot","label":"opus-4.6-1m (high) 59k","timestamp":"2026-03-17T00:35:53.968Z","meta":{"pane":"2.0","windowIndex":"2","windowName":"node","pid":8016,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":58696,"contextWindow":1000000,"pct":5.9,"lastActivityTime":"2026-03-17T00:35:38.979Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"GitHub Copilot","timestamp":"2026-03-17T02:56:29.159Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:0.0","source":"tmux","label":"Add Cross-File Call Edges","timestamp":"2026-03-17T02:56:39.203Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high)","timestamp":"2026-03-17T02:56:39.245Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":null,"contextWindow":1000000,"pct":null,"lastActivityTime":"2026-03-17T00:43:33.648Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"Benchmark FastCode Embeddings","timestamp":"2026-03-17T02:56:59.234Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high)","timestamp":"2026-03-17T02:57:09.306Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":null,"contextWindow":1000000,"pct":null,"lastActivityTime":"2026-03-17T00:43:33.468Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"Debug FS2 Config Issue","timestamp":"2026-03-17T02:57:49.241Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:1.0","source":"tmux","label":"🤖 Investigating search config error","timestamp":"2026-03-17T02:57:59.239Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 61k","timestamp":"2026-03-17T02:58:09.254Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":61165,"contextWindow":1000000,"pct":6.1,"lastActivityTime":"2026-03-17T02:57:56.214Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"🤖 Debugging search config loading","timestamp":"2026-03-17T02:58:39.240Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 65k","timestamp":"2026-03-17T02:58:39.267Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":65408,"contextWindow":1000000,"pct":6.5,"lastActivityTime":"2026-03-17T02:58:33.748Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"🤖 Tracing search config path","timestamp":"2026-03-17T02:58:59.241Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Running DYK analysis","timestamp":"2026-03-17T02:59:09.243Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 220k","timestamp":"2026-03-17T02:59:09.262Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":220242,"contextWindow":1000000,"pct":22,"lastActivityTime":"2026-03-17T02:59:08.496Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 73k","timestamp":"2026-03-17T02:59:09.264Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":73435,"contextWindow":1000000,"pct":7.3,"lastActivityTime":"2026-03-17T02:59:02.717Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 75k","timestamp":"2026-03-17T02:59:39.266Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":75401,"contextWindow":1000000,"pct":7.5,"lastActivityTime":"2026-03-17T02:59:31.984Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"Implement Did You Know V2","timestamp":"2026-03-17T03:00:09.253Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 228k","timestamp":"2026-03-17T03:00:09.256Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":228458,"contextWindow":1000000,"pct":22.8,"lastActivityTime":"2026-03-17T03:00:08.087Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 77k","timestamp":"2026-03-17T03:00:09.257Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":77037,"contextWindow":1000000,"pct":7.7,"lastActivityTime":"2026-03-17T02:59:54.714Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 83k","timestamp":"2026-03-17T03:00:39.248Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":83307,"contextWindow":1000000,"pct":8.3,"lastActivityTime":"2026-03-17T03:00:38.419Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 86k","timestamp":"2026-03-17T03:01:09.271Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":86196,"contextWindow":1000000,"pct":8.6,"lastActivityTime":"2026-03-17T03:00:59.493Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 87k","timestamp":"2026-03-17T03:01:39.248Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":87435,"contextWindow":1000000,"pct":8.7,"lastActivityTime":"2026-03-17T03:01:33.101Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"Debug FS2 Config Issue","timestamp":"2026-03-17T03:01:59.291Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 88k","timestamp":"2026-03-17T03:02:09.311Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":87983,"contextWindow":1000000,"pct":8.8,"lastActivityTime":"2026-03-17T03:01:53.080Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 90k","timestamp":"2026-03-17T03:05:09.252Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":89804,"contextWindow":1000000,"pct":9,"lastActivityTime":"2026-03-17T03:05:08.582Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"🤖 Pushing fix to remote","timestamp":"2026-03-17T03:05:09.302Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:1.0","source":"tmux","label":"Debug FS2 Config Issue","timestamp":"2026-03-17T03:05:39.304Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 91k","timestamp":"2026-03-17T03:05:39.307Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":91473,"contextWindow":1000000,"pct":9.1,"lastActivityTime":"2026-03-17T03:05:31.635Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 226k","timestamp":"2026-03-17T03:09:39.291Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":225608,"contextWindow":1000000,"pct":22.6,"lastActivityTime":"2026-03-17T03:09:12.070Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Updating plan for ref_kind","timestamp":"2026-03-17T06:10:10.426Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 229k","timestamp":"2026-03-17T06:10:39.696Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":228683,"contextWindow":1000000,"pct":22.9,"lastActivityTime":"2026-03-17T06:10:18.654Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 230k","timestamp":"2026-03-17T06:11:09.693Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":229658,"contextWindow":1000000,"pct":23,"lastActivityTime":"2026-03-17T06:10:46.070Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 232k","timestamp":"2026-03-17T06:11:39.690Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":231830,"contextWindow":1000000,"pct":23.2,"lastActivityTime":"2026-03-17T06:11:24.804Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 238k","timestamp":"2026-03-17T06:12:09.681Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":237717,"contextWindow":1000000,"pct":23.8,"lastActivityTime":"2026-03-17T06:12:09.285Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"Implement Did You Know V2","timestamp":"2026-03-17T06:12:30.433Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 239k","timestamp":"2026-03-17T06:12:39.700Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":238973,"contextWindow":1000000,"pct":23.9,"lastActivityTime":"2026-03-17T06:12:25.780Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"🤖 Checking watch command options","timestamp":"2026-03-17T06:24:30.513Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 94k","timestamp":"2026-03-17T06:24:39.726Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":94330,"contextWindow":1000000,"pct":9.4,"lastActivityTime":"2026-03-17T06:24:38.685Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"Debug FS2 Config Issue","timestamp":"2026-03-17T06:24:40.533Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 95k","timestamp":"2026-03-17T06:25:09.720Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":94539,"contextWindow":1000000,"pct":9.5,"lastActivityTime":"2026-03-17T06:25:04.965Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"🤖 Adding missing watch flags","timestamp":"2026-03-17T06:25:10.514Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 98k","timestamp":"2026-03-17T06:25:39.711Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":97723,"contextWindow":1000000,"pct":9.8,"lastActivityTime":"2026-03-17T06:25:31.863Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"Debug FS2 Config Issue","timestamp":"2026-03-17T06:25:50.516Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Adding DYK notes to plan","timestamp":"2026-03-17T06:29:00.536Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 242k","timestamp":"2026-03-17T06:29:09.717Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":242295,"contextWindow":1000000,"pct":24.2,"lastActivityTime":"2026-03-17T06:29:09.625Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Fixing DYK notes first","timestamp":"2026-03-17T06:29:10.536Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 243k","timestamp":"2026-03-17T06:29:39.728Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":243224,"contextWindow":1000000,"pct":24.3,"lastActivityTime":"2026-03-17T06:29:23.641Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 246k","timestamp":"2026-03-17T06:30:09.719Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":245996,"contextWindow":1000000,"pct":24.6,"lastActivityTime":"2026-03-17T06:29:59.465Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Implementing Phase 1","timestamp":"2026-03-17T06:30:20.545Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 250k","timestamp":"2026-03-17T06:30:39.743Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":249871,"contextWindow":1000000,"pct":25,"lastActivityTime":"2026-03-17T06:30:17.278Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 252k","timestamp":"2026-03-17T06:31:39.723Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":252129,"contextWindow":1000000,"pct":25.2,"lastActivityTime":"2026-03-17T06:31:36.345Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 254k","timestamp":"2026-03-17T06:32:09.741Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":253545,"contextWindow":1000000,"pct":25.4,"lastActivityTime":"2026-03-17T06:32:06.877Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 256k","timestamp":"2026-03-17T06:32:39.724Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":255540,"contextWindow":1000000,"pct":25.6,"lastActivityTime":"2026-03-17T06:32:39.087Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 260k","timestamp":"2026-03-17T06:34:09.720Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":259946,"contextWindow":1000000,"pct":26,"lastActivityTime":"2026-03-17T06:34:08.702Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 262k","timestamp":"2026-03-17T06:34:39.720Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":261522,"contextWindow":1000000,"pct":26.2,"lastActivityTime":"2026-03-17T06:34:39.363Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 267k","timestamp":"2026-03-17T06:36:09.718Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":267370,"contextWindow":1000000,"pct":26.7,"lastActivityTime":"2026-03-17T06:36:09.054Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 271k","timestamp":"2026-03-17T06:36:39.728Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":271055,"contextWindow":1000000,"pct":27.1,"lastActivityTime":"2026-03-17T06:36:32.960Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 273k","timestamp":"2026-03-17T06:37:09.736Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":272612,"contextWindow":1000000,"pct":27.3,"lastActivityTime":"2026-03-17T06:37:07.376Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 278k","timestamp":"2026-03-17T06:38:39.726Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":278024,"contextWindow":1000000,"pct":27.8,"lastActivityTime":"2026-03-17T06:38:33.398Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 279k","timestamp":"2026-03-17T06:39:09.749Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":278856,"contextWindow":1000000,"pct":27.9,"lastActivityTime":"2026-03-17T06:39:03.823Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 282k","timestamp":"2026-03-17T06:39:39.752Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":282010,"contextWindow":1000000,"pct":28.2,"lastActivityTime":"2026-03-17T06:39:38.853Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 283k","timestamp":"2026-03-17T06:40:09.763Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":282948,"contextWindow":1000000,"pct":28.3,"lastActivityTime":"2026-03-17T06:39:58.813Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"Implement Did You Know V2","timestamp":"2026-03-17T06:40:30.601Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 287k","timestamp":"2026-03-17T06:40:39.770Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":286504,"contextWindow":1000000,"pct":28.7,"lastActivityTime":"2026-03-17T06:40:25.499Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"GitHub Copilot","timestamp":"2026-03-17T06:41:50.601Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh)","timestamp":"2026-03-17T06:42:09.796Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":null,"contextWindow":200000,"pct":null,"lastActivityTime":null}}
++{"id":"tmux:3.0","source":"tmux","label":"Review Phase 1 SCIP Adapter Tasks","timestamp":"2026-03-17T06:42:30.604Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 39k","timestamp":"2026-03-17T06:42:39.787Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":38646,"contextWindow":200000,"pct":19.3,"lastActivityTime":"2026-03-17T06:42:27.207Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Reviewing phase changes","timestamp":"2026-03-17T06:42:40.603Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 49k","timestamp":"2026-03-17T06:43:09.798Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":48531,"contextWindow":200000,"pct":24.3,"lastActivityTime":"2026-03-17T06:42:54.748Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Computing phase diff","timestamp":"2026-03-17T06:43:20.606Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 60k","timestamp":"2026-03-17T06:43:39.792Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":59661,"contextWindow":200000,"pct":29.8,"lastActivityTime":"2026-03-17T06:43:22.346Z"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 78k","timestamp":"2026-03-17T06:44:09.799Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":78353,"contextWindow":200000,"pct":39.2,"lastActivityTime":"2026-03-17T06:43:52.118Z"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 84k","timestamp":"2026-03-17T06:44:39.794Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":84014,"contextWindow":200000,"pct":42,"lastActivityTime":"2026-03-17T06:44:14.660Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Validating review evidence","timestamp":"2026-03-17T06:44:50.613Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 90k","timestamp":"2026-03-17T06:45:09.806Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":90289,"contextWindow":200000,"pct":45.1,"lastActivityTime":"2026-03-17T06:44:44.714Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Running review subagents","timestamp":"2026-03-17T06:45:40.616Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Auditing phase reuse","timestamp":"2026-03-17T06:46:00.618Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"sonnet-4.5 (xhigh) 54k","timestamp":"2026-03-17T06:46:09.796Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"claude-sonnet-4.5","reasoningEffort":"xhigh","promptTokens":54080,"contextWindow":200000,"pct":27,"lastActivityTime":"2026-03-17T06:46:09.307Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Inspecting phase scope","timestamp":"2026-03-17T06:46:10.620Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Exploring existing patterns","timestamp":"2026-03-17T06:46:20.620Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Inspecting phase files","timestamp":"2026-03-17T06:46:30.622Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"sonnet-4.5 (xhigh) 69k","timestamp":"2026-03-17T06:46:39.783Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"claude-sonnet-4.5","reasoningEffort":"xhigh","promptTokens":68834,"contextWindow":200000,"pct":34.4,"lastActivityTime":"2026-03-17T06:46:39.743Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Analyzing architecture","timestamp":"2026-03-17T06:46:50.626Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Comparing repository idioms","timestamp":"2026-03-17T06:47:00.622Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"sonnet-4.5 (xhigh) 44k","timestamp":"2026-03-17T06:47:09.798Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"claude-sonnet-4.5","reasoningEffort":"xhigh","promptTokens":44487,"contextWindow":200000,"pct":22.2,"lastActivityTime":"2026-03-17T06:47:07.291Z"}}
++{"id":"copilot:3.0","source":"copilot","label":"sonnet-4.5 (xhigh) 69k","timestamp":"2026-03-17T06:47:39.801Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"claude-sonnet-4.5","reasoningEffort":"xhigh","promptTokens":68550,"contextWindow":200000,"pct":34.3,"lastActivityTime":"2026-03-17T06:47:38.704Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Cross-checking compliance","timestamp":"2026-03-17T06:47:50.628Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"haiku-4.5 (xhigh) 33k","timestamp":"2026-03-17T06:48:09.796Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"claude-haiku-4.5","reasoningEffort":"xhigh","promptTokens":32653,"contextWindow":200000,"pct":16.3,"lastActivityTime":"2026-03-17T06:48:07.395Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Inspecting dependency drift","timestamp":"2026-03-17T06:48:10.629Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Spot-checking idioms","timestamp":"2026-03-17T06:48:20.633Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Checking review results","timestamp":"2026-03-17T06:48:30.631Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 98k","timestamp":"2026-03-17T06:48:39.802Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":98481,"contextWindow":1000000,"pct":9.8,"lastActivityTime":"2026-03-17T06:25:50.500Z"}}
++{"id":"copilot:3.0","source":"copilot","label":"haiku-4.5 (xhigh) 36k","timestamp":"2026-03-17T06:48:39.803Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"claude-haiku-4.5","reasoningEffort":"xhigh","promptTokens":36056,"contextWindow":200000,"pct":18,"lastActivityTime":"2026-03-17T06:48:37.411Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"Debug FS2 Config Issue","timestamp":"2026-03-17T06:48:40.631Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"sonnet-4.5 (xhigh) 82k","timestamp":"2026-03-17T06:49:09.814Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"claude-sonnet-4.5","reasoningEffort":"xhigh","promptTokens":82412,"contextWindow":200000,"pct":41.2,"lastActivityTime":"2026-03-17T06:49:08.761Z"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 45k","timestamp":"2026-03-17T06:49:39.817Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":44752,"contextWindow":200000,"pct":22.4,"lastActivityTime":"2026-03-17T06:49:38.658Z"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 88k","timestamp":"2026-03-17T06:50:09.820Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":87874,"contextWindow":200000,"pct":43.9,"lastActivityTime":"2026-03-17T06:50:09.222Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Checking import layering","timestamp":"2026-03-17T06:50:10.640Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Checking import idioms","timestamp":"2026-03-17T06:50:20.642Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Checking package-import pattern","timestamp":"2026-03-17T06:50:30.643Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 94k","timestamp":"2026-03-17T06:50:39.814Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":94400,"contextWindow":200000,"pct":47.2,"lastActivityTime":"2026-03-17T06:50:39.629Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Reading repo guidance","timestamp":"2026-03-17T06:50:40.643Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 97k","timestamp":"2026-03-17T06:51:09.816Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":97474,"contextWindow":200000,"pct":48.7,"lastActivityTime":"2026-03-17T06:51:03.199Z"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 87k","timestamp":"2026-03-17T06:51:39.814Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":86668,"contextWindow":200000,"pct":43.3,"lastActivityTime":"2026-03-17T06:51:18.608Z"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4 (xhigh) 119k","timestamp":"2026-03-17T06:53:09.810Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":118669,"contextWindow":200000,"pct":59.3,"lastActivityTime":"2026-03-17T06:53:08.789Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"🤖 Finalizing review artifacts","timestamp":"2026-03-17T06:53:20.656Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:3.0","source":"copilot","label":"gpt-5.4-2026-03-05 (xhigh) 133k","timestamp":"2026-03-17T06:53:39.831Z","meta":{"pane":"3.0","windowIndex":"3","windowName":"r1","pid":2173,"sessionId":"a2862bca-fbd5-46eb-ba20-1619669f3e43","model":"gpt-5.4-2026-03-05","reasoningEffort":"xhigh","promptTokens":133302,"contextWindow":null,"pct":null,"lastActivityTime":"2026-03-17T06:53:32.721Z"}}
++{"id":"tmux:3.0","source":"tmux","label":"Review Phase 1 SCIP Adapter Tasks","timestamp":"2026-03-17T06:53:40.677Z","meta":{"pane":"3.0","windowName":"r1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Reviewing Phase 1 code","timestamp":"2026-03-17T07:09:50.027Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"sonnet-4.5 (xhigh) 32k","timestamp":"2026-03-17T07:10:09.867Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-sonnet-4.5","reasoningEffort":"xhigh","promptTokens":32175,"contextWindow":200000,"pct":16.1,"lastActivityTime":"2026-03-17T07:10:09.122Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Reviewing SCIP adapter commit","timestamp":"2026-03-17T07:10:10.028Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"sonnet-4.5 (xhigh) 59k","timestamp":"2026-03-17T07:10:39.860Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-sonnet-4.5","reasoningEffort":"xhigh","promptTokens":58954,"contextWindow":200000,"pct":29.5,"lastActivityTime":"2026-03-17T07:10:37.903Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"sonnet-4.5 (xhigh) 62k","timestamp":"2026-03-17T07:11:09.874Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-sonnet-4.5","reasoningEffort":"xhigh","promptTokens":61513,"contextWindow":200000,"pct":30.8,"lastActivityTime":"2026-03-17T07:11:00.325Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"sonnet-4.5 (xhigh) 71k","timestamp":"2026-03-17T07:11:39.977Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-sonnet-4.5","reasoningEffort":"xhigh","promptTokens":70601,"contextWindow":200000,"pct":35.3,"lastActivityTime":"2026-03-17T07:11:35.400Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 71k","timestamp":"2026-03-17T07:12:09.881Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":71460,"contextWindow":1000000,"pct":7.1,"lastActivityTime":"2026-03-17T07:11:59.244Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 286k","timestamp":"2026-03-17T07:12:39.869Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":286096,"contextWindow":1000000,"pct":28.6,"lastActivityTime":"2026-03-17T07:12:36.263Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"Implement Did You Know V2","timestamp":"2026-03-17T07:12:50.054Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 286k","timestamp":"2026-03-17T07:13:10.013Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":286487,"contextWindow":1000000,"pct":28.6,"lastActivityTime":"2026-03-17T07:12:43.256Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 64k","timestamp":"2026-03-17T07:24:09.913Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":64071,"contextWindow":1000000,"pct":6.4,"lastActivityTime":"2026-03-17T07:24:06.878Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Generating Phase 2 dossier","timestamp":"2026-03-17T07:24:10.184Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 93k","timestamp":"2026-03-17T07:24:39.906Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":92863,"contextWindow":1000000,"pct":9.3,"lastActivityTime":"2026-03-17T07:24:33.494Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 104k","timestamp":"2026-03-17T07:25:09.922Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":103719,"contextWindow":1000000,"pct":10.4,"lastActivityTime":"2026-03-17T07:25:02.107Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Writing Phase 2 dossier","timestamp":"2026-03-17T07:26:20.200Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 105k","timestamp":"2026-03-17T07:26:39.922Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":105076,"contextWindow":1000000,"pct":10.5,"lastActivityTime":"2026-03-17T07:26:18.806Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 109k","timestamp":"2026-03-17T07:28:09.928Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":108819,"contextWindow":1000000,"pct":10.9,"lastActivityTime":"2026-03-17T07:27:48.037Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 116k","timestamp":"2026-03-17T07:28:39.919Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":116013,"contextWindow":1000000,"pct":11.6,"lastActivityTime":"2026-03-17T07:28:37.180Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"Implement Did You Know V2","timestamp":"2026-03-17T07:28:50.219Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 117k","timestamp":"2026-03-17T07:29:10.081Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":116569,"contextWindow":1000000,"pct":11.7,"lastActivityTime":"2026-03-17T07:28:46.576Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (xhigh) 99k","timestamp":"2026-03-17T07:33:39.954Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":98699,"contextWindow":1000000,"pct":9.9,"lastActivityTime":"2026-03-17T07:33:38.295Z"}}
++{"id":"tmux:1.0","source":"tmux","label":"🤖 Checking config disable options","timestamp":"2026-03-17T07:33:40.454Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:1.0","source":"tmux","label":"Debug FS2 Config Issue","timestamp":"2026-03-17T07:34:00.456Z","meta":{"pane":"1.0","windowName":"w2","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:1.0","source":"copilot","label":"opus-4.6-1m (high) 100k","timestamp":"2026-03-17T07:34:09.935Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"w2","pid":12576,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":100212,"contextWindow":1000000,"pct":10,"lastActivityTime":"2026-03-17T07:33:58.433Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 111k","timestamp":"2026-03-17T07:40:40.276Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":111228,"contextWindow":1000000,"pct":11.1,"lastActivityTime":"2026-03-17T07:40:36.607Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 115k","timestamp":"2026-03-17T07:43:39.978Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":114599,"contextWindow":1000000,"pct":11.5,"lastActivityTime":"2026-03-17T07:43:39.658Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Analyzing Phase 2 deeply","timestamp":"2026-03-17T07:43:40.556Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:0.0","source":"tmux","label":"Implement Did You Know V2","timestamp":"2026-03-17T07:44:00.566Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 123k","timestamp":"2026-03-17T07:44:09.992Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":122934,"contextWindow":1000000,"pct":12.3,"lastActivityTime":"2026-03-17T07:43:52.011Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 120k","timestamp":"2026-03-17T07:45:39.977Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":120057,"contextWindow":1000000,"pct":12,"lastActivityTime":"2026-03-17T07:45:32.283Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 121k","timestamp":"2026-03-17T07:59:10.027Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":120923,"contextWindow":1000000,"pct":12.1,"lastActivityTime":"2026-03-17T07:59:09.753Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Creating adapter design workshop","timestamp":"2026-03-17T08:03:30.751Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 126k","timestamp":"2026-03-17T08:03:40.419Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"w1","pid":11946,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":126218,"contextWindow":1000000,"pct":12.6,"lastActivityTime":"2026-03-17T08:03:28.914Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"Implement Did You Know V2","timestamp":"2026-03-17T08:30:14.834Z","meta":{"pane":"0.0","windowName":"w1","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:0.0","source":"tmux","label":"GitHub Copilot","timestamp":"2026-03-17T08:40:18.658Z","meta":{"pane":"0.0","windowName":"node","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"gpt-5.4 (xhigh)","timestamp":"2026-03-17T08:40:28.739Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"1648b90a-b034-49c6-a85d-07c03214c11a","model":"gpt-5.4","reasoningEffort":"xhigh","promptTokens":null,"contextWindow":200000,"pct":null,"lastActivityTime":null}}
++{"id":"tmux:0.0","source":"tmux","label":"Create DidYouKnow V2 Route","timestamp":"2026-03-17T08:40:38.711Z","meta":{"pane":"0.0","windowName":"node","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 140k","timestamp":"2026-03-17T08:40:58.759Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":139854,"contextWindow":1000000,"pct":14,"lastActivityTime":"2026-03-17T08:40:51.829Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"gpt-5-mini (xhigh)","timestamp":"2026-03-17T08:40:58.760Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"node","pid":7476,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"gpt-5-mini","reasoningEffort":"xhigh","promptTokens":null,"contextWindow":128000,"pct":null,"lastActivityTime":"2026-03-17T08:30:55.732Z"}}
++{"id":"tmux:0.0","source":"tmux","label":"🤖 Implementing Phase 2 adapters","timestamp":"2026-03-17T08:41:08.710Z","meta":{"pane":"0.0","windowName":"node","session":"031-cross-file-rels-take-2"}}
++{"id":"tmux:1.0","source":"tmux","label":"Investigate FS2 Config Issue","timestamp":"2026-03-17T08:41:08.712Z","meta":{"pane":"1.0","windowName":"node","session":"031-cross-file-rels-take-2"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 145k","timestamp":"2026-03-17T08:41:28.762Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":145442,"contextWindow":1000000,"pct":14.5,"lastActivityTime":"2026-03-17T08:41:28.385Z"}}
++{"id":"copilot:1.0","source":"copilot","label":"capi-noe-ptuc-h200-ib-gpt-5-mini-2025-08-07 (xhigh) 1k","timestamp":"2026-03-17T08:41:28.763Z","meta":{"pane":"1.0","windowIndex":"1","windowName":"node","pid":7476,"sessionId":"827ff0d1-43dc-4dca-be1c-0a2ebb866798","model":"capi-noe-ptuc-h200-ib-gpt-5-mini-2025-08-07","reasoningEffort":"xhigh","promptTokens":1223,"contextWindow":null,"pct":null,"lastActivityTime":"2026-03-17T08:30:55.732Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 146k","timestamp":"2026-03-17T08:41:58.764Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":146350,"contextWindow":1000000,"pct":14.6,"lastActivityTime":"2026-03-17T08:41:43.749Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 153k","timestamp":"2026-03-17T08:43:28.777Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":153474,"contextWindow":1000000,"pct":15.3,"lastActivityTime":"2026-03-17T08:43:28.218Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 157k","timestamp":"2026-03-17T08:43:58.788Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":157250,"contextWindow":1000000,"pct":15.7,"lastActivityTime":"2026-03-17T08:43:57.034Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 159k","timestamp":"2026-03-17T08:44:28.791Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":159012,"contextWindow":1000000,"pct":15.9,"lastActivityTime":"2026-03-17T08:44:15.194Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 162k","timestamp":"2026-03-17T08:44:58.799Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":162093,"contextWindow":1000000,"pct":16.2,"lastActivityTime":"2026-03-17T08:44:58.199Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 164k","timestamp":"2026-03-17T08:45:28.793Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":163729,"contextWindow":1000000,"pct":16.4,"lastActivityTime":"2026-03-17T08:45:24.423Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 165k","timestamp":"2026-03-17T08:45:58.780Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":165037,"contextWindow":1000000,"pct":16.5,"lastActivityTime":"2026-03-17T08:45:56.840Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 166k","timestamp":"2026-03-17T08:46:28.776Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":166153,"contextWindow":1000000,"pct":16.6,"lastActivityTime":"2026-03-17T08:46:19.125Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 168k","timestamp":"2026-03-17T08:46:58.787Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":168305,"contextWindow":1000000,"pct":16.8,"lastActivityTime":"2026-03-17T08:46:58.528Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 172k","timestamp":"2026-03-17T08:47:28.783Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":171988,"contextWindow":1000000,"pct":17.2,"lastActivityTime":"2026-03-17T08:47:25.630Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 181k","timestamp":"2026-03-17T08:47:58.862Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":180625,"contextWindow":1000000,"pct":18.1,"lastActivityTime":"2026-03-17T08:47:58.122Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 182k","timestamp":"2026-03-17T08:48:28.802Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":181762,"contextWindow":1000000,"pct":18.2,"lastActivityTime":"2026-03-17T08:48:23.962Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 184k","timestamp":"2026-03-17T08:49:28.794Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":184159,"contextWindow":1000000,"pct":18.4,"lastActivityTime":"2026-03-17T08:49:11.301Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 189k","timestamp":"2026-03-17T08:49:58.779Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":189310,"contextWindow":1000000,"pct":18.9,"lastActivityTime":"2026-03-17T08:49:58.603Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 191k","timestamp":"2026-03-17T08:50:28.791Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":191020,"contextWindow":1000000,"pct":19.1,"lastActivityTime":"2026-03-17T08:50:27.949Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 192k","timestamp":"2026-03-17T08:50:58.820Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":192313,"contextWindow":1000000,"pct":19.2,"lastActivityTime":"2026-03-17T08:50:50.083Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (high) 194k","timestamp":"2026-03-17T08:51:28.784Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"high","promptTokens":194478,"contextWindow":1000000,"pct":19.4,"lastActivityTime":"2026-03-17T08:51:27.869Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 196k","timestamp":"2026-03-17T08:51:58.787Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":195909,"contextWindow":1000000,"pct":19.6,"lastActivityTime":"2026-03-17T08:51:50.494Z"}}
++{"id":"copilot:0.0","source":"copilot","label":"opus-4.6-1m (xhigh) 197k","timestamp":"2026-03-17T08:52:28.796Z","meta":{"pane":"0.0","windowIndex":"0","windowName":"node","pid":6592,"sessionId":"e3ec7387-3f20-4b29-9c22-a868ffb70b19","model":"claude-opus-4.6-1m","reasoningEffort":"xhigh","promptTokens":197302,"contextWindow":1000000,"pct":19.7,"lastActivityTime":"2026-03-17T08:52:24.923Z"}}
+diff --git a/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/execution.log.md b/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/execution.log.md
+new file mode 100644
+index 0000000..5ce8ce7
+--- /dev/null
++++ b/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/execution.log.md
+@@ -0,0 +1,62 @@
++# Phase 2: Multi-Language Adapters — Execution Log
++
++**Started**: 2026-03-17
++**Baseline**: 39 SCIP tests passed (26 base + 13 python adapter)
++
++---
++
++## Task Log
++
++### T000: Refactor SCIPAdapterBase ✅
++- Refactored `symbol_to_node_id()` from abstract → concrete template method
++- Added `_split_descriptor_segments()` — backtick-safe `/` splitting (fixes Go import paths)
++- Extracted `_fuzzy_match_node_id()` as shared lookup logic
++- Added `_extract_symbol_names()` virtual hook (default: universal parser)
++- Added `LANGUAGE_ALIASES`, `normalise_language()`, `create_scip_adapter()` at module level
++- Simplified `SCIPPythonAdapter` from ~68 lines → ~23 lines (just `language_name()`)
++- Simplified `SCIPFakeAdapter` — removed redundant `symbol_to_node_id()` override
++- Added 22 new tests: descriptor splitting, fuzzy match, language normalisation
++- All 61 tests pass (39 existing + 22 new), lint clean
++
++### T001: Generate fixture .scip files + deep inspection ✅
++- Generated `scripts/scip/fixtures/typescript/index.scip` (10534 bytes, 3 docs)
++- Generated `scripts/scip/fixtures/go/index.scip` (18646 bytes, 3 docs)
++- Generated `scripts/scip/fixtures/dotnet/index.scip` (10860 bytes, 6 docs)
++- **TS format confirmed**: `scip-typescript npm . . \`file.ts\`/Class#method().` — no slashes in backticks
++- **Go format confirmed**: `scip-go gomod mod hash \`import/path\`/Type#Method().` — slashes IN backticks, fixed by T000
++- **C# format confirmed**: `scip-dotnet nuget . . Namespace/Class#Method().` — no backticks at all
++- **C# generated docs identified**: all 3 under `obj/Debug/net8.0/` (GlobalUsings.g.cs, AssemblyAttributes.cs, AssemblyInfo.cs)
++- Cross-file edges verified in all 3 indexes via scip print + Python inspection
++
++### T002: SCIPTypeScriptAdapter ✅
++- Created `scip_adapter_typescript.py` — 28 lines (just `language_name()`, inherits template)
++- Created `test_scip_adapter_typescript.py` — 8 unit tests + 6 integration tests
++- All 14 tests pass including fixture integration (handler→service, service→model edges)
++
++### T003: SCIPGoAdapter ✅
++- Created `scip_adapter_go.py` — 30 lines (just `language_name()`, inherits template)
++- Created `test_scip_adapter_go.py` — 9 unit tests + 6 integration tests
++- All 15 tests pass including fixture integration (main→service, service→model edges)
++- Go import paths with slashes in backticks handled correctly by T000's `_split_descriptor_segments()`
++
++### T004: SCIPDotNetAdapter ✅
++- Created `scip_adapter_dotnet.py` — 38 lines (language_name + should_skip_document with obj/ prefix filter)
++- Created `test_scip_adapter_dotnet.py` — 7 unit tests + 4 doc filter tests + 7 integration tests
++- All 18 tests pass including fixture integration (Program→Service, Service→Model edges)
++- Generated files under `obj/` confirmed filtered — no spurious edges from them
++
++### T005: Type alias normalisation + factory ✅
++- `LANGUAGE_ALIASES` dict: supports 14 aliases/canonical names (ts, js, cs, csharp, py + 9 canonicals)
++- `normalise_language()`: case-insensitive, raises ValueError for unknown
++- `create_scip_adapter()`: factory with lazy imports, supports python/typescript/go/dotnet
++- All tests in T000's test additions; factory verified via manual test
++
++### T006: Integration tests ✅
++- Integration tests embedded in each test file (TestSCIP*AdapterWithFixture classes)
++- 6 integration tests per adapter × 4 adapters = 24 integration tests
++- All verify: edge extraction, edge format, cross-file edges, no self-refs, deduplication
++- C# additionally verifies generated docs don't produce edges
++
++### Full Suite
++- SCIP tests: 108/108 passed (61 base/python + 14 typescript + 15 go + 18 dotnet)
++- Lint: all clean
+diff --git a/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/tasks.fltplan.md b/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/tasks.fltplan.md
+index 9dbf3b8..cc2c6b0 100644
+--- a/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/tasks.fltplan.md
++++ b/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/tasks.fltplan.md
+@@ -3,7 +3,7 @@
+ **Plan**: [scip-cross-file-rels-plan.md](../../scip-cross-file-rels-plan.md)
+ **Phase**: Phase 2: Multi-Language Adapters
+ **Generated**: 2026-03-17
+-**Status**: Ready for takeoff
++**Status**: Landed
+ 
+ ---
+ 
+@@ -63,7 +63,7 @@ stateDiagram-v2
+     S5 --> S6
+     S6 --> [*]
+ 
+-    class S0,S1,S2,S3,S4,S5,S6 pending
++    class S0,S1,S2,S3,S4,S5,S6 done
+ ```
+ 
+ **Legend**: grey = pending | yellow = active | red = blocked/needs input | green = done
+@@ -74,13 +74,13 @@ stateDiagram-v2
+ 
+ <!-- Updated by /plan-6-v2 during implementation: [ ] → [~] → [x] -->
+ 
+-- [ ] **Stage 0: Refactor base class** — Template method for `symbol_to_node_id()`, fix `_split_descriptor_segments()` for backtick-quoted `/`, extract `_fuzzy_match_node_id()`, simplify Python adapter; all 39 existing tests must pass (`scip_adapter.py` + `scip_adapter_python.py` — modify)
+-- [ ] **Stage 1: Generate fixture .scip files + deep inspection** — Run indexers, `scip print` each, capture exact symbol formats, identify C# generated document paths (`scripts/scip/fixtures/*/index.scip`)
+-- [ ] **Stage 2: TypeScript adapter** — Create `SCIPTypeScriptAdapter` (~8 lines, inherits template method) + TDD tests (`scip_adapter_typescript.py` — new file)
+-- [ ] **Stage 3: Go adapter** — Create `SCIPGoAdapter` (~8 lines, inherits template method) + TDD tests (`scip_adapter_go.py` — new file)
+-- [ ] **Stage 4: C# adapter** — Create `SCIPDotNetAdapter` (~25 lines, + `should_skip_document()` with patterns from T001) + TDD tests (`scip_adapter_dotnet.py` — new file)
+-- [ ] **Stage 5: Type alias normalisation + factory** — Add `LANGUAGE_ALIASES`, `normalise_language()`, `create_scip_adapter()` to `scip_adapter.py` + tests (`scip_adapter.py` — modify)
+-- [ ] **Stage 6: Integration tests** — Validate all adapters against fixture .scip files; verify handler→service→model edges (`test_scip_adapter_*.py` — add integration classes)
++- [x] **Stage 0: Refactor base class** — Template method for `symbol_to_node_id()`, fix `_split_descriptor_segments()` for backtick-quoted `/`, extract `_fuzzy_match_node_id()`, simplify Python adapter; all 39 existing tests must pass (`scip_adapter.py` + `scip_adapter_python.py` — modify)
++- [x] **Stage 1: Generate fixture .scip files + deep inspection** — Run indexers, `scip print` each, capture exact symbol formats, identify C# generated document paths (`scripts/scip/fixtures/*/index.scip`)
++- [x] **Stage 2: TypeScript adapter** — Create `SCIPTypeScriptAdapter` (~8 lines, inherits template method) + TDD tests (`scip_adapter_typescript.py` — new file)
++- [x] **Stage 3: Go adapter** — Create `SCIPGoAdapter` (~8 lines, inherits template method) + TDD tests (`scip_adapter_go.py` — new file)
++- [x] **Stage 4: C# adapter** — Create `SCIPDotNetAdapter` (~25 lines, + `should_skip_document()` with patterns from T001) + TDD tests (`scip_adapter_dotnet.py` — new file)
++- [x] **Stage 5: Type alias normalisation + factory** — Add `LANGUAGE_ALIASES`, `normalise_language()`, `create_scip_adapter()` to `scip_adapter.py` + tests (`scip_adapter.py` — modify)
++- [x] **Stage 6: Integration tests** — Validate all adapters against fixture .scip files; verify handler→service→model edges (`test_scip_adapter_*.py` — add integration classes)
+ 
+ ---
+ 
+@@ -121,12 +121,12 @@ flowchart LR
+ 
+ ## Acceptance Criteria
+ 
+-- [ ] AC2: TypeScript SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
+-- [ ] AC3: Go SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
+-- [ ] AC4: C# SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
+-- [ ] AC11: Cross-file edges from all adapters are deduplicated
+-- [ ] AC12: Local symbols, stdlib refs, and self-refs filtered out across all languages
+-- [ ] AC13: Type aliases (`ts`, `cs`, `js`, `csharp`) normalised to canonical names
++- [x] AC2: TypeScript SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
++- [x] AC3: Go SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
++- [x] AC4: C# SCIP symbols map to fs2 node_ids; handler→service→model edges extracted
++- [x] AC11: Cross-file edges from all adapters are deduplicated
++- [x] AC12: Local symbols, stdlib refs, and self-refs filtered out across all languages
++- [x] AC13: Type aliases (`ts`, `cs`, `js`, `csharp`) normalised to canonical names
+ 
+ ## Goals & Non-Goals
+ 
+@@ -145,10 +145,10 @@ flowchart LR
+ 
+ ## Checklist
+ 
+-- [ ] T000: Refactor `SCIPAdapterBase` — template method + fix descriptor parsing
+-- [ ] T001: Generate fixture `.scip` index files + deep inspection
+-- [ ] T002: Create `SCIPTypeScriptAdapter` with TDD unit tests
+-- [ ] T003: Create `SCIPGoAdapter` with TDD unit tests
+-- [ ] T004: Create `SCIPDotNetAdapter` with TDD unit tests + `should_skip_document()`
+-- [ ] T005: Add type alias normalisation + adapter factory
+-- [ ] T006: Integration tests — all adapters against fixture `.scip` files
++- [x] T000: Refactor `SCIPAdapterBase` — template method + fix descriptor parsing
++- [x] T001: Generate fixture `.scip` index files + deep inspection
++- [x] T002: Create `SCIPTypeScriptAdapter` with TDD unit tests
++- [x] T003: Create `SCIPGoAdapter` with TDD unit tests
++- [x] T004: Create `SCIPDotNetAdapter` with TDD unit tests + `should_skip_document()`
++- [x] T005: Add type alias normalisation + adapter factory
++- [x] T006: Integration tests — all adapters against fixture `.scip` files
+diff --git a/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/tasks.md b/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/tasks.md
+index f2215d7..4772cf4 100644
+--- a/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/tasks.md
++++ b/docs/plans/038-scip-cross-file-rels/tasks/phase-2-multi-language-adapters/tasks.md
+@@ -147,13 +147,13 @@ flowchart TD
+ 
+ | Status | ID | Task | Domain | Path(s) | Done When | Notes |
+ |--------|-----|------|--------|---------|-----------|-------|
+-| [ ] | T000 | Refactor `SCIPAdapterBase`: template method + fix descriptor parsing | core/adapters, tests | `src/fs2/core/adapters/scip_adapter.py`, `src/fs2/core/adapters/scip_adapter_python.py`, `tests/unit/adapters/test_scip_adapter.py` | `symbol_to_node_id()` is concrete template method; `_split_descriptor_segments()` handles backtick-quoted `/`; `_fuzzy_match_node_id()` extracted as shared method; `SCIPPythonAdapter` simplified to ~8 lines; all 39 existing tests still pass | Per workshop 004: template method pattern. Fix Go-breaking `/` split bug. Move fuzzy lookup logic to base. Python adapter becomes just `language_name()`. |
+-| [ ] | T001 | Generate fixture `.scip` index files for TypeScript, Go, C# + deep inspection | fixtures | `scripts/scip/fixtures/typescript/index.scip`, `scripts/scip/fixtures/go/index.scip`, `scripts/scip/fixtures/dotnet/index.scip` | All 3 `.scip` files exist; `scip print` output inspected; symbol formats and document paths captured; C# generated file patterns identified | Run indexers, then `scip print` each. Capture EXACT symbol format per language to validate adapter assumptions. Identify ALL C# generated document paths for `should_skip_document()`. DYK-P2-02: integration tests are the REAL validation. |
+-| [ ] | T002 | Create `SCIPTypeScriptAdapter` with TDD unit tests | core/adapters, tests | `src/fs2/core/adapters/scip_adapter_typescript.py`, `tests/unit/adapters/test_scip_adapter_typescript.py` | Adapter inherits `symbol_to_node_id()` from base; just overrides `language_name()` → "typescript"; unit tests verify symbol mapping via inherited template | Per workshop 004: ~8 lines. Universal descriptor parser handles TS format. |
+-| [ ] | T003 | Create `SCIPGoAdapter` with TDD unit tests | core/adapters, tests | `src/fs2/core/adapters/scip_adapter_go.py`, `tests/unit/adapters/test_scip_adapter_go.py` | Adapter inherits `symbol_to_node_id()` from base; just overrides `language_name()` → "go"; unit tests verify Go symbols (import paths in backticks) parse correctly via fixed `_split_descriptor_segments()` | Per workshop 004: ~8 lines. T000's backtick fix makes Go work universally. |
+-| [ ] | T004 | Create `SCIPDotNetAdapter` with TDD unit tests + `should_skip_document()` | core/adapters, tests | `src/fs2/core/adapters/scip_adapter_dotnet.py`, `tests/unit/adapters/test_scip_adapter_dotnet.py` | Adapter overrides `language_name()` → "dotnet" and `should_skip_document()` filtering patterns confirmed by T001 inspection; unit tests verify skip patterns and symbol mapping | Per workshop 004: ~25 lines. Skip patterns from T001 deep inspection (not guesses). |
+-| [ ] | T005 | Add type alias normalisation + adapter factory to `scip_adapter.py` | core/adapters | `src/fs2/core/adapters/scip_adapter.py` | `LANGUAGE_ALIASES` dict, `normalise_language()` function, `create_scip_adapter()` factory; tests pass | Per workshop 004: normalise at consumption (stage layer), not in config. Factory follows `create_embedding_adapter_from_config()` pattern. |
+-| [ ] | T006 | Integration tests — all adapters against fixture `.scip` files | tests | `tests/unit/adapters/test_scip_adapter_typescript.py`, `tests/unit/adapters/test_scip_adapter_go.py`, `tests/unit/adapters/test_scip_adapter_dotnet.py` | Each adapter produces cross-file edges from its fixture; handler→service and service→model edges found; no self-refs; edges deduplicated | Add integration test class to each test file (like `TestSCIPPythonAdapterWithFixture`). Guard with `pytest.skip` if fixture not generated. |
++| [x] | T000 | Refactor `SCIPAdapterBase`: template method + fix descriptor parsing | core/adapters, tests | `src/fs2/core/adapters/scip_adapter.py`, `src/fs2/core/adapters/scip_adapter_python.py`, `tests/unit/adapters/test_scip_adapter.py` | `symbol_to_node_id()` is concrete template method; `_split_descriptor_segments()` handles backtick-quoted `/`; `_fuzzy_match_node_id()` extracted as shared method; `SCIPPythonAdapter` simplified to ~8 lines; all 39 existing tests still pass | Per workshop 004: template method pattern. Fix Go-breaking `/` split bug. Move fuzzy lookup logic to base. Python adapter becomes just `language_name()`. |
++| [x] | T001 | Generate fixture `.scip` index files for TypeScript, Go, C# + deep inspection | fixtures | `scripts/scip/fixtures/typescript/index.scip`, `scripts/scip/fixtures/go/index.scip`, `scripts/scip/fixtures/dotnet/index.scip` | All 3 `.scip` files exist; `scip print` output inspected; symbol formats and document paths captured; C# generated file patterns identified | Run indexers, then `scip print` each. Capture EXACT symbol format per language to validate adapter assumptions. Identify ALL C# generated document paths for `should_skip_document()`. DYK-P2-02: integration tests are the REAL validation. |
++| [x] | T002 | Create `SCIPTypeScriptAdapter` with TDD unit tests | core/adapters, tests | `src/fs2/core/adapters/scip_adapter_typescript.py`, `tests/unit/adapters/test_scip_adapter_typescript.py` | Adapter inherits `symbol_to_node_id()` from base; just overrides `language_name()` → "typescript"; unit tests verify symbol mapping via inherited template | Per workshop 004: ~8 lines. Universal descriptor parser handles TS format. |
++| [x] | T003 | Create `SCIPGoAdapter` with TDD unit tests | core/adapters, tests | `src/fs2/core/adapters/scip_adapter_go.py`, `tests/unit/adapters/test_scip_adapter_go.py` | Adapter inherits `symbol_to_node_id()` from base; just overrides `language_name()` → "go"; unit tests verify Go symbols (import paths in backticks) parse correctly via fixed `_split_descriptor_segments()` | Per workshop 004: ~8 lines. T000's backtick fix makes Go work universally. |
++| [x] | T004 | Create `SCIPDotNetAdapter` with TDD unit tests + `should_skip_document()` | core/adapters, tests | `src/fs2/core/adapters/scip_adapter_dotnet.py`, `tests/unit/adapters/test_scip_adapter_dotnet.py` | Adapter overrides `language_name()` → "dotnet" and `should_skip_document()` filtering patterns confirmed by T001 inspection; unit tests verify skip patterns and symbol mapping | Per workshop 004: ~25 lines. Skip patterns from T001 deep inspection (not guesses). |
++| [x] | T005 | Add type alias normalisation + adapter factory to `scip_adapter.py` | core/adapters | `src/fs2/core/adapters/scip_adapter.py` | `LANGUAGE_ALIASES` dict, `normalise_language()` function, `create_scip_adapter()` factory; tests pass | Per workshop 004: normalise at consumption (stage layer), not in config. Factory follows `create_embedding_adapter_from_config()` pattern. |
++| [x] | T006 | Integration tests — all adapters against fixture `.scip` files | tests | `tests/unit/adapters/test_scip_adapter_typescript.py`, `tests/unit/adapters/test_scip_adapter_go.py`, `tests/unit/adapters/test_scip_adapter_dotnet.py` | Each adapter produces cross-file edges from its fixture; handler→service and service→model edges found; no self-refs; edges deduplicated | Add integration test class to each test file (like `TestSCIPPythonAdapterWithFixture`). Guard with `pytest.skip` if fixture not generated. |
+ 
+ ---
+ 
+@@ -234,6 +234,10 @@ _Populated during implementation by plan-6._
+ 
+ | Date | Task | Type | Discovery | Resolution | References |
+ |------|------|------|-----------|------------|------------|
++| 2026-03-17 | T000 | insight | Template method eliminated ~75% of per-adapter code. Python adapter went from 68→23 lines; new adapters are 28-38 lines vs estimated 60-65 | Workshop 004 design validated — universal parser + fuzzy match handles all 4 languages | workshop 004, scip_adapter.py |
++| 2026-03-17 | T001 | gotcha | Go SCIP symbols contain commit hash as version (e.g. `c9daf1dc5d7c`), not a semver — changes every commit. Not relevant for us (we use the descriptor, not the version) but worth noting | No action needed — version field not used in symbol mapping | go/index.scip inspection |
++| 2026-03-17 | T001 | insight | C# generated docs ALL have `obj/` prefix — a single prefix check is sufficient (no need for `.g.cs`, `.AssemblyInfo.` pattern matching) | Used simple `_SKIP_PREFIXES = ("obj/",)` instead of complex pattern list | dotnet/index.scip inspection |
++| 2026-03-17 | T001 | insight | Go `Low.`, `Medium.`, `High.` constants use `.` suffix (field/property) not `#` (type). Our parser's `#` handling extracts them as sub-parts of Priority type via `Priority#High.` → `["Priority", "High"]` | Works correctly — the `rest.rstrip("().")` logic handles the trailing `.` | go/index.scip inspection |
+ 
+ **Types**: `gotcha` | `research-needed` | `unexpected-behavior` | `workaround` | `decision` | `debt` | `insight`
+ 
+diff --git a/scripts/scip/fixtures/dotnet/index.scip b/scripts/scip/fixtures/dotnet/index.scip
+new file mode 100644
+index 0000000..a6ad68f
+Binary files /dev/null and b/scripts/scip/fixtures/dotnet/index.scip differ
+diff --git a/scripts/scip/fixtures/go/index.scip b/scripts/scip/fixtures/go/index.scip
+new file mode 100644
+index 0000000..dfb7a53
+Binary files /dev/null and b/scripts/scip/fixtures/go/index.scip differ
+diff --git a/scripts/scip/fixtures/typescript/index.scip b/scripts/scip/fixtures/typescript/index.scip
+new file mode 100644
+index 0000000..fdff586
+Binary files /dev/null and b/scripts/scip/fixtures/typescript/index.scip differ
+diff --git a/src/fs2/core/adapters/scip_adapter.py b/src/fs2/core/adapters/scip_adapter.py
+index 015efad..5846965 100644
+--- a/src/fs2/core/adapters/scip_adapter.py
++++ b/src/fs2/core/adapters/scip_adapter.py
+@@ -2,14 +2,18 @@
+ 
+ Provides the abstract base for all SCIP language adapters. Handles
+ universal protobuf parsing, cross-file edge extraction, deduplication,
+-and filtering. Per-language subclasses only override symbol_to_node_id().
++and filtering. Per-language subclasses only need to override language_name().
+ 
+ Architecture:
+-- This file: SCIPAdapterBase ABC (contract)
++- This file: SCIPAdapterBase ABC (contract) + factory + language aliases
+ - Implementations: scip_adapter_python.py, scip_adapter_fake.py, etc.
+ - Protobuf bindings: scip_pb2.py (generated from SCIP proto schema)
+ 
+ Edge format matches current Serena output: {"edge_type": "references"}
++
++Design pattern: Template Method — symbol_to_node_id() is concrete in the
++base class; subclasses override _extract_symbol_names() only if the
++universal descriptor parser doesn't handle their language. See workshop 004.
+ """
+ 
+ from __future__ import annotations
+@@ -20,18 +24,98 @@ from pathlib import Path
+ from typing import Any
+ 
+ from fs2.core.adapters import scip_pb2
+-from fs2.core.adapters.exceptions import SCIPIndexError
++from fs2.core.adapters.exceptions import SCIPAdapterError, SCIPIndexError
+ 
+ logger = logging.getLogger(__name__)
+ 
+ 
++# ── Language aliases ──────────────────────────────────────
++
++LANGUAGE_ALIASES: dict[str, str] = {
++    "ts": "typescript",
++    "js": "javascript",
++    "cs": "dotnet",
++    "csharp": "dotnet",
++    "py": "python",
++    "python": "python",
++    "typescript": "typescript",
++    "javascript": "javascript",
++    "go": "go",
++    "dotnet": "dotnet",
++    "java": "java",
++    "rust": "rust",
++    "cpp": "cpp",
++    "ruby": "ruby",
++}
++
++
++def normalise_language(language: str) -> str:
++    """Normalise a language name/alias to its canonical form.
++
++    Args:
++        language: Language name or alias (e.g., "ts", "csharp", "python").
++
++    Returns:
++        Canonical language name (e.g., "typescript", "dotnet", "python").
++
++    Raises:
++        ValueError: If the language is not recognised.
++    """
++    canonical = LANGUAGE_ALIASES.get(language.lower())
++    if canonical is None:
++        known = sorted(set(LANGUAGE_ALIASES.values()))
++        raise ValueError(
++            f"Unknown language: {language!r}. "
++            f"Known languages: {', '.join(known)}"
++        )
++    return canonical
++
++
++def create_scip_adapter(language: str) -> SCIPAdapterBase:
++    """Create the appropriate SCIP adapter for a language.
++
++    Args:
++        language: Canonical language name (use normalise_language() first).
++
++    Returns:
++        Language-specific SCIPAdapterBase subclass instance.
++
++    Raises:
++        SCIPAdapterError: If no adapter exists for the language.
++    """
++    from fs2.core.adapters.scip_adapter_dotnet import SCIPDotNetAdapter
++    from fs2.core.adapters.scip_adapter_go import SCIPGoAdapter
++    from fs2.core.adapters.scip_adapter_python import SCIPPythonAdapter
++    from fs2.core.adapters.scip_adapter_typescript import SCIPTypeScriptAdapter
++
++    adapters: dict[str, type[SCIPAdapterBase]] = {
++        "python": SCIPPythonAdapter,
++        "typescript": SCIPTypeScriptAdapter,
++        "go": SCIPGoAdapter,
++        "dotnet": SCIPDotNetAdapter,
++    }
++
++    adapter_cls = adapters.get(language)
++    if adapter_cls is None:
++        supported = ", ".join(sorted(adapters.keys()))
++        raise SCIPAdapterError(
++            f"No SCIP adapter for language: {language!r}. "
++            f"Supported: {supported}. "
++            f"Install the SCIP indexer and add adapter support."
++        )
++    return adapter_cls()
++
++
+ class SCIPAdapterBase(ABC):
+     """Abstract base for SCIP language adapters.
+ 
+-    Subclasses override:
+-    1. language_name() — return language identifier (e.g., "python")
+-    2. symbol_to_node_id() — map SCIP symbol to fs2 node_id
+-    3. should_skip_document() — optionally filter generated files
++    Subclasses MUST override:
++    1. language_name() — return language identifier
++
++    Subclasses MAY override:
++    2. _extract_symbol_names() — custom descriptor-to-name-parts logic
++    3. should_skip_document() — filter generated/unwanted files
++    4. symbol_to_node_id() — entirely custom mapping (rarely needed)
+     """
+ 
+     # ── Public API ─────────────────────────────────────────
+@@ -53,28 +137,52 @@ class SCIPAdapterBase(ABC):
+         deduped = self._deduplicate(mapped_edges)
+         return deduped
+ 
+-    # ── Abstract methods (per-language) ────────────────────
++    # ── Abstract methods (MUST override) ──────────────────
+ 
+     @abstractmethod
+     def language_name(self) -> str:
+         """Return the language identifier (e.g., 'python', 'typescript')."""
+         ...
+ 
+-    @abstractmethod
++    # ── Template method: symbol_to_node_id ────────────────
++
+     def symbol_to_node_id(
+         self, symbol: str, file_path: str, known_node_ids: set[str]
+     ) -> str | None:
+         """Map a SCIP symbol + file to an fs2 node_id.
+ 
+-        Args:
+-            symbol: Full SCIP symbol string.
+-            file_path: Document relative path where the symbol is defined.
+-            known_node_ids: Set of valid fs2 node_ids to match against.
++        Template method: parses symbol, extracts names, fuzzy-matches.
++        Override _extract_symbol_names() for custom descriptor parsing.
++        Override this entirely for fundamentally different mapping.
++        """
++        parsed = self.parse_symbol(symbol)
++        if not parsed:
++            return None
++
++        name_parts = self._extract_symbol_names(parsed["descriptor"])
++        if not name_parts:
++            return None
+ 
+-        Returns:
+-            Matching fs2 node_id, or None if unmappable.
++        return self._fuzzy_match_node_id(name_parts, file_path, known_node_ids)
++
++    # ── Virtual hooks (MAY override) ──────────────────────
++
++    def _extract_symbol_names(self, descriptor: str) -> list[str]:
++        """Extract symbol name parts from a SCIP descriptor.
++
++        Default uses the universal extract_name_from_descriptor() which
++        handles all known languages (Python, TypeScript, Go, C#).
++        Override for languages with fundamentally different descriptor formats.
+         """
+-        ...
++        return self.extract_name_from_descriptor(descriptor)
++
++    def should_skip_document(self, doc: scip_pb2.Document) -> bool:
++        """Override to skip generated/unwanted documents.
++
++        Default: skip nothing. C# overrides to skip
++        GlobalUsings.g.cs and similar generated files.
++        """
++        return False
+ 
+     # ── Protobuf parsing (universal) ──────────────────────
+ 
+@@ -182,27 +290,50 @@ class SCIPAdapterBase(ABC):
+ 
+         Tries the symbol first (more precise), falls back to file node.
+         """
+-        # Try mapping the referencing symbol itself
+         source_id = self.symbol_to_node_id(symbol, file_path, known_node_ids)
+         if source_id:
+             return source_id
+ 
+-        # Fall back to file-level node
+         file_node = f"file:{file_path}"
+         if file_node in known_node_ids:
+             return file_node
+ 
+         return None
+ 
+-    # ── Filtering ─────────────────────────────────────────
++    # ── Fuzzy match (shared lookup logic) ─────────────────
+ 
+-    def should_skip_document(self, doc: scip_pb2.Document) -> bool:
+-        """Override to skip generated/unwanted documents.
++    def _fuzzy_match_node_id(
++        self,
++        name_parts: list[str],
++        file_path: str,
++        known_node_ids: set[str],
++    ) -> str | None:
++        """Try multiple category prefixes, then shorter names, then file-level.
+ 
+-        Default: skip nothing. C# overrides to skip
+-        GlobalUsings.g.cs and similar generated files.
++        Lookup order:
++        1. callable:path:Full.Name, class:path:Full.Name, type:path:Full.Name
++        2. callable:path:ShortName (drop first part), etc.
++        3. file:path (file-level fallback)
+         """
+-        return False
++        symbol_name = ".".join(name_parts)
++
++        for category in ("callable", "class", "type"):
++            candidate = f"{category}:{file_path}:{symbol_name}"
++            if candidate in known_node_ids:
++                return candidate
++
++        if len(name_parts) > 1:
++            short_name = ".".join(name_parts[1:])
++            for category in ("callable", "class", "type"):
++                candidate = f"{category}:{file_path}:{short_name}"
++                if candidate in known_node_ids:
++                    return candidate
++
++        file_node = f"file:{file_path}"
++        if file_node in known_node_ids:
++            return file_node
++
++        return None
+ 
+     # ── Deduplication ─────────────────────────────────────
+ 
+@@ -241,16 +372,58 @@ class SCIPAdapterBase(ABC):
+             "descriptor": parts[4],
+         }
+ 
++    @staticmethod
++    def _split_descriptor_segments(descriptor: str) -> list[str]:
++        """Split SCIP descriptor by / while respecting backtick quoting.
++
++        Backtick-quoted segments can contain / (e.g. Go import paths)
++        and must be kept as single segments.
++
++        Examples:
++            `test.model`/Item#           → [`test.model`, Item#]
++            `example.com/x/svc`/Type#    → [`example.com/x/svc`, Type#]
++            TaskApp/TaskService#         → [TaskApp, TaskService#]
++        """
++        segments: list[str] = []
++        current: list[str] = []
++        in_backtick = False
++
++        for char in descriptor:
++            if char == "`":
++                in_backtick = not in_backtick
++                current.append(char)
++            elif char == "/" and not in_backtick:
++                if current:
++                    segments.append("".join(current))
++                current = []
++            else:
++                current.append(char)
++
++        if current:
++            segments.append("".join(current))
++
++        return segments
++
+     @staticmethod
+     def extract_name_from_descriptor(descriptor: str) -> list[str]:
+         """Extract symbol name parts from a SCIP descriptor.
+ 
+-        Handles: `module.path`/Class#method().
+-        Returns: ["Class", "method"] (name parts for node_id construction)
++        Handles backtick-quoted segments (skipped — module/import paths)
++        and standard descriptor suffixes: # = type, (). = method, . = field.
++
++        Examples:
++            `pkg.module`/MyClass#method().  → ["MyClass", "method"]
++            `example.com/x/y`/Type#Field.   → ["Type", "Field"]
++            TaskApp/TaskService#AddTask().   → ["TaskService", "AddTask"]
+         """
++        segments = SCIPAdapterBase._split_descriptor_segments(descriptor)
+         name_parts = []
+-        for segment in descriptor.split("/"):
+-            segment = segment.strip("`")
++
++        for segment in segments:
++            # Skip backtick-quoted segments (module/import/file paths)
++            if segment.startswith("`"):
++                continue
++
+             if "#" in segment:
+                 class_part, rest = segment.split("#", 1)
+                 if class_part and not class_part.startswith("__"):
+diff --git a/src/fs2/core/adapters/scip_adapter_dotnet.py b/src/fs2/core/adapters/scip_adapter_dotnet.py
+new file mode 100644
+index 0000000..1dd4d51
+--- /dev/null
++++ b/src/fs2/core/adapters/scip_adapter_dotnet.py
+@@ -0,0 +1,36 @@
++"""SCIP C#/.NET adapter.
++
++Maps C# SCIP symbols to fs2 node_ids. Symbol format:
++scip-dotnet nuget . . Namespace/Class#Method().
++
++No backtick quoting — namespace segments use / directly.
++Filters generated documents under obj/ from the SCIP index.
++"""
++
++from __future__ import annotations
++
++from fs2.core.adapters import scip_pb2
++from fs2.core.adapters.scip_adapter import SCIPAdapterBase
++
++
++class SCIPDotNetAdapter(SCIPAdapterBase):
++    """SCIP adapter for C#/.NET projects.
++
++    C# SCIP symbols use plain namespace paths (no backtick quoting):
++      scip-dotnet nuget . . TaskApp/TaskService#AddTask().
++
++    Namespace segments (e.g. "TaskApp") are skipped by the universal
++    descriptor parser since they don't contain # or ().
++
++    Overrides should_skip_document() to filter generated files that
++    scip-dotnet includes from the obj/ build output directory.
++    """
++
++    _SKIP_PREFIXES = ("obj/",)
++
++    def language_name(self) -> str:
++        return "dotnet"
++
++    def should_skip_document(self, doc: scip_pb2.Document) -> bool:
++        """Skip C# generated files under obj/."""
++        return any(doc.relative_path.startswith(p) for p in self._SKIP_PREFIXES)
+diff --git a/src/fs2/core/adapters/scip_adapter_fake.py b/src/fs2/core/adapters/scip_adapter_fake.py
+index 70e4f62..40b4cab 100644
+--- a/src/fs2/core/adapters/scip_adapter_fake.py
++++ b/src/fs2/core/adapters/scip_adapter_fake.py
+@@ -62,20 +62,3 @@ class SCIPFakeAdapter(SCIPAdapterBase):
+             return self._deduplicate(mapped)
+ 
+         return []
+-
+-    def symbol_to_node_id(
+-        self, symbol: str, file_path: str, known_node_ids: set[str]
+-    ) -> str | None:
+-        """Simple identity mapping for testing."""
+-        parsed = self.parse_symbol(symbol)
+-        if not parsed:
+-            return None
+-        name_parts = self.extract_name_from_descriptor(parsed["descriptor"])
+-        if not name_parts:
+-            return None
+-        symbol_name = ".".join(name_parts)
+-        for category in ("callable", "class", "type", "file"):
+-            candidate = f"{category}:{file_path}:{symbol_name}"
+-            if candidate in known_node_ids:
+-                return candidate
+-        return None
+diff --git a/src/fs2/core/adapters/scip_adapter_go.py b/src/fs2/core/adapters/scip_adapter_go.py
+new file mode 100644
+index 0000000..c7a49e9
+--- /dev/null
++++ b/src/fs2/core/adapters/scip_adapter_go.py
+@@ -0,0 +1,27 @@
++"""SCIP Go adapter.
++
++Maps Go SCIP symbols to fs2 node_ids. Symbol format:
++scip-go gomod <module> <hash> `import/path`/Type#Method().
++
++The backtick-quoted segment contains Go import paths with slashes.
++The fixed _split_descriptor_segments() handles this correctly.
++"""
++
++from __future__ import annotations
++
++from fs2.core.adapters.scip_adapter import SCIPAdapterBase
++
++
++class SCIPGoAdapter(SCIPAdapterBase):
++    """SCIP adapter for Go projects.
++
++    Go SCIP symbols use backtick-quoted import paths that contain slashes:
++      scip-go gomod example.com/taskapp hash `example.com/taskapp/service`/TaskService#AddTask().
++
++    The fixed _split_descriptor_segments() respects backtick quoting,
++    so slashes inside import paths don't break the descriptor parser.
++    No overrides needed.
++    """
++
++    def language_name(self) -> str:
++        return "go"
+diff --git a/src/fs2/core/adapters/scip_adapter_python.py b/src/fs2/core/adapters/scip_adapter_python.py
+index 7d87efd..d372315 100644
+--- a/src/fs2/core/adapters/scip_adapter_python.py
++++ b/src/fs2/core/adapters/scip_adapter_python.py
+@@ -3,66 +3,23 @@
+ Maps Python SCIP symbols to fs2 node_ids. Uses Pyright-based symbol
+ format: scip-python python <pkg> <ver> `dotted.module.path`/Class#method().
+ 
+-DYK-038-04: Symbol mapping is a fuzzy lookup — tries multiple candidate
+-patterns (callable/class/type prefixes), falls back to file-level match.
++The universal descriptor parser in SCIPAdapterBase handles this format
++correctly — this adapter only needs to specify the language name.
+ """
+ 
+ from __future__ import annotations
+ 
+-import logging
+-
+ from fs2.core.adapters.scip_adapter import SCIPAdapterBase
+ 
+-logger = logging.getLogger(__name__)
+-
+ 
+ class SCIPPythonAdapter(SCIPAdapterBase):
+-    """SCIP adapter for Python projects."""
+-
+-    def language_name(self) -> str:
+-        return "python"
+-
+-    def symbol_to_node_id(
+-        self, symbol: str, file_path: str, known_node_ids: set[str]
+-    ) -> str | None:
+-        """Map Python SCIP symbol to fs2 node_id.
+-
+-        Python SCIP symbols look like:
+-          scip-python python pkg 0.1.0 `pkg.module`/Class#method().
++    """SCIP adapter for Python projects.
+ 
+-        fs2 node_ids look like:
+-          callable:module.py:Class.method
+-          class:module.py:ClassName
+-        """
+-        parsed = self.parse_symbol(symbol)
+-        if not parsed:
+-            return None
++    Python SCIP symbols use backtick-quoted dotted module paths:
++      scip-python python pkg 0.1.0 `pkg.module`/Class#method().
+ 
+-        descriptor = parsed["descriptor"]
+-        name_parts = self.extract_name_from_descriptor(descriptor)
++    The universal descriptor parser handles this format — no overrides needed.
++    """
+ 
+-        if not name_parts:
+-            return None
+-
+-        symbol_name = ".".join(name_parts)
+-
+-        # Try callable, class, type categories
+-        for category in ("callable", "class", "type"):
+-            candidate = f"{category}:{file_path}:{symbol_name}"
+-            if candidate in known_node_ids:
+-                return candidate
+-
+-        # Try without the first name part (might be module-qualified)
+-        if len(name_parts) > 1:
+-            short_name = ".".join(name_parts[1:])
+-            for category in ("callable", "class", "type"):
+-                candidate = f"{category}:{file_path}:{short_name}"
+-                if candidate in known_node_ids:
+-                    return candidate
+-
+-        # Fall back to file-level node
+-        file_node = f"file:{file_path}"
+-        if file_node in known_node_ids:
+-            return file_node
+-
+-        return None
++    def language_name(self) -> str:
++        return "python"
+diff --git a/src/fs2/core/adapters/scip_adapter_typescript.py b/src/fs2/core/adapters/scip_adapter_typescript.py
+new file mode 100644
+index 0000000..c6999f9
+--- /dev/null
++++ b/src/fs2/core/adapters/scip_adapter_typescript.py
+@@ -0,0 +1,26 @@
++"""SCIP TypeScript adapter.
++
++Maps TypeScript SCIP symbols to fs2 node_ids. Symbol format:
++scip-typescript npm . . `file.ts`/Class#method().
++
++The universal descriptor parser in SCIPAdapterBase handles this format
++correctly — this adapter only needs to specify the language name.
++"""
++
++from __future__ import annotations
++
++from fs2.core.adapters.scip_adapter import SCIPAdapterBase
++
++
++class SCIPTypeScriptAdapter(SCIPAdapterBase):
++    """SCIP adapter for TypeScript/JavaScript projects.
++
++    TypeScript SCIP symbols use backtick-quoted file paths:
++      scip-typescript npm . . `service.ts`/TaskService#addTask().
++
++    The backtick segment is the file path (no slashes inside).
++    The universal descriptor parser handles this — no overrides needed.
++    """
++
++    def language_name(self) -> str:
++        return "typescript"
+diff --git a/tests/unit/adapters/test_scip_adapter.py b/tests/unit/adapters/test_scip_adapter.py
+index 0156b05..ecf503d 100644
+--- a/tests/unit/adapters/test_scip_adapter.py
++++ b/tests/unit/adapters/test_scip_adapter.py
+@@ -14,7 +14,10 @@ from fs2.core.adapters.exceptions import (
+     SCIPIndexError,
+     SCIPMappingError,
+ )
+-from fs2.core.adapters.scip_adapter import SCIPAdapterBase
++from fs2.core.adapters.scip_adapter import (
++    SCIPAdapterBase,
++    normalise_language,
++)
+ from fs2.core.adapters.scip_adapter_fake import SCIPFakeAdapter
+ 
+ # ── Exception hierarchy ───────────────────────────────────────────
+@@ -284,3 +287,161 @@ def _build_simple_index() -> scip_pb2.Index:
+     occ_main.symbol_roles = 1
+ 
+     return index
++
++
++# ── Descriptor segment splitting ─────────────────────────────────
++
++
++class TestSplitDescriptorSegments:
++    def test_python_descriptor(self):
++        result = SCIPAdapterBase._split_descriptor_segments(
++            "`test.model`/Item#__init__()."
++        )
++        assert result == ["`test.model`", "Item#__init__()."]
++
++    def test_typescript_descriptor(self):
++        result = SCIPAdapterBase._split_descriptor_segments(
++            "`service.ts`/TaskService#addTask()."
++        )
++        assert result == ["`service.ts`", "TaskService#addTask()."]
++
++    def test_go_descriptor_with_slashes_in_backticks(self):
++        result = SCIPAdapterBase._split_descriptor_segments(
++            "`example.com/taskapp/service`/TaskService#AddTask()."
++        )
++        assert result == [
++            "`example.com/taskapp/service`",
++            "TaskService#AddTask().",
++        ]
++
++    def test_csharp_descriptor_no_backticks(self):
++        result = SCIPAdapterBase._split_descriptor_segments(
++            "TaskApp/TaskService#AddTask()."
++        )
++        assert result == ["TaskApp", "TaskService#AddTask()."]
++
++    def test_empty_descriptor(self):
++        assert SCIPAdapterBase._split_descriptor_segments("") == []
++
++    def test_no_slashes(self):
++        result = SCIPAdapterBase._split_descriptor_segments("simple#")
++        assert result == ["simple#"]
++
++
++# ── Extract names across all languages ───────────────────────────
++
++
++class TestExtractNameFromDescriptorAllLanguages:
++    """Verify universal parser works for all languages."""
++
++    def test_python_class_method(self):
++        assert SCIPAdapterBase.extract_name_from_descriptor(
++            "`test.model`/Item#__init__()."
++        ) == ["Item", "__init__"]
++
++    def test_typescript_class_method(self):
++        assert SCIPAdapterBase.extract_name_from_descriptor(
++            "`service.ts`/TaskService#addTask()."
++        ) == ["TaskService", "addTask"]
++
++    def test_go_struct_method(self):
++        assert SCIPAdapterBase.extract_name_from_descriptor(
++            "`example.com/taskapp/service`/TaskService#AddTask()."
++        ) == ["TaskService", "AddTask"]
++
++    def test_go_top_level_function(self):
++        assert SCIPAdapterBase.extract_name_from_descriptor(
++            "`example.com/taskapp/model`/NewTask()."
++        ) == ["NewTask"]
++
++    def test_go_constant_field(self):
++        assert SCIPAdapterBase.extract_name_from_descriptor(
++            "`example.com/taskapp/model`/Priority#High."
++        ) == ["Priority", "High"]
++
++    def test_csharp_class_method(self):
++        assert SCIPAdapterBase.extract_name_from_descriptor(
++            "TaskApp/TaskService#AddTask()."
++        ) == ["TaskService", "AddTask"]
++
++    def test_csharp_nested_namespace(self):
++        assert SCIPAdapterBase.extract_name_from_descriptor(
++            "TaskApp/Services/TaskService#AddTask()."
++        ) == ["TaskService", "AddTask"]
++
++
++# ── Fuzzy match ──────────────────────────────────────────────────
++
++
++class TestFuzzyMatchNodeId:
++    def test_matches_callable(self):
++        adapter = SCIPFakeAdapter()
++        result = adapter._fuzzy_match_node_id(
++            ["TaskService", "AddTask"],
++            "service.py",
++            {"callable:service.py:TaskService.AddTask"},
++        )
++        assert result == "callable:service.py:TaskService.AddTask"
++
++    def test_matches_class(self):
++        adapter = SCIPFakeAdapter()
++        result = adapter._fuzzy_match_node_id(
++            ["TaskService"],
++            "service.py",
++            {"class:service.py:TaskService"},
++        )
++        assert result == "class:service.py:TaskService"
++
++    def test_tries_short_name(self):
++        adapter = SCIPFakeAdapter()
++        result = adapter._fuzzy_match_node_id(
++            ["TaskApp", "TaskService"],
++            "service.py",
++            {"class:service.py:TaskService"},
++        )
++        assert result == "class:service.py:TaskService"
++
++    def test_falls_back_to_file(self):
++        adapter = SCIPFakeAdapter()
++        result = adapter._fuzzy_match_node_id(
++            ["Unknown"],
++            "service.py",
++            {"file:service.py"},
++        )
++        assert result == "file:service.py"
++
++    def test_returns_none_when_nothing_matches(self):
++        adapter = SCIPFakeAdapter()
++        result = adapter._fuzzy_match_node_id(
++            ["Unknown"],
++            "unknown.py",
++            {"file:other.py"},
++        )
++        assert result is None
++
++
++# ── Language normalisation ───────────────────────────────────────
++
++
++class TestNormaliseLanguage:
++    def test_canonical_passthrough(self):
++        assert normalise_language("python") == "python"
++        assert normalise_language("typescript") == "typescript"
++        assert normalise_language("go") == "go"
++        assert normalise_language("dotnet") == "dotnet"
++
++    def test_aliases(self):
++        assert normalise_language("ts") == "typescript"
++        assert normalise_language("js") == "javascript"
++        assert normalise_language("cs") == "dotnet"
++        assert normalise_language("csharp") == "dotnet"
++        assert normalise_language("py") == "python"
++
++    def test_case_insensitive(self):
++        assert normalise_language("Python") == "python"
++        assert normalise_language("TS") == "typescript"
++        assert normalise_language("GO") == "go"
++
++    def test_unknown_raises(self):
++        with pytest.raises(ValueError, match="Unknown language"):
++            normalise_language("brainfuck")
+diff --git a/tests/unit/adapters/test_scip_adapter_dotnet.py b/tests/unit/adapters/test_scip_adapter_dotnet.py
+new file mode 100644
+index 0000000..0ce37c3
+--- /dev/null
++++ b/tests/unit/adapters/test_scip_adapter_dotnet.py
+@@ -0,0 +1,173 @@
++"""Tests for SCIPDotNetAdapter.
++
++Tests C#-specific symbol-to-node-id mapping and document filtering
++against both synthetic data and the real fixture index.scip.
++"""
++
++from __future__ import annotations
++
++from pathlib import Path
++
++import pytest
++
++from fs2.core.adapters import scip_pb2
++from fs2.core.adapters.scip_adapter_dotnet import SCIPDotNetAdapter
++
++FIXTURE_DIR = Path(__file__).parent.parent.parent.parent / "scripts" / "scip" / "fixtures" / "dotnet"
++FIXTURE_INDEX = FIXTURE_DIR / "index.scip"
++
++
++@pytest.fixture
++def adapter():
++    return SCIPDotNetAdapter()
++
++
++@pytest.fixture
++def known_node_ids():
++    """Simulate fs2 node_ids for the C# fixture."""
++    return {
++        # Model.cs
++        "file:Model.cs",
++        "type:Model.cs:Priority",
++        "class:Model.cs:TaskItem",
++        "callable:Model.cs:TaskItem.MarkDone",
++        "callable:Model.cs:TaskItem.Display",
++        # Service.cs
++        "file:Service.cs",
++        "class:Service.cs:TaskService",
++        "callable:Service.cs:TaskService.AddTask",
++        "callable:Service.cs:TaskService.CompleteTask",
++        "callable:Service.cs:TaskService.GetPending",
++        "callable:Service.cs:TaskService.Summary",
++        # Program.cs
++        "file:Program.cs",
++    }
++
++
++class TestSCIPDotNetAdapter:
++    def test_language_name(self, adapter):
++        assert adapter.language_name() == "dotnet"
++
++    def test_symbol_to_node_id_class(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-dotnet nuget . . TaskApp/TaskService#",
++            "Service.cs",
++            known_node_ids,
++        )
++        assert result == "class:Service.cs:TaskService"
++
++    def test_symbol_to_node_id_method(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-dotnet nuget . . TaskApp/TaskService#AddTask().",
++            "Service.cs",
++            known_node_ids,
++        )
++        assert result == "callable:Service.cs:TaskService.AddTask"
++
++    def test_symbol_to_node_id_enum(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-dotnet nuget . . TaskApp/Priority#",
++            "Model.cs",
++            known_node_ids,
++        )
++        assert result == "type:Model.cs:Priority"
++
++    def test_namespace_skipped_in_matching(self, adapter, known_node_ids):
++        """Namespace segments (TaskApp/) are correctly ignored."""
++        result = adapter.symbol_to_node_id(
++            "scip-dotnet nuget . . TaskApp/TaskItem#Display().",
++            "Model.cs",
++            known_node_ids,
++        )
++        assert result == "callable:Model.cs:TaskItem.Display"
++
++    def test_unknown_returns_none(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-dotnet nuget . . SomeApp/Unknown#",
++            "unknown.cs",
++            known_node_ids,
++        )
++        assert result is None
++
++    def test_falls_back_to_file(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-dotnet nuget . . TaskApp/SomethingWeird#",
++            "Model.cs",
++            known_node_ids,
++        )
++        assert result == "file:Model.cs"
++
++
++class TestSCIPDotNetAdapterDocumentFilter:
++    def test_skips_obj_directory(self, adapter):
++        doc = scip_pb2.Document()
++        doc.relative_path = "obj/Debug/net8.0/TaskApp.GlobalUsings.g.cs"
++        assert adapter.should_skip_document(doc) is True
++
++    def test_skips_assembly_info(self, adapter):
++        doc = scip_pb2.Document()
++        doc.relative_path = "obj/Debug/net8.0/TaskApp.AssemblyInfo.cs"
++        assert adapter.should_skip_document(doc) is True
++
++    def test_keeps_source_files(self, adapter):
++        doc = scip_pb2.Document()
++        doc.relative_path = "Model.cs"
++        assert adapter.should_skip_document(doc) is False
++
++    def test_keeps_nested_source_files(self, adapter):
++        doc = scip_pb2.Document()
++        doc.relative_path = "src/Services/TaskService.cs"
++        assert adapter.should_skip_document(doc) is False
++
++
++class TestSCIPDotNetAdapterWithFixture:
++    """Integration tests using the real C# fixture index.scip."""
++
++    @pytest.fixture(autouse=True)
++    def _check_fixture(self):
++        if not FIXTURE_INDEX.exists():
++            pytest.skip("C# index.scip fixture not generated")
++
++    def test_extracts_cross_file_edges(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        assert len(edges) > 0
++
++    def test_edge_format(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        for src, tgt, data in edges:
++            assert isinstance(src, str)
++            assert isinstance(tgt, str)
++            assert data == {"edge_type": "references"}
++
++    def test_program_references_service(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        src_tgt_pairs = {(s, t) for s, t, _ in edges}
++        program_to_service = any(
++            "Program" in s and "Service" in t for s, t in src_tgt_pairs
++        )
++        assert program_to_service, f"Expected Program→Service edge, got: {src_tgt_pairs}"
++
++    def test_service_references_model(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        src_tgt_pairs = {(s, t) for s, t, _ in edges}
++        service_to_model = any(
++            "Service" in s and "Model" in t for s, t in src_tgt_pairs
++        )
++        assert service_to_model, f"Expected Service→Model edge, got: {src_tgt_pairs}"
++
++    def test_no_self_references(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        for src, tgt, _ in edges:
++            assert src != tgt, f"Self-reference found: {src}"
++
++    def test_edges_are_deduplicated(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        pairs = [(s, t) for s, t, _ in edges]
++        assert len(pairs) == len(set(pairs)), "Duplicate edges found"
++
++    def test_generated_docs_filtered(self, adapter, known_node_ids):
++        """Verify obj/ documents don't produce spurious edges."""
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        for src, tgt, _ in edges:
++            assert "obj/" not in src, f"Edge from generated file: {src}"
++            assert "obj/" not in tgt, f"Edge to generated file: {tgt}"
+diff --git a/tests/unit/adapters/test_scip_adapter_go.py b/tests/unit/adapters/test_scip_adapter_go.py
+new file mode 100644
+index 0000000..714ab84
+--- /dev/null
++++ b/tests/unit/adapters/test_scip_adapter_go.py
+@@ -0,0 +1,161 @@
++"""Tests for SCIPGoAdapter.
++
++Tests Go-specific symbol-to-node-id mapping against both
++synthetic data and the real fixture index.scip.
++"""
++
++from __future__ import annotations
++
++from pathlib import Path
++
++import pytest
++
++from fs2.core.adapters.scip_adapter_go import SCIPGoAdapter
++
++FIXTURE_DIR = Path(__file__).parent.parent.parent.parent / "scripts" / "scip" / "fixtures" / "go"
++FIXTURE_INDEX = FIXTURE_DIR / "index.scip"
++
++
++@pytest.fixture
++def adapter():
++    return SCIPGoAdapter()
++
++
++@pytest.fixture
++def known_node_ids():
++    """Simulate fs2 node_ids for the Go fixture."""
++    return {
++        # model/model.go
++        "file:model/model.go",
++        "type:model/model.go:Priority",
++        "class:model/model.go:Task",
++        "callable:model/model.go:NewTask",
++        "callable:model/model.go:Task.MarkDone",
++        "callable:model/model.go:Task.Display",
++        "callable:model/model.go:Priority.String",
++        # service/service.go
++        "file:service/service.go",
++        "class:service/service.go:TaskService",
++        "callable:service/service.go:NewTaskService",
++        "callable:service/service.go:TaskService.AddTask",
++        "callable:service/service.go:TaskService.CompleteTask",
++        "callable:service/service.go:TaskService.GetPending",
++        "callable:service/service.go:TaskService.Summary",
++        # main.go
++        "file:main.go",
++        "callable:main.go:HandleCreate",
++        "callable:main.go:HandleList",
++        "callable:main.go:main",
++    }
++
++
++class TestSCIPGoAdapter:
++    def test_language_name(self, adapter):
++        assert adapter.language_name() == "go"
++
++    def test_symbol_to_node_id_struct(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-go gomod example.com/taskapp hash `example.com/taskapp/model`/Task#",
++            "model/model.go",
++            known_node_ids,
++        )
++        assert result == "class:model/model.go:Task"
++
++    def test_symbol_to_node_id_method(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-go gomod example.com/taskapp hash `example.com/taskapp/service`/TaskService#AddTask().",
++            "service/service.go",
++            known_node_ids,
++        )
++        assert result == "callable:service/service.go:TaskService.AddTask"
++
++    def test_symbol_to_node_id_function(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-go gomod example.com/taskapp hash `example.com/taskapp/model`/NewTask().",
++            "model/model.go",
++            known_node_ids,
++        )
++        assert result == "callable:model/model.go:NewTask"
++
++    def test_symbol_to_node_id_top_level_function(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-go gomod example.com/taskapp hash `example.com/taskapp`/HandleCreate().",
++            "main.go",
++            known_node_ids,
++        )
++        assert result == "callable:main.go:HandleCreate"
++
++    def test_symbol_to_node_id_type(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-go gomod example.com/taskapp hash `example.com/taskapp/model`/Priority#",
++            "model/model.go",
++            known_node_ids,
++        )
++        assert result == "type:model/model.go:Priority"
++
++    def test_unknown_returns_none(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-go gomod example.com/taskapp hash `example.com/taskapp`/Unknown#",
++            "unknown.go",
++            known_node_ids,
++        )
++        assert result is None
++
++    def test_stdlib_not_matched(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-go gomod github.com/golang/go/src go1.22 fmt/Printf().",
++            "main.go",
++            known_node_ids,
++        )
++        # fmt.Printf is not in our known_node_ids, so falls back to file
++        assert result == "file:main.go"
++
++    def test_local_returns_none(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id("local 5", "main.go", known_node_ids)
++        assert result is None
++
++
++class TestSCIPGoAdapterWithFixture:
++    """Integration tests using the real Go fixture index.scip."""
++
++    @pytest.fixture(autouse=True)
++    def _check_fixture(self):
++        if not FIXTURE_INDEX.exists():
++            pytest.skip("Go index.scip fixture not generated")
++
++    def test_extracts_cross_file_edges(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        assert len(edges) > 0
++
++    def test_edge_format(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        for src, tgt, data in edges:
++            assert isinstance(src, str)
++            assert isinstance(tgt, str)
++            assert data == {"edge_type": "references"}
++
++    def test_main_references_service(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        src_tgt_pairs = {(s, t) for s, t, _ in edges}
++        main_to_service = any(
++            "main" in s and "service" in t for s, t in src_tgt_pairs
++        )
++        assert main_to_service, f"Expected main→service edge, got: {src_tgt_pairs}"
++
++    def test_service_references_model(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        src_tgt_pairs = {(s, t) for s, t, _ in edges}
++        service_to_model = any(
++            "service" in s and "model" in t for s, t in src_tgt_pairs
++        )
++        assert service_to_model, f"Expected service→model edge, got: {src_tgt_pairs}"
++
++    def test_no_self_references(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        for src, tgt, _ in edges:
++            assert src != tgt, f"Self-reference found: {src}"
++
++    def test_edges_are_deduplicated(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        pairs = [(s, t) for s, t, _ in edges]
++        assert len(pairs) == len(set(pairs)), "Duplicate edges found"
+diff --git a/tests/unit/adapters/test_scip_adapter_typescript.py b/tests/unit/adapters/test_scip_adapter_typescript.py
+new file mode 100644
+index 0000000..077b77a
+--- /dev/null
++++ b/tests/unit/adapters/test_scip_adapter_typescript.py
+@@ -0,0 +1,152 @@
++"""Tests for SCIPTypeScriptAdapter.
++
++Tests TypeScript-specific symbol-to-node-id mapping against both
++synthetic data and the real fixture index.scip.
++"""
++
++from __future__ import annotations
++
++from pathlib import Path
++
++import pytest
++
++from fs2.core.adapters.scip_adapter_typescript import SCIPTypeScriptAdapter
++
++FIXTURE_DIR = Path(__file__).parent.parent.parent.parent / "scripts" / "scip" / "fixtures" / "typescript"
++FIXTURE_INDEX = FIXTURE_DIR / "index.scip"
++
++
++@pytest.fixture
++def adapter():
++    return SCIPTypeScriptAdapter()
++
++
++@pytest.fixture
++def known_node_ids():
++    """Simulate fs2 node_ids for the TypeScript fixture."""
++    return {
++        # model.ts
++        "file:model.ts",
++        "type:model.ts:Priority",
++        "type:model.ts:Task",
++        "callable:model.ts:createTask",
++        "callable:model.ts:displayTask",
++        # service.ts
++        "file:service.ts",
++        "class:service.ts:TaskService",
++        "callable:service.ts:TaskService.addTask",
++        "callable:service.ts:TaskService.completeTask",
++        "callable:service.ts:TaskService.getPending",
++        "callable:service.ts:TaskService.summary",
++        # handler.ts
++        "file:handler.ts",
++        "callable:handler.ts:handleCreate",
++        "callable:handler.ts:handleList",
++    }
++
++
++class TestSCIPTypeScriptAdapter:
++    def test_language_name(self, adapter):
++        assert adapter.language_name() == "typescript"
++
++    def test_symbol_to_node_id_class(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-typescript npm . . `service.ts`/TaskService#",
++            "service.ts",
++            known_node_ids,
++        )
++        assert result == "class:service.ts:TaskService"
++
++    def test_symbol_to_node_id_method(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-typescript npm . . `service.ts`/TaskService#addTask().",
++            "service.ts",
++            known_node_ids,
++        )
++        assert result == "callable:service.ts:TaskService.addTask"
++
++    def test_symbol_to_node_id_function(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-typescript npm . . `model.ts`/createTask().",
++            "model.ts",
++            known_node_ids,
++        )
++        assert result == "callable:model.ts:createTask"
++
++    def test_symbol_to_node_id_enum(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-typescript npm . . `model.ts`/Priority#",
++            "model.ts",
++            known_node_ids,
++        )
++        assert result == "type:model.ts:Priority"
++
++    def test_unknown_returns_none(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-typescript npm . . `unknown.ts`/X#",
++            "unknown.ts",
++            known_node_ids,
++        )
++        assert result is None
++
++    def test_local_returns_none(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "local 2",
++            "model.ts",
++            known_node_ids,
++        )
++        assert result is None
++
++    def test_falls_back_to_file(self, adapter, known_node_ids):
++        result = adapter.symbol_to_node_id(
++            "scip-typescript npm . . `model.ts`/SomethingWeird#",
++            "model.ts",
++            known_node_ids,
++        )
++        assert result == "file:model.ts"
++
++
++class TestSCIPTypeScriptAdapterWithFixture:
++    """Integration tests using the real TypeScript fixture index.scip."""
++
++    @pytest.fixture(autouse=True)
++    def _check_fixture(self):
++        if not FIXTURE_INDEX.exists():
++            pytest.skip("TypeScript index.scip fixture not generated")
++
++    def test_extracts_cross_file_edges(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        assert len(edges) > 0
++
++    def test_edge_format(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        for src, tgt, data in edges:
++            assert isinstance(src, str)
++            assert isinstance(tgt, str)
++            assert data == {"edge_type": "references"}
++
++    def test_handler_references_service(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        src_tgt_pairs = {(s, t) for s, t, _ in edges}
++        handler_to_service = any(
++            "handler" in s and "service" in t for s, t in src_tgt_pairs
++        )
++        assert handler_to_service, f"Expected handler→service edge, got: {src_tgt_pairs}"
++
++    def test_service_references_model(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        src_tgt_pairs = {(s, t) for s, t, _ in edges}
++        service_to_model = any(
++            "service" in s and "model" in t for s, t in src_tgt_pairs
++        )
++        assert service_to_model, f"Expected service→model edge, got: {src_tgt_pairs}"
++
++    def test_no_self_references(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        for src, tgt, _ in edges:
++            assert src != tgt, f"Self-reference found: {src}"
++
++    def test_edges_are_deduplicated(self, adapter, known_node_ids):
++        edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
++        pairs = [(s, t) for s, t, _ in edges]
++        assert len(pairs) == len(set(pairs)), "Duplicate edges found"
