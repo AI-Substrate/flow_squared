@@ -34,17 +34,20 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Re-export project discovery for backward compatibility
-from fs2.core.services.project_discovery import (  # noqa: F401, E402
-    PROJECT_MARKERS,
-    DiscoveredProject,
-    detect_project_roots,
-)
-
 # Defaults (Phase 4 wires through config)
 DEFAULT_MICRO_BATCH_SIZE = 10
 DEFAULT_TIMEOUT_PER_NODE = 30.0
 PID_FILE_NAME = ".serena-pool.pid"
+
+# Project marker files for language detection (legacy — Phase 4 replaces with project_discovery module)
+PROJECT_MARKERS: dict[str, list[str]] = {
+    "python": ["pyproject.toml", "setup.py", "setup.cfg", "Pipfile"],
+    "typescript": ["tsconfig.json"],
+    "javascript": ["package.json"],
+    "go": ["go.mod"],
+    "rust": ["Cargo.toml"],
+    "java": ["pom.xml", "build.gradle", "build.gradle.kts"],
+}
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +57,7 @@ PID_FILE_NAME = ".serena-pool.pid"
 
 @dataclass(frozen=True)
 class ProjectRoot:
-    """Detected project root with its languages (legacy, kept for stage use)."""
+    """Detected project root with its languages (legacy — Phase 4 replaces with DiscoveredProject)."""
 
     path: str
     languages: list[str] = field(default_factory=list)
@@ -113,8 +116,61 @@ def is_serena_available() -> bool:
 
 
 # ---------------------------------------------------------------------------
-# T004: Project detection (marker file walk)
+# T004: Project detection (legacy — Phase 4 replaces with project_discovery)
 # ---------------------------------------------------------------------------
+
+
+_SKIP_DIRS = frozenset({
+    ".venv", "venv", ".env", "env",
+    "node_modules",
+    ".git", ".hg", ".svn",
+    "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache",
+    ".tox", ".nox",
+    "site-packages",
+    "dist", "build", ".eggs",
+})
+
+
+def detect_project_roots(scan_root: str) -> list[ProjectRoot]:
+    """Detect project roots by walking for marker files (legacy Serena path).
+
+    Phase 4 replaces this with project_discovery.detect_project_roots().
+    """
+    root_path = Path(scan_root).resolve()
+    found: dict[str, set[str]] = {}
+
+    plain_markers: dict[str, str] = {}
+    glob_markers: list[tuple[str, str]] = []
+    for language, markers in PROJECT_MARKERS.items():
+        for marker in markers:
+            if "*" in marker:
+                glob_markers.append((marker, language))
+            else:
+                plain_markers[marker] = language
+
+    for dirpath, dirnames, filenames in os.walk(root_path):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        for fname in filenames:
+            if fname in plain_markers:
+                found.setdefault(dirpath, set()).add(plain_markers[fname])
+            else:
+                for pattern, language in glob_markers:
+                    if Path(fname).match(pattern):
+                        found.setdefault(dirpath, set()).add(language)
+
+    all_paths = sorted(found.keys())
+    kept: set[str] = set()
+    for p in all_paths:
+        if not any(p.startswith(parent + os.sep) for parent in kept):
+            kept.add(p)
+
+    roots = [
+        ProjectRoot(path=p, languages=sorted(langs))
+        for p, langs in found.items()
+        if p in kept
+    ]
+    roots.sort(key=lambda r: r.path.count(os.sep), reverse=True)
+    return roots
 
 
 # ---------------------------------------------------------------------------
@@ -903,11 +959,14 @@ class CrossFileRelsStage:
                 f"{len(nodes_to_resolve)} nodes to resolve ({len(reused_edges)} edges reused)",
             )
 
-        # Read config values (with defaults fallback)
-        n_instances = min(config.parallel_instances, len(nodes_to_resolve))
+        # Read config values — legacy Serena fields removed in Phase 3,
+        # use getattr defaults until Phase 4 replaces this entire path.
+        n_instances = min(
+            getattr(config, "parallel_instances", 15), len(nodes_to_resolve)
+        )
         if n_instances < 1:
             n_instances = 1
-        base_port = config.serena_base_port
+        base_port = getattr(config, "serena_base_port", 8330)
 
         # T006: Start instance pool
         pool = self._pool_factory()
