@@ -727,10 +727,10 @@ class EmbeddingService:
                     stats["skipped"],
                 )
 
-            # Courtesy save every 10 batches during processing (Plan 036 T05)
+            # Courtesy save every 100 batches during processing (Plan 036 T05)
             if (
                 courtesy_save is not None
-                and batches_completed % 10 == 0
+                and batches_completed % 100 == 0
             ):
                 # Build partial results from completed chunks so far
                 partial = self._reassemble_partial(

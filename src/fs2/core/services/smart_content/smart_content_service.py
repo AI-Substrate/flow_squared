@@ -507,10 +507,10 @@ class SmartContentService:
                     if progress_callback:
                         progress_callback(_make_progress(), None)
 
-                    # Courtesy save every 10 nodes (Plan 036 T04)
+                    # Courtesy save every 100 nodes (Plan 036 T04)
                     should_save = (
                         courtesy_save is not None
-                        and stats["processed"] % 10 == 0
+                        and stats["processed"] % 100 == 0
                     )
                     partial_results = (
                         dict(stats["results"]) if should_save else None
