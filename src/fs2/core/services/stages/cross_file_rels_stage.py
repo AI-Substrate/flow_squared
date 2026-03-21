@@ -329,15 +329,36 @@ class CrossFileRelsStage:
 
             try:
                 adapter = create_scip_adapter(language)
-                project_edges = adapter.extract_cross_file_edges(index_path, known_ids)
+                # Compute path prefix: SCIP paths are project-relative,
+                # but fs2 node IDs are repo-relative. Prepend the project
+                # subdirectory so paths align.
+                project_root_p = Path(project_path).resolve()
+                repo_root_p = Path(repo_root).resolve()
+                try:
+                    prefix = project_root_p.relative_to(repo_root_p).as_posix()
+                    path_prefix = f"{prefix}/" if prefix and prefix != "." else ""
+                except ValueError:
+                    path_prefix = ""
+
+                project_edges = adapter.extract_cross_file_edges(
+                    index_path, known_ids, path_prefix=path_prefix,
+                )
                 fresh_edges.extend(project_edges)
                 logger.info("SCIP %s: %d edges from %s", language, len(project_edges), project_path)
             except Exception as e:
                 logger.warning("SCIP adapter error for %s at %s: %s", language, project_path, e)
                 continue
 
-        # --- Merge and report ---
-        context.cross_file_edges = reused_edges + fresh_edges
+        # --- Merge, dedup, and report ---
+        merged = reused_edges + fresh_edges
+        seen: set[tuple[str, str]] = set()
+        deduped: list[tuple[str, str, dict[str, Any]]] = []
+        for src, tgt, data in merged:
+            key = (src, tgt)
+            if key not in seen:
+                seen.add(key)
+                deduped.append((src, tgt, data))
+        context.cross_file_edges = deduped
 
         elapsed = time.time() - start_time
         context.metrics.update({

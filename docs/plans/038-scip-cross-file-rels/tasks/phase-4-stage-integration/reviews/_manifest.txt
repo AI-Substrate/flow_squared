@@ -1,0 +1,14 @@
+M	README.md
+A	docs/plans/038-scip-cross-file-rels/suggestions.md
+A	docs/plans/038-scip-cross-file-rels/tasks/phase-3-config-discovery-cli/reviews/_computed.diff
+A	docs/plans/038-scip-cross-file-rels/tasks/phase-3-config-discovery-cli/reviews/fix-tasks.phase-3-config-discovery-cli.md
+A	docs/plans/038-scip-cross-file-rels/tasks/phase-3-config-discovery-cli/reviews/review.phase-3-config-discovery-cli.md
+A	docs/plans/038-scip-cross-file-rels/tasks/phase-4-stage-integration/execution.log.md
+A	docs/plans/038-scip-cross-file-rels/tasks/phase-4-stage-integration/tasks.fltplan.md
+A	docs/plans/038-scip-cross-file-rels/tasks/phase-4-stage-integration/tasks.md
+M	src/fs2/cli/scan.py
+M	src/fs2/core/services/pipeline_context.py
+M	src/fs2/core/services/scan_pipeline.py
+M	src/fs2/core/services/stages/cross_file_rels_stage.py
+M	tests/integration/test_cross_file_acceptance.py
+M	tests/unit/services/stages/test_cross_file_rels_stage.py

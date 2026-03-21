@@ -125,15 +125,23 @@ class SCIPAdapterBase(ABC):
         self,
         index_path: str | Path,
         known_node_ids: set[str],
+        path_prefix: str = "",
     ) -> list[tuple[str, str, dict[str, Any]]]:
         """Parse index.scip and return fs2 edge tuples.
+
+        Args:
+            index_path: Path to the .scip index file.
+            known_node_ids: Set of fs2 node IDs in the graph.
+            path_prefix: Prefix to prepend to SCIP document paths to align
+                         with fs2 repo-relative node IDs. E.g., if the project
+                         is at "frontend/" within the repo, pass "frontend/".
 
         Returns:
             List of (source_node_id, target_node_id, {"edge_type": "references"})
             where both source and target exist in known_node_ids.
         """
         index = self._load_index(index_path)
-        raw_edges = self._extract_raw_edges(index)
+        raw_edges = self._extract_raw_edges(index, path_prefix=path_prefix)
         mapped_edges = self._map_to_node_ids(raw_edges, known_node_ids)
         deduped = self._deduplicate(mapped_edges)
         return deduped
@@ -211,7 +219,7 @@ class SCIPAdapterBase(ABC):
     # ── Edge extraction (universal) ───────────────────────
 
     def _extract_raw_edges(
-        self, index: scip_pb2.Index
+        self, index: scip_pb2.Index, path_prefix: str = "",
     ) -> list[tuple[str, str, str]]:
         """Extract (ref_file, def_file, symbol) triples.
 
@@ -220,6 +228,10 @@ class SCIPAdapterBase(ABC):
         2. Build definitions map: symbol → file
         3. Build references map: symbol → [files]
         4. Yield edges where ref_file ≠ def_file
+
+        Args:
+            index: Parsed SCIP index.
+            path_prefix: Prefix to prepend to document paths for repo-relative alignment.
         """
         definitions: dict[str, str] = {}
         references: dict[str, set[str]] = {}
@@ -227,7 +239,7 @@ class SCIPAdapterBase(ABC):
         for doc in index.documents:
             if self.should_skip_document(doc):
                 continue
-            rel_path = doc.relative_path
+            rel_path = path_prefix + doc.relative_path
 
             for occ in doc.occurrences:
                 sym = occ.symbol
