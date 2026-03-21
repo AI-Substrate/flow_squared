@@ -42,7 +42,7 @@ from fs2.core.services.stages.storage_stage import StorageStage
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from fs2.config.objects import CrossFileRelsConfig
+    from fs2.config.objects import CrossFileRelsConfig, ProjectsConfig
     from fs2.config.service import ConfigurationService
     from fs2.core.adapters.ast_parser import ASTParser
     from fs2.core.adapters.file_scanner import FileScanner
@@ -155,6 +155,7 @@ class ScanPipeline:
         cross_file_rels_progress_callback: "Callable[[str, str], None] | None" = None,
         graph_path: Path | None = None,
         cross_file_rels_config: "CrossFileRelsConfig | None" = None,
+        projects_config: "ProjectsConfig | None" = None,
         force_embeddings: bool = False,
         courtesy_save_callback: "Callable[[int], None] | None" = None,
     ):
@@ -218,6 +219,7 @@ class ScanPipeline:
         self._cross_file_rels_progress_callback = cross_file_rels_progress_callback
         self._graph_path = graph_path
         self._cross_file_rels_config = cross_file_rels_config
+        self._projects_config = projects_config
         self._force_embeddings = force_embeddings
         self._courtesy_save_callback = courtesy_save_callback
 
@@ -264,6 +266,7 @@ class ScanPipeline:
             "parsing_complete_callback": self._parsing_complete_callback,
             "cross_file_rels_progress_callback": self._cross_file_rels_progress_callback,
             "cross_file_rels_config": self._cross_file_rels_config,
+            "projects_config": self._projects_config,
             "force_embeddings": self._force_embeddings,
         }
         if self._graph_path is not None:

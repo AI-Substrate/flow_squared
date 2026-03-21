@@ -195,10 +195,12 @@ def scan(
 
         # Create CrossFileRelsConfig
         cross_file_rels_config = None
+        projects_config = None
         if not no_cross_refs:
-            from fs2.config.objects import CrossFileRelsConfig
+            from fs2.config.objects import CrossFileRelsConfig, ProjectsConfig
 
             cross_file_rels_config = config.get(CrossFileRelsConfig) or CrossFileRelsConfig()
+            projects_config = config.get(ProjectsConfig) or ProjectsConfig()
             console.print_info(
                 f"Cross-file refs: {'enabled' if cross_file_rels_config.enabled else 'disabled'}"
             )
@@ -323,6 +325,7 @@ def scan(
             else None,
             graph_path=graph_path,  # Per Subtask 001: Custom output path
             cross_file_rels_config=cross_file_rels_config,
+            projects_config=projects_config,
             force_embeddings=force,
             courtesy_save_callback=lambda n: console.print_success(
                 f"Courtesy save: {n} nodes saved"

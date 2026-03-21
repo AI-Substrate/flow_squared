@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from fs2.config.objects import CrossFileRelsConfig, ScanConfig
+    from fs2.config.objects import CrossFileRelsConfig, ProjectsConfig, ScanConfig
     from fs2.core.adapters.ast_parser import ASTParser
     from fs2.core.adapters.file_scanner import FileScanner
     from fs2.core.models.code_node import CodeNode
@@ -100,6 +100,12 @@ class PipelineContext:
     # CrossFileRelsStage reads this for enabled flag.
     # None when config not provided (stage skips).
     cross_file_rels_config: "CrossFileRelsConfig | None" = None
+
+    # SCIP project configuration.
+    # Populated by ScanPipeline from constructor param.
+    # CrossFileRelsStage reads this for project entries and auto-discover.
+    # None when config not provided (stage uses auto-discover defaults).
+    projects_config: "ProjectsConfig | None" = None
 
     # Scan root directory (Phase 4 DYK-P4-04).
     # Canonical project root, always set to CWD at pipeline start.
