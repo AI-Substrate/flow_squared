@@ -3,7 +3,7 @@
 **Plan**: [scip-cross-file-rels-plan.md](../../scip-cross-file-rels-plan.md)
 **Phase**: Phase 4: Stage Integration
 **Generated**: 2026-03-21
-**Status**: Ready for takeoff
+**Status**: Landed
 
 ---
 
@@ -65,7 +65,7 @@ stateDiagram-v2
     S7 --> S8
     S8 --> [*]
 
-    class S1,S2,S3,S4,S5,S6,S7,S8 pending
+    class S1,S2,S3,S4,S5,S6,S7,S8 done
 ```
 
 **Legend**: grey = pending | yellow = active | red = blocked/needs input | green = done
@@ -74,14 +74,14 @@ stateDiagram-v2
 
 ## Stages
 
-- [ ] **Stage 1: Wire config** — Load `ProjectsConfig` in CLI, pass through pipeline to context (`scan_pipeline.py`, `pipeline_context.py`, `cli/scan.py`)
-- [ ] **Stage 2: Rewrite stage** — New `process()` method: load entries → invoke indexer → parse edges → collect (`cross_file_rels_stage.py`)
-- [ ] **Stage 3: Indexer invocation** — `run_scip_indexer()` subprocess wrapper with per-language CLI commands (`cross_file_rels_stage.py`)
-- [ ] **Stage 4: Auto-discover** — Fallback to `detect_project_roots()` when entries empty + auto_discover=true (`cross_file_rels_stage.py`)
-- [ ] **Stage 5: Cache directory** — `.fs2/scip/{slug}/index.scip` caching + `.gitignore` (`cross_file_rels_stage.py`)
-- [ ] **Stage 6: Remove Serena** — Delete SerenaPool, DefaultSerenaClient, shard_nodes, legacy detect, protocols (~600 lines) (`cross_file_rels_stage.py`)
-- [ ] **Stage 7: Tests** — Stage unit tests with SCIPFakeAdapter + real scip-python acceptance test (`test_cross_file_rels_stage.py`, `test_cross_file_acceptance.py`)
-- [ ] **Stage 8: Documentation** — README SCIP section + update cross-file guide (`README.md`, `cross-file-relationships.md`)
+- [x] **Stage 1: Wire config** — Load `ProjectsConfig` in CLI, pass through pipeline to context
+- [x] **Stage 2: Rewrite stage** — New `process()` method: load entries → invoke indexer → parse edges → collect
+- [x] **Stage 3: Indexer invocation** — `run_scip_indexer()` subprocess wrapper with per-language CLI commands
+- [x] **Stage 4: Auto-discover** — Fallback to `detect_project_roots()` when entries empty + auto_discover=true
+- [x] **Stage 5: Cache directory** — `.fs2/scip/{slug}/index.scip` caching + `.gitignore`
+- [x] **Stage 6: Remove Serena** — Delete all Serena code (~800 lines)
+- [x] **Stage 7: Tests** — Stage unit tests with SCIP + real scip-python acceptance test
+- [x] **Stage 8: Documentation** — README SCIP section + update cross-file guide
 
 ---
 
@@ -120,25 +120,25 @@ flowchart LR
 
 ## Acceptance Criteria
 
-- [ ] AC1: `fs2 scan` on Python project with scip-python produces cross-file reference edges
-- [ ] AC2: `fs2 scan` on TypeScript project with scip-typescript produces edges
-- [ ] AC3: `fs2 scan` on Go project with scip-go produces edges
-- [ ] AC4: `fs2 scan` on C# project with scip-dotnet produces edges
-- [ ] AC5: Missing SCIP indexer → info message with install instructions, scan continues
-- [ ] AC9: Empty entries + auto_discover=true → auto-discovers from markers
-- [ ] AC11: Edges deduplicated — no duplicate source→target pairs
-- [ ] AC12: Local symbols, stdlib refs, self-refs filtered out
-- [ ] AC15: index.scip cached in `.fs2/scip/` for re-use
+- [x] AC1: `fs2 scan` on Python project with scip-python produces cross-file reference edges
+- [x] AC2: `fs2 scan` on TypeScript project with scip-typescript produces edges
+- [x] AC3: `fs2 scan` on Go project with scip-go produces edges
+- [x] AC4: `fs2 scan` on C# project with scip-dotnet produces edges
+- [x] AC5: Missing SCIP indexer → info message with install instructions, scan continues
+- [x] AC9: Empty entries + auto_discover=true → auto-discovers from markers
+- [x] AC11: Edges deduplicated — no duplicate source→target pairs
+- [x] AC12: Local symbols, stdlib refs, self-refs filtered out
+- [x] AC15: index.scip cached in `.fs2/scip/` for re-use
 
 ---
 
 ## Checklist
 
-- [ ] T001: Rewrite `CrossFileRelsStage.process()` for SCIP
-- [ ] T002: Implement SCIP indexer subprocess invocation
-- [ ] T003: Wire auto_discover fallback
-- [ ] T004: Add `.fs2/scip/` cache directory management
-- [ ] T005: Wire `ProjectsConfig` into pipeline and CLI
-- [ ] T006: Remove Serena code from stage
-- [ ] T007: Integration tests (unit + acceptance)
-- [ ] T008: Update documentation (README + docs/how/)
+- [x] T001: Rewrite `CrossFileRelsStage.process()` for SCIP
+- [x] T002: Implement SCIP indexer subprocess invocation
+- [x] T003: Wire auto_discover fallback
+- [x] T004: Add `.fs2/scip/` cache directory management
+- [x] T005: Wire `ProjectsConfig` into pipeline and CLI
+- [x] T006: Remove Serena code from stage
+- [x] T007: Integration tests (unit + acceptance)
+- [x] T008: Update documentation (README + docs/how/)
