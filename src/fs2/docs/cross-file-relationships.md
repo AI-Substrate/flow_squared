@@ -118,3 +118,65 @@ npm install -g @sourcegraph/scip-python
 ### "No project roots detected"
 
 No marker files found. Make sure your project has a standard project root marker (pyproject.toml, package.json, go.mod, etc.).
+
+### "0 edges" after scanning
+
+Check these in order:
+1. **Indexer installed?** — Run `fs2 discover-projects` and check the Indexer column (✅ vs ❌)
+2. **Project configured?** — Check `.fs2/config.yaml` has a `projects.entries` section with the right type and path
+3. **Path correct?** — The `path` field is relative to the repo root (where `.fs2/` lives). Use `.` for the repo root, `frontend` for a subdirectory
+4. **Index produced?** — Check `.fs2/scip/` for cached `index.scip` files. If empty, the indexer failed silently
+5. **C# needs build** — Run `dotnet build` before scanning C# projects
+
+### Scan produces edges but `get-node` shows no relationships
+
+Edges are stored between nodes that exist in the graph. If tree-sitter didn't parse a file (e.g., unsupported language, file too large), its nodes won't exist and edges to/from it are dropped by StorageStage.
+
+---
+
+## For AI Agents
+
+### Helping Users Set Up Cross-File Relationships
+
+When a user wants cross-file references, guide them through this workflow:
+
+1. **Check indexer availability**: Run `fs2 discover-projects --json` and inspect the `indexer_installed` field
+2. **Install missing indexers**: Show the install command from the table above
+3. **Add projects to config**: Run `fs2 add-project --all` or select specific numbers
+4. **Scan**: Run `fs2 scan --no-smart-content --no-embeddings` for a fast first scan
+
+### Config Path Rules
+
+The `path` field in `projects.entries` is **relative to the repo root** (the directory containing `.fs2/`):
+
+```yaml
+projects:
+  entries:
+    - type: python
+      path: .                    # Project IS the repo root
+    - type: typescript
+      path: frontend             # Project is in <repo>/frontend/
+    - type: python
+      path: services/auth        # Project is in <repo>/services/auth/
+```
+
+**Important**: Paths resolve against the repo root, NOT the current working directory. If the user runs `fs2 scan --scan-path src/`, the project paths still resolve from the repo root.
+
+### Reading Relationships from the Graph
+
+Use `get_node` to see cross-file relationships:
+```
+get_node(node_id="callable:src/service.py:MyService.process")
+→ relationships.referenced_by = ["callable:src/handler.py:Handler.handle"]
+→ relationships.references = ["type:src/model.py:Item"]
+```
+
+Use `tree` with `detail="max"` to see reference counts:
+```
+tree(pattern="src/service.py")
+→ Shows "(3 refs)" next to nodes that have cross-file references
+```
+
+### Auto-Discovery
+
+If no `projects.entries` are configured and `auto_discover: true` (the default), the stage automatically discovers projects from marker files during scan. This means cross-file refs can work with zero config for simple single-language repos.
