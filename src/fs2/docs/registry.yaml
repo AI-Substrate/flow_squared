@@ -115,3 +115,19 @@ documents:
       - lsp
       - ide
     path: wormhole-mcp-guide.md
+
+  # === Cross-File Relationships ===
+  - id: cross-file-relationships
+    title: "Cross-File Relationships Guide"
+    summary: "Set up SCIP-powered cross-file reference resolution. Covers project discovery, config setup, supported languages (Python, TypeScript, Go, C#), indexer installation, and troubleshooting."
+    category: how-to
+    tags:
+      - cross-file
+      - references
+      - scip
+      - relationships
+      - edges
+      - imports
+      - calls
+      - projects
+    path: cross-file-relationships.md
