@@ -119,29 +119,13 @@ class TestChunkConfigValidation:
 class TestEmbeddingConfigDefaults:
     """T003: Tests for EmbeddingConfig default values."""
 
-    def test_given_no_args_when_constructed_then_has_mode_azure(self):
+    def test_given_no_args_when_constructed_then_has_mode_local(self):
         """
-        Purpose: Proves default mode is azure.
-        Quality Contribution: Ensures sensible default for most users.
-        Acceptance Criteria: mode == "azure".
+        Purpose: Proves default mode is local (DYK-4: changed from azure).
+        Quality Contribution: Ensures local embeddings work out-of-box.
+        Acceptance Criteria: mode == "local".
 
-        Task: T003
-        """
-        from fs2.config.objects import EmbeddingConfig
-
-        # Arrange / Act
-        config = EmbeddingConfig()
-
-        # Assert
-        assert config.mode == "azure"
-
-    def test_given_no_args_when_constructed_then_has_dimensions_1024(self):
-        """
-        Purpose: Per Alignment Finding 10: Proves default dimensions is 1024.
-        Quality Contribution: Ensures consistent embedding vector size across providers.
-        Acceptance Criteria: dimensions == 1024.
-
-        Task: T003 (V6 fix)
+        Task: 032-T001
         """
         from fs2.config.objects import EmbeddingConfig
 
@@ -149,7 +133,23 @@ class TestEmbeddingConfigDefaults:
         config = EmbeddingConfig()
 
         # Assert
-        assert config.dimensions == 1024
+        assert config.mode == "local"
+
+    def test_given_no_args_when_constructed_then_has_dimensions_384(self):
+        """
+        Purpose: Proves default dimensions auto-defaults to 384 for local mode.
+        Quality Contribution: Ensures local model dimension matches config.
+        Acceptance Criteria: dimensions == 384.
+
+        Task: 032-T001 (DYK-4: changed from 1024)
+        """
+        from fs2.config.objects import EmbeddingConfig
+
+        # Arrange / Act
+        config = EmbeddingConfig()
+
+        # Assert
+        assert config.dimensions == 384
 
     def test_given_no_args_when_constructed_then_has_batch_size_16(self):
         """
@@ -786,3 +786,194 @@ scan:
         assert config.azure is not None
         assert config.azure.endpoint == "https://env.openai.azure.com"
         assert config.azure.api_key == "env-api-key"
+
+
+@pytest.mark.unit
+class TestLocalEmbeddingConfigDefaults:
+    """032-T001: Tests for LocalEmbeddingConfig default values."""
+
+    def test_given_no_args_when_constructed_then_has_default_model(self):
+        """
+        Purpose: Proves default model is BAAI/bge-small-en-v1.5.
+        Quality Contribution: Ensures best retrieval quality per size.
+        Acceptance Criteria: model == "BAAI/bge-small-en-v1.5".
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import LocalEmbeddingConfig
+
+        config = LocalEmbeddingConfig()
+
+        assert config.model == "BAAI/bge-small-en-v1.5"
+
+    def test_given_no_args_when_constructed_then_has_device_auto(self):
+        """
+        Purpose: Proves default device is auto-detect.
+        Acceptance Criteria: device == "auto".
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import LocalEmbeddingConfig
+
+        config = LocalEmbeddingConfig()
+
+        assert config.device == "auto"
+
+    def test_given_no_args_when_constructed_then_has_max_seq_length_512(self):
+        """
+        Purpose: Proves default max_seq_length is 512.
+        Acceptance Criteria: max_seq_length == 512.
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import LocalEmbeddingConfig
+
+        config = LocalEmbeddingConfig()
+
+        assert config.max_seq_length == 512
+
+    def test_given_custom_model_when_constructed_then_stores_value(self):
+        """
+        Purpose: Proves custom model name is stored.
+        Acceptance Criteria: Custom model name preserved.
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import LocalEmbeddingConfig
+
+        config = LocalEmbeddingConfig(model="sentence-transformers/all-MiniLM-L6-v2")
+
+        assert config.model == "sentence-transformers/all-MiniLM-L6-v2"
+
+
+@pytest.mark.unit
+class TestLocalEmbeddingConfigValidation:
+    """032-T001: Tests for LocalEmbeddingConfig validation."""
+
+    def test_given_valid_device_values_when_constructed_then_succeeds(self):
+        """
+        Purpose: Proves all valid device values are accepted.
+        Acceptance Criteria: auto, cpu, mps, cuda all valid.
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import LocalEmbeddingConfig
+
+        for device in ("auto", "cpu", "mps", "cuda"):
+            config = LocalEmbeddingConfig(device=device)
+            assert config.device == device
+
+    def test_given_invalid_device_when_constructed_then_validation_error(self):
+        """
+        Purpose: Proves invalid device value is rejected.
+        Acceptance Criteria: ValidationError raised for invalid device.
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import LocalEmbeddingConfig
+
+        with pytest.raises(ValidationError):
+            LocalEmbeddingConfig(device="tpu")
+
+    def test_given_max_seq_length_zero_when_constructed_then_validation_error(self):
+        """
+        Purpose: Proves max_seq_length must be positive.
+        Acceptance Criteria: ValidationError for max_seq_length=0.
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import LocalEmbeddingConfig
+
+        with pytest.raises(ValidationError, match="max_seq_length"):
+            LocalEmbeddingConfig(max_seq_length=0)
+
+
+@pytest.mark.unit
+class TestEmbeddingConfigLocalMode:
+    """032-T001: Tests for EmbeddingConfig with mode=local."""
+
+    def test_given_mode_local_when_constructed_then_mode_is_local(self):
+        """
+        Purpose: Proves mode="local" is accepted by Literal.
+        Acceptance Criteria: mode == "local".
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import EmbeddingConfig
+
+        config = EmbeddingConfig(mode="local")
+
+        assert config.mode == "local"
+
+    def test_given_mode_azure_when_constructed_then_dimensions_is_1024(self):
+        """
+        Purpose: Proves azure mode keeps default dimensions=1024.
+        Acceptance Criteria: dimensions == 1024 when mode="azure".
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import EmbeddingConfig
+
+        config = EmbeddingConfig(mode="azure")
+
+        assert config.dimensions == 1024
+
+    def test_given_mode_local_when_constructed_then_dimensions_auto_defaults_384(self):
+        """
+        Purpose: Proves dimensions auto-defaults to 384 when mode=local.
+        Quality Contribution: Users don't need to know model dimension.
+        Acceptance Criteria: dimensions == 384 for local mode.
+
+        Task: 032-T001 (DYK-3: uses model_fields_set)
+        """
+        from fs2.config.objects import EmbeddingConfig
+
+        config = EmbeddingConfig(mode="local")
+
+        assert config.dimensions == 384
+
+    def test_given_mode_local_explicit_dimensions_when_constructed_then_keeps_explicit(self):
+        """
+        Purpose: Proves explicit dimensions are preserved even in local mode.
+        Quality Contribution: DYK-3 — user's explicit config not silently overridden.
+        Acceptance Criteria: dimensions == 768 when explicitly set.
+
+        Task: 032-T001 (DYK-3)
+        """
+        from fs2.config.objects import EmbeddingConfig
+
+        config = EmbeddingConfig(mode="local", dimensions=768)
+
+        assert config.dimensions == 768
+
+    def test_given_mode_local_with_local_section_when_constructed_then_stores_config(self):
+        """
+        Purpose: Proves nested local config is stored.
+        Acceptance Criteria: local section accessible.
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import EmbeddingConfig, LocalEmbeddingConfig
+
+        local_config = LocalEmbeddingConfig(
+            model="sentence-transformers/all-MiniLM-L6-v2",
+            device="cpu",
+        )
+        config = EmbeddingConfig(mode="local", local=local_config)
+
+        assert config.local is not None
+        assert config.local.model == "sentence-transformers/all-MiniLM-L6-v2"
+        assert config.local.device == "cpu"
+
+    def test_given_mode_local_no_local_section_when_constructed_then_local_is_none(self):
+        """
+        Purpose: Proves local section is optional.
+        Acceptance Criteria: local is None when not provided.
+
+        Task: 032-T001
+        """
+        from fs2.config.objects import EmbeddingConfig
+
+        config = EmbeddingConfig(mode="local")
+
+        assert config.local is None

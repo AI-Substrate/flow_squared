@@ -1,0 +1,1927 @@
+diff --git a/docs/plans/031-cross-file-rels/cross-file-rels-plan.md b/docs/plans/031-cross-file-rels/cross-file-rels-plan.md
+index 845b83a..87780b5 100644
+--- a/docs/plans/031-cross-file-rels/cross-file-rels-plan.md
++++ b/docs/plans/031-cross-file-rels/cross-file-rels-plan.md
+@@ -182,13 +182,15 @@ Harness: Not applicable (user override — unit tests + benchmark scripts in `sc
+ | 4.1 | Add CrossFileRelsStage to ScanPipeline default stage list | core/services | Stage order: Discovery → Parsing → **CrossFileRels** → SmartContent → Embedding → Storage | Per workshop 001. |
+ | 4.2 | Wire config through ScanPipeline constructor → PipelineContext | core/services | `CrossFileRelsConfig` available in context for stage to read | Follow existing smart_content_service pattern. |
+ | 4.3 | Wire CLI flags through scan.py → ScanPipeline | cli | `--no-cross-refs` and `--cross-refs-instances` reach the stage | Follow `--no-smart-content` pattern. |
+-| 4.4 | End-to-end integration test | all | Scan a test project with FakeSerenaPool → graph has reference edges → `get_node` shows relationships | Integration test. |
++| 4.4 | End-to-end integration test (fast) | all | Scan a test project with FakeSerenaPool → graph has reference edges → `get_node` shows relationships | Integration test. Runs in CI without Serena. |
++| 4.4b | Real acceptance test (slow) | all | Scan real project with actual Serena → verify edges match source code → cross-check known references against actual imports/calls | `@pytest.mark.slow`. Requires `serena-mcp-server` on PATH (skip if unavailable). No fakes — real Serena, real scan, real graph. Verify e.g. "Calculator.add references Calculator" by reading source. |
+ | 4.5 | Add README section on cross-file relationships | docs | Installation, config, usage, interpreting output | Per documentation strategy. |
+-| 4.6 | Add `docs/how/cross-file-relationships.md` guide | docs | Detailed config, performance tuning, troubleshooting | Per documentation strategy. |
++| 4.6 | Add `docs/how/user/cross-file-relationships.md` guide | docs | Detailed config, performance tuning, troubleshooting, .serena/ gitignore guidance | Per documentation strategy. DYK-P3-05: include .serena/ gitignore instructions. |
+ 
+ **Acceptance Criteria**:
+ - [AC1] Full scan produces reference edges (end-to-end)
+ - [AC2] `get-node` shows relationships (end-to-end)
++- [AC12] Real Serena acceptance test: edges match actual source code references
+ - Documentation exists and is accurate
+ 
+ ---
+@@ -206,6 +208,7 @@ Harness: Not applicable (user override — unit tests + benchmark scripts in `sc
+ - [ ] [AC9] `--cross-refs-instances 5` uses 5 instances
+ - [ ] [AC10] Format version 1.1; old 1.0 graphs load without error
+ - [ ] [AC11] `tree --detail max` shows ref count per node
++- [ ] [AC12] Real Serena acceptance test: reference edges match actual source code imports/calls
+ 
+ ## Risks
+ 
+diff --git a/docs/plans/031-cross-file-rels/tasks/phase-3-config-cli-mcp-surface/execution.log.md b/docs/plans/031-cross-file-rels/tasks/phase-3-config-cli-mcp-surface/execution.log.md
+new file mode 100644
+index 0000000..7db18fb
+--- /dev/null
++++ b/docs/plans/031-cross-file-rels/tasks/phase-3-config-cli-mcp-surface/execution.log.md
+@@ -0,0 +1,71 @@
++# Execution Log: Phase 3 — Config + CLI + MCP Surface
++
++**Plan**: [../../cross-file-rels-plan.md](../../cross-file-rels-plan.md)
++**Phase**: Phase 3
++**Started**: 2026-03-14
++**Baseline**: 1608 passed, 25 skipped, 341 deselected (41.93s)
++**Final**: 1642 passed, 25 skipped, 350 deselected (42.68s) — +34 new tests, 0 regressions
++
++---
++
++## T001: CrossFileRelsConfig model ✅
++- Created `CrossFileRelsConfig` in `config/objects.py` with `__config_path__ = "cross_file_rels"`
++- Fields: enabled, parallel_instances, serena_base_port, timeout_per_node, languages
++- Validator: parallel_instances 1-50, timeout_per_node > 0
++- Registered in YAML_CONFIG_TYPES
++- 16 tests pass
++
++## T002 + T003: CLI flags ✅
++- Added `--no-cross-refs` and `--cross-refs-instances` to `scan()` in `scan.py`
++- Follows `--no-smart-content` pattern exactly
++- Not wired to pipeline yet (Phase 4)
++- 4 tests pass (slow marker — run with `--override-ini='addopts='`)
++
++## T004 + T005: MCP relationships ✅
++- Updated `_code_node_to_dict` to accept `graph_store` param
++- Queries incoming/outgoing edges separately (efficient — no double-query)
++- `relationships` key omitted when no edges (compact output)
++- Present at both min and max detail levels
++- `get_node` passes `store` to `_code_node_to_dict`
++- 5 tests pass
++
++## T004b + T004c: CLI get-node fix ✅
++- **DYK-P3-03**: Replaced `asdict(node)` with `_code_node_to_cli_dict()` using explicit field selection
++- Prevents embedding vector leakage (pre-existing bug, can be huge)
++- Added `relationships` output via `graph_store` (same pattern as MCP)
++- 2 new tests + all 13 existing CLI get-node tests pass
++
++## T006: Tree ref count ✅
++- **DYK-P3-04**: Updated 3 code paths:
++  1. MCP `_tree_node_to_dict` + `_render_tree_as_text` — `ref_count` in JSON, `(N refs)` in text
++  2. CLI `_tree_node_to_dict` — `ref_count` in JSON output
++  3. CLI `_add_tree_node_to_rich_tree` — `(N refs)` in Rich label
++- All require `graph_store` threaded through
++- **Discovery**: `_get_containment_children` had a within-file reference edge cycle bug. Fixed by filtering on `edge_type` attribute instead of just file_path
++- 4 tests pass + all 85 existing tree tests pass
++
++## T007: .serena/ gitignore guidance ✅
++- Added cross_file_rels section to `DEFAULT_CONFIG` template in `init.py`
++- Includes install instructions + `.serena/` gitignore note
++- Full guide deferred to Phase 4 T4.6 (`docs/how/user/cross-file-relationships.md`)
++- 3 tests pass
++
++## T008: Incremental resolution helpers ✅
++- Added `get_changed_file_paths()` — compares content_hash of file nodes vs prior
++- Added `filter_nodes_to_changed()` — filters resolvable nodes to changed files
++- Added `reuse_prior_edges()` — carries forward edges from unchanged files
++- Added `prior_cross_file_edges` field to PipelineContext
++- Phase 4 wires through ScanPipeline (extract prior edges before clear)
++- 9 tests pass
++
++---
++
++## Discoveries
++
++| Date | Task | Type | Discovery | Resolution |
++|------|------|------|-----------|------------|
++| 2026-03-14 | T004b | DYK-P3-01 | CLI get-node bypasses _code_node_to_dict | Added _code_node_to_cli_dict |
++| 2026-03-14 | T004c | DYK-P3-03 | CLI get-node leaks embeddings via asdict() | Replaced with explicit field selection |
++| 2026-03-14 | T006 | DYK-P3-04 | _tree_node_to_dict duplicated in 3 code paths | Updated all 3 with graph_store threading |
++| 2026-03-14 | T006 | Bug | _get_containment_children had within-file ref edge cycle | Fixed: filter by edge_type attribute, not just file_path |
++| 2026-03-14 | T007 | DYK-P3-05 | .serena/ is at project root, not inside .fs2/ | Comment in DEFAULT_CONFIG; full guide in Phase 4 |
+diff --git a/docs/plans/031-cross-file-rels/tasks/phase-3-config-cli-mcp-surface/tasks.fltplan.md b/docs/plans/031-cross-file-rels/tasks/phase-3-config-cli-mcp-surface/tasks.fltplan.md
+new file mode 100644
+index 0000000..d9df677
+--- /dev/null
++++ b/docs/plans/031-cross-file-rels/tasks/phase-3-config-cli-mcp-surface/tasks.fltplan.md
+@@ -0,0 +1,150 @@
++# Flight Plan: Phase 3 — Config + CLI + MCP Surface
++
++**Plan**: [../../cross-file-rels-plan.md](../../cross-file-rels-plan.md)
++**Phase**: Phase 3: Config + CLI + MCP Surface
++**Generated**: 2026-03-13
++**Status**: Landed
++
++---
++
++## Departure → Destination
++
++**Where we are**: Phases 1–2 complete. The GraphStore ABC has `add_edge(**edge_data)` and `get_edges(node_id, direction, edge_type)`. CrossFileRelsStage resolves references via a Serena pool and stores edges in PipelineContext. StorageStage writes them to the graph. But the feature has NO user-facing surface — no config, no CLI flags, no relationship output in MCP tools. The stage hardcodes 20 instances, port 8330, and 10s timeout.
++
++**Where we're going**: A user can configure cross-file rels via `.fs2/config.yaml` (enabled, instances, ports, timeout). `fs2 scan --no-cross-refs` skips resolution. An AI agent calling `get_node` sees `relationships: {referenced_by: [...], references: [...]}` showing who calls/imports/references that node. `tree --detail max` shows `(N refs)` per node for quick hotspot identification.
++
++---
++
++## Domain Context
++
++### Domains We're Changing
++
++| Domain | What Changes | Key Files |
++|--------|-------------|-----------|
++| config | New `CrossFileRelsConfig` pydantic model registered in `YAML_CONFIG_TYPES` | `src/fs2/config/objects.py` |
++| cli | Two new scan flags; `.serena/` in init gitignore | `src/fs2/cli/scan.py`, `src/fs2/cli/init.py` |
++| mcp | `get_node` returns relationships; tree shows ref count | `src/fs2/mcp/server.py` |
++
++### Domains We Depend On (no changes)
++
++| Domain | What We Consume | Contract |
++|--------|----------------|----------|
++| core/repos | `GraphStore.get_edges()` | ABC method from Phase 1 |
++| core/models | `CodeNode` dataclass | Unchanged |
++| core/services | `TreeService` / `TreeNode` | Unchanged |
++
++---
++
++## Flight Status
++
++<!-- Updated by /plan-6-v2: pending → active → done. Use blocked for problems/input needed. -->
++
++```mermaid
++stateDiagram-v2
++    classDef pending fill:#9E9E9E,stroke:#757575,color:#fff
++    classDef active fill:#FFC107,stroke:#FFA000,color:#000
++    classDef done fill:#4CAF50,stroke:#388E3C,color:#fff
++    classDef blocked fill:#F44336,stroke:#D32F2F,color:#fff
++
++    state "1: Config model" as S1
++    state "2: CLI flags" as S2
++    state "3: MCP relationships" as S3
++    state "4: Tree ref count" as S4
++    state "5: Gitignore" as S5
++
++    [*] --> S1
++    S1 --> S2
++    S2 --> S3
++    S3 --> S4
++    S4 --> S5
++    S5 --> [*]
++
++    class S1,S2,S3,S4,S5 done
++```
++
++**Legend**: grey = pending | yellow = active | red = blocked/needs input | green = done
++
++---
++
++## Stages
++
++<!-- Updated by /plan-6-v2 during implementation: [ ] → [~] → [x] -->
++
++- [x] **Stage 1: Config model** — Create `CrossFileRelsConfig` with validated fields and register in YAML_CONFIG_TYPES (`objects.py`)
++- [x] **Stage 2: CLI flags** — Add `--no-cross-refs` and `--cross-refs-instances` flags to scan.py (`scan.py`)
++- [x] **Stage 3: MCP relationships** — Update `_code_node_to_dict` and `get_node` to include relationships from graph edges (`server.py`)
++- [x] **Stage 4: Tree ref count** — Add ref count to `_tree_node_to_dict` at max detail + render in text output (`server.py`, `tree.py`)
++- [x] **Stage 5: Gitignore** — Add `.serena/` to init gitignore guidance (`init.py`)
++
++---
++
++## Architecture: Before & After
++
++```mermaid
++flowchart LR
++    classDef existing fill:#E8F5E9,stroke:#4CAF50,color:#000
++    classDef changed fill:#FFF3E0,stroke:#FF9800,color:#000
++    classDef new fill:#E3F2FD,stroke:#2196F3,color:#000
++
++    subgraph Before["Before Phase 3"]
++        B_GS["GraphStore\nget_edges()"]:::existing
++        B_MCP["MCP get_node\n(no relationships)"]:::existing
++        B_TREE["MCP tree\n(no ref count)"]:::existing
++        B_SCAN["CLI scan\n(no cross-ref flags)"]:::existing
++        B_CFG["Config\n(no cross_file_rels)"]:::existing
++    end
++
++    subgraph After["After Phase 3"]
++        A_GS["GraphStore\nget_edges()"]:::existing
++        A_CFG["CrossFileRelsConfig\nenabled, instances, port"]:::new
++        A_SCAN["CLI scan\n--no-cross-refs\n--cross-refs-instances"]:::changed
++        A_MCP["MCP get_node\n+ relationships field"]:::changed
++        A_TREE["MCP tree\n+ ref count"]:::changed
++        A_INIT["CLI init\n+ .serena/ gitignore"]:::changed
++
++        A_MCP --> A_GS
++        A_TREE --> A_GS
++        A_SCAN -.- A_CFG
++    end
++```
++
++**Legend**: existing (green, unchanged) | changed (orange, modified) | new (blue, created)
++
++---
++
++## Acceptance Criteria
++
++- [ ] [AC2] `get_node` returns `relationships.referenced_by` list when edges exist
++- [ ] [AC3] `--no-cross-refs` flag is parsed without error
++- [ ] [AC6] MCP `get_node` includes `relationships` in output (both min and max detail)
++- [ ] [AC8] Config section `cross_file_rels` parsed from YAML
++- [ ] [AC9] `--cross-refs-instances 5` flag is parsed without error
++- [ ] [AC11] `tree --detail max` shows ref count per node
++
++---
++
++## Goals & Non-Goals
++
++**Goals**:
++- Config object with validation for cross-file rels settings
++- CLI flags for opt-out and instance count override
++- Relationship data in MCP get_node output
++- Ref count in tree max detail output
++- Gitignore guidance for .serena/ artifacts
++
++**Non-Goals**:
++- Wiring config/flags through ScanPipeline (Phase 4)
++- End-to-end integration testing (Phase 4)
++- Dedicated `get_edges` MCP tool (future)
++
++---
++
++## Checklist
++
++- [x] T001: Create `CrossFileRelsConfig` pydantic model
++- [x] T002: Add `--no-cross-refs` flag to scan.py
++- [x] T003: Add `--cross-refs-instances` flag to scan.py
++- [x] T004: Update `_code_node_to_dict` with `graph_store` param
++- [x] T005: Update `get_node` to pass store to `_code_node_to_dict`
++- [x] T006: Add ref count to tree `--detail max`
++- [x] T007: Add `.serena/` to gitignore guidance
+diff --git a/docs/plans/031-cross-file-rels/tasks/phase-3-config-cli-mcp-surface/tasks.md b/docs/plans/031-cross-file-rels/tasks/phase-3-config-cli-mcp-surface/tasks.md
+new file mode 100644
+index 0000000..11e76e1
+--- /dev/null
++++ b/docs/plans/031-cross-file-rels/tasks/phase-3-config-cli-mcp-surface/tasks.md
+@@ -0,0 +1,298 @@
++# Phase 3: Config + CLI + MCP Surface — Tasks & Context Brief
++
++**Plan**: [cross-file-rels-plan.md](../../cross-file-rels-plan.md)
++**Phase**: Phase 3: Config + CLI + MCP Surface
++**Created**: 2026-03-13
++**Depends on**: Phase 1 (GraphStore edge infrastructure — `get_edges()`, `add_edge(**edge_data)`)
++**CS**: CS-2 (mechanical changes following established patterns)
++
++---
++
++## Executive Briefing
++
++**Purpose**: Wire the cross-file relationship feature into all user-facing surfaces — configuration, CLI flags, and MCP tool output — so users and AI agents can discover, control, and consume relationship data.
++
++**What We're Building**: A `CrossFileRelsConfig` pydantic model for YAML/env configuration, two new CLI flags (`--no-cross-refs`, `--cross-refs-instances`) on `fs2 scan`, relationship data in MCP `get_node` output, and ref counts in `tree --detail max` output.
++
++**Goals**:
++- ✅ Config: `cross_file_rels` section parsed from YAML with validation
++- ✅ CLI: `--no-cross-refs` and `--cross-refs-instances N` flags on scan
++- ✅ MCP: `get_node` returns `relationships.referenced_by` / `relationships.references` lists
++- ✅ MCP+CLI: `tree --detail max` shows ref count per node
++- ✅ Init: `.serena/` added to gitignore guidance
++
++**Non-Goals**:
++- ❌ Wiring flags/config through to ScanPipeline → CrossFileRelsStage (Phase 4)
++- ❌ Adding CrossFileRelsStage to default pipeline stages (Phase 4)
++- ❌ End-to-end integration testing (Phase 4)
++- ❌ Dedicated `get_edges` MCP tool (deferred — future enhancement)
++
++---
++
++## Prior Phase Context
++
++### Phase 1: GraphStore Edge Infrastructure ✅
++
++**A. Deliverables**:
++- `src/fs2/core/repos/graph_store.py` — `add_edge(**edge_data)`, `get_edges(node_id, direction, edge_type)`
++- `src/fs2/core/repos/graph_store_impl.py` — NetworkX implementation, FORMAT_VERSION="1.1"
++- `src/fs2/core/repos/graph_store_fake.py` — FakeGraphStore with edge data tracking
++- `src/fs2/core/services/tree_service.py` — `_get_containment_children()` filter
++- `src/fs2/core/models/code_node.py` — `file_path` @property
++
++**B. Dependencies Exported**:
++- `get_edges(node_id, direction="outgoing", edge_type=None) → list[tuple[str, dict]]` — **this is the key API for T004/T005/T006**
++- Edge type convention: containment edges have no `edge_type` key; reference edges have `edge_type="references"`
++- `CodeNode.file_path` @property parses node_id
++
++**C. Gotchas**:
++- Edge data MUST be plain Python types only (dict/str/int/None) — RestrictedUnpickler constraint
++- Use imported FORMAT_VERSION constant in tests, never hardcode
++- `get_parent()` filters to containment edges only
++
++**D. Incomplete Items**: None — all 9 tasks complete.
++
++**E. Patterns to Follow**:
++- Filter at service layer (TreeService), not GraphStore
++- Containment = no `edge_type` key; Reference = `edge_type="references"`
++- Fakes over mocks; import constants instead of hardcoding
++
++### Phase 2: CrossFileRels Pipeline Stage ✅
++
++**A. Deliverables**:
++- `src/fs2/core/services/stages/cross_file_rels_stage.py` — Full stage (~600 lines)
++- `src/fs2/core/services/pipeline_context.py` — `cross_file_edges` field
++- `src/fs2/core/services/stages/storage_stage.py` — Cross-file edge writing with pre-filters
++
++**B. Dependencies Exported**:
++- `CrossFileRelsStage.process(context) → PipelineContext` — orchestrates Serena pool
++- `is_serena_available() → bool` — checks PATH
++- Stage currently hardcodes: 20 instances, port 8330, 10s timeout — **Phase 3 creates config to parameterize these**
++
++**C. Gotchas**:
++- DYK-P2-04: Zero-arg constructors with hardcoded defaults → Phase 3/4 must wire config
++- DYK-P2-02: `asyncio.run()` bridge for sync pipeline → no impact on Phase 3
++- Stage reads from `context`, not CLI/config directly → Phase 4 wires config to context
++
++**D. Incomplete Items**: None — all 10 tasks complete.
++
++---
++
++## Pre-Implementation Check
++
++| File | Exists? | Domain | Action | Notes |
++|------|---------|--------|--------|-------|
++| `src/fs2/config/objects.py` | ✅ Yes | config | Modify | Add `CrossFileRelsConfig` + register in `YAML_CONFIG_TYPES` |
++| `src/fs2/cli/scan.py` | ✅ Yes | cli | Modify | Add 2 new flags to `scan()` function |
++| `src/fs2/mcp/server.py` | ✅ Yes | mcp | Modify | `_code_node_to_dict` gains `graph_store`; `_tree_node_to_dict` gains ref count |
++| `src/fs2/cli/tree.py` | ✅ Yes | cli | Modify | `_tree_node_to_dict` gains ref count (parallel copy) |
++| `src/fs2/cli/init.py` | ✅ Yes | cli | Modify | Add `.serena/` to gitignore template |
++| `tests/unit/config/test_cross_file_rels_config.py` | ❌ New | config | Create | Config model tests |
++| `tests/unit/cli/test_scan_cli.py` | ✅ Yes | cli | Modify | Add flag tests |
++| `tests/mcp_tests/test_server.py` | ✅ Yes | mcp | Modify | Add relationship output tests |
++
++**Concept Duplication Check**: No duplication — `CrossFileRelsConfig` is a new concept. The `_code_node_to_dict` and `_tree_node_to_dict` changes extend existing functions.
++
++**Harness**: Not applicable (user override — unit tests sufficient per plan).
++
++---
++
++## Architecture Map
++
++```mermaid
++flowchart TD
++    classDef pending fill:#9E9E9E,stroke:#757575,color:#fff
++    classDef completed fill:#4CAF50,stroke:#388E3C,color:#fff
++
++    subgraph Phase3["Phase 3: Config + CLI + MCP Surface"]
++        T001["T001: CrossFileRelsConfig model"]:::completed
++        T002["T002: --no-cross-refs flag"]:::completed
++        T003["T003: --cross-refs-instances flag"]:::completed
++        T004["T004: _code_node_to_dict + graph_store"]:::completed
++        T005["T005: get_node passes store"]:::completed
++        T006["T006: tree ref count"]:::completed
++        T007["T007: .serena/ gitignore"]:::completed
++
++        T004 --> T005
++    end
++
++    subgraph Files["Files"]
++        F1["config/objects.py"]:::completed
++        F2["cli/scan.py"]:::completed
++        F3["mcp/server.py"]:::completed
++        F4["cli/tree.py"]:::completed
++        F5["cli/init.py"]:::completed
++    end
++
++    T001 -.-> F1
++    T002 -.-> F2
++    T003 -.-> F2
++    T004 -.-> F3
++    T005 -.-> F3
++    T006 -.-> F3
++    T006 -.-> F4
++    T007 -.-> F5
++```
++
++---
++
++## Tasks
++
++| Status | ID | Task | Domain | Path(s) | Done When | Notes |
++|--------|-----|------|--------|---------|-----------|-------|
++| [x] | T001 | Create `CrossFileRelsConfig` pydantic model with `__config_path__ = "cross_file_rels"` | config | `src/fs2/config/objects.py`, `tests/unit/config/test_cross_file_rels_config.py` | Fields: enabled, parallel_instances, serena_base_port, timeout_per_node, languages; validators pass; registered in `YAML_CONFIG_TYPES` | Per workshop 002/003. Follow `ScanConfig` / `SmartContentConfig` pattern. Fields: `enabled: bool = True`, `parallel_instances: int = 20`, `serena_base_port: int = 8330`, `timeout_per_node: float = 5.0`, `languages: list[str] = ["python"]`. Validator: `parallel_instances` 1–50. TDD. |
++| [x] | T002 | Add `--no-cross-refs` flag to `scan()` | cli | `src/fs2/cli/scan.py`, `tests/unit/cli/test_scan_cli.py` | Flag parsed by Typer; scan exits 0 with flag | Follow `--no-smart-content` pattern exactly. Flag is `Annotated[bool, typer.Option("--no-cross-refs", help="Skip cross-file relationship extraction")]`. NOT wired to pipeline yet (Phase 4). TDD. |
++| [x] | T003 | Add `--cross-refs-instances` flag to `scan()` | cli | `src/fs2/cli/scan.py`, `tests/unit/cli/test_scan_cli.py` | Flag parsed by Typer; accepts int; scan exits 0 | `Annotated[int \| None, typer.Option("--cross-refs-instances", help="Number of parallel Serena instances (default: 20)")]`. Default None (use config). NOT wired yet (Phase 4). TDD. |
++| [x] | T004 | Update MCP `_code_node_to_dict` — accept optional `graph_store` param | mcp | `src/fs2/mcp/server.py`, `tests/mcp_tests/test_server.py` | When `graph_store` provided, calls `get_edges()` for incoming+outgoing, includes `relationships` dict; omits field when no edges | Per finding 07 + workshop 003. Query incoming and outgoing separately (not "both" then re-classify). Omit `relationships` key entirely when no edges (per workshop 003 decision). Present at both min and max detail. TDD. |
++| [x] | T005 | Update MCP `get_node` tool — pass `store` to `_code_node_to_dict` | mcp | `src/fs2/mcp/server.py`, `tests/mcp_tests/test_server.py` | `get_node` output includes `relationships.referenced_by` when reference edges exist in graph | `store` already available in `get_node()` from `get_graph_store(graph_name)`. Just pass it: `_code_node_to_dict(code_node, detail, graph_store=store)`. Depends on T004. TDD. |
++| [x] | T006 | Add ref count to `tree --detail max` output | mcp, cli | `src/fs2/mcp/server.py`, `src/fs2/cli/tree.py`, `tests/mcp_tests/test_server.py` | Nodes with cross-file edges show `ref_count` in JSON dict and `(N refs)` in text when detail=max | Pass `graph_store` to `_tree_node_to_dict` (MCP + CLI copies). Add `ref_count` to dict when detail=max. `_render_tree_as_text` renders it as `(N refs)`. Per AC11. TDD. |
++| [x] | T007 | Add `.serena/` to `.gitignore` guidance in init | cli | `src/fs2/cli/init.py`, `tests/unit/cli/test_init_cli.py` | `fs2 init` includes `.serena/` in gitignore output; users know to exclude Serena artifacts | `.serena/` is created at project root by Serena (not inside `.fs2/`). Add to `DEFAULT_CONFIG` as a comment recommending `.serena/` be added to project `.gitignore`. Also update `FS2_GITIGNORE` to note it. TDD. |
++
++---
++
++## Context Brief
++
++### Key Findings from Plan
++
++- **Finding 07 (Medium)**: MCP `_code_node_to_dict` doesn't receive `graph_store`. `get_node` tool already calls `get_graph_store()`. → T004/T005: Pass store to `_code_node_to_dict` for relationship output.
++- **Finding 05 (Medium)**: Edge attributes MUST be plain dicts/strings/ints only — no custom classes. → T001: Config model stores plain Python types.
++- **DYK-P2-04**: Stage has zero-arg constructors with hardcoded defaults (20 instances, port 8330, 10s timeout). → T001: Config model provides these as configurable fields; Phase 4 wires to stage.
++
++### Domain Dependencies
++
++- `core/repos`: `GraphStore.get_edges(node_id, direction, edge_type)` — used by T004/T005/T006 to query relationship edges
++- `core/repos`: `GraphStore` ABC — consumed as type annotation for `_code_node_to_dict` param
++- `core/models`: `CodeNode` — consumed unchanged; `node_id` used for edge queries
++- `core/services`: `TreeService` / `TreeNode` — consumed unchanged; tree output enriched at MCP/CLI layer
++
++### Domain Constraints
++
++- Config objects MUST use `__config_path__: ClassVar[str]` and register in `YAML_CONFIG_TYPES`
++- CLI flags follow `--no-{feature}` negative pattern per existing convention
++- MCP tools access graph via `get_graph_store(graph_name)` from `fs2.mcp.dependencies`
++- MCP and CLI have DUPLICATED `_tree_node_to_dict` (both must be updated for T006)
++- `_code_node_to_dict` MUST NOT include embeddings (security constraint per DYK Session)
++
++### Reusable from Prior Phases
++
++- `FakeGraphStore` — already supports `add_edge(**edge_data)` and `get_edges()` (from Phase 1); use for MCP tests
++- Test pattern: `graph_store.add_edge(node_a, node_b, edge_type="references")` then verify output
++- `FORMAT_VERSION` import pattern from `graph_store_impl`
++
++### Config Registration Pattern (from codebase)
++
++```python
++# In config/objects.py:
++class CrossFileRelsConfig(BaseModel):
++    __config_path__: ClassVar[str] = "cross_file_rels"
++    enabled: bool = True
++    # ...
++
++# At bottom of file:
++YAML_CONFIG_TYPES: list[type[BaseModel]] = [
++    # ... existing configs ...
++    CrossFileRelsConfig,  # Add here
++]
++
++# Test pattern (from test_scan_config.py):
++def test_cross_file_rels_config_in_yaml_config_types_registry(self):
++    from fs2.config.objects import YAML_CONFIG_TYPES, CrossFileRelsConfig
++    assert CrossFileRelsConfig in YAML_CONFIG_TYPES
++```
++
++### CLI Flag Pattern (from scan.py)
++
++```python
++no_cross_refs: Annotated[
++    bool,
++    typer.Option(
++        "--no-cross-refs",
++        help="Skip cross-file relationship extraction",
++    ),
++] = False,
++```
++
++### MCP Relationship Output Pattern (refined from workshop 003)
++
++```python
++# Efficient: query incoming and outgoing separately (avoid double-query)
++if graph_store is not None:
++    incoming = graph_store.get_edges(node.node_id, direction="incoming", edge_type="references")
++    outgoing = graph_store.get_edges(node.node_id, direction="outgoing", edge_type="references")
++    rels: dict[str, list[str]] = {}
++    if incoming:
++        rels["referenced_by"] = [nid for nid, _ in incoming]
++    if outgoing:
++        rels["references"] = [nid for nid, _ in outgoing]
++    if rels:
++        result["relationships"] = rels
++```
++
++### Mermaid Flow Diagram
++
++```mermaid
++flowchart LR
++    subgraph Config["Config Layer"]
++        CFG["CrossFileRelsConfig\n(YAML/env)"]
++    end
++
++    subgraph CLI["CLI Layer"]
++        SCAN["scan.py\n--no-cross-refs\n--cross-refs-instances"]
++        INIT["init.py\n.serena/ gitignore"]
++    end
++
++    subgraph MCP["MCP Layer"]
++        GN["get_node()\nrelationships field"]
++        TR["tree()\nref count"]
++    end
++
++    subgraph Core["Core Layer (Phase 1)"]
++        GS["GraphStore\nget_edges()"]
++    end
++
++    CFG -.- SCAN
++    GN --> GS
++    TR --> GS
++```
++
++### Mermaid Sequence Diagram — get_node with Relationships
++
++```mermaid
++sequenceDiagram
++    participant Agent
++    participant MCP as MCP get_node
++    participant GNS as GetNodeService
++    participant GS as GraphStore
++
++    Agent->>MCP: get_node(node_id, detail)
++    MCP->>GNS: service.get_node(node_id)
++    GNS-->>MCP: CodeNode
++    MCP->>MCP: _code_node_to_dict(node, detail, graph_store=store)
++    MCP->>GS: get_edges(node_id, "incoming", "references")
++    GS-->>MCP: [(ref_node_id, {edge_type: "references"}), ...]
++    MCP->>GS: get_edges(node_id, "outgoing", "references")
++    GS-->>MCP: [(target_node_id, {...}), ...]
++    MCP-->>Agent: {node_id, content, ..., relationships: {referenced_by: [...], references: [...]}}
++```
++
++---
++
++## Discoveries & Learnings
++
++_Populated during implementation by plan-6._
++
++| Date | Task | Type | Discovery | Resolution | References |
++|------|------|------|-----------|------------|------------|
++
++---
++
++## Directory Layout
++
++```
++docs/plans/031-cross-file-rels/
++  ├── cross-file-rels-plan.md
++  └── tasks/phase-3-config-cli-mcp-surface/
++      ├── tasks.md              ← this file
++      ├── tasks.fltplan.md      ← flight plan
++      └── execution.log.md     # created by plan-6
++```
+diff --git a/src/fs2/cli/get_node.py b/src/fs2/cli/get_node.py
+index 3c8f968..6fc7879 100644
+--- a/src/fs2/cli/get_node.py
++++ b/src/fs2/cli/get_node.py
+@@ -7,12 +7,13 @@ Business logic (graph loading, node retrieval) is delegated to GetNodeService.
+ 
+ Per research finding #01: Use raw print() for JSON output, Console(stderr=True) for errors.
+ This ensures clean stdout for piping to tools like jq - only JSON on stdout, all else to stderr.
++
++Per DYK-P3-03: Uses explicit field selection to prevent embedding leakage.
+ """
+ 
+ import json
+-from dataclasses import asdict
+ from pathlib import Path
+-from typing import Annotated
++from typing import Annotated, Any
+ 
+ import typer
+ from rich.console import Console
+@@ -20,12 +21,64 @@ from rich.console import Console
+ from fs2.cli.utils import resolve_graph_from_context
+ from fs2.config.exceptions import MissingConfigurationError
+ from fs2.core.adapters.exceptions import GraphNotFoundError, GraphStoreError
++from fs2.core.models.code_node import CodeNode
+ from fs2.core.services.get_node_service import GetNodeService
+ 
+ # Console for error/status messages - writes to stderr to keep stdout clean for piping
+ console = Console(stderr=True)
+ 
+ 
++def _code_node_to_cli_dict(
++    node: CodeNode,
++    graph_store: Any = None,
++) -> dict[str, Any]:
++    """Convert CodeNode to JSON-serializable dict with explicit field selection.
++
++    Matches MCP _code_node_to_dict pattern. NEVER includes embedding vectors
++    or internal hash fields. Always outputs max detail for CLI (users expect
++    all available metadata).
++
++    Args:
++        node: CodeNode from GetNodeService.get_node().
++        graph_store: Optional GraphStore for relationship edge queries.
++
++    Returns:
++        Dict suitable for JSON serialization.
++    """
++    result: dict[str, Any] = {
++        "node_id": node.node_id,
++        "name": node.name,
++        "category": node.category,
++        "content": node.content,
++        "signature": node.signature,
++        "start_line": node.start_line,
++        "end_line": node.end_line,
++        "smart_content": node.smart_content,
++        "language": node.language,
++        "parent_node_id": node.parent_node_id,
++        "qualified_name": node.qualified_name,
++        "ts_kind": node.ts_kind,
++    }
++
++    # Cross-file relationships (omit when empty)
++    if graph_store is not None:
++        incoming = graph_store.get_edges(
++            node.node_id, direction="incoming", edge_type="references"
++        )
++        outgoing = graph_store.get_edges(
++            node.node_id, direction="outgoing", edge_type="references"
++        )
++        rels: dict[str, list[str]] = {}
++        if incoming:
++            rels["referenced_by"] = [nid for nid, _ in incoming]
++        if outgoing:
++            rels["references"] = [nid for nid, _ in outgoing]
++        if rels:
++            result["relationships"] = rels
++
++    return result
++
++
+ def get_node(
+     ctx: typer.Context,
+     node_id: Annotated[
+@@ -86,9 +139,9 @@ def get_node(
+             console.print(f"[red]Error:[/red] Node not found: {node_id}")
+             raise typer.Exit(code=1)
+ 
+-        # Serialize to JSON
+-        # Use asdict() for dataclass serialization, default=str for non-JSON types
+-        json_str = json.dumps(asdict(node), indent=2, default=str)
++        # Serialize to JSON with explicit field selection (DYK-P3-03: no embedding leak)
++        node_dict = _code_node_to_cli_dict(node, graph_store=graph_store)
++        json_str = json.dumps(node_dict, indent=2, default=str)
+ 
+         # Output to file or stdout
+         if file:
+diff --git a/src/fs2/cli/init.py b/src/fs2/cli/init.py
+index 7d5c935..4a042d6 100644
+--- a/src/fs2/cli/init.py
++++ b/src/fs2/cli/init.py
+@@ -89,6 +89,20 @@ scan:
+ #     endpoint: https://api.openai.com/v1
+ #     api_key: ${OPENAI_API_KEY}
+ #     model: text-embedding-3-small
++
++# ─── Cross-File Relationships (LSP-powered) ──────────────────────
++# Resolves call/reference relationships between code nodes using Serena (LSP).
++# Enabled by default when serena-mcp-server is available on PATH.
++# Install: uv tool install "serena-agent @ git+https://github.com/oraios/serena.git"
++# NOTE: Add .serena/ to your project .gitignore (created at project root by Serena)
++#
++# cross_file_rels:
++#   enabled: true
++#   parallel_instances: 20
++#   serena_base_port: 8330
++#   timeout_per_node: 5.0
++#   languages:
++#     - python
+ """
+ 
+ # .gitignore for .fs2 directory - ignores everything except config.yaml
+diff --git a/src/fs2/cli/scan.py b/src/fs2/cli/scan.py
+index d9bd5b7..537cbe6 100644
+--- a/src/fs2/cli/scan.py
++++ b/src/fs2/cli/scan.py
+@@ -72,6 +72,20 @@ def scan(
+             help="Skip embedding generation (faster scans)",
+         ),
+     ] = False,
++    no_cross_refs: Annotated[
++        bool,
++        typer.Option(
++            "--no-cross-refs",
++            help="Skip cross-file relationship extraction",
++        ),
++    ] = False,
++    cross_refs_instances: Annotated[
++        int | None,
++        typer.Option(
++            "--cross-refs-instances",
++            help="Number of parallel Serena instances (default: 20)",
++        ),
++    ] = None,
+ ) -> None:
+     """Scan the codebase and build the code graph.
+ 
+diff --git a/src/fs2/cli/tree.py b/src/fs2/cli/tree.py
+index af39f2c..dad2816 100644
+--- a/src/fs2/cli/tree.py
++++ b/src/fs2/cli/tree.py
+@@ -52,6 +52,7 @@ CATEGORY_ICONS = {
+ def _tree_node_to_dict(
+     tree_node: TreeNode,
+     detail: Literal["min", "max"] = "min",
++    graph_store: Any = None,
+ ) -> dict[str, Any]:
+     """Convert TreeNode to JSON-serializable dict.
+ 
+@@ -65,11 +66,12 @@ def _tree_node_to_dict(
+     - hidden_children_count
+ 
+     Fields included only in max detail:
+-    - signature, smart_content
++    - signature, smart_content, ref_count (when > 0)
+ 
+     Args:
+         tree_node: TreeNode from TreeService.build_tree().
+         detail: "min" for compact output, "max" for full metadata.
++        graph_store: Optional GraphStore for ref count queries.
+ 
+     Returns:
+         Dict suitable for JSON serialization.
+@@ -83,7 +85,10 @@ def _tree_node_to_dict(
+         "category": node.category,
+         "start_line": node.start_line,
+         "end_line": node.end_line,
+-        "children": [_tree_node_to_dict(child, detail) for child in tree_node.children],
++        "children": [
++            _tree_node_to_dict(child, detail, graph_store)
++            for child in tree_node.children
++        ],
+     }
+ 
+     # Add hidden_children_count only when > 0
+@@ -96,6 +101,13 @@ def _tree_node_to_dict(
+             result["signature"] = node.signature
+         if node.smart_content:
+             result["smart_content"] = node.smart_content
++        # Ref count from cross-file reference edges
++        if graph_store is not None:
++            incoming = graph_store.get_edges(
++                node.node_id, direction="incoming", edge_type="references"
++            )
++            if incoming:
++                result["ref_count"] = len(incoming)
+ 
+     return result
+ 
+@@ -205,7 +217,7 @@ def tree(
+         if json_output or file:
+             # Convert to JSON-serializable format
+             detail_literal: Literal["min", "max"] = "max" if detail == "max" else "min"
+-            tree_dicts = [_tree_node_to_dict(tn, detail_literal) for tn in tree_nodes]
++            tree_dicts = [_tree_node_to_dict(tn, detail_literal, graph_store) for tn in tree_nodes]
+             envelope = {"tree": tree_dicts}
+             json_str = json.dumps(envelope, indent=2, default=str)
+ 
+@@ -231,7 +243,7 @@ def tree(
+             raise typer.Exit(code=0)
+ 
+         # Display tree using Rich
+-        _display_tree(tree_nodes, detail, depth, verbose)
++        _display_tree(tree_nodes, detail, depth, verbose, graph_store)
+ 
+     except MissingConfigurationError:
+         stderr_console.print(
+@@ -246,6 +258,7 @@ def _display_tree(
+     detail: str,
+     max_depth: int,
+     verbose: bool = False,
++    graph_store: Any = None,
+ ) -> None:
+     """Display TreeNodes as Rich Tree.
+ 
+@@ -256,6 +269,7 @@ def _display_tree(
+         detail: "min" or "max" detail level.
+         max_depth: Maximum depth (for hidden children messages).
+         verbose: Whether to show debug output.
++        graph_store: Optional GraphStore for ref count display.
+     """
+     # Group by path prefix for virtual folders
+     path_groups: dict[str, list[TreeNode]] = {}
+@@ -283,7 +297,8 @@ def _display_tree(
+         main_tree = Tree("[bold]Code Structure[/bold]")
+         for tree_node in sorted(tree_nodes, key=lambda tn: tn.node.node_id):
+             _add_tree_node_to_rich_tree(
+-                main_tree, tree_node, detail, max_depth, 1, display_stats
++                main_tree, tree_node, detail, max_depth, 1, display_stats,
++                graph_store,
+             )
+     else:
+         # Group by path prefix
+@@ -299,7 +314,8 @@ def _display_tree(
+                 path_groups[prefix], key=lambda tn: tn.node.node_id
+             ):
+                 _add_tree_node_to_rich_tree(
+-                    folder_branch, tree_node, detail, max_depth, 1, display_stats
++                    folder_branch, tree_node, detail, max_depth, 1, display_stats,
++                    graph_store,
+                 )
+ 
+     console.print(main_tree)
+@@ -317,6 +333,7 @@ def _add_tree_node_to_rich_tree(
+     max_depth: int,
+     current_depth: int,
+     stats: dict[str, int] | None = None,
++    graph_store: Any = None,
+ ) -> None:
+     """Recursively add a TreeNode and its children to the Rich Tree.
+ 
+@@ -327,6 +344,7 @@ def _add_tree_node_to_rich_tree(
+         max_depth: Maximum depth (for hidden children message).
+         current_depth: Current depth in tree.
+         stats: Optional dict to track {"total_nodes", "file_count"}.
++        graph_store: Optional GraphStore for ref count display.
+     """
+     node = tree_node.node
+ 
+@@ -343,6 +361,13 @@ def _add_tree_node_to_rich_tree(
+         # Include signature
+         sig = f" {node.signature}" if node.signature else ""
+         label = f"{icon} {node.node_id} [{node.start_line}-{node.end_line}]{sig}"
++        # Add ref count if available
++        if graph_store is not None:
++            incoming = graph_store.get_edges(
++                node.node_id, direction="incoming", edge_type="references"
++            )
++            if incoming:
++                label += f" ({len(incoming)} refs)"
+     else:
+         # Show full node_id for agent copy-paste
+         label = f"{icon} {node.node_id} [{node.start_line}-{node.end_line}]"
+@@ -358,5 +383,6 @@ def _add_tree_node_to_rich_tree(
+     # Add children
+     for child_tree_node in tree_node.children:
+         _add_tree_node_to_rich_tree(
+-            branch, child_tree_node, detail, max_depth, current_depth + 1, stats
++            branch, child_tree_node, detail, max_depth, current_depth + 1,
++            stats, graph_store,
+         )
+diff --git a/src/fs2/config/objects.py b/src/fs2/config/objects.py
+index 31a8b67..10f4ecd 100644
+--- a/src/fs2/config/objects.py
++++ b/src/fs2/config/objects.py
+@@ -941,6 +941,60 @@ class SearchConfig(BaseModel):
+         return v
+ 
+ 
++class CrossFileRelsConfig(BaseModel):
++    """Configuration for cross-file relationship extraction.
++
++    Loaded from YAML or environment variables.
++    Path: cross_file_rels (e.g., FS2_CROSS_FILE_RELS__PARALLEL_INSTANCES)
++
++    Controls Serena-powered cross-file reference resolution during scan.
++    Enabled by default when serena-mcp-server is on PATH.
++
++    Attributes:
++        enabled: Whether cross-file relationship extraction is enabled (default: True).
++        parallel_instances: Number of parallel Serena instances (default: 20, range 1-50).
++        serena_base_port: Starting port for Serena instances (default: 8330).
++        timeout_per_node: Seconds per node before giving up (default: 5.0).
++        languages: Languages to resolve references for (default: ["python"]).
++
++    YAML example:
++        ```yaml
++        # .fs2/config.yaml
++        cross_file_rels:
++          enabled: true
++          parallel_instances: 20
++          serena_base_port: 8330
++          timeout_per_node: 5.0
++          languages:
++            - python
++        ```
++    """
++
++    __config_path__: ClassVar[str] = "cross_file_rels"
++
++    enabled: bool = True
++    parallel_instances: int = 20
++    serena_base_port: int = 8330
++    timeout_per_node: float = 5.0
++    languages: list[str] = ["python"]
++
++    @field_validator("parallel_instances")
++    @classmethod
++    def validate_parallel_instances(cls, v: int) -> int:
++        """Validate parallel_instances is in 1-50 range."""
++        if v < 1 or v > 50:
++            raise ValueError("parallel_instances must be between 1 and 50")
++        return v
++
++    @field_validator("timeout_per_node")
++    @classmethod
++    def validate_timeout_per_node(cls, v: float) -> float:
++        """Validate timeout_per_node is positive."""
++        if v <= 0:
++            raise ValueError("timeout_per_node must be > 0")
++        return v
++
++
+ # Registry of config types to auto-load from YAML/env
+ # Only configs with __config_path__ != None should be in this list
+ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
+@@ -956,4 +1010,5 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
+     SearchConfig,
+     WatchConfig,
+     OtherGraphsConfig,
++    CrossFileRelsConfig,
+ ]
+diff --git a/src/fs2/core/services/pipeline_context.py b/src/fs2/core/services/pipeline_context.py
+index 917d80d..2972a8d 100644
+--- a/src/fs2/core/services/pipeline_context.py
++++ b/src/fs2/core/services/pipeline_context.py
+@@ -88,6 +88,13 @@ class PipelineContext:
+     # None on first scan (no prior graph exists), dict[str, CodeNode] on subsequent scans.
+     prior_nodes: "dict[str, CodeNode] | None" = None
+ 
++    # Prior graph reference edges for incremental cross-file resolution (Phase 3 T008).
++    # Populated by ScanPipeline.run() from existing graph before clear().
++    # Each tuple: (source_node_id, target_node_id, edge_data_dict).
++    # Enables skipping Serena calls for unchanged files by reusing prior edges.
++    # None on first scan.
++    prior_cross_file_edges: "list[tuple[str, str, dict[str, Any]]] | None" = None
++
+     # SmartContentService for AI-powered smart content generation (Phase 6 T004)
+     # Injected by ScanPipeline when smart content is enabled.
+     # None when --no-smart-content flag is used or LLM not configured.
+diff --git a/src/fs2/core/services/stages/cross_file_rels_stage.py b/src/fs2/core/services/stages/cross_file_rels_stage.py
+index 6840535..0f7ce69 100644
+--- a/src/fs2/core/services/stages/cross_file_rels_stage.py
++++ b/src/fs2/core/services/stages/cross_file_rels_stage.py
+@@ -619,6 +619,103 @@ async def resolve_node_batch(
+     return edges
+ 
+ 
++# ---------------------------------------------------------------------------
++# T008: Incremental resolution helpers
++# ---------------------------------------------------------------------------
++
++
++def get_changed_file_paths(
++    current_nodes: list["CodeNode"],
++    prior_nodes: "dict[str, CodeNode] | None",
++) -> set[str] | None:
++    """Identify file paths that have changed since prior scan.
++
++    Compares content_hash of file-category nodes between current and prior.
++    Same pattern as SmartContentStage._merge_prior_smart_content().
++
++    Args:
++        current_nodes: Fresh nodes from ParsingStage.
++        prior_nodes: Prior node dict (None on first scan).
++
++    Returns:
++        Set of changed file paths, or None if all files should be processed
++        (first scan — no prior data).
++    """
++    if prior_nodes is None:
++        return None
++
++    changed: set[str] = set()
++    for node in current_nodes:
++        if node.category != "file":
++            continue
++        file_path = node.file_path
++        prior = prior_nodes.get(node.node_id)
++        if prior is None or node.content_hash != prior.content_hash:
++            changed.add(file_path)
++
++    return changed
++
++
++def filter_nodes_to_changed(
++    nodes: list["CodeNode"],
++    changed_files: set[str] | None,
++) -> list["CodeNode"]:
++    """Filter nodes to only those from changed files.
++
++    Args:
++        nodes: All resolvable nodes.
++        changed_files: Set of changed file paths, or None for all.
++
++    Returns:
++        Filtered list of nodes from changed files only.
++    """
++    if changed_files is None:
++        return nodes
++
++    return [n for n in nodes if n.file_path in changed_files]
++
++
++def reuse_prior_edges(
++    prior_edges: "list[tuple[str, str, dict[str, Any]]] | None",
++    changed_files: set[str] | None,
++    current_node_ids: set[str],
++) -> list[tuple[str, str, dict[str, Any]]]:
++    """Reuse edges from prior scan for unchanged files.
++
++    An edge is reusable when:
++    1. Both endpoints still exist in the current graph
++    2. Neither endpoint's file has changed
++
++    Args:
++        prior_edges: Edges from prior scan (None on first scan).
++        changed_files: Set of changed file paths (None = all changed).
++        current_node_ids: Set of node_ids in current scan.
++
++    Returns:
++        List of edges to carry forward from prior scan.
++    """
++    if prior_edges is None or changed_files is None:
++        return []
++
++    reused: list[tuple[str, str, dict[str, Any]]] = []
++    for source_id, target_id, edge_data in prior_edges:
++        # Both endpoints must still exist
++        if source_id not in current_node_ids or target_id not in current_node_ids:
++            continue
++
++        # Extract file paths from node_ids
++        source_file = source_id.split(":", 2)[1] if ":" in source_id else ""
++        target_file = target_id.split(":", 2)[1] if ":" in target_id else ""
++
++        # Skip if either file changed (will be re-resolved)
++        if source_file in changed_files or target_file in changed_files:
++            continue
++
++        reused.append((source_id, target_id, edge_data))
++
++    return reused
++
++
+ # ---------------------------------------------------------------------------
+ # T009 + T010: CrossFileRelsStage
+ # ---------------------------------------------------------------------------
+diff --git a/src/fs2/core/services/tree_service.py b/src/fs2/core/services/tree_service.py
+index a57b0a5..c09ee73 100644
+--- a/src/fs2/core/services/tree_service.py
++++ b/src/fs2/core/services/tree_service.py
+@@ -369,20 +369,33 @@ class TreeService:
+         return list(bucket.values())
+ 
+     def _get_containment_children(self, node: CodeNode) -> list[CodeNode]:
+-        """Get children filtered to same-file containment edges only.
++        """Get children filtered to containment edges only.
+ 
+-        Cross-file reference edges are excluded to prevent foreign nodes
+-        from appearing in the tree hierarchy.
++        Excludes cross-file reference edges AND within-file reference edges.
++        Containment edges have no edge_type attribute; reference edges have
++        edge_type="references".
+ 
+         Args:
+             node: Parent CodeNode.
+ 
+         Returns:
+-            List of child CodeNodes from the same file.
++            List of child CodeNodes via containment edges only.
+         """
+-        children = self._graph_store.get_children(node.node_id)
+-        parent_file = node.file_path
+-        return [c for c in children if c.file_path == parent_file]
++        all_children = self._graph_store.get_children(node.node_id)
++        # Filter to containment edges only (edges without edge_type)
++        containment_children = []
++        for child in all_children:
++            edges = self._graph_store.get_edges(
++                node.node_id, direction="outgoing"
++            )
++            is_containment = False
++            for edge_node_id, edge_data in edges:
++                if edge_node_id == child.node_id and "edge_type" not in edge_data:
++                    is_containment = True
++                    break
++            if is_containment:
++                containment_children.append(child)
++        return containment_children
+ 
+     def _build_tree_node(
+         self,
+diff --git a/src/fs2/mcp/server.py b/src/fs2/mcp/server.py
+index 8ec9078..f0c54e4 100644
+--- a/src/fs2/mcp/server.py
++++ b/src/fs2/mcp/server.py
+@@ -253,6 +253,9 @@ def _render_tree_as_text(
+         line = f"{prefix}{icon} {node_id} [{start}-{end}]"
+         if hidden > 0:
+             line += f" ({hidden} children)"
++        ref_count = node.get("ref_count", 0)
++        if ref_count > 0:
++            line += f" ({ref_count} refs)"
+ 
+         lines.append(line)
+ 
+@@ -272,6 +275,7 @@ def _render_tree_as_text(
+ def _tree_node_to_dict(
+     tree_node: TreeNode,
+     detail: Literal["min", "max"] = "min",
++    graph_store: "GraphStore | None" = None,
+ ) -> dict[str, Any]:
+     """Convert TreeNode to JSON-serializable dict.
+ 
+@@ -284,11 +288,12 @@ def _tree_node_to_dict(
+     - hidden_children_count
+ 
+     Fields included only in max detail:
+-    - signature, smart_content
++    - signature, smart_content, ref_count (when > 0)
+ 
+     Args:
+         tree_node: TreeNode from TreeService.build_tree().
+         detail: "min" for compact output, "max" for full metadata.
++        graph_store: Optional GraphStore for ref count queries.
+ 
+     Returns:
+         Dict suitable for JSON serialization.
+@@ -302,7 +307,10 @@ def _tree_node_to_dict(
+         "category": node.category,
+         "start_line": node.start_line,
+         "end_line": node.end_line,
+-        "children": [_tree_node_to_dict(child, detail) for child in tree_node.children],
++        "children": [
++            _tree_node_to_dict(child, detail, graph_store)
++            for child in tree_node.children
++        ],
+     }
+ 
+     # Add hidden_children_count only when > 0
+@@ -315,6 +323,13 @@ def _tree_node_to_dict(
+             result["signature"] = node.signature
+         if node.smart_content:
+             result["smart_content"] = node.smart_content
++        # Ref count from cross-file reference edges
++        if graph_store is not None:
++            incoming = graph_store.get_edges(
++                node.node_id, direction="incoming", edge_type="references"
++            )
++            if incoming:
++                result["ref_count"] = len(incoming)
+ 
+     return result
+ 
+@@ -404,7 +419,7 @@ def tree(
+         store = get_graph_store(graph_name)
+         service = TreeService(config=config, graph_store=store)
+         tree_nodes = service.build_tree(pattern=pattern, max_depth=max_depth)
+-        tree_list = [_tree_node_to_dict(tn, detail) for tn in tree_nodes]
++        tree_list = [_tree_node_to_dict(tn, detail, graph_store=store) for tn in tree_nodes]
+ 
+         # Count total nodes
+         def count_nodes(nodes: list[dict]) -> int:
+@@ -486,6 +501,7 @@ _tree_tool = mcp.tool(
+ def _code_node_to_dict(
+     node: CodeNode,
+     detail: Literal["min", "max"] = "min",
++    graph_store: "GraphStore | None" = None,
+ ) -> dict[str, Any]:
+     """Convert CodeNode to JSON-serializable dict with explicit field selection.
+ 
+@@ -498,6 +514,10 @@ def _code_node_to_dict(
+     Fields in max detail (adds 5 more):
+     - smart_content, language, parent_node_id, qualified_name, ts_kind
+ 
++    Relationships (when graph_store provided and edges exist):
++    - relationships.referenced_by: list of node_ids that reference this node
++    - relationships.references: list of node_ids this node references
++
+     NEVER included (embedding data and internal metadata):
+     - embedding, smart_content_embedding, embedding_hash, embedding_chunk_offsets
+     - content_hash, smart_content_hash
+@@ -507,6 +527,7 @@ def _code_node_to_dict(
+     Args:
+         node: CodeNode from GetNodeService.get_node().
+         detail: "min" for compact output, "max" for full metadata.
++        graph_store: Optional GraphStore for relationship edge queries.
+ 
+     Returns:
+         Dict suitable for JSON serialization.
+@@ -530,6 +551,22 @@ def _code_node_to_dict(
+         result["qualified_name"] = node.qualified_name
+         result["ts_kind"] = node.ts_kind
+ 
++    # Cross-file relationships (both detail levels, omit when empty)
++    if graph_store is not None:
++        incoming = graph_store.get_edges(
++            node.node_id, direction="incoming", edge_type="references"
++        )
++        outgoing = graph_store.get_edges(
++            node.node_id, direction="outgoing", edge_type="references"
++        )
++        rels: dict[str, list[str]] = {}
++        if incoming:
++            rels["referenced_by"] = [nid for nid, _ in incoming]
++        if outgoing:
++            rels["references"] = [nid for nid, _ in outgoing]
++        if rels:
++            result["relationships"] = rels
++
+     return result
+ 
+ 
+@@ -608,7 +645,7 @@ def get_node(
+             return None
+ 
+         # Convert to dict with explicit field selection
+-        result = _code_node_to_dict(code_node, detail)
++        result = _code_node_to_dict(code_node, detail, graph_store=store)
+ 
+         # Handle save_to_file if specified
+         if save_to_file is not None:
+diff --git a/tests/mcp_tests/test_get_node_tool.py b/tests/mcp_tests/test_get_node_tool.py
+index ab778ed..38a80af 100644
+--- a/tests/mcp_tests/test_get_node_tool.py
++++ b/tests/mcp_tests/test_get_node_tool.py
+@@ -846,3 +846,125 @@ class TestGetNodeWithGraphName:
+         assert "default" in error_msg or "list_graphs" in error_msg, (
+             f"Should guide to available graphs. Got: {error_msg}"
+         )
++
++
++class TestGetNodeRelationships:
++    """Tests for cross-file relationship data in get_node output.
++
++    Per Phase 3 cross-file-rels: get_node includes relationships field
++    when graph has reference edges. Present at both min and max detail.
++    """
++
++    def test_get_node_includes_relationships_when_edges_exist(
++        self, tree_test_graph_store: tuple, tmp_path: Path
++    ):
++        """Relationships field present when reference edges exist."""
++        from fs2.mcp import dependencies
++        from fs2.mcp.server import get_node
++
++        store, config = tree_test_graph_store
++        # Add a reference edge: some_caller references Calculator
++        store.add_edge(
++            "callable:src/calculator.py:Calculator.add",
++            "class:src/calculator.py:Calculator",
++            edge_type="references",
++        )
++        dependencies.reset_services()
++        dependencies.set_config(config)
++        dependencies.set_graph_store(store)
++
++        result = get_node(node_id="class:src/calculator.py:Calculator")
++
++        assert "relationships" in result, "Should include relationships"
++        assert "referenced_by" in result["relationships"]
++        assert "callable:src/calculator.py:Calculator.add" in result["relationships"]["referenced_by"]
++
++    def test_get_node_omits_relationships_when_no_edges(
++        self, tree_test_graph_store: tuple, tmp_path: Path
++    ):
++        """Relationships field omitted (not empty dict) when no reference edges."""
++        from fs2.mcp import dependencies
++        from fs2.mcp.server import get_node
++
++        store, config = tree_test_graph_store
++        # No reference edges added — only containment
++        dependencies.reset_services()
++        dependencies.set_config(config)
++        dependencies.set_graph_store(store)
++
++        result = get_node(node_id="class:src/calculator.py:Calculator")
++
++        assert "relationships" not in result, "Should omit relationships when no edges"
++
++    def test_get_node_relationships_at_min_detail(
++        self, tree_test_graph_store: tuple, tmp_path: Path
++    ):
++        """Relationships present at min detail level."""
++        from fs2.mcp import dependencies
++        from fs2.mcp.server import get_node
++
++        store, config = tree_test_graph_store
++        store.add_edge(
++            "callable:src/calculator.py:Calculator.add",
++            "class:src/calculator.py:Calculator",
++            edge_type="references",
++        )
++        dependencies.reset_services()
++        dependencies.set_config(config)
++        dependencies.set_graph_store(store)
++
++        result = get_node(
++            node_id="class:src/calculator.py:Calculator", detail="min"
++        )
++
++        assert "relationships" in result
++
++    def test_get_node_relationships_at_max_detail(
++        self, tree_test_graph_store: tuple, tmp_path: Path
++    ):
++        """Relationships present at max detail level."""
++        from fs2.mcp import dependencies
++        from fs2.mcp.server import get_node
++
++        store, config = tree_test_graph_store
++        store.add_edge(
++            "callable:src/calculator.py:Calculator.add",
++            "class:src/calculator.py:Calculator",
++            edge_type="references",
++        )
++        dependencies.reset_services()
++        dependencies.set_config(config)
++        dependencies.set_graph_store(store)
++
++        result = get_node(
++            node_id="class:src/calculator.py:Calculator", detail="max"
++        )
++
++        assert "relationships" in result
++        assert "referenced_by" in result["relationships"]
++
++    def test_get_node_shows_outgoing_references(
++        self, tree_test_graph_store: tuple, tmp_path: Path
++    ):
++        """Outgoing references appear under 'references' key."""
++        from fs2.mcp import dependencies
++        from fs2.mcp.server import get_node
++
++        store, config = tree_test_graph_store
++        # Calculator.add references Calculator (outgoing from add's perspective)
++        store.add_edge(
++            "callable:src/calculator.py:Calculator.add",
++            "class:src/calculator.py:Calculator",
++            edge_type="references",
++        )
++        dependencies.reset_services()
++        dependencies.set_config(config)
++        dependencies.set_graph_store(store)
++
++        result = get_node(
++            node_id="callable:src/calculator.py:Calculator.add"
++        )
++
++        assert "relationships" in result
++        assert "references" in result["relationships"]
++        assert "class:src/calculator.py:Calculator" in result["relationships"]["references"]
+diff --git a/tests/mcp_tests/test_tree_tool.py b/tests/mcp_tests/test_tree_tool.py
+index 1973742..1641de5 100644
+--- a/tests/mcp_tests/test_tree_tool.py
++++ b/tests/mcp_tests/test_tree_tool.py
+@@ -1388,3 +1388,115 @@ class TestTreeWithGraphName:
+         assert "default" in error_msg or "list_graphs" in error_msg, (
+             f"Should guide to available graphs. Got: {error_msg}"
+         )
++
++
++class TestTreeRefCount:
++    """Tests for ref count in tree --detail max output.
++
++    Per Phase 3 cross-file-rels: tree --detail max shows ref count
++    for nodes that have cross-file reference edges.
++    """
++
++    def test_tree_json_max_detail_includes_ref_count(
++        self, tree_test_graph_store: tuple, tmp_path: Path
++    ):
++        """JSON output at max detail includes ref_count when edges exist."""
++        from fs2.mcp import dependencies
++        from fs2.mcp.server import tree
++
++        store, config = tree_test_graph_store
++        # Add a reference edge pointing to Calculator
++        store.add_edge(
++            "callable:src/calculator.py:Calculator.add",
++            "class:src/calculator.py:Calculator",
++            edge_type="references",
++        )
++        dependencies.reset_services()
++        dependencies.set_config(config)
++        dependencies.set_graph_store(store)
++
++        result = tree(
++            pattern="class:src/calculator.py:Calculator",
++            detail="max",
++            format="json",
++        )
++
++        assert result["format"] == "json"
++        node_dict = result["tree"][0]
++        assert "ref_count" in node_dict, f"Missing ref_count. Keys: {node_dict.keys()}"
++        assert node_dict["ref_count"] == 1
++
++    def test_tree_json_min_detail_no_ref_count(
++        self, tree_test_graph_store: tuple, tmp_path: Path
++    ):
++        """JSON output at min detail does not include ref_count."""
++        from fs2.mcp import dependencies
++        from fs2.mcp.server import tree
++
++        store, config = tree_test_graph_store
++        store.add_edge(
++            "callable:src/calculator.py:Calculator.add",
++            "class:src/calculator.py:Calculator",
++            edge_type="references",
++        )
++        dependencies.reset_services()
++        dependencies.set_config(config)
++        dependencies.set_graph_store(store)
++
++        result = tree(
++            pattern="class:src/calculator.py:Calculator",
++            detail="min",
++            format="json",
++        )
++
++        node_dict = result["tree"][0]
++        assert "ref_count" not in node_dict
++
++    def test_tree_text_max_detail_shows_refs_suffix(
++        self, tree_test_graph_store: tuple, tmp_path: Path
++    ):
++        """Text output at max detail shows (N refs) suffix."""
++        from fs2.mcp import dependencies
++        from fs2.mcp.server import tree
++
++        store, config = tree_test_graph_store
++        store.add_edge(
++            "callable:src/calculator.py:Calculator.add",
++            "class:src/calculator.py:Calculator",
++            edge_type="references",
++        )
++        dependencies.reset_services()
++        dependencies.set_config(config)
++        dependencies.set_graph_store(store)
++
++        result = tree(
++            pattern="class:src/calculator.py:Calculator",
++            detail="max",
++            format="text",
++        )
++
++        assert "(1 refs)" in result["content"], (
++            f"Expected '(1 refs)' in text output. Got: {result['content']}"
++        )
++
++    def test_tree_no_ref_count_when_no_edges(
++        self, tree_test_graph_store: tuple, tmp_path: Path
++    ):
++        """No ref_count in output when node has no reference edges."""
++        from fs2.mcp import dependencies
++        from fs2.mcp.server import tree
++
++        store, config = tree_test_graph_store
++        # No reference edges
++        dependencies.reset_services()
++        dependencies.set_config(config)
++        dependencies.set_graph_store(store)
++
++        result = tree(
++            pattern="class:src/calculator.py:Calculator",
++            detail="max",
++            format="json",
++        )
++
++        node_dict = result["tree"][0]
++        assert "ref_count" not in node_dict
+diff --git a/tests/unit/cli/test_get_node_cli.py b/tests/unit/cli/test_get_node_cli.py
+index 8777816..198ba15 100644
+--- a/tests/unit/cli/test_get_node_cli.py
++++ b/tests/unit/cli/test_get_node_cli.py
+@@ -349,3 +349,59 @@ class TestGetNodeErrors:
+         assert "init" in result.stdout.lower(), (
+             f"Expected 'init' in output, got: {result.stdout}"
+         )
++
++
++class TestGetNodeNoEmbeddingLeak:
++    """DYK-P3-03: CLI get-node must not leak embedding vectors.
++
++    Pre-existing bug: asdict(node) serializes everything including
++    huge embedding vectors. Fix uses explicit field selection.
++    """
++
++    def test_given_get_node_when_output_then_no_embedding_field(
++        self, scanned_project, monkeypatch
++    ):
++        """Output JSON must not contain embedding fields."""
++        from fs2.cli.main import app
++
++        monkeypatch.chdir(scanned_project)
++        monkeypatch.setenv("NO_COLOR", "1")
++
++        result = runner.invoke(app, ["get-node", "file:src/calculator.py"])
++
++        assert result.exit_code == 0
++        data = json.loads(result.stdout)
++
++        forbidden = [
++            "embedding",
++            "smart_content_embedding",
++            "embedding_hash",
++            "embedding_chunk_offsets",
++            "content_hash",
++            "smart_content_hash",
++        ]
++        for field in forbidden:
++            assert field not in data, (
++                f"Field '{field}' must not appear in CLI get-node output"
++            )
++
++    def test_given_get_node_when_output_then_has_core_fields(
++        self, scanned_project, monkeypatch
++    ):
++        """Output has the same core fields as MCP _code_node_to_dict."""
++        from fs2.cli.main import app
++
++        monkeypatch.chdir(scanned_project)
++        monkeypatch.setenv("NO_COLOR", "1")
++
++        result = runner.invoke(app, ["get-node", "file:src/calculator.py"])
++
++        assert result.exit_code == 0
++        data = json.loads(result.stdout)
++
++        required = [
++            "node_id", "name", "category", "content",
++            "signature", "start_line", "end_line",
++        ]
++        for field in required:
++            assert field in data, f"Missing required field '{field}'"
+diff --git a/tests/unit/cli/test_init_cli.py b/tests/unit/cli/test_init_cli.py
+index 9eef5a9..9932276 100644
+--- a/tests/unit/cli/test_init_cli.py
++++ b/tests/unit/cli/test_init_cli.py
+@@ -559,3 +559,25 @@ class TestDefaultConfigTemplate:
+         assert parsed["scan"]["respect_gitignore"] is True
+         assert parsed["scan"]["max_file_size_kb"] == 500
+         assert parsed["scan"]["follow_symlinks"] is False
++
++
++class TestInitCrossFileRelsGuidance:
++    """DYK-P3-05: DEFAULT_CONFIG includes cross-file rels guidance."""
++
++    def test_default_config_mentions_serena(self):
++        """Config template mentions Serena installation."""
++        from fs2.cli.init import DEFAULT_CONFIG
++
++        assert "serena" in DEFAULT_CONFIG.lower()
++
++    def test_default_config_mentions_serena_gitignore(self):
++        """Config template warns about .serena/ gitignore."""
++        from fs2.cli.init import DEFAULT_CONFIG
++
++        assert ".serena/" in DEFAULT_CONFIG
++
++    def test_default_config_mentions_cross_file_rels(self):
++        """Config template shows cross_file_rels section."""
++        from fs2.cli.init import DEFAULT_CONFIG
++
++        assert "cross_file_rels" in DEFAULT_CONFIG
+diff --git a/tests/unit/cli/test_scan_cli.py b/tests/unit/cli/test_scan_cli.py
+index 26c4c90..e96b699 100644
+--- a/tests/unit/cli/test_scan_cli.py
++++ b/tests/unit/cli/test_scan_cli.py
+@@ -725,3 +725,75 @@ class TestNoSmartContentFlag:
+         # Should not mention LLM errors
+         assert "authentication" not in result.stdout.lower()
+         assert "llm error" not in result.stdout.lower()
++
++
++class TestNoCrossRefsFlag:
++    """Tests for --no-cross-refs CLI flag.
++
++    Per Phase 3 cross-file-rels: Flag skips cross-file relationship extraction.
++    Not wired to pipeline yet (Phase 4), but must be accepted by CLI.
++    """
++
++    def test_given_no_cross_refs_flag_when_scan_then_exits_zero(
++        self, simple_project, monkeypatch
++    ):
++        """Flag is accepted and scan completes normally."""
++        from fs2.cli.main import app
++
++        monkeypatch.chdir(simple_project)
++        monkeypatch.setenv("NO_COLOR", "1")
++
++        result = runner.invoke(app, ["scan", "--no-cross-refs"])
++
++        assert result.exit_code == 0, f"Failed with: {result.stdout}"
++
++    def test_given_no_cross_refs_flag_when_scan_then_graph_created(
++        self, simple_project, monkeypatch
++    ):
++        """Graph is still created when cross-refs are disabled."""
++        from fs2.cli.main import app
++
++        monkeypatch.chdir(simple_project)
++        monkeypatch.setenv("NO_COLOR", "1")
++
++        result = runner.invoke(app, ["scan", "--no-cross-refs"])
++
++        assert result.exit_code == 0
++        graph_file = simple_project / ".fs2" / "graph.pickle"
++        assert graph_file.exists(), "Graph file should be created"
++
++
++class TestCrossRefsInstancesFlag:
++    """Tests for --cross-refs-instances CLI flag.
++
++    Per Phase 3 cross-file-rels: Overrides parallel Serena instances.
++    Not wired to pipeline yet (Phase 4), but must be accepted by CLI.
++    """
++
++    def test_given_cross_refs_instances_flag_when_scan_then_exits_zero(
++        self, simple_project, monkeypatch
++    ):
++        """Flag is accepted with integer value and scan completes normally."""
++        from fs2.cli.main import app
++
++        monkeypatch.chdir(simple_project)
++        monkeypatch.setenv("NO_COLOR", "1")
++
++        result = runner.invoke(app, ["scan", "--cross-refs-instances", "5"])
++
++        assert result.exit_code == 0, f"Failed with: {result.stdout}"
++
++    def test_given_both_cross_ref_flags_when_scan_then_exits_zero(
++        self, simple_project, monkeypatch
++    ):
++        """Both flags can be used together without conflict."""
++        from fs2.cli.main import app
++
++        monkeypatch.chdir(simple_project)
++        monkeypatch.setenv("NO_COLOR", "1")
++
++        result = runner.invoke(
++            app, ["scan", "--no-cross-refs", "--cross-refs-instances", "10"]
++        )
++
++        assert result.exit_code == 0, f"Failed with: {result.stdout}"
+diff --git a/tests/unit/config/test_cross_file_rels_config.py b/tests/unit/config/test_cross_file_rels_config.py
+new file mode 100644
+index 0000000..15406b8
+--- /dev/null
++++ b/tests/unit/config/test_cross_file_rels_config.py
+@@ -0,0 +1,102 @@
++"""Tests for CrossFileRelsConfig configuration model.
++
++Validates the pydantic model for cross-file relationship extraction config,
++including defaults, validation, and YAML_CONFIG_TYPES registry membership.
++"""
++
++import pytest
++from pydantic import ValidationError
++
++from fs2.config.objects import CrossFileRelsConfig, YAML_CONFIG_TYPES
++
++
++class TestCrossFileRelsConfigDefaults:
++    """Test default values for CrossFileRelsConfig."""
++
++    def test_enabled_defaults_to_true(self):
++        config = CrossFileRelsConfig()
++        assert config.enabled is True
++
++    def test_parallel_instances_defaults_to_20(self):
++        config = CrossFileRelsConfig()
++        assert config.parallel_instances == 20
++
++    def test_serena_base_port_defaults_to_8330(self):
++        config = CrossFileRelsConfig()
++        assert config.serena_base_port == 8330
++
++    def test_timeout_per_node_defaults_to_5(self):
++        config = CrossFileRelsConfig()
++        assert config.timeout_per_node == 5.0
++
++    def test_languages_defaults_to_python(self):
++        config = CrossFileRelsConfig()
++        assert config.languages == ["python"]
++
++
++class TestCrossFileRelsConfigValidation:
++    """Test field validation rules."""
++
++    def test_parallel_instances_rejects_zero(self):
++        with pytest.raises(ValidationError, match="parallel_instances"):
++            CrossFileRelsConfig(parallel_instances=0)
++
++    def test_parallel_instances_rejects_negative(self):
++        with pytest.raises(ValidationError, match="parallel_instances"):
++            CrossFileRelsConfig(parallel_instances=-1)
++
++    def test_parallel_instances_rejects_over_50(self):
++        with pytest.raises(ValidationError, match="parallel_instances"):
++            CrossFileRelsConfig(parallel_instances=51)
++
++    def test_parallel_instances_accepts_1(self):
++        config = CrossFileRelsConfig(parallel_instances=1)
++        assert config.parallel_instances == 1
++
++    def test_parallel_instances_accepts_50(self):
++        config = CrossFileRelsConfig(parallel_instances=50)
++        assert config.parallel_instances == 50
++
++    def test_timeout_per_node_rejects_zero(self):
++        with pytest.raises(ValidationError, match="timeout_per_node"):
++            CrossFileRelsConfig(timeout_per_node=0.0)
++
++    def test_timeout_per_node_rejects_negative(self):
++        with pytest.raises(ValidationError, match="timeout_per_node"):
++            CrossFileRelsConfig(timeout_per_node=-1.0)
++
++    def test_timeout_per_node_accepts_small_positive(self):
++        config = CrossFileRelsConfig(timeout_per_node=0.5)
++        assert config.timeout_per_node == 0.5
++
++
++class TestCrossFileRelsConfigPath:
++    """Test __config_path__ for YAML/env loading."""
++
++    def test_config_path_is_cross_file_rels(self):
++        assert CrossFileRelsConfig.__config_path__ == "cross_file_rels"
++
++
++class TestCrossFileRelsConfigRegistry:
++    """Test YAML_CONFIG_TYPES registry membership."""
++
++    def test_in_yaml_config_types(self):
++        assert CrossFileRelsConfig in YAML_CONFIG_TYPES
++
++
++class TestCrossFileRelsConfigCustomValues:
++    """Test creating config with custom values."""
++
++    def test_all_custom_values(self):
++        config = CrossFileRelsConfig(
++            enabled=False,
++            parallel_instances=5,
++            serena_base_port=9000,
++            timeout_per_node=10.0,
++            languages=["python", "typescript"],
++        )
++        assert config.enabled is False
++        assert config.parallel_instances == 5
++        assert config.serena_base_port == 9000
++        assert config.timeout_per_node == 10.0
++        assert config.languages == ["python", "typescript"]
+diff --git a/tests/unit/services/stages/test_cross_file_rels_stage.py b/tests/unit/services/stages/test_cross_file_rels_stage.py
+index 1cc6867..86c52e4 100644
+--- a/tests/unit/services/stages/test_cross_file_rels_stage.py
++++ b/tests/unit/services/stages/test_cross_file_rels_stage.py
+@@ -518,3 +518,159 @@ class TestCrossFileRelsStageProtocol:
+         )
+ 
+         assert CrossFileRelsStage().name == "cross_file_rels"
++
++
++class TestGetChangedFilePaths:
++    """Tests for incremental resolution — skip unchanged files (T008)."""
++
++    def _make_file_node(self, path: str, content_hash: str) -> CodeNode:
++        node = CodeNode.create_file(path, "python", "module", 0, 100, 1, 10, "# file")
++        # Override content_hash for testing
++        object.__setattr__(node, "content_hash", content_hash)
++        return node
++
++    def test_all_changed_when_no_prior(self):
++        """First scan (no prior) — all files are 'changed'."""
++        from fs2.core.services.stages.cross_file_rels_stage import (
++            get_changed_file_paths,
++        )
++
++        current = [
++            self._make_file_node("src/a.py", "hash_a"),
++            self._make_file_node("src/b.py", "hash_b"),
++        ]
++        result = get_changed_file_paths(current, prior_nodes=None)
++        assert result is None  # None means "all files changed"
++
++    def test_unchanged_files_excluded(self):
++        """Files with matching content_hash are excluded."""
++        from fs2.core.services.stages.cross_file_rels_stage import (
++            get_changed_file_paths,
++        )
++
++        current = [
++            self._make_file_node("src/a.py", "hash_a"),
++            self._make_file_node("src/b.py", "hash_b"),
++        ]
++        prior = {
++            "file:src/a.py": self._make_file_node("src/a.py", "hash_a"),  # same
++            "file:src/b.py": self._make_file_node("src/b.py", "old_hash"),  # changed
++        }
++        result = get_changed_file_paths(current, prior)
++        assert result == {"src/b.py"}
++
++    def test_new_files_included(self):
++        """New files (not in prior) are included."""
++        from fs2.core.services.stages.cross_file_rels_stage import (
++            get_changed_file_paths,
++        )
++
++        current = [
++            self._make_file_node("src/a.py", "hash_a"),
++            self._make_file_node("src/new.py", "hash_new"),
++        ]
++        prior = {
++            "file:src/a.py": self._make_file_node("src/a.py", "hash_a"),
++        }
++        result = get_changed_file_paths(current, prior)
++        assert result == {"src/new.py"}
++
++    def test_all_unchanged_returns_empty(self):
++        """When all files unchanged, returns empty set."""
++        from fs2.core.services.stages.cross_file_rels_stage import (
++            get_changed_file_paths,
++        )
++
++        current = [
++            self._make_file_node("src/a.py", "hash_a"),
++        ]
++        prior = {
++            "file:src/a.py": self._make_file_node("src/a.py", "hash_a"),
++        }
++        result = get_changed_file_paths(current, prior)
++        assert result == set()
++
++
++class TestFilterNodesToChanged:
++    """Tests for filtering nodes to only changed files (T008)."""
++
++    def test_filters_nodes_to_changed_files(self):
++        """Only nodes from changed files pass through."""
++        from fs2.core.services.stages.cross_file_rels_stage import (
++            filter_nodes_to_changed,
++        )
++
++        nodes = [
++            make_callable_node("src/a.py", "foo", "A.foo"),
++            make_callable_node("src/b.py", "bar", "B.bar"),
++            make_callable_node("src/a.py", "baz", "A.baz"),
++        ]
++        changed_files = {"src/b.py"}
++
++        result = filter_nodes_to_changed(nodes, changed_files)
++        assert len(result) == 1
++        assert result[0].node_id == "callable:src/b.py:B.bar"
++
++    def test_returns_all_when_changed_is_none(self):
++        """None means first scan — return all nodes."""
++        from fs2.core.services.stages.cross_file_rels_stage import (
++            filter_nodes_to_changed,
++        )
++
++        nodes = [
++            make_callable_node("src/a.py", "foo", "A.foo"),
++            make_callable_node("src/b.py", "bar", "B.bar"),
++        ]
++        result = filter_nodes_to_changed(nodes, None)
++        assert len(result) == 2
++
++
++class TestReusePriorEdges:
++    """Tests for reusing edges from prior scan for unchanged files (T008)."""
++
++    def test_reuses_edges_for_unchanged_files(self):
++        """Edges from unchanged files are carried forward."""
++        from fs2.core.services.stages.cross_file_rels_stage import (
++            reuse_prior_edges,
++        )
++
++        prior_edges = [
++            ("callable:src/a.py:A.foo", "callable:src/b.py:B.bar", {"edge_type": "references"}),
++            ("callable:src/c.py:C.baz", "callable:src/a.py:A.foo", {"edge_type": "references"}),
++        ]
++        changed_files = {"src/b.py"}
++        current_node_ids = {
++            "callable:src/a.py:A.foo",
++            "callable:src/b.py:B.bar",
++            "callable:src/c.py:C.baz",
++        }
++
++        result = reuse_prior_edges(prior_edges, changed_files, current_node_ids)
++        # Only the edge from c.py→a.py should be reused (both files unchanged)
++        # The edge a.py→b.py should NOT be reused (b.py changed)
++        assert len(result) == 1
++        assert result[0][0] == "callable:src/c.py:C.baz"
++
++    def test_skips_edges_with_missing_nodes(self):
++        """Edges referencing deleted nodes are dropped."""
++        from fs2.core.services.stages.cross_file_rels_stage import (
++            reuse_prior_edges,
++        )
++
++        prior_edges = [
++            ("callable:src/a.py:A.foo", "callable:src/deleted.py:X", {"edge_type": "references"}),
++        ]
++        changed_files: set[str] = set()
++        current_node_ids = {"callable:src/a.py:A.foo"}
++
++        result = reuse_prior_edges(prior_edges, changed_files, current_node_ids)
++        assert len(result) == 0  # deleted node no longer exists
++
++    def test_returns_empty_when_no_prior(self):
++        """None prior edges → empty list."""
++        from fs2.core.services.stages.cross_file_rels_stage import (
++            reuse_prior_edges,
++        )
++
++        result = reuse_prior_edges(None, set(), set())
++        assert result == []

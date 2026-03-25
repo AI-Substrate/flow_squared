@@ -314,7 +314,7 @@ class LLMConfig(BaseModel):
 
     __config_path__: ClassVar[str] = "llm"
 
-    provider: Literal["azure", "openai", "fake"]
+    provider: Literal["azure", "openai", "fake", "local"]
     api_key: str | None = None
     base_url: str | None = None
     azure_deployment_name: str | None = None
@@ -348,30 +348,47 @@ class LLMConfig(BaseModel):
     @field_validator("timeout")
     @classmethod
     def validate_timeout(cls, v: int) -> int:
-        """Validate timeout is in reasonable range (1-120 seconds)."""
-        if v < 1 or v > 120:
-            raise ValueError("Timeout must be 1-120 seconds")
+        """Validate timeout is in reasonable range.
+
+        Basic range check. Provider-specific max is enforced in model_validator.
+        """
+        if v < 1:
+            raise ValueError("Timeout must be at least 1 second")
         return v
 
     @model_validator(mode="after")
-    def validate_azure_fields(self) -> "LLMConfig":
-        """Validate Azure-specific fields when provider is 'azure'.
+    def validate_provider_fields(self) -> "LLMConfig":
+        """Validate provider-specific fields.
 
-        When provider=azure, the following fields are required:
-        - base_url (Azure endpoint)
-        - azure_deployment_name
-        - azure_api_version
+        - Azure: requires base_url, azure_deployment_name, azure_api_version
+        - Local: requires base_url and model; allows timeout up to 300s
+        - Cloud (azure/openai): timeout max 120s
         """
-        if self.provider != "azure":
-            return self
-
         errors = []
-        if not self.base_url:
-            errors.append("base_url is required when provider=azure")
-        if not self.azure_deployment_name:
-            errors.append("azure_deployment_name is required when provider=azure")
-        if not self.azure_api_version:
-            errors.append("azure_api_version is required when provider=azure")
+
+        if self.provider == "azure":
+            if not self.base_url:
+                errors.append("base_url is required when provider=azure")
+            if not self.azure_deployment_name:
+                errors.append("azure_deployment_name is required when provider=azure")
+            if not self.azure_api_version:
+                errors.append("azure_api_version is required when provider=azure")
+
+        if self.provider == "local":
+            if not self.base_url:
+                errors.append(
+                    "base_url is required when provider=local "
+                    "(e.g., http://localhost:11434)"
+                )
+            if not self.model:
+                errors.append(
+                    "model is required when provider=local "
+                    "(e.g., qwen2.5-coder:7b)"
+                )
+            if self.timeout > 300:
+                errors.append("Timeout must be 1-300 seconds for local provider")
+        elif self.timeout > 120:
+            errors.append("Timeout must be 1-120 seconds")
 
         if errors:
             raise ValueError("; ".join(errors))
@@ -435,6 +452,32 @@ class SmartContentConfig(BaseModel):
         """Validate max_input_tokens is positive."""
         if v < 1:
             raise ValueError("max_input_tokens must be >= 1")
+        return v
+
+    enabled_categories: list[str] | None = Field(
+        default=None,
+        description="If set, only these node categories get smart content. "
+        "None = all categories. Valid: file, callable, type, block, "
+        "section, definition, statement, expression, other.",
+    )
+
+    _VALID_CATEGORIES: ClassVar[set[str]] = {
+        "file", "callable", "type", "block", "section",
+        "definition", "statement", "expression", "other",
+    }
+
+    @field_validator("enabled_categories")
+    @classmethod
+    def validate_enabled_categories(cls, v: list[str] | None) -> list[str] | None:
+        """Validate enabled_categories contains only known category names."""
+        if v is None:
+            return v
+        invalid = set(v) - cls._VALID_CATEGORIES
+        if invalid:
+            raise ValueError(
+                f"Invalid categories: {sorted(invalid)}. "
+                f"Valid: {sorted(cls._VALID_CATEGORIES)}"
+            )
         return v
 
 
@@ -518,6 +561,42 @@ class OpenAIEmbeddingConfig(BaseModel):
         return v
 
 
+class LocalEmbeddingConfig(BaseModel):
+    """Local SentenceTransformer embedding configuration.
+
+    Nested configuration for local on-device embedding settings.
+    No API keys required — runs entirely on-device (CPU, MPS, or CUDA).
+
+    Attributes:
+        model: HuggingFace model name (default: BAAI/bge-small-en-v1.5).
+        device: Compute device - "auto", "cpu", "mps", or "cuda" (default: auto).
+        max_seq_length: Maximum token sequence length (default: 512).
+
+    YAML example:
+        ```yaml
+        embedding:
+          mode: local
+          dimensions: 384
+          local:
+            model: BAAI/bge-small-en-v1.5
+            device: auto
+            max_seq_length: 512
+        ```
+    """
+
+    model: str = "BAAI/bge-small-en-v1.5"
+    device: Literal["auto", "cpu", "mps", "cuda"] = "auto"
+    max_seq_length: int = 512
+
+    @field_validator("max_seq_length")
+    @classmethod
+    def validate_max_seq_length(cls, v: int) -> int:
+        """Validate max_seq_length is positive."""
+        if v <= 0:
+            raise ValueError("max_seq_length must be > 0")
+        return v
+
+
 class ChunkConfig(BaseModel):
     """Chunking parameters for a specific content type.
 
@@ -591,7 +670,7 @@ class EmbeddingConfig(BaseModel):
         - Optional: max_concurrent_batches for parallel batch processing
 
     Attributes:
-        mode: Embedding provider - "azure", "openai_compatible", or "fake".
+        mode: Embedding provider - "local", "azure", "openai_compatible", or "fake".
         dimensions: Embedding vector dimensions (default: 1024).
         batch_size: Number of texts per API call (default: 16). Azure max is 2048.
         max_concurrent_batches: Number of batches to process concurrently (default: 1).
@@ -629,7 +708,7 @@ class EmbeddingConfig(BaseModel):
 
     __config_path__: ClassVar[str] = "embedding"
 
-    mode: Literal["azure", "openai_compatible", "fake"] = "azure"
+    mode: Literal["azure", "openai_compatible", "local", "fake"] = "local"
     dimensions: int = 1024
     batch_size: int = 16  # Texts per API call (FlowSpace pattern)
     max_concurrent_batches: int = 1  # Concurrent batch processing
@@ -639,6 +718,9 @@ class EmbeddingConfig(BaseModel):
 
     # OpenAI-compatible configuration
     openai: OpenAIEmbeddingConfig | None = None
+
+    # Local SentenceTransformer configuration
+    local: LocalEmbeddingConfig | None = None
 
     # Per-content-type chunking configuration (Finding 04)
     code: ChunkConfig = Field(
@@ -705,6 +787,18 @@ class EmbeddingConfig(BaseModel):
             raise ValueError(
                 f"max_delay ({self.max_delay}) must be >= base_delay ({self.base_delay})"
             )
+        return self
+
+    @model_validator(mode="after")
+    def auto_default_dimensions_for_local(self) -> "EmbeddingConfig":
+        """Auto-default dimensions to 384 for local mode when not explicitly set.
+
+        Per DYK-3: Uses model_fields_set to distinguish between user-provided
+        dimensions and Pydantic default. Only overrides if user didn't explicitly
+        set dimensions.
+        """
+        if self.mode == "local" and "dimensions" not in self.model_fields_set:
+            self.dimensions = 384
         return self
 
 
@@ -941,6 +1035,155 @@ class SearchConfig(BaseModel):
         return v
 
 
+# Canonical SCIP language names and their aliases.
+# Kept as a local set — does NOT import from scip_adapter (dependency boundary).
+_KNOWN_LANGUAGE_TYPES: set[str] = {
+    "python", "typescript", "javascript", "go", "dotnet", "rust", "java",
+}
+_LANGUAGE_TYPE_ALIASES: dict[str, str] = {
+    "ts": "typescript",
+    "js": "javascript",
+    "cs": "dotnet",
+    "csharp": "dotnet",
+    "c#": "dotnet",
+}
+
+
+class ProjectConfig(BaseModel):
+    """Configuration for a single language project.
+
+    Attributes:
+        type: Language type (python, typescript, go, dotnet, etc.). Aliases accepted.
+        path: Path to the project root, relative to the repository root.
+        project_file: Override the marker file (e.g., tsconfig.json).
+        enabled: Whether this project is indexed (default: True).
+        options: Extra indexer-specific options (default: empty).
+
+    YAML example:
+        ```yaml
+        - type: python
+          path: .
+        - type: typescript
+          path: frontend
+          project_file: tsconfig.json
+        ```
+    """
+
+    type: str
+    path: str = "."
+    project_file: str | None = None
+    enabled: bool = True
+    options: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("type")
+    @classmethod
+    def normalise_type(cls, v: str) -> str:
+        """Normalise type aliases to canonical names."""
+        v = v.strip().lower()
+        v = _LANGUAGE_TYPE_ALIASES.get(v, v)
+        if v not in _KNOWN_LANGUAGE_TYPES:
+            raise ValueError(
+                f"Unknown project type '{v}'. "
+                f"Known types: {', '.join(sorted(_KNOWN_LANGUAGE_TYPES))}"
+            )
+        return v
+
+
+class ProjectsConfig(BaseModel):
+    """Configuration for SCIP-indexed language projects.
+
+    Loaded from YAML or environment variables.
+    Path: projects (e.g., FS2_PROJECTS__AUTO_DISCOVER)
+
+    Attributes:
+        entries: List of project configurations.
+        auto_discover: Auto-discover projects from markers when entries is empty (default: True).
+        scip_cache_dir: Directory for cached SCIP index files (default: .fs2/scip).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        projects:
+          entries:
+            - type: python
+              path: .
+            - type: typescript
+              path: frontend
+          auto_discover: true
+          scip_cache_dir: .fs2/scip
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "projects"
+
+    entries: list[ProjectConfig] = Field(default_factory=list)
+    auto_discover: bool = True
+    scip_cache_dir: str = ".fs2/scip"
+
+
+class CrossFileRelsConfig(BaseModel):
+    """Configuration for cross-file relationship extraction.
+
+    Loaded from YAML or environment variables.
+    Path: cross_file_rels (e.g., FS2_CROSS_FILE_RELS__ENABLED)
+
+    Controls whether cross-file reference resolution runs during scan.
+    Uses SCIP indexers for offline analysis.
+
+    Attributes:
+        enabled: Whether cross-file relationship extraction is enabled (default: True).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        cross_file_rels:
+          enabled: true
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "cross_file_rels"
+
+    enabled: bool = True
+
+
+class ReportsConfig(BaseModel):
+    """Configuration for report generation.
+
+    Loaded from YAML or environment variables.
+    Path: reports (e.g., FS2_REPORTS__OUTPUT_DIR)
+
+    Controls report output location, content inclusion, and scale limits.
+
+    Attributes:
+        output_dir: Directory for generated reports (default: ".fs2/reports").
+        include_smart_content: Include AI summaries in report data (default: True).
+        max_nodes: Maximum nodes before clustering (default: 10000, range 100-500000).
+
+    YAML example:
+        ```yaml
+        # .fs2/config.yaml
+        reports:
+          output_dir: .fs2/reports
+          include_smart_content: true
+          max_nodes: 10000
+        ```
+    """
+
+    __config_path__: ClassVar[str] = "reports"
+
+    output_dir: str = ".fs2/reports"
+    include_smart_content: bool = True
+    max_nodes: int = 10000
+
+    @field_validator("max_nodes")
+    @classmethod
+    def validate_max_nodes(cls, v: int) -> int:
+        """Validate max_nodes is in 100-500000 range."""
+        if v < 100 or v > 500000:
+            raise ValueError("max_nodes must be between 100 and 500000")
+        return v
+
+
 # Registry of config types to auto-load from YAML/env
 # Only configs with __config_path__ != None should be in this list
 YAML_CONFIG_TYPES: list[type[BaseModel]] = [
@@ -956,4 +1199,7 @@ YAML_CONFIG_TYPES: list[type[BaseModel]] = [
     SearchConfig,
     WatchConfig,
     OtherGraphsConfig,
+    CrossFileRelsConfig,
+    ProjectsConfig,
+    ReportsConfig,
 ]

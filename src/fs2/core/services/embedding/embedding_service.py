@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any
 
 from fs2.config.objects import EmbeddingConfig
 from fs2.core.models.content_type import ContentType
+from fs2.core.utils.hash import compute_content_hash
 
 if TYPE_CHECKING:
     from fs2.config.service import ConfigurationService
@@ -157,6 +158,15 @@ class EmbeddingService:
                 base_url=embedding_config.openai.base_url,
                 model=embedding_config.openai.model,
             )
+        elif embedding_config.mode == "local":
+            from fs2.config.objects import LocalEmbeddingConfig
+            from fs2.core.adapters.embedding_adapter_local import (
+                SentenceTransformerEmbeddingAdapter,
+            )
+
+            if embedding_config.local is None:
+                embedding_config.local = LocalEmbeddingConfig()
+            embedding_adapter = SentenceTransformerEmbeddingAdapter(config)
         elif embedding_config.mode == "fake":
             embedding_adapter = FakeEmbeddingAdapter(
                 dimensions=embedding_config.dimensions
@@ -194,7 +204,15 @@ class EmbeddingService:
             Empty list if content is empty.
         """
         # Select content to chunk
-        content = node.smart_content or "" if is_smart_content else node.content
+        if is_smart_content:
+            content = node.smart_content or ""
+        else:
+            # Prepend leading_context for richer embeddings (Plan 037)
+            parts = []
+            if node.leading_context:
+                parts.append(node.leading_context)
+            parts.append(node.content)
+            content = "\n".join(parts)
 
         # Handle empty content
         if not content or not content.strip():
@@ -489,7 +507,13 @@ class EmbeddingService:
             return False
 
         # Check content has not changed (stale embedding detection)
-        if node.content_hash != node.embedding_hash:
+        # Per Plan 037: embedding_hash includes leading_context when present
+        if node.leading_context:
+            raw_text = "\n".join([node.leading_context, node.content])
+            expected_hash = compute_content_hash(raw_text)
+        else:
+            expected_hash = node.content_hash
+        if expected_hash != node.embedding_hash:
             return False
 
         # Check smart_content embedding (if smart_content exists)
@@ -551,6 +575,7 @@ class EmbeddingService:
         self,
         nodes: list[CodeNode],
         progress_callback: ProgressCallback | None = None,
+        courtesy_save: Callable | None = None,
     ) -> dict[str, Any]:
         """Process multiple nodes to generate embeddings.
 
@@ -564,6 +589,9 @@ class EmbeddingService:
             nodes: List of CodeNodes to process.
             progress_callback: Optional callback called during processing.
                 Receives (processed, total, skipped).
+            courtesy_save: Optional callback for periodic graph saves (Plan 036).
+                Called every 50 processed nodes with dict of partial results
+                (node_id -> updated CodeNode). Enables crash recovery.
 
         Returns:
             Dict containing:
@@ -667,6 +695,7 @@ class EmbeddingService:
         # Run batches with as_completed for incremental progress
         # This reports progress as each batch finishes, not after all complete
         batch_futures = [process_single_batch(batch) for batch in batches]
+        batches_completed = 0
 
         for coro in asyncio.as_completed(batch_futures):
             result_list = await coro
@@ -676,6 +705,7 @@ class EmbeddingService:
 
             # Update progress after each batch
             chunks_processed += len(result_list)
+            batches_completed += 1
             if progress_callback and total_chunks > 0:
                 # Approximate node progress from chunk progress
                 approx_nodes = int(
@@ -686,6 +716,18 @@ class EmbeddingService:
                     len(nodes_to_process) + stats["skipped"],
                     stats["skipped"],
                 )
+
+            # Courtesy save every 100 batches during processing (Plan 036 T05)
+            if (
+                courtesy_save is not None
+                and batches_completed % 100 == 0
+            ):
+                # Build partial results from completed chunks so far
+                partial = self._reassemble_partial(
+                    chunk_embeddings, nodes_to_process, chunk_offsets
+                )
+                if partial:
+                    courtesy_save(partial)
 
         # Record any errors that occurred
         stats["errors"].extend(errors_list)
@@ -733,7 +775,13 @@ class EmbeddingService:
                 node,
                 embedding=embedding_tuple,
                 smart_content_embedding=smart_embedding_tuple,
-                embedding_hash=node.content_hash,  # Track which content this embedding is for
+                embedding_hash=(
+                    compute_content_hash(
+                        "\n".join([node.leading_context, node.content])
+                    )
+                    if node.leading_context
+                    else node.content_hash
+                ),
                 embedding_chunk_offsets=chunk_offsets.get(node_id),
             )
 
@@ -749,3 +797,55 @@ class EmbeddingService:
             )
 
         return stats
+
+    def _reassemble_partial(
+        self,
+        chunk_embeddings: dict[tuple[str, int, bool], list[float]],
+        nodes_to_process: dict[str, CodeNode],
+        chunk_offsets: dict[str, tuple[tuple[int, int], ...]],
+    ) -> dict[str, CodeNode]:
+        """Reassemble completed embeddings into CodeNodes for courtesy save.
+
+        Only includes nodes where at least one raw content chunk is complete.
+        Called during batch processing to enable crash recovery.
+        """
+        results: dict[str, CodeNode] = {}
+
+        for node_id, node in nodes_to_process.items():
+            raw_keys = [
+                k for k in chunk_embeddings if k[0] == node_id and k[2] is False
+            ]
+            if not raw_keys:
+                continue
+
+            raw_sorted = sorted(raw_keys, key=lambda k: k[1])
+            raw_embeddings = [chunk_embeddings[k] for k in raw_sorted]
+            embedding_tuple = tuple(tuple(e) for e in raw_embeddings)
+
+            smart_embedding_tuple = None
+            if node.smart_content:
+                smart_keys = [
+                    k for k in chunk_embeddings if k[0] == node_id and k[2] is True
+                ]
+                if smart_keys:
+                    smart_sorted = sorted(smart_keys, key=lambda k: k[1])
+                    smart_embedding_tuple = tuple(
+                        tuple(chunk_embeddings[k]) for k in smart_sorted
+                    )
+
+            updated = replace(
+                node,
+                embedding=embedding_tuple,
+                smart_content_embedding=smart_embedding_tuple,
+                embedding_hash=(
+                    compute_content_hash(
+                        "\n".join([node.leading_context, node.content])
+                    )
+                    if node.leading_context
+                    else node.content_hash
+                ),
+                embedding_chunk_offsets=chunk_offsets.get(node_id),
+            )
+            results[node_id] = updated
+
+        return results

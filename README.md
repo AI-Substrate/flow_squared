@@ -311,6 +311,64 @@ fs2 scan --no-embeddings
 
 See the [Configuration Guide](docs/how/user/configuration-guide.md) for detailed embeddings configuration, provider setup, and architecture.
 
+## Cross-File Relationships
+
+fs2 resolves cross-file references (imports, calls, type usage) using [SCIP](https://github.com/sourcegraph/scip) indexers. When enabled, `get_node` output includes a `relationships` field showing which nodes reference and are referenced by the queried node.
+
+### Quick Start
+
+```bash
+# Discover language projects in your repo
+fs2 discover-projects
+
+# Add detected projects to config
+fs2 add-project --all
+
+# Scan with cross-file references
+fs2 scan
+
+# View relationships for a node
+fs2 get-node "callable:src/service.py:Service.process"
+# → includes: relationships: { referenced_by: [...], references: [...] }
+```
+
+### Supported Languages
+
+| Language | Indexer | Install |
+|----------|---------|---------|
+| Python | scip-python | `npm install -g @sourcegraph/scip-python` |
+| TypeScript | scip-typescript | `npm install -g @sourcegraph/scip-typescript` |
+| JavaScript | scip-typescript | `npm install -g @sourcegraph/scip-typescript` |
+| Go | scip-go | `go install github.com/sourcegraph/scip-go/cmd/scip-go@latest` |
+| C#/.NET | scip-dotnet | `dotnet tool install --global scip-dotnet` |
+
+### Configuration
+
+```yaml
+# .fs2/config.yaml
+cross_file_rels:
+  enabled: true
+
+projects:
+  entries:
+    - type: python
+      path: .
+    - type: typescript
+      path: frontend
+  auto_discover: true
+  scip_cache_dir: .fs2/scip
+```
+
+### CLI Flags
+
+```bash
+fs2 scan --no-cross-refs              # Skip cross-file resolution
+fs2 discover-projects                 # Detect language projects
+fs2 add-project 1 2 3                # Add by number from discover output
+```
+
+See the [Cross-File Relationships Guide](src/fs2/docs/cross-file-relationships.md) for detailed setup and troubleshooting.
+
 ## Language Support
 
 fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages are categorized as:

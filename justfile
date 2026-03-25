@@ -11,6 +11,10 @@ default:
 install:
     uv sync --extra dev
 
+# Install/reinstall the fs2 CLI tool (use after code changes)
+install-cli:
+    uv tool install --force --reinstall fs2 --from .
+
 # Run all tests
 test:
     uv run pytest tests/ -v
@@ -30,7 +34,7 @@ test-match PATTERN:
 # === Code Quality ===
 
 # Format, fix, and test (the main workflow)
-fft: fix test
+fft: fix test audit
 
 # Fix and format code (ruff replaces black, isort, autoflake)
 fix:
@@ -41,6 +45,10 @@ fix:
 lint:
     uv run ruff check src/ tests/
     uv run ruff format --check src/ tests/
+
+# Audit dependencies for known vulnerabilities
+audit:
+    uvx pip-audit
 
 # === CLI Examples ===
 
@@ -98,6 +106,16 @@ generate-fixtures-quick:
     uv run fs2 --graph-file tests/fixtures/fixture_graph.pkl scan \
         --scan-path tests/fixtures/samples \
         --no-smart-content
+
+# Generate the interactive codebase graph report
+report:
+    uv run python -m fs2 --graph-file .fs2/graph.pickle report codebase-graph
+
+# Generate report excluding test files
+report-no-tests:
+    uv run python -m fs2 --graph-file .fs2/graph.pickle report codebase-graph \
+        --exclude "*tests/*" --exclude "*test_*" --exclude "*test-report*" \
+        --exclude "*conftest*"
 
 # === Watch Mode ===
 

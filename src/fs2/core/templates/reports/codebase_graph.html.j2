@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fs2 — Codebase Graph</title>
+    <style>
+        /* Embedded fonts */
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400 600;
+            font-display: swap;
+            src: url(data:font/woff2;base64,{{ inter_font_b64 }}) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        @font-face {
+            font-family: 'JetBrains Mono';
+            font-style: normal;
+            font-weight: 400 500;
+            font-display: swap;
+            src: url(data:font/woff2;base64,{{ jetbrains_mono_font_b64 }}) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+
+        /* Cosmos dark theme */
+        {{ graph_viewer_css }}
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-title">fs2 — <span class="name"></span></div>
+        <div class="loading-subtitle"></div>
+        <div class="loading-stats">
+            <div class="loading-stat">
+                <div class="value">0</div>
+                <div class="label">Nodes</div>
+            </div>
+            <div class="loading-stat">
+                <div class="value">0</div>
+                <div class="label">References</div>
+            </div>
+            <div class="loading-stat">
+                <div class="value">0</div>
+                <div class="label">Containment</div>
+            </div>
+        </div>
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Error Display -->
+    <div id="error-display"></div>
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+        <div class="toolbar-left">
+            <span class="toolbar-title">fs2 — <span class="name"></span></span>
+            <span class="toolbar-separator"></span>
+            <button id="btn-overview" class="mode-btn active" title="Show file overview (Esc)">Overview</button>
+            <button id="btn-entry-points" class="mode-btn" title="Show entry points">Entry Points</button>
+            <span class="toolbar-separator"></span>
+            <button id="btn-zoom-fit" class="tool-btn" title="Fit view (F)">⊡</button>
+            <button id="btn-zoom-in" class="tool-btn" title="Zoom in">+</button>
+            <button id="btn-zoom-out" class="tool-btn" title="Zoom out">−</button>
+        </div>
+        <div class="toolbar-center">
+            <input type="text" id="search-input" placeholder="Search nodes... (/ to focus)" />
+        </div>
+        <div class="toolbar-right">
+            <div class="category-legend" id="category-legend"></div>
+        </div>
+    </div>
+
+    <!-- Sigma.js Canvas -->
+    <div id="sigma-container"></div>
+
+    <!-- Info Panel (right sidebar) -->
+    <div id="info-panel" style="display:none">
+        <div class="info-header">
+            <span id="info-name"></span>
+            <button id="info-close">×</button>
+        </div>
+        <div class="info-body">
+            <div class="info-row">
+                <span class="info-label">Category</span>
+                <span class="info-value" id="info-category"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Path</span>
+                <span class="info-value mono" id="info-path"></span>
+            </div>
+            <div class="info-section" id="info-sig-section">
+                <div class="info-section-title">Signature</div>
+                <span class="info-value mono" id="info-signature"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Connections</span>
+                <span class="info-value" id="info-degree"></span>
+            </div>
+            <div class="info-section">
+                <div class="info-section-title">Callers (incoming)</div>
+                <div id="info-callers"></div>
+            </div>
+            <div class="info-section">
+                <div class="info-section-title">Calls (outgoing)</div>
+                <div id="info-calls"></div>
+            </div>
+            <div class="info-section" id="info-summary-section">
+                <div class="info-section-title">Summary</div>
+                <div class="info-summary" id="info-summary"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Hint -->
+    <div class="help-hint" id="help-hint">Click a file node · Scroll to zoom · Drag to pan · / to search · Esc to reset</div>
+
+    <!-- Cluster Panel (bottom-left) -->
+    <div id="cluster-panel">
+        <div class="cluster-panel-header">
+            <span>Clusters</span>
+            <button id="cluster-panel-toggle" title="Toggle cluster panel">▾</button>
+        </div>
+        <div class="cluster-panel-body" id="cluster-panel-body"></div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <span class="status-item"><span class="status-value" id="status-view">Overview</span></span>
+        <span class="status-separator"></span>
+        <span class="status-item"><span class="status-value" id="status-showing"></span></span>
+        <span class="status-separator"></span>
+        <span class="status-item"><span class="status-value" id="status-nodes"></span></span>
+        <span class="status-separator"></span>
+        <span class="status-item"><span class="status-value" id="status-refs"></span></span>
+        <span class="status-version" id="status-version"></span>
+    </div>
+
+    <!-- Embedded graph data -->
+    <script>
+        var GRAPH_DATA = {{ graph_json }};
+        var METADATA = {{ metadata_json }};
+    </script>
+
+    <!-- Vendored libraries -->
+    <script>{{ d3_js }}</script>
+
+    <!-- Graph viewer -->
+    <script>{{ graph_viewer_js }}</script>
+</body>
+</html>

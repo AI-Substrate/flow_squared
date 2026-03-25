@@ -22,11 +22,13 @@ documents:
   # === Configuration ===
   - id: configuration-guide
     title: "Complete Configuration Guide"
-    summary: "Comprehensive reference for all fs2 configuration. Covers file locations, secrets, LLM/embedding providers (Azure/OpenAI), embeddings architecture, chunking strategy, and troubleshooting."
+    summary: "Comprehensive reference for all fs2 configuration. Covers local Ollama, Azure/OpenAI LLM providers, local/cloud embeddings, chunking strategy, and troubleshooting."
     category: reference
     tags:
       - config
       - setup
+      - local
+      - ollama
       - azure
       - openai
       - llm
@@ -35,6 +37,18 @@ documents:
       - semantic-search
       - secrets
     path: configuration-guide.md
+
+  - id: local-llm
+    title: "Local LLM Smart Content"
+    summary: "Set up Ollama-powered local smart-content generation without API keys. Covers installation, model selection, configuration, troubleshooting, and platform support."
+    category: how-to
+    tags:
+      - llm
+      - local
+      - ollama
+      - smart-content
+      - setup
+    path: local-llm.md
 
   - id: configuration
     title: "Configuration Quick Reference"
@@ -101,3 +115,19 @@ documents:
       - lsp
       - ide
     path: wormhole-mcp-guide.md
+
+  # === Cross-File Relationships ===
+  - id: cross-file-relationships
+    title: "Cross-File Relationships Guide"
+    summary: "Set up SCIP-powered cross-file reference resolution. Covers project discovery, config setup, supported languages (Python, TypeScript, Go, C#), indexer installation, and troubleshooting."
+    category: how-to
+    tags:
+      - cross-file
+      - references
+      - scip
+      - relationships
+      - edges
+      - imports
+      - calls
+      - projects
+    path: cross-file-relationships.md

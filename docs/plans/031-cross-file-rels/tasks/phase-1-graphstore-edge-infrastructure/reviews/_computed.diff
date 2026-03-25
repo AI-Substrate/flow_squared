@@ -1,0 +1,991 @@
+diff --git a/src/fs2/core/models/code_node.py b/src/fs2/core/models/code_node.py
+index 3039ac1..f03d250 100644
+--- a/src/fs2/core/models/code_node.py
++++ b/src/fs2/core/models/code_node.py
+@@ -198,6 +198,18 @@ class CodeNode:
+     # Per DYK-05: Only raw content has offsets; smart_content uses node's full range
+     embedding_chunk_offsets: tuple[tuple[int, int], ...] | None = None
+ 
++    @property
++    def file_path(self) -> str:
++        """Extract file path from node_id.
++
++        node_id format: "{category}:{file_path}" (file nodes)
++                    or: "{category}:{file_path}:{qualified_name}" (others)
++
++        Returns:
++            The file path portion of the node_id.
++        """
++        return self.node_id.split(":", 2)[1]
++
+     # === Factory Methods ===
+ 
+     @classmethod
+diff --git a/src/fs2/core/repos/graph_store.py b/src/fs2/core/repos/graph_store.py
+index 5200ea1..b0c3c01 100644
+--- a/src/fs2/core/repos/graph_store.py
++++ b/src/fs2/core/repos/graph_store.py
+@@ -51,16 +51,22 @@ class GraphStore(ABC):
+         ...
+ 
+     @abstractmethod
+-    def add_edge(self, parent_id: str, child_id: str) -> None:
+-        """Add a parent-child edge between two nodes.
++    def add_edge(self, parent_id: str, child_id: str, **edge_data: Any) -> None:
++        """Add a directed edge between two nodes.
+ 
+         Edge direction: parent → child. This means:
+         - successors(parent_id) returns child nodes
+         - predecessors(child_id) returns parent nodes
+ 
++        Optional edge_data kwargs are stored as edge attributes.
++        Containment edges pass no kwargs. Cross-file reference edges
++        pass edge_type="references".
++
+         Args:
+-            parent_id: node_id of the parent node.
+-            child_id: node_id of the child node.
++            parent_id: node_id of the source node.
++            child_id: node_id of the target node.
++            **edge_data: Optional edge attributes (e.g., edge_type="references").
++                         Must be plain Python types (dict, str, int, None) only.
+ 
+         Raises:
+             GraphStoreError: If either node does not exist.
+@@ -103,6 +109,28 @@ class GraphStore(ABC):
+         """
+         ...
+ 
++    @abstractmethod
++    def get_edges(
++        self,
++        node_id: str,
++        direction: str = "outgoing",
++        edge_type: str | None = None,
++    ) -> list[tuple[str, dict[str, Any]]]:
++        """Get edges connected to a node, filtered by direction and type.
++
++        Args:
++            node_id: Node to query edges for.
++            direction: "outgoing" (successors), "incoming" (predecessors),
++                       or "both".
++            edge_type: Filter to edges with this edge_type attribute.
++                       None returns all edges.
++
++        Returns:
++            List of (connected_node_id, edge_data_dict) tuples.
++            Empty list if node doesn't exist or has no matching edges.
++        """
++        ...
++
+     @abstractmethod
+     def get_all_nodes(self) -> list[CodeNode]:
+         """Get all CodeNodes in the graph.
+diff --git a/src/fs2/core/repos/graph_store_fake.py b/src/fs2/core/repos/graph_store_fake.py
+index 8dcbbd3..d073ac8 100644
+--- a/src/fs2/core/repos/graph_store_fake.py
++++ b/src/fs2/core/repos/graph_store_fake.py
+@@ -67,8 +67,8 @@ class FakeGraphStore(GraphStore):
+         # Extract config internally (per Critical Finding 01)
+         self._scan_config = config.require(ScanConfig)
+         self._nodes: dict[str, CodeNode] = {}
+-        self._edges: dict[str, set[str]] = {}  # parent_id → set of child_ids
+-        self._reverse_edges: dict[str, str] = {}  # child_id → parent_id
++        self._edges: dict[str, dict[str, dict[str, Any]]] = {}  # parent → {child → edge_data}
++        self._reverse_edges: dict[str, list[tuple[str, dict[str, Any]]]] = {}  # child → [(parent, edge_data)]
+         self._call_history: list[dict[str, Any]] = []
+         self.simulate_error_for: set[str] = set()
+         self._metadata: dict[str, Any] | None = None
+@@ -105,12 +105,13 @@ class FakeGraphStore(GraphStore):
+         )
+         self._nodes[node.node_id] = node
+ 
+-    def add_edge(self, parent_id: str, child_id: str) -> None:
++    def add_edge(self, parent_id: str, child_id: str, **edge_data: Any) -> None:
+         """Add a parent-child edge between two nodes.
+ 
+         Args:
+             parent_id: node_id of the parent node.
+             child_id: node_id of the child node.
++            **edge_data: Optional edge attributes.
+ 
+         Raises:
+             GraphStoreError: If simulating error or nodes don't exist.
+@@ -119,7 +120,7 @@ class FakeGraphStore(GraphStore):
+             {
+                 "method": "add_edge",
+                 "args": (parent_id, child_id),
+-                "kwargs": {},
++                "kwargs": dict(edge_data),
+             }
+         )
+ 
+@@ -127,9 +128,11 @@ class FakeGraphStore(GraphStore):
+             raise GraphStoreError("Simulated add_edge error")
+ 
+         if parent_id not in self._edges:
+-            self._edges[parent_id] = set()
+-        self._edges[parent_id].add(child_id)
+-        self._reverse_edges[child_id] = parent_id
++            self._edges[parent_id] = {}
++        self._edges[parent_id][child_id] = dict(edge_data)
++        if child_id not in self._reverse_edges:
++            self._reverse_edges[child_id] = []
++        self._reverse_edges[child_id].append((parent_id, dict(edge_data)))
+ 
+     def get_node(self, node_id: str) -> CodeNode | None:
+         """Retrieve a CodeNode by its ID.
+@@ -165,7 +168,7 @@ class FakeGraphStore(GraphStore):
+                 "kwargs": {},
+             }
+         )
+-        child_ids = self._edges.get(node_id, set())
++        child_ids = self._edges.get(node_id, {}).keys()
+         return [self._nodes[cid] for cid in child_ids if cid in self._nodes]
+ 
+     def get_parent(self, node_id: str) -> CodeNode | None:
+@@ -184,11 +187,45 @@ class FakeGraphStore(GraphStore):
+                 "kwargs": {},
+             }
+         )
+-        parent_id = self._reverse_edges.get(node_id)
+-        if parent_id:
+-            return self._nodes.get(parent_id)
++        # Filter to containment edges (no edge_type)
++        parents = self._reverse_edges.get(node_id, [])
++        for parent_id, edge_data in parents:
++            if "edge_type" not in edge_data:
++                return self._nodes.get(parent_id)
+         return None
+ 
++    def get_edges(
++        self,
++        node_id: str,
++        direction: str = "outgoing",
++        edge_type: str | None = None,
++    ) -> list[tuple[str, dict[str, Any]]]:
++        """Get edges connected to a node, filtered by direction and type.
++
++        Args:
++            node_id: Node to query edges for.
++            direction: "outgoing", "incoming", or "both".
++            edge_type: Filter to edges with this edge_type attribute.
++
++        Returns:
++            List of (connected_node_id, edge_data_dict) tuples.
++        """
++        results: list[tuple[str, dict[str, Any]]] = []
++
++        if direction in ("outgoing", "both"):
++            children = self._edges.get(node_id, {})
++            for child_id, data in children.items():
++                if edge_type is None or data.get("edge_type") == edge_type:
++                    results.append((child_id, dict(data)))
++
++        if direction in ("incoming", "both"):
++            parents = self._reverse_edges.get(node_id, [])
++            for parent_id, data in parents:
++                if edge_type is None or data.get("edge_type") == edge_type:
++                    results.append((parent_id, dict(data)))
++
++        return results
++
+     def get_all_nodes(self) -> list[CodeNode]:
+         """Get all CodeNodes in the graph.
+ 
+diff --git a/src/fs2/core/repos/graph_store_impl.py b/src/fs2/core/repos/graph_store_impl.py
+index 08483cb..dd27276 100644
+--- a/src/fs2/core/repos/graph_store_impl.py
++++ b/src/fs2/core/repos/graph_store_impl.py
+@@ -33,7 +33,7 @@ if TYPE_CHECKING:
+ logger = logging.getLogger(__name__)
+ 
+ # Current format version
+-FORMAT_VERSION = "1.0"
++FORMAT_VERSION = "1.1"
+ 
+ # Whitelist of allowed classes for unpickling
+ # Only CodeNode, networkx types, and stdlib types allowed
+@@ -146,7 +146,7 @@ class NetworkXGraphStore(GraphStore):
+         # Store CodeNode directly as node data
+         self._graph.add_node(node.node_id, data=node)
+ 
+-    def add_edge(self, parent_id: str, child_id: str) -> None:
++    def add_edge(self, parent_id: str, child_id: str, **edge_data: Any) -> None:
+         """Add a parent-child edge between two nodes.
+ 
+         Edge direction: parent → child. This means:
+@@ -156,6 +156,7 @@ class NetworkXGraphStore(GraphStore):
+         Args:
+             parent_id: node_id of the parent node.
+             child_id: node_id of the child node.
++            **edge_data: Optional edge attributes (e.g., edge_type="references").
+ 
+         Raises:
+             GraphStoreError: If either node does not exist.
+@@ -170,7 +171,7 @@ class NetworkXGraphStore(GraphStore):
+                 f"Child node not found: {child_id}. Add the node before creating edges."
+             )
+ 
+-        self._graph.add_edge(parent_id, child_id)
++        self._graph.add_edge(parent_id, child_id, **edge_data)
+ 
+     def get_node(self, node_id: str) -> CodeNode | None:
+         """Retrieve a CodeNode by its ID.
+@@ -205,7 +206,10 @@ class NetworkXGraphStore(GraphStore):
+         return children
+ 
+     def get_parent(self, node_id: str) -> CodeNode | None:
+-        """Get the parent node of a given node.
++        """Get the containment parent node of a given node.
++
++        Filters out cross-file reference edges — only returns the
++        containment parent (edges without edge_type attribute).
+ 
+         Args:
+             node_id: Child node's identifier.
+@@ -216,13 +220,48 @@ class NetworkXGraphStore(GraphStore):
+         if node_id not in self._graph:
+             return None
+ 
+-        # predecessors returns nodes pointing TO this node (parents)
+-        parents = list(self._graph.predecessors(node_id))
+-        if not parents:
+-            return None
++        # Filter predecessors to containment edges only (no edge_type attribute)
++        for pred in self._graph.predecessors(node_id):
++            edge_data = self._graph.edges[pred, node_id]
++            if "edge_type" not in edge_data:
++                return self.get_node(pred)
++
++        return None
++
++    def get_edges(
++        self,
++        node_id: str,
++        direction: str = "outgoing",
++        edge_type: str | None = None,
++    ) -> list[tuple[str, dict[str, Any]]]:
++        """Get edges connected to a node, filtered by direction and type.
++
++        Args:
++            node_id: Node to query edges for.
++            direction: "outgoing", "incoming", or "both".
++            edge_type: Filter to edges with this edge_type attribute.
++
++        Returns:
++            List of (connected_node_id, edge_data_dict) tuples.
++        """
++        if node_id not in self._graph:
++            return []
++
++        results: list[tuple[str, dict[str, Any]]] = []
++
++        if direction in ("outgoing", "both"):
++            for succ in self._graph.successors(node_id):
++                data = dict(self._graph.edges[node_id, succ])
++                if edge_type is None or data.get("edge_type") == edge_type:
++                    results.append((succ, data))
++
++        if direction in ("incoming", "both"):
++            for pred in self._graph.predecessors(node_id):
++                data = dict(self._graph.edges[pred, node_id])
++                if edge_type is None or data.get("edge_type") == edge_type:
++                    results.append((pred, data))
+ 
+-        # Return first parent (tree structure has single parent)
+-        return self.get_node(parents[0])
++        return results
+ 
+     def get_all_nodes(self) -> list[CodeNode]:
+         """Get all CodeNodes in the graph.
+diff --git a/src/fs2/core/services/tree_service.py b/src/fs2/core/services/tree_service.py
+index 0e9e384..a57b0a5 100644
+--- a/src/fs2/core/services/tree_service.py
++++ b/src/fs2/core/services/tree_service.py
+@@ -368,6 +368,22 @@ class TreeService:
+ 
+         return list(bucket.values())
+ 
++    def _get_containment_children(self, node: CodeNode) -> list[CodeNode]:
++        """Get children filtered to same-file containment edges only.
++
++        Cross-file reference edges are excluded to prevent foreign nodes
++        from appearing in the tree hierarchy.
++
++        Args:
++            node: Parent CodeNode.
++
++        Returns:
++            List of child CodeNodes from the same file.
++        """
++        children = self._graph_store.get_children(node.node_id)
++        parent_file = node.file_path
++        return [c for c in children if c.file_path == parent_file]
++
+     def _build_tree_node(
+         self,
+         node: CodeNode,
+@@ -384,8 +400,8 @@ class TreeService:
+         Returns:
+             TreeNode with children populated (recursively).
+         """
+-        # Get children from graph store (needed for both paths)
+-        children = self._graph_store.get_children(node.node_id)
++        # Get children from graph store, filtered to same-file only
++        children = self._get_containment_children(node)
+ 
+         # Check depth limit (max_depth=1 means root only, max_depth=2 means root+children)
+         if max_depth > 0 and current_depth + 1 >= max_depth:
+@@ -532,7 +548,7 @@ class TreeService:
+             # Check depth limit for files
+             if current_depth + 1 >= max_depth:
+                 # At depth limit - files without their symbol children
+-                children_count = len(self._graph_store.get_children(file_node.node_id))
++                children_count = len(self._get_containment_children(file_node))
+                 result.append(
+                     TreeNode(
+                         node=file_node,
+diff --git a/tests/unit/repos/test_graph_store.py b/tests/unit/repos/test_graph_store.py
+index 567746a..f701ab2 100644
+--- a/tests/unit/repos/test_graph_store.py
++++ b/tests/unit/repos/test_graph_store.py
+@@ -265,3 +265,58 @@ class TestGraphStoreGetMetadataContract:
+ 
+         metadata = store2.get_metadata()
+         assert metadata["node_count"] == 3
++
++
++@pytest.mark.unit
++class TestGraphStoreEdgeContract:
++    """Tests for GraphStore edge infrastructure (Phase 1: T001, T002)."""
++
++    def test_add_edge_accepts_edge_data_kwargs(self):
++        """
++        Purpose: Proves add_edge() signature accepts **edge_data.
++        Acceptance Criteria: add_edge with edge_type kwarg doesn't raise TypeError.
++
++        Task: T001
++        """
++        import inspect
++
++        from fs2.core.repos.graph_store import GraphStore
++
++        sig = inspect.signature(GraphStore.add_edge)
++        params = list(sig.parameters.values())
++        # Should have self, parent_id, child_id, and **edge_data
++        param_names = [p.name for p in params]
++        assert "parent_id" in param_names
++        assert "child_id" in param_names
++        # Check that there's a VAR_KEYWORD parameter (**kwargs)
++        var_kw = [p for p in params if p.kind == inspect.Parameter.VAR_KEYWORD]
++        assert len(var_kw) == 1, "add_edge should accept **edge_data"
++        assert var_kw[0].name == "edge_data"
++
++    def test_get_edges_is_abstract_method(self):
++        """
++        Purpose: Proves get_edges() is defined as abstract on GraphStore.
++        Acceptance Criteria: get_edges in __abstractmethods__.
++
++        Task: T002
++        """
++        from fs2.core.repos.graph_store import GraphStore
++
++        assert "get_edges" in GraphStore.__abstractmethods__
++
++    def test_get_edges_signature_has_correct_params(self):
++        """
++        Purpose: Proves get_edges() has node_id, direction, edge_type params.
++        Acceptance Criteria: Signature matches contract.
++
++        Task: T002
++        """
++        import inspect
++
++        from fs2.core.repos.graph_store import GraphStore
++
++        sig = inspect.signature(GraphStore.get_edges)
++        param_names = list(sig.parameters.keys())
++        assert "node_id" in param_names
++        assert "direction" in param_names
++        assert "edge_type" in param_names
+diff --git a/tests/unit/repos/test_graph_store_fake.py b/tests/unit/repos/test_graph_store_fake.py
+index 4c80890..784120c 100644
+--- a/tests/unit/repos/test_graph_store_fake.py
++++ b/tests/unit/repos/test_graph_store_fake.py
+@@ -406,3 +406,123 @@ class TestFakeGraphStore:
+         store.clear()
+ 
+         assert len(store.get_all_nodes()) == 0
++
++
++@pytest.mark.unit
++class TestFakeGraphStoreEdgeData:
++    """Tests for FakeGraphStore edge data tracking (Phase 1: T005)."""
++
++    def _make_store(self):
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_fake import FakeGraphStore
++
++        return FakeGraphStore(FakeConfigurationService(ScanConfig()))
++
++    def _make_nodes(self):
++        from fs2.core.models.code_node import CodeNode
++
++        file_a = CodeNode.create_file("src/a.py", "python", "module", 0, 100, 1, 10, "# a")
++        file_b = CodeNode.create_file("src/b.py", "python", "module", 0, 100, 1, 10, "# b")
++        func = CodeNode.create_callable(
++            file_path="src/a.py", language="python", ts_kind="function_definition",
++            name="foo", qualified_name="foo",
++            start_line=1, end_line=5, start_column=0, end_column=20,
++            start_byte=0, end_byte=50, content="def foo(): pass", signature="def foo():",
++        )
++        return file_a, file_b, func
++
++    def test_add_edge_stores_edge_data(self):
++        """
++        Purpose: Proves FakeGraphStore tracks edge_data kwargs.
++        Acceptance Criteria: edge_data is recorded and retrievable.
++
++        Task: T005
++        """
++        store = self._make_store()
++        file_a, file_b, func = self._make_nodes()
++        store.add_node(file_a)
++        store.add_node(func)
++
++        store.add_edge(file_a.node_id, func.node_id, edge_type="references")
++
++        # Verify edge_data captured in call history
++        edge_calls = [c for c in store.call_history if c["method"] == "add_edge"]
++        assert len(edge_calls) == 1
++        assert edge_calls[0]["kwargs"] == {"edge_type": "references"}
++
++    def test_get_edges_returns_edge_data(self):
++        """
++        Purpose: Proves get_edges returns stored edge_data.
++        Acceptance Criteria: edge_data dict accessible in results.
++
++        Task: T005
++        """
++        store = self._make_store()
++        file_a, file_b, func = self._make_nodes()
++        store.add_node(file_a)
++        store.add_node(func)
++        store.add_node(file_b)
++
++        store.add_edge(file_a.node_id, func.node_id)  # containment
++        store.add_edge(file_b.node_id, func.node_id, edge_type="references")  # reference
++
++        # Get all incoming edges
++        edges = store.get_edges(func.node_id, direction="incoming")
++        assert len(edges) == 2
++
++        # Filter to references only
++        ref_edges = store.get_edges(func.node_id, direction="incoming", edge_type="references")
++        assert len(ref_edges) == 1
++        assert ref_edges[0][0] == file_b.node_id
++        assert ref_edges[0][1]["edge_type"] == "references"
++
++    def test_get_edges_outgoing(self):
++        """
++        Purpose: Proves outgoing direction works.
++        Acceptance Criteria: Returns successor edges.
++
++        Task: T005
++        """
++        store = self._make_store()
++        file_a, file_b, func = self._make_nodes()
++        store.add_node(file_a)
++        store.add_node(func)
++
++        store.add_edge(file_a.node_id, func.node_id)
++
++        edges = store.get_edges(file_a.node_id, direction="outgoing")
++        assert len(edges) == 1
++        assert edges[0][0] == func.node_id
++
++    def test_get_edges_returns_empty_for_unknown_node(self):
++        """
++        Purpose: Proves get_edges returns [] for unknown node.
++        Acceptance Criteria: No crash, empty list.
++
++        Task: T005
++        """
++        store = self._make_store()
++        assert store.get_edges("nonexistent:node:id") == []
++
++    def test_get_parent_returns_containment_parent_not_reference(self):
++        """
++        Purpose: Proves get_parent() returns containment parent, not cross-file ref.
++        Acceptance Criteria: get_parent ignores reference edges.
++
++        Task: T009
++        """
++        store = self._make_store()
++        file_a, file_b, func = self._make_nodes()
++        store.add_node(file_a)
++        store.add_node(func)
++        store.add_node(file_b)
++
++        # Cross-file reference FIRST (to prove order doesn't matter)
++        store.add_edge(file_b.node_id, func.node_id, edge_type="references")
++        # Containment edge SECOND
++        store.add_edge(file_a.node_id, func.node_id)
++
++        parent = store.get_parent(func.node_id)
++        assert parent is not None
++        assert parent.node_id == file_a.node_id
+diff --git a/tests/unit/repos/test_graph_store_impl.py b/tests/unit/repos/test_graph_store_impl.py
+index 7a95108..179036b 100644
+--- a/tests/unit/repos/test_graph_store_impl.py
++++ b/tests/unit/repos/test_graph_store_impl.py
+@@ -346,15 +346,15 @@ class TestNetworkXGraphStorePersistence:
+ 
+     def test_save_includes_format_version_metadata(self, tmp_path):
+         """
+-        Purpose: Verifies saved file includes format_version: "1.0".
++        Purpose: Verifies saved file includes format_version.
+         Quality Contribution: Enables future format migrations.
+-        Acceptance Criteria: Metadata contains format_version.
++        Acceptance Criteria: Metadata contains format_version matching current.
+ 
+         Task: T018 (per CF14)
+         """
+         from fs2.config.objects import ScanConfig
+         from fs2.config.service import FakeConfigurationService
+-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++        from fs2.core.repos.graph_store_impl import FORMAT_VERSION, NetworkXGraphStore
+ 
+         config = FakeConfigurationService(ScanConfig())
+         store = NetworkXGraphStore(config)
+@@ -367,7 +367,7 @@ class TestNetworkXGraphStorePersistence:
+             metadata, _ = pickle.load(f)
+ 
+         assert "format_version" in metadata
+-        assert metadata["format_version"] == "1.0"
++        assert metadata["format_version"] == FORMAT_VERSION
+ 
+     @pytest.mark.skip(reason="caplog interference in full suite")
+     def test_load_logs_warning_on_version_mismatch(self, tmp_path, caplog):
+@@ -707,3 +707,302 @@ class TestNetworkXGraphStoreEdgeCases:
+         method_parent = new_store.get_parent(method_node.node_id)
+         assert method_parent is not None
+         assert method_parent.name == "Calculator"
++
++
++@pytest.mark.unit
++class TestNetworkXGraphStoreEdgeData:
++    """Tests for edge data and get_edges() (Phase 1: T003, T004)."""
++
++    def test_add_edge_with_edge_data_stores_attributes(self):
++        """
++        Purpose: Proves add_edge(**edge_data) stores attributes in networkx.
++        Acceptance Criteria: edge attributes accessible via graph.edges[u, v].
++
++        Task: T004
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        node_a = make_file_node("src/a.py")
++        node_b = make_method_node("src/b.py", "func_b", "func_b")
++        store.add_node(node_a)
++        store.add_node(node_b)
++
++        store.add_edge(node_a.node_id, node_b.node_id, edge_type="references")
++
++        # Verify edge data stored in networkx
++        edge_data = store._graph.edges[node_a.node_id, node_b.node_id]
++        assert edge_data["edge_type"] == "references"
++
++    def test_add_edge_without_edge_data_is_backward_compatible(self):
++        """
++        Purpose: Proves existing callers (no kwargs) still work.
++        Acceptance Criteria: add_edge(parent, child) works, edge has empty data.
++
++        Task: T004
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        file_node = make_file_node()
++        class_node = make_class_node()
++        store.add_node(file_node)
++        store.add_node(class_node)
++
++        # Old-style call without kwargs
++        store.add_edge(file_node.node_id, class_node.node_id)
++
++        # Should work fine, edge has empty attributes
++        edge_data = store._graph.edges[file_node.node_id, class_node.node_id]
++        assert "edge_type" not in edge_data
++
++    def test_get_edges_outgoing_returns_successors(self):
++        """
++        Purpose: Proves get_edges with direction=outgoing returns successor edges.
++        Acceptance Criteria: Returns list of (node_id, edge_data) for successors.
++
++        Task: T003
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        file_node = make_file_node()
++        class_node = make_class_node()
++        method_node = make_method_node()
++        store.add_node(file_node)
++        store.add_node(class_node)
++        store.add_node(method_node)
++        store.add_edge(file_node.node_id, class_node.node_id)
++        store.add_edge(file_node.node_id, method_node.node_id)
++
++        edges = store.get_edges(file_node.node_id, direction="outgoing")
++        connected_ids = [e[0] for e in edges]
++        assert class_node.node_id in connected_ids
++        assert method_node.node_id in connected_ids
++        assert len(edges) == 2
++
++    def test_get_edges_incoming_returns_predecessors(self):
++        """
++        Purpose: Proves get_edges with direction=incoming returns predecessor edges.
++        Acceptance Criteria: Returns predecessors.
++
++        Task: T003
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        file_node = make_file_node()
++        class_node = make_class_node()
++        store.add_node(file_node)
++        store.add_node(class_node)
++        store.add_edge(file_node.node_id, class_node.node_id)
++
++        edges = store.get_edges(class_node.node_id, direction="incoming")
++        assert len(edges) == 1
++        assert edges[0][0] == file_node.node_id
++
++    def test_get_edges_both_returns_all(self):
++        """
++        Purpose: Proves direction=both returns union of incoming and outgoing.
++        Acceptance Criteria: Both predecessors and successors returned.
++
++        Task: T003
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        node_a = make_file_node("src/a.py")
++        node_b = make_class_node("src/a.py", "B", "B")
++        node_c = make_method_node("src/a.py", "c", "B.c")
++        store.add_node(node_a)
++        store.add_node(node_b)
++        store.add_node(node_c)
++        store.add_edge(node_a.node_id, node_b.node_id)
++        store.add_edge(node_b.node_id, node_c.node_id)
++
++        # B has incoming from A and outgoing to C
++        edges = store.get_edges(node_b.node_id, direction="both")
++        connected_ids = [e[0] for e in edges]
++        assert node_a.node_id in connected_ids
++        assert node_c.node_id in connected_ids
++        assert len(edges) == 2
++
++    def test_get_edges_filters_by_edge_type(self):
++        """
++        Purpose: Proves edge_type filter works correctly.
++        Acceptance Criteria: Only edges with matching edge_type returned.
++
++        Task: T003
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        file_node = make_file_node("src/a.py")
++        class_node = make_class_node("src/a.py", "A", "A")
++        ref_node = make_method_node("src/b.py", "caller", "caller")
++        store.add_node(file_node)
++        store.add_node(class_node)
++        store.add_node(ref_node)
++
++        # Containment edge (no edge_type)
++        store.add_edge(file_node.node_id, class_node.node_id)
++        # Reference edge (with edge_type)
++        store.add_edge(ref_node.node_id, class_node.node_id, edge_type="references")
++
++        # Filter incoming to references only
++        ref_edges = store.get_edges(
++            class_node.node_id, direction="incoming", edge_type="references"
++        )
++        assert len(ref_edges) == 1
++        assert ref_edges[0][0] == ref_node.node_id
++        assert ref_edges[0][1]["edge_type"] == "references"
++
++        # Filter incoming with no type filter returns both
++        all_edges = store.get_edges(class_node.node_id, direction="incoming")
++        assert len(all_edges) == 2
++
++    def test_get_edges_returns_empty_for_unknown_node(self):
++        """
++        Purpose: Proves get_edges returns [] for non-existent node.
++        Acceptance Criteria: No crash, empty list.
++
++        Task: T003
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        result = store.get_edges("nonexistent:node:id")
++        assert result == []
++
++    def test_get_edges_returns_empty_for_node_with_no_edges(self):
++        """
++        Purpose: Proves get_edges returns [] for isolated node.
++        Acceptance Criteria: No edges = empty list.
++
++        Task: T003
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        node = make_file_node()
++        store.add_node(node)
++
++        result = store.get_edges(node.node_id)
++        assert result == []
++
++    def test_get_parent_returns_containment_parent_not_reference(self):
++        """
++        Purpose: Proves get_parent() returns containment parent, not cross-file reference.
++        Acceptance Criteria: get_parent returns the node connected via containment edge,
++                           ignoring reference edges.
++
++        Task: T009
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        # Containment: file_a → func_a
++        file_a = make_file_node("src/a.py")
++        func_a = make_method_node("src/a.py", "func_a", "func_a")
++        store.add_node(file_a)
++        store.add_node(func_a)
++        # Cross-file reference FIRST (to prove order doesn't matter)
++        ref_node = make_method_node("src/b.py", "caller", "caller")
++        store.add_node(ref_node)
++        store.add_edge(ref_node.node_id, func_a.node_id, edge_type="references")
++
++        # Containment SECOND: file_a → func_a
++        store.add_edge(file_a.node_id, func_a.node_id)  # containment (no edge_type)
++
++        # get_parent should return the containment parent, not the reference
++        parent = store.get_parent(func_a.node_id)
++        assert parent is not None
++        assert parent.node_id == file_a.node_id
++
++    def test_edge_attributes_survive_save_load_roundtrip(self, tmp_path):
++        """
++        Purpose: Proves edge attributes survive pickle save + RestrictedUnpickler load.
++        Acceptance Criteria: get_edges returns same data after save/load cycle.
++
++        Task: T006
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
++
++        config = FakeConfigurationService(ScanConfig())
++        store = NetworkXGraphStore(config)
++
++        # Create nodes in different files
++        file_a = make_file_node("src/a.py")
++        func_a = make_method_node("src/a.py", "caller", "caller")
++        file_b = make_file_node("src/b.py")
++        func_b = make_method_node("src/b.py", "target", "target")
++        store.add_node(file_a)
++        store.add_node(func_a)
++        store.add_node(file_b)
++        store.add_node(func_b)
++
++        # Containment edges (no edge_type)
++        store.add_edge(file_a.node_id, func_a.node_id)
++        store.add_edge(file_b.node_id, func_b.node_id)
++
++        # Cross-file reference edge (with edge_type)
++        store.add_edge(func_a.node_id, func_b.node_id, edge_type="references")
++
++        # Save and reload
++        path = tmp_path / "graph.pickle"
++        store.save(path)
++
++        store2 = NetworkXGraphStore(config)
++        store2.load(path)
++
++        # Verify reference edge survives roundtrip
++        ref_edges = store2.get_edges(
++            func_b.node_id, direction="incoming", edge_type="references"
++        )
++        assert len(ref_edges) == 1
++        assert ref_edges[0][0] == func_a.node_id
++        assert ref_edges[0][1]["edge_type"] == "references"
++
++        # Verify containment edges also survive (no edge_type)
++        cont_edges = store2.get_edges(file_a.node_id, direction="outgoing")
++        assert len(cont_edges) == 1
++        assert cont_edges[0][0] == func_a.node_id
++        assert "edge_type" not in cont_edges[0][1]
+diff --git a/tests/unit/services/test_graph_service.py b/tests/unit/services/test_graph_service.py
+index 31869cd..646f563 100644
+--- a/tests/unit/services/test_graph_service.py
++++ b/tests/unit/services/test_graph_service.py
+@@ -18,6 +18,7 @@ import pytest
+ from fs2.config.objects import GraphConfig, OtherGraph, OtherGraphsConfig
+ from fs2.config.service import FakeConfigurationService
+ from fs2.core.models.code_node import CodeNode
++from fs2.core.repos.graph_store_impl import FORMAT_VERSION
+ 
+ # =============================================================================
+ # Test Fixtures and Helpers
+@@ -33,7 +34,7 @@ def create_test_graph_file(path: Path) -> None:
+ 
+     # Build metadata as NetworkXGraphStore expects
+     metadata = {
+-        "format_version": "1.0",
++        "format_version": FORMAT_VERSION,
+         "created_at": "2026-01-13T00:00:00+00:00",
+         "node_count": 0,
+         "edge_count": 0,
+@@ -55,7 +56,7 @@ def create_graph_with_nodes(path: Path, nodes: list[CodeNode]) -> None:
+         graph.add_node(node.node_id, data=node)
+ 
+     metadata = {
+-        "format_version": "1.0",
++        "format_version": FORMAT_VERSION,
+         "created_at": "2026-01-13T00:00:00+00:00",
+         "node_count": len(nodes),
+         "edge_count": 0,
+diff --git a/tests/unit/services/test_tree_service.py b/tests/unit/services/test_tree_service.py
+index 93cd100..977d8be 100644
+--- a/tests/unit/services/test_tree_service.py
++++ b/tests/unit/services/test_tree_service.py
+@@ -931,3 +931,82 @@ class TestFolderFiltering:
+         assert "file:src/fs2/__init__.py" in node_ids
+         assert "file:src/fs2/cli/tree.py" in node_ids
+         assert "file:src/fs2/core/services/tree_service.py" in node_ids
++
++
++@pytest.mark.unit
++class TestTreeServiceCrossFileFiltering:
++    """Tests for TreeService cross-file edge filtering (Phase 1: T008)."""
++
++    def test_get_children_excludes_cross_file_edges(self, graph_setup):
++        """
++        Purpose: Proves TreeService tree excludes cross-file reference edges.
++        Acceptance Criteria: Tree shows only same-file containment children.
++
++        Task: T008
++        """
++        config, store, _ = graph_setup
++
++        # File A with class A containing method A
++        file_a = make_file_node("src/a.py")
++        class_a = make_class_node("src/a.py", "ClassA", file_a.node_id)
++        method_a = make_method_node("src/a.py", "ClassA", "method_a", class_a.node_id)
++
++        # File B with class B
++        file_b = make_file_node("src/b.py")
++        class_b = make_class_node("src/b.py", "ClassB", file_b.node_id)
++
++        store.set_nodes([file_a, class_a, method_a, file_b, class_b])
++
++        # Containment edges
++        store.add_edge(file_a.node_id, class_a.node_id)
++        store.add_edge(class_a.node_id, method_a.node_id)
++        store.add_edge(file_b.node_id, class_b.node_id)
++
++        # Cross-file reference: class_b references class_a
++        store.add_edge(class_b.node_id, class_a.node_id, edge_type="references")
++
++        service = TreeService(config=config, graph_store=store)
++        result = service.build_tree(pattern="file:src/b.py", max_depth=0)
++
++        # Navigate into src/b.py → ClassB
++        assert len(result) == 1  # Just file_b
++        file_b_tree = result[0]
++        assert file_b_tree.node.node_id == file_b.node_id
++
++        # ClassB should NOT show ClassA as a child (that's a cross-file reference)
++        class_b_children = file_b_tree.children
++        assert len(class_b_children) == 1  # Only ClassB
++        class_b_tree = class_b_children[0]
++        assert class_b_tree.node.name == "ClassB"
++
++        # ClassB's children should be empty (no cross-file nodes)
++        assert len(class_b_tree.children) == 0
++
++    def test_tree_unchanged_when_no_cross_file_edges(self, graph_setup):
++        """
++        Purpose: Proves tree output unchanged when only containment edges exist.
++        Acceptance Criteria: Backward compatible — same output as before.
++
++        Task: T008
++        """
++        config, store, _ = graph_setup
++
++        file_a = make_file_node("src/a.py")
++        class_a = make_class_node("src/a.py", "ClassA", file_a.node_id)
++        method_a = make_method_node("src/a.py", "ClassA", "method_a", class_a.node_id)
++
++        store.set_nodes([file_a, class_a, method_a])
++        store.add_edge(file_a.node_id, class_a.node_id)
++        store.add_edge(class_a.node_id, method_a.node_id)
++
++        service = TreeService(config=config, graph_store=store)
++        result = service.build_tree(pattern="file:src/a.py", max_depth=0)
++
++        # Normal containment tree should be intact
++        assert len(result) == 1
++        file_tree = result[0]
++        assert len(file_tree.children) == 1
++        class_tree = file_tree.children[0]
++        assert class_tree.node.name == "ClassA"
++        assert len(class_tree.children) == 1
++        assert class_tree.children[0].node.name == "method_a"

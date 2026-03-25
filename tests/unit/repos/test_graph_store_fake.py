@@ -406,3 +406,172 @@ class TestFakeGraphStore:
         store.clear()
 
         assert len(store.get_all_nodes()) == 0
+
+
+@pytest.mark.unit
+class TestFakeGraphStoreEdgeData:
+    """Tests for FakeGraphStore edge data tracking (Phase 1: T005)."""
+
+    def _make_store(self):
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
+
+        return FakeGraphStore(FakeConfigurationService(ScanConfig()))
+
+    def _make_nodes(self):
+        from fs2.core.models.code_node import CodeNode
+
+        file_a = CodeNode.create_file("src/a.py", "python", "module", 0, 100, 1, 10, "# a")
+        file_b = CodeNode.create_file("src/b.py", "python", "module", 0, 100, 1, 10, "# b")
+        func = CodeNode.create_callable(
+            file_path="src/a.py", language="python", ts_kind="function_definition",
+            name="foo", qualified_name="foo",
+            start_line=1, end_line=5, start_column=0, end_column=20,
+            start_byte=0, end_byte=50, content="def foo(): pass", signature="def foo():",
+        )
+        return file_a, file_b, func
+
+    def test_add_edge_stores_edge_data(self):
+        """
+        Purpose: Proves FakeGraphStore tracks edge_data kwargs.
+        Acceptance Criteria: edge_data is recorded and retrievable.
+
+        Task: T005
+        """
+        store = self._make_store()
+        file_a, file_b, func = self._make_nodes()
+        store.add_node(file_a)
+        store.add_node(func)
+
+        store.add_edge(file_a.node_id, func.node_id, edge_type="references")
+
+        # Verify edge_data captured in call history
+        edge_calls = [c for c in store.call_history if c["method"] == "add_edge"]
+        assert len(edge_calls) == 1
+        assert edge_calls[0]["kwargs"] == {"edge_type": "references"}
+
+    def test_get_edges_returns_edge_data(self):
+        """
+        Purpose: Proves get_edges returns stored edge_data.
+        Acceptance Criteria: edge_data dict accessible in results.
+
+        Task: T005
+        """
+        store = self._make_store()
+        file_a, file_b, func = self._make_nodes()
+        store.add_node(file_a)
+        store.add_node(func)
+        store.add_node(file_b)
+
+        store.add_edge(file_a.node_id, func.node_id)  # containment
+        store.add_edge(file_b.node_id, func.node_id, edge_type="references")  # reference
+
+        # Get all incoming edges
+        edges = store.get_edges(func.node_id, direction="incoming")
+        assert len(edges) == 2
+
+        # Filter to references only
+        ref_edges = store.get_edges(func.node_id, direction="incoming", edge_type="references")
+        assert len(ref_edges) == 1
+        assert ref_edges[0][0] == file_b.node_id
+        assert ref_edges[0][1]["edge_type"] == "references"
+
+    def test_get_edges_outgoing(self):
+        """
+        Purpose: Proves outgoing direction works.
+        Acceptance Criteria: Returns successor edges.
+
+        Task: T005
+        """
+        store = self._make_store()
+        file_a, file_b, func = self._make_nodes()
+        store.add_node(file_a)
+        store.add_node(func)
+
+        store.add_edge(file_a.node_id, func.node_id)
+
+        edges = store.get_edges(file_a.node_id, direction="outgoing")
+        assert len(edges) == 1
+        assert edges[0][0] == func.node_id
+
+    def test_get_edges_returns_empty_for_unknown_node(self):
+        """
+        Purpose: Proves get_edges returns [] for unknown node.
+        Acceptance Criteria: No crash, empty list.
+
+        Task: T005
+        """
+        store = self._make_store()
+        assert store.get_edges("nonexistent:node:id") == []
+
+    def test_get_parent_returns_containment_parent_not_reference(self):
+        """
+        Purpose: Proves get_parent() returns containment parent, not cross-file ref.
+        Acceptance Criteria: get_parent ignores reference edges.
+
+        Task: T009
+        """
+        store = self._make_store()
+        file_a, file_b, func = self._make_nodes()
+        store.add_node(file_a)
+        store.add_node(func)
+        store.add_node(file_b)
+
+        # Cross-file reference FIRST (to prove order doesn't matter)
+        store.add_edge(file_b.node_id, func.node_id, edge_type="references")
+        # Containment edge SECOND
+        store.add_edge(file_a.node_id, func.node_id)
+
+        parent = store.get_parent(func.node_id)
+        assert parent is not None
+        assert parent.node_id == file_a.node_id
+
+
+class TestFakeGraphStoreGetAllEdges:
+    """Phase 4 T005: Tests for FakeGraphStore.get_all_edges()."""
+
+    def _make_store(self):
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_fake import FakeGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        return FakeGraphStore(config)
+
+    def test_get_all_edges_returns_reference_edges(self):
+        """Filtered by edge_type returns only matching edges."""
+        from fs2.core.models.code_node import CodeNode
+
+        store = self._make_store()
+        file_a = CodeNode.create_file("src/a.py", "python", "module", 0, 100, 1, 10, "#")
+        func_a = CodeNode.create_callable(
+            file_path="src/a.py", language="python", ts_kind="function_definition",
+            name="foo", qualified_name="A.foo", start_line=1, end_line=5,
+            start_column=0, end_column=20, start_byte=0, end_byte=50,
+            content="def foo(): pass", signature="def foo():",
+        )
+        func_b = CodeNode.create_callable(
+            file_path="src/b.py", language="python", ts_kind="function_definition",
+            name="bar", qualified_name="B.bar", start_line=1, end_line=5,
+            start_column=0, end_column=20, start_byte=0, end_byte=50,
+            content="def bar(): pass", signature="def bar():",
+        )
+        file_b = CodeNode.create_file("src/b.py", "python", "module", 0, 100, 1, 10, "#")
+
+        store.add_node(file_a)
+        store.add_node(file_b)
+        store.add_node(func_a)
+        store.add_node(func_b)
+        store.add_edge(file_a.node_id, func_a.node_id)  # containment
+        store.add_edge(func_a.node_id, func_b.node_id, edge_type="references")
+
+        all_refs = store.get_all_edges(edge_type="references")
+        assert len(all_refs) == 1
+        assert all_refs[0][0] == func_a.node_id
+        assert all_refs[0][1] == func_b.node_id
+
+    def test_get_all_edges_empty(self):
+        """Empty store returns empty list."""
+        store = self._make_store()
+        assert store.get_all_edges() == []

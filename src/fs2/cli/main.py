@@ -31,8 +31,11 @@ from fs2.cli.init import init
 from fs2.cli.install import get_version_string, install, upgrade
 from fs2.cli.list_graphs import list_graphs
 from fs2.cli.mcp import mcp
+from fs2.cli.projects import add_project, discover_projects
+from fs2.cli.report import report_app
 from fs2.cli.scan import scan
 from fs2.cli.search import search
+from fs2.cli.setup_mcp import setup_mcp
 from fs2.cli.tree import tree
 from fs2.cli.watch import watch
 
@@ -117,9 +120,13 @@ app.command(name="agents-start-here")(
     agents_start_here
 )  # Per Plan 026: Agent onboarding
 app.command(name="list-graphs")(list_graphs)  # Per subtask 001: diagnostic command
+app.command(name="discover-projects")(discover_projects)  # SCIP project discovery
+app.command(name="add-project")(add_project)  # SCIP project config writer
 app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
+app.add_typer(require_init(report_app), name="report")  # Report generation (requires init)
 app.command(name="install")(install)
 app.command(name="upgrade")(upgrade)
+app.command(name="setup-mcp")(setup_mcp)
 
 
 if __name__ == "__main__":

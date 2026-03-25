@@ -489,3 +489,137 @@ class TestStorageStageReturnsContext:
         result = stage.process(ctx)
 
         assert result is ctx
+
+
+@pytest.mark.unit
+class TestStorageStageCrossFileEdges:
+    """Tests for StorageStage cross-file edge writing (Phase 2: T002)."""
+
+    def _make_context_with_edges(self):
+        """Create a context with nodes and cross-file edges."""
+        config_service = FakeConfigurationService(ScanConfig())
+        store = FakeGraphStore(config_service)
+
+        # Two files with one function each
+        file_a = CodeNode.create_file("src/a.py", "python", "module", 0, 100, 1, 10, "# a")
+        func_a = CodeNode.create_callable(
+            file_path="src/a.py", language="python", ts_kind="function_definition",
+            name="caller", qualified_name="caller",
+            start_line=1, end_line=5, start_column=0, end_column=20,
+            start_byte=0, end_byte=50, content="def caller(): pass",
+            signature="def caller():", parent_node_id=file_a.node_id,
+        )
+        file_b = CodeNode.create_file("src/b.py", "python", "module", 0, 100, 1, 10, "# b")
+        func_b = CodeNode.create_callable(
+            file_path="src/b.py", language="python", ts_kind="function_definition",
+            name="target", qualified_name="target",
+            start_line=1, end_line=5, start_column=0, end_column=20,
+            start_byte=0, end_byte=50, content="def target(): pass",
+            signature="def target():", parent_node_id=file_b.node_id,
+        )
+
+        ctx = PipelineContext(scan_config=ScanConfig())
+        ctx.graph_store = store
+        ctx.nodes = [file_a, func_a, file_b, func_b]
+        return ctx, store, func_a, func_b, file_a
+
+    def test_writes_cross_file_edges(self):
+        """
+        Purpose: Proves StorageStage writes cross_file_edges to graph.
+        Acceptance Criteria: Edges with edge_type="references" written.
+
+        Task: T002
+        """
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        ctx, store, func_a, func_b, _ = self._make_context_with_edges()
+        ctx.cross_file_edges = [
+            (func_a.node_id, func_b.node_id, {"edge_type": "references"}),
+        ]
+
+        stage = StorageStage()
+        stage.process(ctx)
+
+        # Verify cross-file edge was written
+        edges = store.get_edges(func_b.node_id, direction="incoming", edge_type="references")
+        assert len(edges) == 1
+        assert edges[0][0] == func_a.node_id
+
+    def test_skips_edges_with_missing_nodes(self):
+        """
+        Purpose: Proves StorageStage skips edges where nodes don't exist (DYK-05).
+        Acceptance Criteria: No crash, edge skipped, metric recorded.
+
+        Task: T002
+        """
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        ctx, store, func_a, _, _ = self._make_context_with_edges()
+        ctx.cross_file_edges = [
+            (func_a.node_id, "callable:src/nonexistent.py:ghost", {"edge_type": "references"}),
+        ]
+
+        stage = StorageStage()
+        result = stage.process(ctx)
+
+        # Should not crash, edge skipped
+        assert result.metrics.get("cross_file_edges_skipped", 0) >= 1
+
+    def test_skips_edges_where_source_contains_target(self):
+        """
+        Purpose: Proves StorageStage skips edges where containment edge exists (DYK-03).
+        Acceptance Criteria: If source→target is already a containment edge, skip reference edge.
+
+        Task: T002
+        """
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        ctx, store, func_a, _, file_a = self._make_context_with_edges()
+        # file_a → func_a is a containment edge (via parent_node_id)
+        # Try to add a reference edge for the same pair
+        ctx.cross_file_edges = [
+            (file_a.node_id, func_a.node_id, {"edge_type": "references"}),
+        ]
+
+        stage = StorageStage()
+        result = stage.process(ctx)
+
+        # Containment edge should win — reference edge skipped
+        assert result.metrics.get("cross_file_edges_skipped", 0) >= 1
+
+    def test_records_edge_metrics(self):
+        """
+        Purpose: Proves StorageStage records cross-file edge metrics.
+        Acceptance Criteria: cross_file_edges_written and cross_file_edges_skipped in metrics.
+
+        Task: T002
+        """
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        ctx, _, func_a, func_b, _ = self._make_context_with_edges()
+        ctx.cross_file_edges = [
+            (func_a.node_id, func_b.node_id, {"edge_type": "references"}),
+        ]
+
+        stage = StorageStage()
+        result = stage.process(ctx)
+
+        assert "cross_file_edges_written" in result.metrics
+        assert result.metrics["cross_file_edges_written"] == 1
+
+    def test_empty_cross_file_edges_is_noop(self):
+        """
+        Purpose: Proves empty cross_file_edges doesn't break anything.
+        Acceptance Criteria: Backward compatible — no cross-file edges, no metrics.
+
+        Task: T002
+        """
+        from fs2.core.services.stages.storage_stage import StorageStage
+
+        ctx, _, _, _, _ = self._make_context_with_edges()
+        ctx.cross_file_edges = []
+
+        stage = StorageStage()
+        result = stage.process(ctx)
+
+        assert result.metrics.get("cross_file_edges_written", 0) == 0

@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Current format version
-FORMAT_VERSION = "1.0"
+FORMAT_VERSION = "1.1"
 
 # Whitelist of allowed classes for unpickling
 # Only CodeNode, networkx types, and stdlib types allowed
@@ -45,6 +45,7 @@ ALLOWED_MODULES = frozenset(
         "pathlib",
         "networkx",
         "networkx.classes.digraph",
+        "networkx.classes.coreviews",
         "networkx.classes.reportviews",
         "fs2.core.models.code_node",
         "fs2.core.models.content_type",
@@ -146,7 +147,7 @@ class NetworkXGraphStore(GraphStore):
         # Store CodeNode directly as node data
         self._graph.add_node(node.node_id, data=node)
 
-    def add_edge(self, parent_id: str, child_id: str) -> None:
+    def add_edge(self, parent_id: str, child_id: str, **edge_data: Any) -> None:
         """Add a parent-child edge between two nodes.
 
         Edge direction: parent → child. This means:
@@ -156,6 +157,7 @@ class NetworkXGraphStore(GraphStore):
         Args:
             parent_id: node_id of the parent node.
             child_id: node_id of the child node.
+            **edge_data: Optional edge attributes (e.g., edge_type="references").
 
         Raises:
             GraphStoreError: If either node does not exist.
@@ -170,7 +172,7 @@ class NetworkXGraphStore(GraphStore):
                 f"Child node not found: {child_id}. Add the node before creating edges."
             )
 
-        self._graph.add_edge(parent_id, child_id)
+        self._graph.add_edge(parent_id, child_id, **edge_data)
 
     def get_node(self, node_id: str) -> CodeNode | None:
         """Retrieve a CodeNode by its ID.
@@ -205,7 +207,10 @@ class NetworkXGraphStore(GraphStore):
         return children
 
     def get_parent(self, node_id: str) -> CodeNode | None:
-        """Get the parent node of a given node.
+        """Get the containment parent node of a given node.
+
+        Filters out cross-file reference edges — only returns the
+        containment parent (edges without edge_type attribute).
 
         Args:
             node_id: Child node's identifier.
@@ -216,13 +221,48 @@ class NetworkXGraphStore(GraphStore):
         if node_id not in self._graph:
             return None
 
-        # predecessors returns nodes pointing TO this node (parents)
-        parents = list(self._graph.predecessors(node_id))
-        if not parents:
-            return None
+        # Filter predecessors to containment edges only (no edge_type attribute)
+        for pred in self._graph.predecessors(node_id):
+            edge_data = self._graph.edges[pred, node_id]
+            if "edge_type" not in edge_data:
+                return self.get_node(pred)
 
-        # Return first parent (tree structure has single parent)
-        return self.get_node(parents[0])
+        return None
+
+    def get_edges(
+        self,
+        node_id: str,
+        direction: str = "outgoing",
+        edge_type: str | None = None,
+    ) -> list[tuple[str, dict[str, Any]]]:
+        """Get edges connected to a node, filtered by direction and type.
+
+        Args:
+            node_id: Node to query edges for.
+            direction: "outgoing", "incoming", or "both".
+            edge_type: Filter to edges with this edge_type attribute.
+
+        Returns:
+            List of (connected_node_id, edge_data_dict) tuples.
+        """
+        if node_id not in self._graph:
+            return []
+
+        results: list[tuple[str, dict[str, Any]]] = []
+
+        if direction in ("outgoing", "both"):
+            for succ in self._graph.successors(node_id):
+                data = dict(self._graph.edges[node_id, succ])
+                if edge_type is None or data.get("edge_type") == edge_type:
+                    results.append((succ, data))
+
+        if direction in ("incoming", "both"):
+            for pred in self._graph.predecessors(node_id):
+                data = dict(self._graph.edges[pred, node_id])
+                if edge_type is None or data.get("edge_type") == edge_type:
+                    results.append((pred, data))
+
+        return results
 
     def get_all_nodes(self) -> list[CodeNode]:
         """Get all CodeNodes in the graph.
@@ -236,6 +276,25 @@ class NetworkXGraphStore(GraphStore):
             if node is not None:
                 nodes.append(node)
         return nodes
+
+    def get_all_edges(
+        self,
+        edge_type: str | None = None,
+    ) -> list[tuple[str, str, dict[str, Any]]]:
+        """Get all edges in the graph, optionally filtered by edge_type.
+
+        Args:
+            edge_type: Filter to edges with this edge_type attribute.
+                       None returns all edges.
+
+        Returns:
+            List of (source_node_id, target_node_id, edge_data_dict) tuples.
+        """
+        result = []
+        for u, v, data in self._graph.edges(data=True):
+            if edge_type is None or data.get("edge_type") == edge_type:
+                result.append((u, v, dict(data)))
+        return result
 
     def save(self, path: Path) -> None:
         """Persist the graph to a file.
@@ -252,6 +311,9 @@ class NetworkXGraphStore(GraphStore):
         Raises:
             GraphStoreError: If save fails (permission, disk full, etc.).
         """
+        # Atomic save: write to temp file then rename.
+        # If kill/crash happens during write, prior graph.pickle is untouched.
+        tmp_path = path.with_name(path.name + ".tmp")
         try:
             # Create parent directories if needed
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -266,11 +328,14 @@ class NetworkXGraphStore(GraphStore):
             if self._extra_metadata:
                 metadata.update(self._extra_metadata)
 
-            # Save as (metadata, graph) tuple
-            with open(path, "wb") as f:
+            # Write to temp file first
+            with open(tmp_path, "wb") as f:
                 pickle.dump(
                     (metadata, self._graph), f, protocol=pickle.HIGHEST_PROTOCOL
                 )
+
+            # Atomic rename (same filesystem guarantees atomicity)
+            tmp_path.rename(path)
 
             logger.info(
                 "Graph saved to %s (%d nodes, %d edges)",
@@ -280,6 +345,8 @@ class NetworkXGraphStore(GraphStore):
             )
 
         except OSError as e:
+            # Clean up temp file on failure
+            tmp_path.unlink(missing_ok=True)
             raise GraphStoreError(
                 f"Failed to save graph to {path}: {e}. "
                 f"Check disk space and permissions."

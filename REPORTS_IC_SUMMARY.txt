@@ -1,0 +1,341 @@
+================================================================================
+REPORTS FEATURE INTERFACE CONTRACTS: 10 KEY FINDINGS
+================================================================================
+
+IC-01: GraphStore ABC – Primary Data Source Interface
+────────────────────────────────────────────────────────────────────────────
+File: src/fs2/core/repos/graph_store.py
+Type: Abstract Base Class (READ-ONLY for reports)
+
+CRITICAL METHODS:
+  ✓ get_all_nodes() → list[CodeNode]                 # Full inventory
+  ✓ get_node(node_id: str) → CodeNode | None         # Single fetch
+  ✓ get_edges(node_id, direction, edge_type) → list  # Cross-file refs
+  ✓ get_children(node_id) → list[CodeNode]           # Tree structure
+  ✓ get_parent(node_id) → CodeNode | None            # Hierarchy
+  ✓ get_metadata() → dict                            # Scan metadata
+
+EDGE SEMANTICS:
+  • Containment: parent → child (implicit hierarchy via edges)
+  • References: edge_type="references" (cross-file dependencies)
+  • Query pattern: get_edges(..., direction="outgoing|incoming|both", edge_type=None)
+
+CONTRACT:
+  ✓ Node ID format: {category}:{file_path}:{qualified_name}
+  ✓ Metadata keys: format_version, created_at, node_count, edge_count
+  ✓ Reports are read-only (never call add_node/add_edge/save/clear)
+  ✓ Lazy loading: graph loads on first service access
+
+
+IC-02: CodeNode Model – Universal Node Schema (23 Fields)
+────────────────────────────────────────────────────────────────────────────
+File: src/fs2/core/models/code_node.py
+Type: Frozen Dataclass (@dataclass(frozen=True))
+
+FOR VISUALIZATION:
+  node_id          str            Unique ID; split to extract file_path
+  name             str|None       Display name; use qualified_name as fallback
+  category         str            Universal: "file", "callable", "type", etc.
+  qualified_name   str            Hierarchical name (e.g., "Calculator.add")
+  start_line       int            1-indexed; human-readable line number
+  end_line         int            Span end line for UI highlighting
+  content          str            Full source code (embed in detailed reports)
+  signature        str|None       Declaration first line(s) for quick preview
+  language         str            Source grammar (Python, JavaScript, etc.)
+  smart_content    str|None       AI-generated summary (use in smart reports)
+
+NEVER INCLUDE IN REPORTS (Security):
+  ✗ embedding, smart_content_embedding        Vectors → data leak risk
+  ✗ content_hash, smart_content_hash          Internal change detection
+  ✗ start_byte, end_byte, start_column, etc.  Tree-sitter internals
+  ✗ is_error, truncated, field_name, etc.    Implementation details
+
+DESIGN PRINCIPLES:
+  • Language-agnostic: Works for any tree-sitter grammar
+  • Dual classification: ts_kind (grammar-specific) + category (universal)
+  • No embedded children: Hierarchy via graph edges, not nested objects
+  • Frozen: Immutable after creation
+
+
+IC-03: CodeNode Classification – Universal Category Mapping
+────────────────────────────────────────────────────────────────────────────
+Function: classify_node(ts_kind: str) → str
+Location: src/fs2/core/models/code_node.py
+
+CATEGORY VALUES FOR REPORTS:
+  "file"        Root containers (module, program, source_file, document)
+  "callable"    Functions, methods, lambdas, procedures
+  "type"        Classes, structs, interfaces, enums, traits
+  "section"     Markdown headings, document sections
+  "statement"   Control flow (if, for, while, etc.)
+  "expression"  Expression nodes
+  "block"       IaC blocks, code blocks, instructions
+  "definition"  Variables, constants, type aliases
+  "other"       Unrecognized (use ts_kind for custom handling)
+
+USE CASE:
+  Reports filter by category (universal) rather than ts_kind (language-specific)
+  Example: Show all "callable" nodes across Python, TypeScript, Go files
+
+
+IC-04: TreeNode – Recursive Report Rendering Model
+────────────────────────────────────────────────────────────────────────────
+File: src/fs2/core/models/tree_node.py
+Type: Frozen Dataclass
+
+STRUCTURE:
+  @dataclass(frozen=True)
+  class TreeNode:
+    node: CodeNode                          # The code node itself
+    children: tuple[TreeNode, ...] = ()     # Recursive children (immutable)
+    hidden_children_count: int = 0          # Truncated count for UI
+
+RENDERING PATTERN:
+  ✓ Recursive traversal via .children tuple
+  ✓ Immutable: safe to cache/serialize/send in APIs
+  ✓ Signals depth limit via hidden_children_count > 0
+  ✓ Empty tuple = leaf node
+
+CONTRACT:
+  Reports recursively traverse TreeNode.children without needing tree logic
+
+
+IC-05: TreeService – Tree Building & Filtering API
+────────────────────────────────────────────────────────────────────────────
+File: src/fs2/core/services/tree_service.py
+Type: Service (receives ConfigurationService + GraphStore ABC)
+
+PRIMARY METHOD:
+  build_tree(pattern=".", max_depth=0) → list[TreeNode]
+  
+  Returns complete tree(s) ready for rendering in single call
+
+PATTERN SYNTAX:
+  "."                                   All nodes (full tree)
+  "ClassName"                           Substring match
+  "*.py"                                Glob pattern
+  "file:src/main.py:ClassName.method"  Exact node_id
+  "src/models/"                         Folder path
+
+GUARANTEES:
+  ✓ Lazy-loads graph on first call
+  ✓ Single call returns complete tree (no multi-step nav needed)
+  ✓ Thread-safe for background task execution
+  ✓ Handles folder synthesis for progressive disclosure
+
+USE CASE: Reports navigate via pattern → build_tree(pattern) → render
+
+
+IC-06: GetNodeService – Individual Node Retrieval
+────────────────────────────────────────────────────────────────────────────
+File: src/fs2/core/services/get_node_service.py
+Type: Service (receives ConfigurationService + GraphStore ABC)
+
+METHOD:
+  get_node(node_id: str) → CodeNode | None
+  
+  Retrieves single node by ID; auto-loads graph on first call
+
+USE CASES FOR REPORTS:
+  ✓ Fetch specific node for detail page
+  ✓ Navigate cross-file references via node_id
+  ✓ Validate node existence before linking
+
+CONTRACT:
+  Returns None if node not found (no exception)
+  Lazy loading: graph loads automatically once
+
+
+IC-07: GraphUtilitiesService – Graph Summary & Analysis
+────────────────────────────────────────────────────────────────────────────
+File: src/fs2/core/services/graph_utilities_service.py
+Type: Service (receives ConfigurationService + GraphStore ABC)
+
+METHODS:
+  get_extension_summary() → ExtensionSummary
+    Returns: {files_by_ext: {".py": 42, ...}, nodes_by_ext: {".py": 150, ...}}
+  
+  extract_file_path(node_id: str) → str
+    Extracts file path component from node_id
+    Raises ValueError on invalid format
+
+RETURN TYPE:
+  @dataclass(frozen=True)
+  class ExtensionSummary:
+    files_by_ext: dict[str, int]         # Extension → unique file count
+    nodes_by_ext: dict[str, int]         # Extension → total node count
+    total_files: int (property)          # Aggregate across all extensions
+    total_nodes: int (property)          # Aggregate across all extensions
+
+USE CASE: "Scan Summary Report" showing file/node distribution by language
+
+
+IC-08: Cross-File Relationships – Reference Edge Semantics
+────────────────────────────────────────────────────────────────────────────
+Files: src/fs2/core/repos/graph_store.py + src/fs2/mcp/server.py
+
+REFERENCE QUERY PATTERN:
+  # Get nodes that reference this node
+  incoming = store.get_edges(
+    node_id="callable:src/calc.py:Calc.add",
+    direction="incoming",
+    edge_type="references"
+  )
+  # Returns: [("callable:src/main.py:main", {"edge_type": "references"}), ...]
+
+  # Get nodes this node references
+  outgoing = store.get_edges(
+    node_id="callable:src/calc.py:Calc.add",
+    direction="outgoing",
+    edge_type="references"
+  )
+
+EDGE TYPES:
+  • Containment (no edge_type kwarg):     Parent → child hierarchy
+  • References (edge_type="references"):  Cross-file dependencies
+
+REPORTS USE CASE:
+  "Dependencies Report": Show which nodes reference a given node (used-by)
+  "Impact Report":      Show which nodes a given node references (uses)
+
+
+IC-09: ScanSummary – Post-Scan Metadata
+────────────────────────────────────────────────────────────────────────────
+File: src/fs2/core/models/scan_summary.py
+Type: Frozen Dataclass
+
+FIELDS:
+  success: bool                  True if no errors during scan
+  files_scanned: int             File count from discovery stage
+  nodes_created: int             CodeNode count from parsing stage
+  errors: list[str]              Collected error messages
+  metrics: dict[str, Any]        Per-stage metrics (timing, counts)
+
+REPORTS INTEGRATION:
+  ✓ Show success flag in scan health section
+  ✓ Display files_scanned and nodes_created in summary
+  ✓ List errors in "Issues" section
+  ✓ Show metrics in "Performance" detail section
+
+
+IC-10: MCP Server JSON Serialization – Report Output Format
+────────────────────────────────────────────────────────────────────────────
+File: src/fs2/mcp/server.py → _code_node_to_dict()
+
+FUNCTION SIGNATURE:
+  def _code_node_to_dict(
+    node: CodeNode,
+    detail: Literal["min", "max"] = "min",
+    graph_store: GraphStore | None = None
+  ) → dict[str, Any]
+
+DETAIL LEVELS:
+
+  MIN (7 core fields):
+    node_id, name, category, content, signature, start_line, end_line
+
+  MAX (adds 5 more):
+    + smart_content, language, parent_node_id, qualified_name, ts_kind
+
+  RELATIONSHIPS (when graph_store provided):
+    + relationships.referenced_by: [node_ids that reference this]
+    + relationships.references: [node_ids this references]
+
+SECURITY GUARANTEE:
+  ✗ Never includes: embedding vectors, content_hash, internal metadata
+  ✓ Safe for API responses, report exports, external consumption
+
+JSON EXAMPLES:
+
+  MINIMAL (Summary Report):
+  {
+    "node_id": "callable:src/calc.py:Calculator.add",
+    "name": "add",
+    "category": "callable",
+    "content": "def add(self, a, b):\n    return a + b",
+    "signature": "def add(self, a, b):",
+    "start_line": 15,
+    "end_line": 16
+  }
+
+  FULL (Detail Report):
+  {
+    "node_id": "callable:src/calc.py:Calculator.add",
+    "name": "add",
+    "category": "callable",
+    "content": "def add(self, a, b):\n    return a + b",
+    "signature": "def add(self, a, b):",
+    "start_line": 15,
+    "end_line": 16,
+    "smart_content": "Adds two numbers and returns result.",
+    "language": "python",
+    "parent_node_id": "type:src/calc.py:Calculator",
+    "qualified_name": "Calculator.add",
+    "ts_kind": "function_definition",
+    "relationships": {
+      "referenced_by": ["callable:src/main.py:main"],
+      "references": []
+    }
+  }
+
+
+================================================================================
+DESIGN PRINCIPLES FOR REPORTS IMPLEMENTATION
+================================================================================
+
+1. DEPENDENCY INJECTION
+   Reports service receives ConfigurationService + GraphStore (ABC)
+   Never depend on implementations (NetworkXGraphStore, etc.)
+
+2. LAZY LOADING
+   Services auto-load graph on first access
+   Reports don't manage graph lifecycle or persistence
+
+3. READ-ONLY
+   Reports NEVER call: add_node, add_edge, save, clear, set_metadata
+   Graph is immutable from reports perspective
+
+4. NO CACHING
+   Per R3.5: All graph access through GraphStore on-demand
+   Enables real-time updates without cache invalidation
+
+5. SECURITY
+   Use _code_node_to_dict for JSON output
+   Prevents embedding/hash/internal field leakage
+
+6. THREAD-SAFE
+   Services use lazy loading + RLock internally
+   Safe for background report generation
+
+7. LANGUAGE-AGNOSTIC
+   Filter by category (universal), not ts_kind (grammar-specific)
+   Reports work uniformly across Python, JS, Go, Rust, etc.
+
+8. ERROR HANDLING
+   Catch: GraphNotFoundError, GraphStoreError, MissingConfigurationError
+   Degrade gracefully in reports UI
+
+
+================================================================================
+REPORTS FEATURE CONSUMPTION MATRIX
+================================================================================
+
+Interface            Method/Model              Purpose           Example
+───────────────────────────────────────────────────────────────────────────
+GraphStore          get_all_nodes()           Inventory         Full node list
+GraphStore          get_edges(...)            Dependencies      Used-by graph
+CodeNode            category field            Filtering         Show callables
+CodeNode            signature field           Preview           Quick tooltip
+CodeNode            smart_content             Annotation        AI summary
+TreeService         build_tree()              Navigation        Hierarchical UI
+GetNodeService      get_node()                Detail view       Node page
+GraphUtilitiesService  get_extension_summary() Language breakdown  Tech report
+ScanSummary         All fields                Scan status       Scan report
+TreeNode            Recursive children        Rendering         JSON tree
+_code_node_to_dict  JSON serialization        Output format     API response
+
+
+================================================================================
+DOCUMENT: /Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/REPORTS_INTERFACE_CONTRACTS.md
+SIZE: 397 lines | Format: Markdown with code examples and contracts
+================================================================================

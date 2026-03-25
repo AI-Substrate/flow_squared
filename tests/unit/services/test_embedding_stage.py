@@ -56,7 +56,7 @@ class FakeEmbeddingService:
             "chunk_params": {"code": {"max_tokens": 400, "overlap_tokens": 50}},
         }
 
-    async def process_batch(self, nodes, progress_callback=None):
+    async def process_batch(self, nodes, progress_callback=None, courtesy_save=None):
         self.calls.append(
             {
                 "nodes": nodes,
@@ -214,3 +214,35 @@ class TestEmbeddingStageProcess:
             fake_service.calls[0]["progress_callback"]
             is context.embedding_progress_callback
         )
+
+    def test_given_matching_hash_with_leading_context_when_merging_then_copies(self):
+        """Nodes with leading_context use combined hash for merge comparison."""
+        from fs2.core.services.stages.embedding_stage import EmbeddingStage
+        from fs2.core.models.code_node import compute_content_hash
+
+        fresh_node = _make_file_node(
+            file_path="commented.py",
+            content="def foo(): pass",
+        )
+        fresh_node = replace(fresh_node, leading_context="# important comment")
+
+        # Prior node has embedding_hash computed from leading_context + content
+        combined_hash = compute_content_hash(
+            "\n".join(["# important comment", "def foo(): pass"])
+        )
+        prior_node = replace(
+            fresh_node,
+            embedding=((0.5, 0.6),),
+            smart_content_embedding=((0.7, 0.8),),
+            embedding_hash=combined_hash,
+            embedding_chunk_offsets=((1, 5),),
+        )
+
+        stage = EmbeddingStage()
+        merged = stage._merge_prior_embeddings(
+            [fresh_node], {prior_node.node_id: prior_node}
+        )
+
+        assert merged[0].embedding == ((0.5, 0.6),)
+        assert merged[0].embedding_hash == combined_hash
+        assert merged[0].embedding_chunk_offsets == ((1, 5),)

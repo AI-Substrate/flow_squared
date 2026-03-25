@@ -22,7 +22,11 @@ class TiktokenTokenCounterAdapter(TokenCounterAdapter):
     def __init__(self, config: ConfigurationService) -> None:
         from fs2.config.objects import LLMConfig
 
-        self._llm_config = config.require(LLMConfig)
+        try:
+            self._llm_config = config.require(LLMConfig)
+        except Exception:
+            # LLM config not required for embeddings — use default tokenizer
+            self._llm_config = None
 
         try:
             import tiktoken  # type: ignore[import-not-found]
@@ -32,7 +36,7 @@ class TiktokenTokenCounterAdapter(TokenCounterAdapter):
                 "Install dependencies via `uv sync`."
             ) from e
 
-        model = self._llm_config.model or "gpt-4o-mini"
+        model = (self._llm_config.model if self._llm_config else None) or "gpt-4o-mini"
         self._model = model
 
         try:

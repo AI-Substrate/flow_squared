@@ -353,3 +353,42 @@ class DocsNotFoundError(AdapterError):
             "Use docs_list() to see available documents."
         )
         super().__init__(message or default_message)
+
+
+# ── SCIP Adapter Errors ───────────────────────────────────────────────
+
+
+class SCIPAdapterError(AdapterError):
+    """Base error for SCIP adapter operations.
+
+    All SCIP-specific errors inherit from this class to enable
+    catch-all patterns for SCIP operations at the service layer.
+    """
+
+
+class SCIPIndexError(SCIPAdapterError):
+    """SCIP index file could not be loaded or parsed.
+
+    Common causes:
+    - index.scip file does not exist (indexer not run)
+    - index.scip is corrupted or truncated
+    - Protobuf version mismatch
+
+    Recovery:
+    - Re-run the SCIP indexer for the project
+    - Check that the indexer completed successfully
+    - Verify protobuf version matches scip_pb2.py generation version
+    """
+
+
+class SCIPMappingError(SCIPAdapterError):
+    """SCIP symbol could not be mapped to an fs2 node_id.
+
+    This is informational — unmapped symbols are skipped, not fatal.
+    Logged at DEBUG level to help diagnose low edge counts.
+
+    Common causes:
+    - Symbol belongs to external package (stdlib, third-party)
+    - Symbol naming convention differs from fs2 node_id format
+    - Node was filtered out during scan (test fixtures, generated code)
+    """

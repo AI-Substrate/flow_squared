@@ -253,6 +253,9 @@ def _render_tree_as_text(
         line = f"{prefix}{icon} {node_id} [{start}-{end}]"
         if hidden > 0:
             line += f" ({hidden} children)"
+        ref_count = node.get("ref_count", 0)
+        if ref_count > 0:
+            line += f" ({ref_count} refs)"
 
         lines.append(line)
 
@@ -272,6 +275,7 @@ def _render_tree_as_text(
 def _tree_node_to_dict(
     tree_node: TreeNode,
     detail: Literal["min", "max"] = "min",
+    graph_store: "GraphStore | None" = None,
 ) -> dict[str, Any]:
     """Convert TreeNode to JSON-serializable dict.
 
@@ -284,11 +288,12 @@ def _tree_node_to_dict(
     - hidden_children_count
 
     Fields included only in max detail:
-    - signature, smart_content
+    - signature, smart_content, ref_count (when > 0)
 
     Args:
         tree_node: TreeNode from TreeService.build_tree().
         detail: "min" for compact output, "max" for full metadata.
+        graph_store: Optional GraphStore for ref count queries.
 
     Returns:
         Dict suitable for JSON serialization.
@@ -302,7 +307,10 @@ def _tree_node_to_dict(
         "category": node.category,
         "start_line": node.start_line,
         "end_line": node.end_line,
-        "children": [_tree_node_to_dict(child, detail) for child in tree_node.children],
+        "children": [
+            _tree_node_to_dict(child, detail, graph_store)
+            for child in tree_node.children
+        ],
     }
 
     # Add hidden_children_count only when > 0
@@ -315,6 +323,13 @@ def _tree_node_to_dict(
             result["signature"] = node.signature
         if node.smart_content:
             result["smart_content"] = node.smart_content
+        # Ref count from cross-file reference edges
+        if graph_store is not None:
+            incoming = graph_store.get_edges(
+                node.node_id, direction="incoming", edge_type="references"
+            )
+            if incoming:
+                result["ref_count"] = len(incoming)
 
     return result
 
@@ -404,7 +419,7 @@ def tree(
         store = get_graph_store(graph_name)
         service = TreeService(config=config, graph_store=store)
         tree_nodes = service.build_tree(pattern=pattern, max_depth=max_depth)
-        tree_list = [_tree_node_to_dict(tn, detail) for tn in tree_nodes]
+        tree_list = [_tree_node_to_dict(tn, detail, graph_store=store) for tn in tree_nodes]
 
         # Count total nodes
         def count_nodes(nodes: list[dict]) -> int:
@@ -486,6 +501,7 @@ _tree_tool = mcp.tool(
 def _code_node_to_dict(
     node: CodeNode,
     detail: Literal["min", "max"] = "min",
+    graph_store: "GraphStore | None" = None,
 ) -> dict[str, Any]:
     """Convert CodeNode to JSON-serializable dict with explicit field selection.
 
@@ -498,6 +514,10 @@ def _code_node_to_dict(
     Fields in max detail (adds 5 more):
     - smart_content, language, parent_node_id, qualified_name, ts_kind
 
+    Relationships (when graph_store provided and edges exist):
+    - relationships.referenced_by: list of node_ids that reference this node
+    - relationships.references: list of node_ids this node references
+
     NEVER included (embedding data and internal metadata):
     - embedding, smart_content_embedding, embedding_hash, embedding_chunk_offsets
     - content_hash, smart_content_hash
@@ -507,6 +527,7 @@ def _code_node_to_dict(
     Args:
         node: CodeNode from GetNodeService.get_node().
         detail: "min" for compact output, "max" for full metadata.
+        graph_store: Optional GraphStore for relationship edge queries.
 
     Returns:
         Dict suitable for JSON serialization.
@@ -525,10 +546,27 @@ def _code_node_to_dict(
     # Extended fields (max detail only)
     if detail == "max":
         result["smart_content"] = node.smart_content
+        result["leading_context"] = node.leading_context
         result["language"] = node.language
         result["parent_node_id"] = node.parent_node_id
         result["qualified_name"] = node.qualified_name
         result["ts_kind"] = node.ts_kind
+
+    # Cross-file relationships (both detail levels, omit when empty)
+    if graph_store is not None:
+        incoming = graph_store.get_edges(
+            node.node_id, direction="incoming", edge_type="references"
+        )
+        outgoing = graph_store.get_edges(
+            node.node_id, direction="outgoing", edge_type="references"
+        )
+        rels: dict[str, list[str]] = {}
+        if incoming:
+            rels["referenced_by"] = [nid for nid, _ in incoming]
+        if outgoing:
+            rels["references"] = [nid for nid, _ in outgoing]
+        if rels:
+            result["relationships"] = rels
 
     return result
 
@@ -608,7 +646,7 @@ def get_node(
             return None
 
         # Convert to dict with explicit field selection
-        result = _code_node_to_dict(code_node, detail)
+        result = _code_node_to_dict(code_node, detail, graph_store=store)
 
         # Handle save_to_file if specified
         if save_to_file is not None:

@@ -8,6 +8,7 @@ require 'logger'
 
 module DatabaseTasks
   # Configuration for database connections.
+  # Reads settings from environment variables with sensible defaults.
   class Config
     attr_accessor :host, :port, :database, :username, :password
     attr_accessor :pool_size, :timeout, :ssl_enabled

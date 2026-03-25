@@ -106,6 +106,10 @@ The project uses FlowSpace for code indexing:
 - **Actionable errors**: All exceptions include fix instructions
 - **Tests as documentation**: Canonical tests demonstrate composition patterns
 
+## Agent Workflow Notes
+
+- **Code reviews run in a separate agent context.** Always provide **full absolute file paths** (e.g., `/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/cli/projects.py`) when referencing files for review, since the review agent has no shared state with the implementation agent.
+
 
 ## Wormhole MCP Server (Code Intelligence)
 

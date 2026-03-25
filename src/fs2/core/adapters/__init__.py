@@ -52,6 +52,9 @@ from fs2.core.adapters.console_adapter_rich import RichConsoleAdapter
 from fs2.core.adapters.embedding_adapter import EmbeddingAdapter
 from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
 from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
+from fs2.core.adapters.embedding_adapter_local import (
+    SentenceTransformerEmbeddingAdapter,
+)
 from fs2.core.adapters.embedding_adapter_openai import OpenAICompatibleEmbeddingAdapter
 from fs2.core.adapters.exceptions import (
     AdapterConnectionError,
@@ -74,6 +77,7 @@ from fs2.core.adapters.file_watcher_adapter_watchfiles import WatchfilesAdapter
 from fs2.core.adapters.llm_adapter import LLMAdapter
 from fs2.core.adapters.llm_adapter_azure import AzureOpenAIAdapter
 from fs2.core.adapters.llm_adapter_fake import FakeLLMAdapter
+from fs2.core.adapters.llm_adapter_local import LocalOllamaAdapter
 from fs2.core.adapters.llm_adapter_openai import OpenAIAdapter
 from fs2.core.adapters.log_adapter import LogAdapter
 from fs2.core.adapters.log_adapter_console import ConsoleLogAdapter
@@ -108,6 +112,7 @@ __all__ = [
     "EmbeddingAdapter",
     "AzureEmbeddingAdapter",
     "OpenAICompatibleEmbeddingAdapter",
+    "SentenceTransformerEmbeddingAdapter",
     "FakeEmbeddingAdapter",
     "AdapterError",
     "AuthenticationError",
@@ -117,6 +122,7 @@ __all__ = [
     "GraphStoreError",
     "LLMAdapter",
     "FakeLLMAdapter",
+    "LocalOllamaAdapter",
     "OpenAIAdapter",
     "AzureOpenAIAdapter",
     "LLMAdapterError",

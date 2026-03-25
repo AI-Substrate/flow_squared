@@ -349,3 +349,59 @@ class TestGetNodeErrors:
         assert "init" in result.stdout.lower(), (
             f"Expected 'init' in output, got: {result.stdout}"
         )
+
+
+class TestGetNodeNoEmbeddingLeak:
+    """DYK-P3-03: CLI get-node must not leak embedding vectors.
+
+    Pre-existing bug: asdict(node) serializes everything including
+    huge embedding vectors. Fix uses explicit field selection.
+    """
+
+    def test_given_get_node_when_output_then_no_embedding_field(
+        self, scanned_project, monkeypatch
+    ):
+        """Output JSON must not contain embedding fields."""
+        from fs2.cli.main import app
+
+        monkeypatch.chdir(scanned_project)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["get-node", "file:src/calculator.py"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+
+        forbidden = [
+            "embedding",
+            "smart_content_embedding",
+            "embedding_hash",
+            "embedding_chunk_offsets",
+            "content_hash",
+            "smart_content_hash",
+        ]
+        for field in forbidden:
+            assert field not in data, (
+                f"Field '{field}' must not appear in CLI get-node output"
+            )
+
+    def test_given_get_node_when_output_then_has_core_fields(
+        self, scanned_project, monkeypatch
+    ):
+        """Output has the same core fields as MCP _code_node_to_dict."""
+        from fs2.cli.main import app
+
+        monkeypatch.chdir(scanned_project)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["get-node", "file:src/calculator.py"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+
+        required = [
+            "node_id", "name", "category", "content",
+            "signature", "start_line", "end_line",
+        ]
+        for field in required:
+            assert field in data, f"Missing required field '{field}'"

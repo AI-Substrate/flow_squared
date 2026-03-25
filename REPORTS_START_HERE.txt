@@ -1,0 +1,347 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║   REPORTS FEATURE INTERFACE CONTRACTS & DATA CONSUMPTION DOCUMENTATION    ║
+║                                                                            ║
+║   START HERE → Navigation Guide for 3-Document Package                    ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+QUICK FACTS
+════════════════════════════════════════════════════════════════════════════
+
+✓ 10 Interface Contracts Documented (IC-01 through IC-10)
+✓ 1,008 Lines across 3 Complementary Documents
+✓ 44 KB Total | All Files in This Directory
+✓ Covers: GraphStore, CodeNode, Services, JSON Serialization, Cross-File Refs
+✓ Security & Dependency Injection Contracts Included
+✓ Implementation Examples Provided
+
+
+DOCUMENTS IN ORDER
+════════════════════════════════════════════════════════════════════════════
+
+1. REPORTS_INTERFACES_README.md (Read This First)
+   ─────────────────────────────
+   374 lines | Overview & Navigation
+   
+   Contains:
+   • Big picture & architecture overview
+   • Table of 10 interfaces with file locations
+   • Data flow diagrams for 4 report types
+   • Node ID semantics & extraction
+   • Graph edge semantics (containment vs. references)
+   • Security & data privacy constraints
+   • Example: "Dependencies Report" implementation
+   • Error handling guidance
+   • Quick start for developers
+   
+   ➜ Read this first to understand architecture & patterns
+   
+   
+2. REPORTS_IC_SUMMARY.txt (Quick Reference)
+   ─────────────────────────
+   341 lines | 10 Interface Cards
+   
+   Contains:
+   • IC-01 through IC-10 reference cards
+   • Method signatures & function contracts
+   • Field definitions & types
+   • JSON output examples (minimal & full detail)
+   • Edge semantics & relationship queries
+   • Design principles (8 principles listed)
+   • Do's and Don'ts checklist
+   • Consumption matrix table
+   
+   ➜ Use for quick lookup during implementation
+   ➜ Print or keep in editor tab while coding
+   
+   
+3. REPORTS_INTERFACE_CONTRACTS.md (Full Specification)
+   ───────────────────────────────────────────────────
+   397 lines | Detailed Specification
+   
+   Contains:
+   • IC-01 through IC-10 full specs
+   • Detailed method signatures with type annotations
+   • Return type contracts & field semantics
+   • Security constraints (embedding leakage prevention)
+   • JSON serialization examples
+   • Detailed tables & cross-references
+   • Field-level documentation
+   • Design principles & invariants
+   
+   ➜ Read for comprehensive understanding
+   ➜ Reference for architectural review
+   ➜ Use for specification validation
+
+
+THE 10 INTERFACES AT A GLANCE
+════════════════════════════════════════════════════════════════════════════
+
+IC-01: GraphStore ABC (graph_store.py)
+      Primary data source. 6 methods. Read-only for reports.
+      
+IC-02: CodeNode (code_node.py)
+      23-field frozen dataclass. 10 fields matter for visualization.
+      
+IC-03: Classification (code_node.py)
+      classify_node(ts_kind) → universal category (8 types).
+      
+IC-04: TreeNode (tree_node.py)
+      Recursive tree structure. Immutable. Safe for APIs.
+      
+IC-05: TreeService (tree_service.py)
+      Single method: build_tree(pattern, max_depth) → list[TreeNode].
+      
+IC-06: GetNodeService (get_node_service.py)
+      Single method: get_node(node_id) → CodeNode | None.
+      
+IC-07: GraphUtilitiesService (graph_utilities_service.py)
+      Graph analysis. get_extension_summary() → ExtensionSummary.
+      
+IC-08: Cross-File Relationships (graph_store.py)
+      Query edges: get_edges(..., edge_type="references").
+      
+IC-09: ScanSummary (scan_summary.py)
+      Post-scan metadata. 5 fields: success, files, nodes, errors, metrics.
+      
+IC-10: JSON Serialization (server.py)
+      _code_node_to_dict(). Min/max detail levels. Explicit field filtering.
+
+
+WHAT REPORTS FEATURE WILL CONSUME
+════════════════════════════════════════════════════════════════════════════
+
+From GraphStore:
+  • get_all_nodes()                    → Full inventory
+  • get_node(node_id)                  → Single node detail
+  • get_edges(..., edge_type="references") → Cross-file dependencies
+
+From Services:
+  • TreeService.build_tree()           → Hierarchical navigation
+  • GetNodeService.get_node()          → Node retrieval
+  • GraphUtilitiesService.get_extension_summary() → Language breakdown
+
+From Models:
+  • CodeNode fields (node_id, name, category, content, signature, etc.)
+  • TreeNode recursive structure
+  • ScanSummary post-scan metrics
+
+From JSON Serialization:
+  • _code_node_to_dict() for safe API output
+
+
+CRITICAL CONTRACTS
+════════════════════════════════════════════════════════════════════════════
+
+✓ Dependency Injection Pattern
+  └─ Receive ConfigurationService + GraphStore ABC
+  └─ Never depend on implementations
+
+✓ Read-Only Access
+  └─ Never call add_node, add_edge, save, clear
+  └─ Graph is immutable from reports perspective
+
+✓ Lazy Loading
+  └─ Services auto-load graph on first access
+  └─ Reports don't manage graph lifecycle
+
+✓ No Caching (R3.5)
+  └─ Query graph on-demand (enables real-time)
+  └─ Never cache data
+
+✓ Security
+  └─ Never expose: embedding vectors, content_hash, internals
+  └─ Use _code_node_to_dict() for JSON output
+
+✓ Language-Agnostic
+  └─ Filter by category (universal)
+  └─ Not ts_kind (grammar-specific)
+
+
+HOW TO USE THIS DOCUMENTATION
+════════════════════════════════════════════════════════════════════════════
+
+FOR ARCHITECTS:
+  1. Read REPORTS_INTERFACES_README.md (sections: Overview, Data Flows, 
+     Contracts, Design Principles)
+  2. Study IC-01 (GraphStore) and IC-05 (TreeService)
+  3. Review 4 report types (Inventory, Tree, Dependencies, Scan Summary)
+
+FOR DEVELOPERS:
+  1. Start with REPORTS_IC_SUMMARY.txt (scan all 10 interface cards)
+  2. Deep dive into REPORTS_INTERFACE_CONTRACTS.md (your primary reference)
+  3. Review IC-10 (JSON serialization) and IC-08 (cross-file refs)
+  4. Read source files in order:
+     a. src/fs2/core/repos/graph_store.py
+     b. src/fs2/core/models/code_node.py
+     c. src/fs2/core/models/tree_node.py
+     d. src/fs2/core/services/tree_service.py
+
+FOR INTEGRATION:
+  1. Learn DI pattern (IC-05, IC-06, IC-07)
+  2. Understand lazy loading & error handling
+  3. Study _code_node_to_dict() usage (IC-10)
+  4. Review security constraints
+  5. Check example code in README
+
+FOR QUICK REFERENCE:
+  • Keep REPORTS_IC_SUMMARY.txt open while coding
+  • Use Consumption Matrix for interface lookup
+  • Check JSON examples when building output
+  • Refer to error handling section for exception types
+
+
+NODE ID FORMAT & EXTRACTION
+════════════════════════════════════════════════════════════════════════════
+
+Format:     {category}:{file_path}:{qualified_name}
+
+Examples:
+  file:src/main.py                      # File node
+  callable:src/calc.py:Calculator       # Type (class)
+  callable:src/calc.py:Calculator.add   # Callable (method)
+  section:docs/README.md:Overview       # Document section
+
+Extraction (Python):
+  parts = node_id.split(":", 2)  # Split into max 3 parts
+  file_path = parts[1]           # Result: "src/calc.py"
+
+
+JSON OUTPUT STRUCTURE
+════════════════════════════════════════════════════════════════════════════
+
+Minimal Detail (7 fields):
+  node_id, name, category, content, signature, start_line, end_line
+
+Full Detail (12 fields + relationships):
+  [7 above] + smart_content, language, parent_node_id, qualified_name, 
+  ts_kind + relationships.referenced_by + relationships.references
+
+Never Include:
+  embedding, smart_content_embedding, content_hash, internal metadata
+
+
+FOUR REPORT TYPES YOU CAN BUILD
+════════════════════════════════════════════════════════════════════════════
+
+1. Inventory Report
+   └─ get_all_nodes() → JSON array
+   └─ Use case: Full codebase catalog
+
+2. Tree Report (Hierarchical)
+   └─ build_tree(pattern, max_depth) → JSON tree
+   └─ Use case: Navigate code structure
+
+3. Dependencies Report (Cross-File)
+   └─ get_edges(type="references") → Dependency graph
+   └─ Use case: Impact analysis
+
+4. Scan Summary Report
+   └─ ScanSummary + ExtensionSummary → Stats report
+   └─ Use case: Scan health, language breakdown
+
+
+EXAMPLE: Dependencies Report
+════════════════════════════════════════════════════════════════════════════
+
+def generate_dependencies_report(config, graph_store, node_id):
+    # Load graph (lazy)
+    graph_store.load(config.require(GraphConfig).graph_path)
+    
+    # Fetch node
+    node = graph_store.get_node(node_id)
+    
+    # Query: get nodes this node references
+    outgoing = graph_store.get_edges(
+        node_id,
+        direction="outgoing",
+        edge_type="references"
+    )
+    
+    # Build report
+    references = [
+        _code_node_to_dict(
+            graph_store.get_node(target_id),
+            detail="max"
+        )
+        for target_id, _ in outgoing
+    ]
+    
+    return {
+        "source": _code_node_to_dict(node, detail="max"),
+        "references_count": len(references),
+        "references": references
+    }
+
+
+COMMON QUESTIONS
+════════════════════════════════════════════════════════════════════════════
+
+Q: Where do I find interfaces?
+A: See table in REPORTS_INTERFACES_README.md (IC-01 through IC-10)
+
+Q: What methods do I call for reports?
+A: See Consumption Matrix (IC-01: get_all_nodes, get_edges; IC-05: build_tree)
+
+Q: How do I get cross-file dependencies?
+A: See IC-08: graph_store.get_edges(node_id, direction="outgoing", 
+   edge_type="references")
+
+Q: What fields should I expose in JSON?
+A: See IC-10: use _code_node_to_dict() with explicit detail level
+
+Q: Why never cache graph data?
+A: Per R3.5 rule: Query on-demand to enable real-time updates
+
+Q: What about security/embeddings?
+A: Never expose: embedding vectors, content_hash, internal fields.
+   Use _code_node_to_dict() which filters explicitly.
+
+Q: How do I handle errors?
+A: Catch GraphNotFoundError, GraphStoreError, MissingConfigurationError.
+   See error handling section.
+
+Q: What's the node ID format?
+A: {category}:{file_path}:{qualified_name}
+   Example: "callable:src/calc.py:Calculator.add"
+
+
+READING TIME ESTIMATES
+════════════════════════════════════════════════════════════════════════════
+
+Quick Overview:           10 minutes (skim README + summary table)
+Developer Quick Start:    30 minutes (README + IC-Summary)
+Comprehensive Review:     60 minutes (all 3 docs)
+Source Code Study:        90 minutes (source files in order)
+Full Implementation:      120-180 minutes (design + code)
+
+
+FILES IN THIS PACKAGE
+════════════════════════════════════════════════════════════════════════════
+
+REPORTS_START_HERE.txt (This file)
+  └─ Navigation guide & quick reference
+
+REPORTS_INTERFACES_README.md (374 lines)
+  └─ Architecture, overview, examples, design principles
+
+REPORTS_IC_SUMMARY.txt (341 lines)
+  └─ 10 interface cards, JSON examples, checklist
+
+REPORTS_INTERFACE_CONTRACTS.md (397 lines)
+  └─ Full specifications, field documentation
+
+Total: 1,008 lines | 44 KB
+
+
+GET STARTED
+════════════════════════════════════════════════════════════════════════════
+
+Next Step 1: Open REPORTS_INTERFACES_README.md
+Next Step 2: Scan REPORTS_IC_SUMMARY.txt
+Next Step 3: Read detailed spec in REPORTS_INTERFACE_CONTRACTS.md
+Next Step 4: Review source files mentioned
+
+Questions? Check Common Questions section above or refer to the detailed docs.
+

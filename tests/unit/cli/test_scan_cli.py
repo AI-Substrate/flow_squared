@@ -725,3 +725,39 @@ class TestNoSmartContentFlag:
         # Should not mention LLM errors
         assert "authentication" not in result.stdout.lower()
         assert "llm error" not in result.stdout.lower()
+
+
+class TestNoCrossRefsFlag:
+    """Tests for --no-cross-refs CLI flag.
+
+    Per Phase 3 cross-file-rels: Flag skips cross-file relationship extraction.
+    Not wired to pipeline yet (Phase 4), but must be accepted by CLI.
+    """
+
+    def test_given_no_cross_refs_flag_when_scan_then_exits_zero(
+        self, simple_project, monkeypatch
+    ):
+        """Flag is accepted and scan completes normally."""
+        from fs2.cli.main import app
+
+        monkeypatch.chdir(simple_project)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["scan", "--no-cross-refs"])
+
+        assert result.exit_code == 0, f"Failed with: {result.stdout}"
+
+    def test_given_no_cross_refs_flag_when_scan_then_graph_created(
+        self, simple_project, monkeypatch
+    ):
+        """Graph is still created when cross-refs are disabled."""
+        from fs2.cli.main import app
+
+        monkeypatch.chdir(simple_project)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["scan", "--no-cross-refs"])
+
+        assert result.exit_code == 0
+        graph_file = simple_project / ".fs2" / "graph.pickle"
+        assert graph_file.exists(), "Graph file should be created"

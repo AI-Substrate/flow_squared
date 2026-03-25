@@ -124,3 +124,28 @@ def test_llm_service_factory_creates_fake():
     service = LLMService.create(mock_config)
 
     assert isinstance(service._adapter, FakeLLMAdapter)
+
+
+@pytest.mark.unit
+def test_llm_service_factory_creates_local():
+    """Factory creates LocalOllamaAdapter for provider=local.
+
+    Purpose: Proves factory method supports local Ollama provider per AC03
+    Quality Contribution: Validates local LLM path in factory
+    Task: T05 (plan 034)
+    """
+    from fs2.config.objects import LLMConfig
+    from fs2.config.service import ConfigurationService
+    from fs2.core.adapters.llm_adapter_local import LocalOllamaAdapter
+    from fs2.core.services.llm_service import LLMService
+
+    mock_config = MagicMock(spec=ConfigurationService)
+    mock_config.require.return_value = LLMConfig(
+        provider="local",
+        base_url="http://localhost:11434",
+        model="qwen2.5-coder:7b",
+    )
+
+    service = LLMService.create(mock_config)
+
+    assert isinstance(service._adapter, LocalOllamaAdapter)

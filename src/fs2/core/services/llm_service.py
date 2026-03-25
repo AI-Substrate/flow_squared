@@ -74,6 +74,10 @@ class LLMService:
             adapter = AzureOpenAIAdapter(config)
         elif llm_config.provider == "openai":
             adapter = OpenAIAdapter(config)
+        elif llm_config.provider == "local":
+            from fs2.core.adapters.llm_adapter_local import LocalOllamaAdapter
+
+            adapter = LocalOllamaAdapter(config)
         elif llm_config.provider == "fake":
             adapter = FakeLLMAdapter()
         else:

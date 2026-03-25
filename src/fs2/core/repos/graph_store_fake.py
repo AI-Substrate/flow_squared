@@ -67,8 +67,8 @@ class FakeGraphStore(GraphStore):
         # Extract config internally (per Critical Finding 01)
         self._scan_config = config.require(ScanConfig)
         self._nodes: dict[str, CodeNode] = {}
-        self._edges: dict[str, set[str]] = {}  # parent_id → set of child_ids
-        self._reverse_edges: dict[str, str] = {}  # child_id → parent_id
+        self._edges: dict[str, dict[str, dict[str, Any]]] = {}  # parent → {child → edge_data}
+        self._reverse_edges: dict[str, list[tuple[str, dict[str, Any]]]] = {}  # child → [(parent, edge_data)]
         self._call_history: list[dict[str, Any]] = []
         self.simulate_error_for: set[str] = set()
         self._metadata: dict[str, Any] | None = None
@@ -105,12 +105,13 @@ class FakeGraphStore(GraphStore):
         )
         self._nodes[node.node_id] = node
 
-    def add_edge(self, parent_id: str, child_id: str) -> None:
+    def add_edge(self, parent_id: str, child_id: str, **edge_data: Any) -> None:
         """Add a parent-child edge between two nodes.
 
         Args:
             parent_id: node_id of the parent node.
             child_id: node_id of the child node.
+            **edge_data: Optional edge attributes.
 
         Raises:
             GraphStoreError: If simulating error or nodes don't exist.
@@ -119,7 +120,7 @@ class FakeGraphStore(GraphStore):
             {
                 "method": "add_edge",
                 "args": (parent_id, child_id),
-                "kwargs": {},
+                "kwargs": dict(edge_data),
             }
         )
 
@@ -127,9 +128,11 @@ class FakeGraphStore(GraphStore):
             raise GraphStoreError("Simulated add_edge error")
 
         if parent_id not in self._edges:
-            self._edges[parent_id] = set()
-        self._edges[parent_id].add(child_id)
-        self._reverse_edges[child_id] = parent_id
+            self._edges[parent_id] = {}
+        self._edges[parent_id][child_id] = dict(edge_data)
+        if child_id not in self._reverse_edges:
+            self._reverse_edges[child_id] = []
+        self._reverse_edges[child_id].append((parent_id, dict(edge_data)))
 
     def get_node(self, node_id: str) -> CodeNode | None:
         """Retrieve a CodeNode by its ID.
@@ -165,7 +168,7 @@ class FakeGraphStore(GraphStore):
                 "kwargs": {},
             }
         )
-        child_ids = self._edges.get(node_id, set())
+        child_ids = self._edges.get(node_id, {}).keys()
         return [self._nodes[cid] for cid in child_ids if cid in self._nodes]
 
     def get_parent(self, node_id: str) -> CodeNode | None:
@@ -184,10 +187,44 @@ class FakeGraphStore(GraphStore):
                 "kwargs": {},
             }
         )
-        parent_id = self._reverse_edges.get(node_id)
-        if parent_id:
-            return self._nodes.get(parent_id)
+        # Filter to containment edges (no edge_type)
+        parents = self._reverse_edges.get(node_id, [])
+        for parent_id, edge_data in parents:
+            if "edge_type" not in edge_data:
+                return self._nodes.get(parent_id)
         return None
+
+    def get_edges(
+        self,
+        node_id: str,
+        direction: str = "outgoing",
+        edge_type: str | None = None,
+    ) -> list[tuple[str, dict[str, Any]]]:
+        """Get edges connected to a node, filtered by direction and type.
+
+        Args:
+            node_id: Node to query edges for.
+            direction: "outgoing", "incoming", or "both".
+            edge_type: Filter to edges with this edge_type attribute.
+
+        Returns:
+            List of (connected_node_id, edge_data_dict) tuples.
+        """
+        results: list[tuple[str, dict[str, Any]]] = []
+
+        if direction in ("outgoing", "both"):
+            children = self._edges.get(node_id, {})
+            for child_id, data in children.items():
+                if edge_type is None or data.get("edge_type") == edge_type:
+                    results.append((child_id, dict(data)))
+
+        if direction in ("incoming", "both"):
+            parents = self._reverse_edges.get(node_id, [])
+            for parent_id, data in parents:
+                if edge_type is None or data.get("edge_type") == edge_type:
+                    results.append((parent_id, dict(data)))
+
+        return results
 
     def get_all_nodes(self) -> list[CodeNode]:
         """Get all CodeNodes in the graph.
@@ -203,6 +240,26 @@ class FakeGraphStore(GraphStore):
             }
         )
         return list(self._nodes.values())
+
+    def get_all_edges(
+        self,
+        edge_type: str | None = None,
+    ) -> list[tuple[str, str, dict[str, Any]]]:
+        """Get all edges, optionally filtered by edge_type.
+
+        Args:
+            edge_type: Filter to edges with this edge_type attribute.
+                       None returns all edges.
+
+        Returns:
+            List of (source_node_id, target_node_id, edge_data_dict) tuples.
+        """
+        result: list[tuple[str, str, dict[str, Any]]] = []
+        for source_id, targets in self._edges.items():
+            for target_id, data in targets.items():
+                if edge_type is None or data.get("edge_type") == edge_type:
+                    result.append((source_id, target_id, dict(data)))
+        return result
 
     def save(self, path: Path) -> None:
         """Fake save - records call but doesn't persist.

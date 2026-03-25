@@ -6,7 +6,7 @@ and adapters via constructor, runs stages in order, returns ScanSummary.
 Per Alignment Brief:
 - Receives ConfigurationService, calls config.require(ScanConfig)
 - Receives adapters via constructor, injects into PipelineContext
-- Default stages: Discovery → Parsing → SmartContent → Storage
+- Default stages: Discovery → Parsing → CrossFileRels → SmartContent → Storage
 - Custom stages can override defaults
 - Returns ScanSummary with success, counts, errors, metrics
 
@@ -19,9 +19,10 @@ Per Phase 6 T005 (ScanPipeline Constructor):
 - Accepts optional SmartContentService
 - Injects service into PipelineContext.smart_content_service
 - SmartContentStage placed between ParsingStage and StorageStage
-- Stage order: Discovery → Parsing → SmartContent → Storage
+- Stage order: Discovery → Parsing → CrossFileRels → SmartContent → Storage
 """
 
+import contextlib
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -31,6 +32,7 @@ from fs2.core.adapters.exceptions import GraphStoreError
 from fs2.core.models.scan_summary import ScanSummary
 from fs2.core.services.pipeline_context import PipelineContext
 from fs2.core.services.pipeline_stage import PipelineStage
+from fs2.core.services.stages.cross_file_rels_stage import CrossFileRelsStage
 from fs2.core.services.stages.discovery_stage import DiscoveryStage
 from fs2.core.services.stages.embedding_stage import EmbeddingStage
 from fs2.core.services.stages.parsing_stage import ParsingStage
@@ -40,6 +42,7 @@ from fs2.core.services.stages.storage_stage import StorageStage
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from fs2.config.objects import CrossFileRelsConfig, ProjectsConfig
     from fs2.config.service import ConfigurationService
     from fs2.core.adapters.ast_parser import ASTParser
     from fs2.core.adapters.file_scanner import FileScanner
@@ -52,6 +55,58 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
+
+
+def _courtesy_save_graph(
+    context: PipelineContext,
+    graph_store: "GraphStore",
+) -> None:
+    """Rebuild graph_store from context state and save atomically.
+
+    Used for inter-stage and intra-stage courtesy saves (Plan 036).
+    Clears graph_store, re-adds all nodes + edges from context,
+    then calls atomic save.
+
+    Args:
+        context: PipelineContext with current nodes and edges.
+        graph_store: GraphStore to rebuild and save.
+    """
+    graph_store.clear()
+
+    for node in context.nodes:
+        graph_store.add_node(node)
+
+    for node in context.nodes:
+        if node.parent_node_id is not None:
+            with contextlib.suppress(GraphStoreError):
+                graph_store.add_edge(node.parent_node_id, node.node_id)
+
+    if context.cross_file_edges:
+        known = {n.node_id for n in context.nodes}
+        containment = {
+            (n.parent_node_id, n.node_id)
+            for n in context.nodes
+            if n.parent_node_id
+        }
+        for src, tgt, data in context.cross_file_edges:
+            if src not in known or tgt not in known:
+                continue
+            if (src, tgt) in containment:
+                continue
+            with contextlib.suppress(GraphStoreError):
+                graph_store.add_edge(src, tgt, **data)
+
+    embedding_metadata = context.metrics.get("embedding_metadata")
+    if embedding_metadata:
+        graph_store.set_metadata(embedding_metadata)
+
+    try:
+        graph_store.save(context.graph_path)
+        logger.info(
+            "Courtesy save: %d nodes to %s", len(context.nodes), context.graph_path
+        )
+    except GraphStoreError as e:
+        logger.warning("Courtesy save failed: %s", e)
 
 
 class ScanPipeline:
@@ -97,7 +152,12 @@ class ScanPipeline:
         embedding_progress_callback: "EmbeddingService.ProgressCallback | None" = None,
         parsing_progress_callback: "Callable[[int, int], None] | None" = None,
         parsing_complete_callback: "Callable[..., None] | None" = None,
+        cross_file_rels_progress_callback: "Callable[[str, str], None] | None" = None,
         graph_path: Path | None = None,
+        cross_file_rels_config: "CrossFileRelsConfig | None" = None,
+        projects_config: "ProjectsConfig | None" = None,
+        force_embeddings: bool = False,
+        courtesy_save_callback: "Callable[[int], None] | None" = None,
     ):
         """Initialize pipeline with config and adapters.
 
@@ -124,6 +184,8 @@ class ScanPipeline:
             graph_path: Path to save graph. REQUIRED to prevent accidental
                         corruption of project graph during tests. Use
                         tmp_path / "graph.pickle" in tests.
+            courtesy_save_callback: Optional callback when courtesy save
+                                    completes. Receives node count (int).
 
         Raises:
             MissingConfigurationError: If ScanConfig not in registry.
@@ -154,16 +216,22 @@ class ScanPipeline:
         self._embedding_progress_callback = embedding_progress_callback
         self._parsing_progress_callback = parsing_progress_callback
         self._parsing_complete_callback = parsing_complete_callback
+        self._cross_file_rels_progress_callback = cross_file_rels_progress_callback
         self._graph_path = graph_path
+        self._cross_file_rels_config = cross_file_rels_config
+        self._projects_config = projects_config
+        self._force_embeddings = force_embeddings
+        self._courtesy_save_callback = courtesy_save_callback
 
         # Default stages if not provided
-        # Order: Discovery → Parsing → SmartContent → Embedding → Storage
+        # Order: Discovery → Parsing → CrossFileRels → SmartContent → Embedding → Storage
         self._stages = (
             stages
             if stages is not None
             else [
                 DiscoveryStage(),
                 ParsingStage(),
+                CrossFileRelsStage(),
                 SmartContentStage(),
                 EmbeddingStage(),
                 StorageStage(),
@@ -196,6 +264,10 @@ class ScanPipeline:
             "embedding_progress_callback": self._embedding_progress_callback,
             "parsing_progress_callback": self._parsing_progress_callback,
             "parsing_complete_callback": self._parsing_complete_callback,
+            "cross_file_rels_progress_callback": self._cross_file_rels_progress_callback,
+            "cross_file_rels_config": self._cross_file_rels_config,
+            "projects_config": self._projects_config,
+            "force_embeddings": self._force_embeddings,
         }
         if self._graph_path is not None:
             context_kwargs["graph_path"] = self._graph_path
@@ -206,13 +278,31 @@ class ScanPipeline:
         # smart_content and smart_content_hash values to SmartContentStage.
         context.prior_nodes = self._load_prior_nodes(context)
 
-        # Clear graph after extracting prior_nodes - we build fresh each scan
+        # Extract prior cross-file reference edges before clearing graph
+        # (Phase 4 T005: enables incremental resolution — reuse edges for unchanged files)
+        context.prior_cross_file_edges = self._extract_prior_edges(context)
+
+        # Clear graph after extracting prior state - we build fresh each scan
         if context.graph_store is not None:
             context.graph_store.clear()
+
+        # Wire courtesy save callback (Plan 036)
+        if self._graph_store is not None:
+
+            def _do_courtesy_save() -> None:
+                _courtesy_save_graph(context, self._graph_store)
+                if self._courtesy_save_callback is not None:
+                    self._courtesy_save_callback(len(context.nodes))
+
+            context.courtesy_save = _do_courtesy_save
 
         # Run each stage sequentially
         for stage in self._stages:
             context = stage.process(context)
+            # Courtesy save only after slow stages (smart_content, embedding, cross_file_rels)
+            # Parsing and storage are fast — no need to save after them
+            if stage.name in ("smart_content", "embedding", "cross_file_rels") and context.courtesy_save is not None:
+                context.courtesy_save()
 
         # Build summary from final context
         return ScanSummary(
@@ -269,3 +359,32 @@ class ScanPipeline:
                 str(e),
             )
             return None
+
+    def _extract_prior_edges(
+        self, context: PipelineContext
+    ) -> list[tuple[str, str, dict]] | None:
+        """Extract reference edges from prior graph before clear.
+
+        Called after _load_prior_nodes() when the graph is still loaded.
+        Uses get_all_edges(edge_type="references") to efficiently extract
+        all cross-file reference edges for incremental resolution.
+
+        Args:
+            context: PipelineContext with loaded graph_store.
+
+        Returns:
+            List of (source_id, target_id, edge_data) tuples,
+            or None if no prior graph or no reference edges.
+        """
+        if context.prior_nodes is None or context.graph_store is None:
+            return None
+
+        edges = context.graph_store.get_all_edges(edge_type="references")
+        if not edges:
+            return None
+
+        logger.info(
+            "Extracted %d prior cross-file reference edges for incremental resolution",
+            len(edges),
+        )
+        return edges

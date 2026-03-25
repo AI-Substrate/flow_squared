@@ -15,6 +15,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from fs2.core.adapters.exceptions import EmbeddingAuthenticationError, GraphStoreError
+from fs2.core.models.code_node import compute_content_hash
 
 if TYPE_CHECKING:
     from fs2.core.models.code_node import CodeNode
@@ -80,8 +81,42 @@ class EmbeddingStage:
             mismatch = self._detect_metadata_mismatch(prior_metadata, current_metadata)
             if mismatch:
                 message = f"Embedding metadata mismatch: {mismatch}"
-                context.errors.append(message)
-                logger.warning(message)
+                has_dim_mismatch = "embedding_dimensions" in mismatch
+
+                if has_dim_mismatch and not context.force_embeddings:
+                    # DYK-2: Block scan on dimension mismatch unless --force
+                    error_msg = (
+                        f"{message}. "
+                        "Dimension mismatch will produce mixed-dimension embeddings "
+                        "that break search. Run `fs2 scan --embed --force` to "
+                        "re-embed all nodes with the new dimensions."
+                    )
+                    context.errors.append(error_msg)
+                    logger.error(error_msg)
+                    raise RuntimeError(error_msg)
+
+                if has_dim_mismatch and context.force_embeddings:
+                    # DYK-2: Force mode — clear all existing embeddings
+                    # so hash-based skip doesn't preserve old dimensions
+                    logger.warning(
+                        f"{message}. --force: clearing all existing embeddings "
+                        "for re-generation with new dimensions."
+                    )
+                    import dataclasses
+
+                    context.nodes = [
+                        dataclasses.replace(
+                            node,
+                            embedding=None,
+                            smart_content_embedding=None,
+                            embedding_hash=None,
+                            embedding_chunk_offsets=None,
+                        )
+                        for node in context.nodes
+                    ]
+                else:
+                    context.errors.append(message)
+                    logger.warning(message)
 
         needs_generation = [n for n in context.nodes if n.embedding is None]
         if not needs_generation:
@@ -94,11 +129,26 @@ class EmbeddingStage:
             context.metrics["embedding_errors"] = 0
             return context
 
+        # Create courtesy save wrapper that merges partial results (Plan 036 T05)
+        courtesy_callback = None
+        if context.courtesy_save is not None:
+            pre_batch_nodes = list(context.nodes)
+
+            def _courtesy_save_wrapper(partial_results: dict) -> None:
+                """Merge partial results into context.nodes and courtesy save."""
+                context.nodes = [
+                    partial_results.get(n.node_id, n) for n in pre_batch_nodes
+                ]
+                context.courtesy_save()
+
+            courtesy_callback = _courtesy_save_wrapper
+
         try:
             batch_result = asyncio.run(
                 service.process_batch(
                     needs_generation,
                     progress_callback=context.embedding_progress_callback,
+                    courtesy_save=courtesy_callback,
                 )
             )
         except RuntimeError as e:
@@ -162,7 +212,16 @@ class EmbeddingStage:
                 merged.append(node)
                 continue
 
-            if prior.embedding_hash != node.content_hash:
+            # Compute expected hash same way as embedding service:
+            # includes leading_context when present
+            if node.leading_context:
+                expected_hash = compute_content_hash(
+                    "\n".join([node.leading_context, node.content])
+                )
+            else:
+                expected_hash = node.content_hash
+
+            if prior.embedding_hash != expected_hash:
                 merged.append(node)
                 continue
 
@@ -175,6 +234,7 @@ class EmbeddingStage:
                 embedding=prior.embedding,
                 smart_content_embedding=prior.smart_content_embedding,
                 embedding_hash=prior.embedding_hash,
+                embedding_chunk_offsets=prior.embedding_chunk_offsets,
             )
             merged.append(merged_node)
             merged_count += 1

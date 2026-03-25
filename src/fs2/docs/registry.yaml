@@ -5,20 +5,6 @@
 
 documents:
   # === Getting Started ===
-  - id: agents-start-here
-    title: "Getting Started with fs2"
-    summary: "Step-by-step setup guide for AI agents and new users. Covers the full journey from installation to MCP connection. Start here if you're new to fs2."
-    category: how-to
-    tags:
-      - getting-started
-      - onboarding
-      - setup
-      - init
-      - mcp
-      - agents
-      - config
-    path: agents-start-here.md
-
   - id: agents
     title: "AI Agent Guidance"
     summary: "Best practices for AI agents using fs2 tools. Read this FIRST when starting to use fs2 MCP server to understand tool selection, search strategies, and common workflows."
@@ -36,11 +22,13 @@ documents:
   # === Configuration ===
   - id: configuration-guide
     title: "Complete Configuration Guide"
-    summary: "Comprehensive reference for all fs2 configuration. Covers file locations, secrets, LLM/embedding providers (Azure/OpenAI), embeddings architecture, chunking strategy, and troubleshooting."
+    summary: "Comprehensive reference for all fs2 configuration. Covers local Ollama, Azure/OpenAI LLM providers, local/cloud embeddings, chunking strategy, and troubleshooting."
     category: reference
     tags:
       - config
       - setup
+      - local
+      - ollama
       - azure
       - openai
       - llm
@@ -49,6 +37,18 @@ documents:
       - semantic-search
       - secrets
     path: configuration-guide.md
+
+  - id: local-llm
+    title: "Local LLM Smart Content"
+    summary: "Set up Ollama-powered local smart-content generation without API keys. Covers installation, model selection, configuration, troubleshooting, and platform support."
+    category: how-to
+    tags:
+      - llm
+      - local
+      - ollama
+      - smart-content
+      - setup
+    path: local-llm.md
 
   - id: configuration
     title: "Configuration Quick Reference"
@@ -115,3 +115,19 @@ documents:
       - lsp
       - ide
     path: wormhole-mcp-guide.md
+
+  # === Cross-File Relationships ===
+  - id: cross-file-relationships
+    title: "Cross-File Relationships Guide"
+    summary: "Set up SCIP-powered cross-file reference resolution. Covers project discovery, config setup, supported languages (Python, TypeScript, Go, C#), indexer installation, and troubleshooting."
+    category: how-to
+    tags:
+      - cross-file
+      - references
+      - scip
+      - relationships
+      - edges
+      - imports
+      - calls
+      - projects
+    path: cross-file-relationships.md

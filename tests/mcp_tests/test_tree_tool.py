@@ -1388,3 +1388,115 @@ class TestTreeWithGraphName:
         assert "default" in error_msg or "list_graphs" in error_msg, (
             f"Should guide to available graphs. Got: {error_msg}"
         )
+
+
+class TestTreeRefCount:
+    """Tests for ref count in tree --detail max output.
+
+    Per Phase 3 cross-file-rels: tree --detail max shows ref count
+    for nodes that have cross-file reference edges.
+    """
+
+    def test_tree_json_max_detail_includes_ref_count(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """JSON output at max detail includes ref_count when edges exist."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        # Add a reference edge pointing to Calculator
+        store.add_edge(
+            "callable:src/calculator.py:Calculator.add",
+            "class:src/calculator.py:Calculator",
+            edge_type="references",
+        )
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = tree(
+            pattern="class:src/calculator.py:Calculator",
+            detail="max",
+            format="json",
+        )
+
+        assert result["format"] == "json"
+        node_dict = result["tree"][0]
+        assert "ref_count" in node_dict, f"Missing ref_count. Keys: {node_dict.keys()}"
+        assert node_dict["ref_count"] == 1
+
+    def test_tree_json_min_detail_no_ref_count(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """JSON output at min detail does not include ref_count."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        store.add_edge(
+            "callable:src/calculator.py:Calculator.add",
+            "class:src/calculator.py:Calculator",
+            edge_type="references",
+        )
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = tree(
+            pattern="class:src/calculator.py:Calculator",
+            detail="min",
+            format="json",
+        )
+
+        node_dict = result["tree"][0]
+        assert "ref_count" not in node_dict
+
+    def test_tree_text_max_detail_shows_refs_suffix(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """Text output at max detail shows (N refs) suffix."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        store.add_edge(
+            "callable:src/calculator.py:Calculator.add",
+            "class:src/calculator.py:Calculator",
+            edge_type="references",
+        )
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = tree(
+            pattern="class:src/calculator.py:Calculator",
+            detail="max",
+            format="text",
+        )
+
+        assert "(1 refs)" in result["content"], (
+            f"Expected '(1 refs)' in text output. Got: {result['content']}"
+        )
+
+    def test_tree_no_ref_count_when_no_edges(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """No ref_count in output when node has no reference edges."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import tree
+
+        store, config = tree_test_graph_store
+        # No reference edges
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = tree(
+            pattern="class:src/calculator.py:Calculator",
+            detail="max",
+            format="json",
+        )
+
+        node_dict = result["tree"][0]
+        assert "ref_count" not in node_dict

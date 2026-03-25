@@ -51,16 +51,22 @@ class GraphStore(ABC):
         ...
 
     @abstractmethod
-    def add_edge(self, parent_id: str, child_id: str) -> None:
-        """Add a parent-child edge between two nodes.
+    def add_edge(self, parent_id: str, child_id: str, **edge_data: Any) -> None:
+        """Add a directed edge between two nodes.
 
         Edge direction: parent → child. This means:
         - successors(parent_id) returns child nodes
         - predecessors(child_id) returns parent nodes
 
+        Optional edge_data kwargs are stored as edge attributes.
+        Containment edges pass no kwargs. Cross-file reference edges
+        pass edge_type="references".
+
         Args:
-            parent_id: node_id of the parent node.
-            child_id: node_id of the child node.
+            parent_id: node_id of the source node.
+            child_id: node_id of the target node.
+            **edge_data: Optional edge attributes (e.g., edge_type="references").
+                         Must be plain Python types (dict, str, int, None) only.
 
         Raises:
             GraphStoreError: If either node does not exist.
@@ -104,11 +110,50 @@ class GraphStore(ABC):
         ...
 
     @abstractmethod
+    def get_edges(
+        self,
+        node_id: str,
+        direction: str = "outgoing",
+        edge_type: str | None = None,
+    ) -> list[tuple[str, dict[str, Any]]]:
+        """Get edges connected to a node, filtered by direction and type.
+
+        Args:
+            node_id: Node to query edges for.
+            direction: "outgoing" (successors), "incoming" (predecessors),
+                       or "both".
+            edge_type: Filter to edges with this edge_type attribute.
+                       None returns all edges.
+
+        Returns:
+            List of (connected_node_id, edge_data_dict) tuples.
+            Empty list if node doesn't exist or has no matching edges.
+        """
+        ...
+
+    @abstractmethod
     def get_all_nodes(self) -> list[CodeNode]:
         """Get all CodeNodes in the graph.
 
         Returns:
             List of all CodeNodes (may be empty).
+        """
+        ...
+
+    @abstractmethod
+    def get_all_edges(
+        self,
+        edge_type: str | None = None,
+    ) -> list[tuple[str, str, dict[str, Any]]]:
+        """Get all edges in the graph, optionally filtered by edge_type.
+
+        Args:
+            edge_type: Filter to edges with this edge_type attribute.
+                       None returns all edges.
+
+        Returns:
+            List of (source_node_id, target_node_id, edge_data_dict) tuples.
+            Empty list if graph has no matching edges.
         """
         ...
 

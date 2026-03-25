@@ -174,10 +174,10 @@ class GraphService:
             config: ConfigurationService registry (NOT individual configs).
                     Service will call config.require() internally.
 
-        Raises:
-            MissingConfigurationError: If GraphConfig not in registry.
         """
-        self._graph_config = config.require(GraphConfig)
+        # GraphConfig has sensible defaults (.fs2/graph.pickle), so don't
+        # require it — fall back to defaults if not explicitly configured.
+        self._graph_config = config.get(GraphConfig) or GraphConfig()
         self._other_graphs_config = config.get(OtherGraphsConfig)
         self._cache: dict[str, _CacheEntry] = {}
         self._lock = RLock()

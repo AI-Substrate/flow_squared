@@ -152,6 +152,24 @@ def create_embedding_adapter_from_config(config) -> EmbeddingAdapter | None:
             base_url=embedding_config.openai.base_url,
             model=embedding_config.openai.model,
         )
+    elif embedding_config.mode == "local":
+        # DYK-1: Probe sentence-transformers availability without importing it.
+        # find_spec is instant (~0ms) vs import which loads PyTorch (~3.5s).
+        # If not installed, return None for graceful degradation (search falls back
+        # to text mode instead of crashing at runtime).
+        import importlib.util
+
+        if importlib.util.find_spec("sentence_transformers") is None:
+            return None
+
+        from fs2.config.objects import LocalEmbeddingConfig
+        from fs2.core.adapters.embedding_adapter_local import (
+            SentenceTransformerEmbeddingAdapter,
+        )
+
+        if embedding_config.local is None:
+            embedding_config.local = LocalEmbeddingConfig()
+        return SentenceTransformerEmbeddingAdapter(config)
     elif embedding_config.mode == "fake":
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
 

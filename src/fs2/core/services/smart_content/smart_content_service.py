@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any
@@ -47,7 +48,7 @@ logger = logging.getLogger(__name__)
 _MIN_CONTENT_LENGTH = 50
 
 # Progress callback interval (user request: every 10 items)
-_PROGRESS_INTERVAL = 10
+_PROGRESS_INTERVAL = 1
 
 
 @dataclass(frozen=True)
@@ -70,10 +71,23 @@ class SmartContentProgress:
     errors: int
     """Number of nodes that failed processing."""
 
+    elapsed_seconds: float = 0.0
+    """Seconds elapsed since batch processing started."""
+
+    items_per_second: float = 0.0
+    """Recent processing rate (items/sec), smoothed over last window."""
+
     @property
     def remaining(self) -> int:
         """Calculate remaining nodes to process."""
         return self.total - self.processed - self.skipped - self.errors
+
+    @property
+    def eta_seconds(self) -> float | None:
+        """Estimated seconds until completion, or None if not enough data."""
+        if self.items_per_second <= 0 or self.remaining <= 0:
+            return None
+        return self.remaining / self.items_per_second
 
 
 # Type alias for progress callback
@@ -227,6 +241,7 @@ class SmartContentService:
             "language": node.language,
             "content": content,
             "signature": node.signature or "",
+            "leading_context": node.leading_context or "",
         }
 
     async def _generate_with_error_handling(self, node: CodeNode, prompt: str) -> str:
@@ -281,6 +296,7 @@ class SmartContentService:
         self,
         nodes: list[CodeNode],
         progress_callback: ProgressCallback | None = None,
+        courtesy_save: Callable | None = None,
     ) -> dict[str, Any]:
         """Process multiple nodes in parallel using asyncio Queue + Worker Pool.
 
@@ -292,6 +308,9 @@ class SmartContentService:
             progress_callback: Optional callback for progress updates.
                 Called every 10 items and on errors. Receives SmartContentProgress
                 and optional error message (for error events).
+            courtesy_save: Optional callback for periodic graph saves (Plan 036).
+                Called every 10 processed nodes with dict of partial results
+                (node_id -> updated CodeNode). Enables crash recovery.
 
         Returns:
             Dict containing:
@@ -313,6 +332,8 @@ class SmartContentService:
             "errors": [],
             "results": {},
             "total": len(nodes),
+            "start_time": time.monotonic(),
+            "recent_times": [],  # timestamps of recent completions for rate calc
         }
 
         if not nodes:
@@ -365,6 +386,7 @@ class SmartContentService:
                 stats_lock=stats_lock,
                 stats=stats,
                 progress_callback=progress_callback,
+                courtesy_save=courtesy_save,
             )
 
         workers = [
@@ -403,6 +425,7 @@ class SmartContentService:
         stats_lock: asyncio.Lock,
         stats: dict[str, Any],
         progress_callback: ProgressCallback | None = None,
+        courtesy_save: Callable | None = None,
     ) -> None:
         """Worker coroutine that processes items from queue.
 
@@ -412,16 +435,34 @@ class SmartContentService:
             stats_lock: Lock for thread-safe stats updates.
             stats: Shared stats dict (processed, errors, results).
             progress_callback: Optional callback for progress reporting.
+            courtesy_save: Optional callback for periodic graph saves (Plan 036).
         """
         logger.debug("Worker %d started", worker_id)
 
+        # Window size for rate smoothing (use recent completions, not all-time)
+        _RATE_WINDOW = 20
+
+        def _compute_rate() -> float:
+            """Compute items/sec from recent completion timestamps."""
+            recent = stats["recent_times"]
+            if len(recent) < 2:
+                # Fall back to overall rate
+                elapsed = time.monotonic() - stats["start_time"]
+                return stats["processed"] / elapsed if elapsed > 0 else 0.0
+            window = recent[-_RATE_WINDOW:]
+            dt = window[-1] - window[0]
+            return (len(window) - 1) / dt if dt > 0 else 0.0
+
         def _make_progress() -> SmartContentProgress:
             """Create progress object from current stats (must hold lock)."""
+            elapsed = time.monotonic() - stats["start_time"]
             return SmartContentProgress(
                 processed=stats["processed"],
                 total=stats["total"],
                 skipped=stats["skipped"],
                 errors=len(stats["errors"]),
+                elapsed_seconds=elapsed,
+                items_per_second=_compute_rate(),
             )
 
         while True:
@@ -445,23 +486,38 @@ class SmartContentService:
                 async with stats_lock:
                     stats["processed"] += 1
                     stats["results"][node.node_id] = updated_node
+                    stats["recent_times"].append(time.monotonic())
+                    # Trim to keep only recent window for rate calculation
+                    if len(stats["recent_times"]) > _RATE_WINDOW * 2:
+                        stats["recent_times"] = stats["recent_times"][-_RATE_WINDOW:]
 
-                    # Progress callback every N items (user request: every 10)
-                    if stats["processed"] % _PROGRESS_INTERVAL == 0:
-                        remaining = (
-                            stats["total"]
-                            - stats["processed"]
-                            - stats["skipped"]
-                            - len(stats["errors"])
-                        )
-                        logger.info(
-                            "Progress: %d/%d processed, %d remaining",
-                            stats["processed"],
-                            stats["total"],
-                            remaining,
-                        )
-                        if progress_callback:
-                            progress_callback(_make_progress(), None)
+                    # Progress callback on every completion
+                    remaining = (
+                        stats["total"]
+                        - stats["processed"]
+                        - stats["skipped"]
+                        - len(stats["errors"])
+                    )
+                    logger.info(
+                        "Progress: %d/%d processed, %d remaining",
+                        stats["processed"],
+                        stats["total"],
+                        remaining,
+                    )
+                    if progress_callback:
+                        progress_callback(_make_progress(), None)
+
+                    # Courtesy save every 100 nodes (Plan 036 T04)
+                    should_save = (
+                        courtesy_save is not None
+                        and stats["processed"] % 100 == 0
+                    )
+                    partial_results = (
+                        dict(stats["results"]) if should_save else None
+                    )
+
+                if should_save and partial_results is not None:
+                    courtesy_save(partial_results)
 
             except LLMAuthenticationError:
                 # Auth errors should fail the entire batch - re-raise

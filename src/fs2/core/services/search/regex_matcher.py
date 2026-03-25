@@ -181,6 +181,14 @@ class RegexMatcher:
                 if best is None or score > best.score:
                     best = FieldMatch("smart_content", smart_match, score)
 
+        # Search leading_context (score 0.6 — human-authored intent, Plan 037)
+        if node.leading_context:
+            lc_match = self._search_with_timeout(compiled, node.leading_context)
+            if lc_match:
+                score = 0.6
+                if best is None or score > best.score:
+                    best = FieldMatch("leading_context", lc_match, score)
+
         return best
 
     def _search_with_timeout(

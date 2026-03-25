@@ -368,6 +368,35 @@ class TreeService:
 
         return list(bucket.values())
 
+    def _get_containment_children(self, node: CodeNode) -> list[CodeNode]:
+        """Get children filtered to containment edges only.
+
+        Excludes cross-file reference edges AND within-file reference edges.
+        Containment edges have no edge_type attribute; reference edges have
+        edge_type="references".
+
+        Args:
+            node: Parent CodeNode.
+
+        Returns:
+            List of child CodeNodes via containment edges only.
+        """
+        all_children = self._graph_store.get_children(node.node_id)
+        # Filter to containment edges only (edges without edge_type)
+        containment_children = []
+        for child in all_children:
+            edges = self._graph_store.get_edges(
+                node.node_id, direction="outgoing"
+            )
+            is_containment = False
+            for edge_node_id, edge_data in edges:
+                if edge_node_id == child.node_id and "edge_type" not in edge_data:
+                    is_containment = True
+                    break
+            if is_containment:
+                containment_children.append(child)
+        return containment_children
+
     def _build_tree_node(
         self,
         node: CodeNode,
@@ -384,8 +413,8 @@ class TreeService:
         Returns:
             TreeNode with children populated (recursively).
         """
-        # Get children from graph store (needed for both paths)
-        children = self._graph_store.get_children(node.node_id)
+        # Get children from graph store, filtered to same-file only
+        children = self._get_containment_children(node)
 
         # Check depth limit (max_depth=1 means root only, max_depth=2 means root+children)
         if max_depth > 0 and current_depth + 1 >= max_depth:
@@ -532,7 +561,7 @@ class TreeService:
             # Check depth limit for files
             if current_depth + 1 >= max_depth:
                 # At depth limit - files without their symbol children
-                children_count = len(self._graph_store.get_children(file_node.node_id))
+                children_count = len(self._get_containment_children(file_node))
                 result.append(
                     TreeNode(
                         node=file_node,

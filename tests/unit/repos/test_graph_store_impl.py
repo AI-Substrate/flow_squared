@@ -346,15 +346,15 @@ class TestNetworkXGraphStorePersistence:
 
     def test_save_includes_format_version_metadata(self, tmp_path):
         """
-        Purpose: Verifies saved file includes format_version: "1.0".
+        Purpose: Verifies saved file includes format_version.
         Quality Contribution: Enables future format migrations.
-        Acceptance Criteria: Metadata contains format_version.
+        Acceptance Criteria: Metadata contains format_version matching current.
 
         Task: T018 (per CF14)
         """
         from fs2.config.objects import ScanConfig
         from fs2.config.service import FakeConfigurationService
-        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+        from fs2.core.repos.graph_store_impl import FORMAT_VERSION, NetworkXGraphStore
 
         config = FakeConfigurationService(ScanConfig())
         store = NetworkXGraphStore(config)
@@ -367,7 +367,7 @@ class TestNetworkXGraphStorePersistence:
             metadata, _ = pickle.load(f)
 
         assert "format_version" in metadata
-        assert metadata["format_version"] == "1.0"
+        assert metadata["format_version"] == FORMAT_VERSION
 
     @pytest.mark.skip(reason="caplog interference in full suite")
     def test_load_logs_warning_on_version_mismatch(self, tmp_path, caplog):
@@ -707,3 +707,458 @@ class TestNetworkXGraphStoreEdgeCases:
         method_parent = new_store.get_parent(method_node.node_id)
         assert method_parent is not None
         assert method_parent.name == "Calculator"
+
+
+@pytest.mark.unit
+class TestNetworkXGraphStoreEdgeData:
+    """Tests for edge data and get_edges() (Phase 1: T003, T004)."""
+
+    def test_add_edge_with_edge_data_stores_attributes(self):
+        """
+        Purpose: Proves add_edge(**edge_data) stores attributes in networkx.
+        Acceptance Criteria: edge attributes accessible via graph.edges[u, v].
+
+        Task: T004
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        node_a = make_file_node("src/a.py")
+        node_b = make_method_node("src/b.py", "func_b", "func_b")
+        store.add_node(node_a)
+        store.add_node(node_b)
+
+        store.add_edge(node_a.node_id, node_b.node_id, edge_type="references")
+
+        # Verify edge data stored in networkx
+        edge_data = store._graph.edges[node_a.node_id, node_b.node_id]
+        assert edge_data["edge_type"] == "references"
+
+    def test_add_edge_without_edge_data_is_backward_compatible(self):
+        """
+        Purpose: Proves existing callers (no kwargs) still work.
+        Acceptance Criteria: add_edge(parent, child) works, edge has empty data.
+
+        Task: T004
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        file_node = make_file_node()
+        class_node = make_class_node()
+        store.add_node(file_node)
+        store.add_node(class_node)
+
+        # Old-style call without kwargs
+        store.add_edge(file_node.node_id, class_node.node_id)
+
+        # Should work fine, edge has empty attributes
+        edge_data = store._graph.edges[file_node.node_id, class_node.node_id]
+        assert "edge_type" not in edge_data
+
+    def test_get_edges_outgoing_returns_successors(self):
+        """
+        Purpose: Proves get_edges with direction=outgoing returns successor edges.
+        Acceptance Criteria: Returns list of (node_id, edge_data) for successors.
+
+        Task: T003
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        file_node = make_file_node()
+        class_node = make_class_node()
+        method_node = make_method_node()
+        store.add_node(file_node)
+        store.add_node(class_node)
+        store.add_node(method_node)
+        store.add_edge(file_node.node_id, class_node.node_id)
+        store.add_edge(file_node.node_id, method_node.node_id)
+
+        edges = store.get_edges(file_node.node_id, direction="outgoing")
+        connected_ids = [e[0] for e in edges]
+        assert class_node.node_id in connected_ids
+        assert method_node.node_id in connected_ids
+        assert len(edges) == 2
+
+    def test_get_edges_incoming_returns_predecessors(self):
+        """
+        Purpose: Proves get_edges with direction=incoming returns predecessor edges.
+        Acceptance Criteria: Returns predecessors.
+
+        Task: T003
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        file_node = make_file_node()
+        class_node = make_class_node()
+        store.add_node(file_node)
+        store.add_node(class_node)
+        store.add_edge(file_node.node_id, class_node.node_id)
+
+        edges = store.get_edges(class_node.node_id, direction="incoming")
+        assert len(edges) == 1
+        assert edges[0][0] == file_node.node_id
+
+    def test_get_edges_both_returns_all(self):
+        """
+        Purpose: Proves direction=both returns union of incoming and outgoing.
+        Acceptance Criteria: Both predecessors and successors returned.
+
+        Task: T003
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        node_a = make_file_node("src/a.py")
+        node_b = make_class_node("src/a.py", "B", "B")
+        node_c = make_method_node("src/a.py", "c", "B.c")
+        store.add_node(node_a)
+        store.add_node(node_b)
+        store.add_node(node_c)
+        store.add_edge(node_a.node_id, node_b.node_id)
+        store.add_edge(node_b.node_id, node_c.node_id)
+
+        # B has incoming from A and outgoing to C
+        edges = store.get_edges(node_b.node_id, direction="both")
+        connected_ids = [e[0] for e in edges]
+        assert node_a.node_id in connected_ids
+        assert node_c.node_id in connected_ids
+        assert len(edges) == 2
+
+    def test_get_edges_filters_by_edge_type(self):
+        """
+        Purpose: Proves edge_type filter works correctly.
+        Acceptance Criteria: Only edges with matching edge_type returned.
+
+        Task: T003
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        file_node = make_file_node("src/a.py")
+        class_node = make_class_node("src/a.py", "A", "A")
+        ref_node = make_method_node("src/b.py", "caller", "caller")
+        store.add_node(file_node)
+        store.add_node(class_node)
+        store.add_node(ref_node)
+
+        # Containment edge (no edge_type)
+        store.add_edge(file_node.node_id, class_node.node_id)
+        # Reference edge (with edge_type)
+        store.add_edge(ref_node.node_id, class_node.node_id, edge_type="references")
+
+        # Filter incoming to references only
+        ref_edges = store.get_edges(
+            class_node.node_id, direction="incoming", edge_type="references"
+        )
+        assert len(ref_edges) == 1
+        assert ref_edges[0][0] == ref_node.node_id
+        assert ref_edges[0][1]["edge_type"] == "references"
+
+        # Filter incoming with no type filter returns both
+        all_edges = store.get_edges(class_node.node_id, direction="incoming")
+        assert len(all_edges) == 2
+
+    def test_get_edges_returns_empty_for_unknown_node(self):
+        """
+        Purpose: Proves get_edges returns [] for non-existent node.
+        Acceptance Criteria: No crash, empty list.
+
+        Task: T003
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        result = store.get_edges("nonexistent:node:id")
+        assert result == []
+
+    def test_get_edges_returns_empty_for_node_with_no_edges(self):
+        """
+        Purpose: Proves get_edges returns [] for isolated node.
+        Acceptance Criteria: No edges = empty list.
+
+        Task: T003
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        node = make_file_node()
+        store.add_node(node)
+
+        result = store.get_edges(node.node_id)
+        assert result == []
+
+    def test_get_parent_returns_containment_parent_not_reference(self):
+        """
+        Purpose: Proves get_parent() returns containment parent, not cross-file reference.
+        Acceptance Criteria: get_parent returns the node connected via containment edge,
+                           ignoring reference edges.
+
+        Task: T009
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        # Containment: file_a → func_a
+        file_a = make_file_node("src/a.py")
+        func_a = make_method_node("src/a.py", "func_a", "func_a")
+        store.add_node(file_a)
+        store.add_node(func_a)
+        # Cross-file reference FIRST (to prove order doesn't matter)
+        ref_node = make_method_node("src/b.py", "caller", "caller")
+        store.add_node(ref_node)
+        store.add_edge(ref_node.node_id, func_a.node_id, edge_type="references")
+
+        # Containment SECOND: file_a → func_a
+        store.add_edge(file_a.node_id, func_a.node_id)  # containment (no edge_type)
+
+        # get_parent should return the containment parent, not the reference
+        parent = store.get_parent(func_a.node_id)
+        assert parent is not None
+        assert parent.node_id == file_a.node_id
+
+    def test_edge_attributes_survive_save_load_roundtrip(self, tmp_path):
+        """
+        Purpose: Proves edge attributes survive pickle save + RestrictedUnpickler load.
+        Acceptance Criteria: get_edges returns same data after save/load cycle.
+
+        Task: T006
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        # Create nodes in different files
+        file_a = make_file_node("src/a.py")
+        func_a = make_method_node("src/a.py", "caller", "caller")
+        file_b = make_file_node("src/b.py")
+        func_b = make_method_node("src/b.py", "target", "target")
+        store.add_node(file_a)
+        store.add_node(func_a)
+        store.add_node(file_b)
+        store.add_node(func_b)
+
+        # Containment edges (no edge_type)
+        store.add_edge(file_a.node_id, func_a.node_id)
+        store.add_edge(file_b.node_id, func_b.node_id)
+
+        # Cross-file reference edge (with edge_type)
+        store.add_edge(func_a.node_id, func_b.node_id, edge_type="references")
+
+        # Save and reload
+        path = tmp_path / "graph.pickle"
+        store.save(path)
+
+        store2 = NetworkXGraphStore(config)
+        store2.load(path)
+
+        # Verify reference edge survives roundtrip
+        ref_edges = store2.get_edges(
+            func_b.node_id, direction="incoming", edge_type="references"
+        )
+        assert len(ref_edges) == 1
+        assert ref_edges[0][0] == func_a.node_id
+        assert ref_edges[0][1]["edge_type"] == "references"
+
+        # Verify containment edges also survive (no edge_type)
+        cont_edges = store2.get_edges(file_a.node_id, direction="outgoing")
+        assert len(cont_edges) == 1
+        assert cont_edges[0][0] == func_a.node_id
+        assert "edge_type" not in cont_edges[0][1]
+
+
+class TestNetworkXGraphStoreGetAllEdges:
+    """Phase 4 T005: Tests for get_all_edges()."""
+
+    def test_get_all_edges_returns_reference_edges(self, tmp_path):
+        """Returns all reference edges in graph."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        node_a = make_file_node("src/a.py")
+        node_b = make_file_node("src/b.py")
+        func_a = make_method_node("src/a.py", "A", "foo")
+        func_b = make_method_node("src/b.py", "B", "bar")
+
+        store.add_node(node_a)
+        store.add_node(node_b)
+        store.add_node(func_a)
+        store.add_node(func_b)
+        store.add_edge(node_a.node_id, func_a.node_id)  # containment
+        store.add_edge(node_b.node_id, func_b.node_id)  # containment
+        store.add_edge(func_a.node_id, func_b.node_id, edge_type="references")
+
+        all_refs = store.get_all_edges(edge_type="references")
+        assert len(all_refs) == 1
+        assert all_refs[0] == (func_a.node_id, func_b.node_id, {"edge_type": "references"})
+
+    def test_get_all_edges_no_filter_returns_all(self, tmp_path):
+        """Without filter returns both containment and reference edges."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        node_a = make_file_node("src/a.py")
+        func_a = make_method_node("src/a.py", "A", "foo")
+
+        store.add_node(node_a)
+        store.add_node(func_a)
+        store.add_edge(node_a.node_id, func_a.node_id)  # containment
+        store.add_edge(func_a.node_id, node_a.node_id, edge_type="references")
+
+        all_edges = store.get_all_edges()
+        assert len(all_edges) == 2
+
+    def test_get_all_edges_empty_graph(self, tmp_path):
+        """Empty graph returns empty list."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+
+        assert store.get_all_edges() == []
+
+
+class TestAtomicSave:
+    """Tests for atomic save behavior (Plan 036 T01)."""
+
+    def test_save_uses_temp_file_then_rename(self, tmp_path):
+        """Verify save writes to .tmp then renames — no partial .pickle file."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+        store.add_node(make_file_node())
+
+        graph_path = tmp_path / "graph.pickle"
+        store.save(graph_path)
+
+        # After save, graph.pickle exists and .tmp does not
+        assert graph_path.exists()
+        assert not (tmp_path / "graph.pickle.tmp").exists()
+
+    def test_save_cleans_up_tmp_on_failure(self, tmp_path):
+        """Verify .tmp is cleaned up if save fails (when possible)."""
+        from pathlib import Path
+        from unittest.mock import patch
+
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.exceptions import GraphStoreError
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+        store.add_node(make_file_node())
+
+        graph_path = tmp_path / "graph.pickle"
+
+        # Patch rename to simulate failure after tmp file is written
+        original_rename = Path.rename
+
+        def failing_rename(self_path, target):
+            raise OSError("Simulated rename failure")
+
+        with patch.object(Path, "rename", failing_rename):
+            with pytest.raises(GraphStoreError):
+                store.save(graph_path)
+
+        # Temp file should be cleaned up (it was writable, only rename failed)
+        assert not (tmp_path / "graph.pickle.tmp").exists()
+
+    def test_prior_graph_survives_if_new_save_interrupted(self, tmp_path):
+        """Simulate interrupted save: prior graph.pickle should remain loadable."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+        original = make_file_node("src/original.py", "# original")
+        store.add_node(original)
+
+        graph_path = tmp_path / "graph.pickle"
+        store.save(graph_path)
+
+        # Simulate "interrupted save" by writing a partial .tmp file
+        tmp_file = tmp_path / "graph.pickle.tmp"
+        tmp_file.write_bytes(b"partial data - corrupted")
+
+        # The real graph.pickle should still be loadable
+        store2 = NetworkXGraphStore(config)
+        store2.load(graph_path)
+        loaded = store2.get_all_nodes()
+        assert len(loaded) == 1
+        assert loaded[0].content == "# original"
+
+    def test_save_roundtrip_with_atomic_write(self, tmp_path):
+        """Verify full save/load roundtrip works with atomic write."""
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.repos.graph_store_impl import NetworkXGraphStore
+
+        config = FakeConfigurationService(ScanConfig())
+        store = NetworkXGraphStore(config)
+        node = make_file_node("src/test.py", "def foo(): pass")
+        store.add_node(node)
+
+        graph_path = tmp_path / "graph.pickle"
+        store.save(graph_path)
+
+        store2 = NetworkXGraphStore(config)
+        store2.load(graph_path)
+        loaded = store2.get_all_nodes()
+        assert len(loaded) == 1
+        assert loaded[0].content == "def foo(): pass"

@@ -1,0 +1,94 @@
+# fs2 configuration file
+# Full docs: https://github.com/AI-Substrate/flow_squared
+
+scan:
+  scan_paths:
+    - "."
+  ignore_patterns:
+    - "node_modules"
+    - ".venv"
+    - "*.pyc"
+    - "__pycache__"
+  respect_gitignore: true
+  max_file_size_kb: 500
+  follow_symlinks: false
+
+# ─── LLM (for smart content) ───────────────────────────────────────
+# Uncomment ONE block below. Required for: fs2 scan --smart-content
+#
+# Azure AI Foundry (API key):
+# llm:
+#   provider: azure
+#   api_key: ${AZURE_OPENAI_API_KEY}
+#   base_url: https://YOUR-RESOURCE.openai.azure.com/
+#   azure_deployment_name: gpt-4o
+#   azure_api_version: "2024-12-01-preview"
+#   model: gpt-4o
+#
+# Azure AI Foundry (az login — no API key needed):
+# llm:
+#   provider: azure
+#   base_url: https://YOUR-RESOURCE.openai.azure.com/
+#   azure_deployment_name: gpt-4o
+#   azure_api_version: "2024-12-01-preview"
+#   model: gpt-4o
+#   # Requires: pip install fs2[azure-ad] && az login
+#
+# OpenAI:
+# llm:
+#   provider: openai
+#   api_key: ${OPENAI_API_KEY}
+#   model: gpt-4o
+
+# ─── Embedding (for semantic search) ──────────────────────────────
+# Uncomment ONE block below. Required for: fs2 scan --embed
+#
+# Azure AI Foundry (API key):
+# embedding:
+#   mode: azure
+#   dimensions: 1024
+#   azure:
+#     endpoint: https://YOUR-RESOURCE.openai.azure.com/
+#     api_key: ${AZURE_EMBEDDING_API_KEY}
+#     deployment_name: text-embedding-3-small
+#     api_version: "2024-02-01"
+#
+# Azure AI Foundry (az login — no API key needed):
+# embedding:
+#   mode: azure
+#   dimensions: 1024
+#   azure:
+#     endpoint: https://YOUR-RESOURCE.openai.azure.com/
+#     deployment_name: text-embedding-3-small
+#     api_version: "2024-02-01"
+#   # Requires: pip install fs2[azure-ad] && az login
+#
+# OpenAI-compatible:
+# embedding:
+#   mode: openai_compatible
+#   dimensions: 1024
+#   openai_compatible:
+#     endpoint: https://api.openai.com/v1
+#     api_key: ${OPENAI_API_KEY}
+#     model: text-embedding-3-small
+
+# ─── External Graphs ──────────────────────────────────────────────
+other_graphs:
+  graphs:
+    - name: fastcode
+      path: ~/github/FastCode/.fs2/graph.pickle
+      description: FastCode - reference implementation for cross-file relationships
+
+# ─── LLM (for smart content) ───────────────────────────────────────
+# Using global config (~/.config/fs2/config.yaml) for LLM provider.
+# Uncomment below to override per-project:
+# llm:
+#   provider: local
+#   base_url: http://localhost:11434
+#   model: qwen2.5-coder:7b
+#   timeout: 120
+
+# smart_content:
+#   max_workers: 1
+#   max_input_tokens: 50000
+#   enabled_categories: ["file"]

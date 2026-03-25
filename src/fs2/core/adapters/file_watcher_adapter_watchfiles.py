@@ -52,6 +52,7 @@ class GitignoreFilter(DefaultFilter):
 
     # Built-in patterns for common editor temp files
     _BUILTIN_IGNORES = [
+        ".fs2/",  # fs2 internal directory (graph.pickle, config, temp files)
         "*.tmp.*",  # Editor temp files like .tmp.1234.5678
         "*~",  # Emacs/vim backup files
         "*.swp",  # Vim swap files

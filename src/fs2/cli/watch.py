@@ -18,6 +18,7 @@ Per Clean Architecture:
 
 import asyncio
 import logging
+import os
 import shutil
 import signal
 import sys
@@ -98,11 +99,16 @@ class SubprocessScanRunner:
         self._console.print_info("Running scan...")
 
         try:
+            # Pass NO_COLOR to subprocess so Rich outputs plain text.
+            # The parent process handles formatting — raw ANSI codes look
+            # broken when piped through Rich's print().
+            env = {**os.environ, "NO_COLOR": "1"}
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
-                cwd=Path.cwd(),  # Ensure subprocess runs from caller's directory
+                cwd=Path.cwd(),
+                env=env,
             )
 
             async def stream_output():
@@ -155,6 +161,13 @@ def watch(
             help="Pass --no-smart-content to scan commands",
         ),
     ] = False,
+    no_cross_refs: Annotated[
+        bool,
+        typer.Option(
+            "--no-cross-refs",
+            help="Pass --no-cross-refs to scan commands",
+        ),
+    ] = False,
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Show detailed output"),
@@ -202,6 +215,8 @@ def watch(
             scan_args.append("--no-embeddings")
         if no_smart_content:
             scan_args.append("--no-smart-content")
+        if no_cross_refs:
+            scan_args.append("--no-cross-refs")
         if verbose:
             scan_args.append("--verbose")
 

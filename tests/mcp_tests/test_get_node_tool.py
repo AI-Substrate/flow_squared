@@ -846,3 +846,125 @@ class TestGetNodeWithGraphName:
         assert "default" in error_msg or "list_graphs" in error_msg, (
             f"Should guide to available graphs. Got: {error_msg}"
         )
+
+
+class TestGetNodeRelationships:
+    """Tests for cross-file relationship data in get_node output.
+
+    Per Phase 3 cross-file-rels: get_node includes relationships field
+    when graph has reference edges. Present at both min and max detail.
+    """
+
+    def test_get_node_includes_relationships_when_edges_exist(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """Relationships field present when reference edges exist."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import get_node
+
+        store, config = tree_test_graph_store
+        # Add a reference edge: some_caller references Calculator
+        store.add_edge(
+            "callable:src/calculator.py:Calculator.add",
+            "class:src/calculator.py:Calculator",
+            edge_type="references",
+        )
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = get_node(node_id="class:src/calculator.py:Calculator")
+
+        assert "relationships" in result, "Should include relationships"
+        assert "referenced_by" in result["relationships"]
+        assert "callable:src/calculator.py:Calculator.add" in result["relationships"]["referenced_by"]
+
+    def test_get_node_omits_relationships_when_no_edges(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """Relationships field omitted (not empty dict) when no reference edges."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import get_node
+
+        store, config = tree_test_graph_store
+        # No reference edges added — only containment
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = get_node(node_id="class:src/calculator.py:Calculator")
+
+        assert "relationships" not in result, "Should omit relationships when no edges"
+
+    def test_get_node_relationships_at_min_detail(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """Relationships present at min detail level."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import get_node
+
+        store, config = tree_test_graph_store
+        store.add_edge(
+            "callable:src/calculator.py:Calculator.add",
+            "class:src/calculator.py:Calculator",
+            edge_type="references",
+        )
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = get_node(
+            node_id="class:src/calculator.py:Calculator", detail="min"
+        )
+
+        assert "relationships" in result
+
+    def test_get_node_relationships_at_max_detail(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """Relationships present at max detail level."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import get_node
+
+        store, config = tree_test_graph_store
+        store.add_edge(
+            "callable:src/calculator.py:Calculator.add",
+            "class:src/calculator.py:Calculator",
+            edge_type="references",
+        )
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = get_node(
+            node_id="class:src/calculator.py:Calculator", detail="max"
+        )
+
+        assert "relationships" in result
+        assert "referenced_by" in result["relationships"]
+
+    def test_get_node_shows_outgoing_references(
+        self, tree_test_graph_store: tuple, tmp_path: Path
+    ):
+        """Outgoing references appear under 'references' key."""
+        from fs2.mcp import dependencies
+        from fs2.mcp.server import get_node
+
+        store, config = tree_test_graph_store
+        # Calculator.add references Calculator (outgoing from add's perspective)
+        store.add_edge(
+            "callable:src/calculator.py:Calculator.add",
+            "class:src/calculator.py:Calculator",
+            edge_type="references",
+        )
+        dependencies.reset_services()
+        dependencies.set_config(config)
+        dependencies.set_graph_store(store)
+
+        result = get_node(
+            node_id="callable:src/calculator.py:Calculator.add"
+        )
+
+        assert "relationships" in result
+        assert "references" in result["relationships"]
+        assert "class:src/calculator.py:Calculator" in result["relationships"]["references"]

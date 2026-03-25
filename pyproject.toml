@@ -13,11 +13,15 @@ dependencies = [
     "pathspec>=0.12",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
+    "protobuf>=6.0",
     "python-dotenv>=1.0",
     "pyyaml>=6.0",
     "regex>=2025.11.3",
     "rich>=13.0",
+    "ruamel-yaml>=0.18",
+    "sentence-transformers>=3.0",
     "tiktoken>=0.7.0",
+    "torch>=2.0",
     "tree-sitter-language-pack>=0.13.0",
     "typer>=0.9",
     "watchfiles>=0.21",
@@ -32,6 +36,10 @@ dev = [
     "pytest-asyncio>=0.23",
     "pytest-cov>=4.0",
     "ruff>=0.8",
+]
+local-embeddings = [
+    "sentence-transformers>=3.0",
+    "torch>=2.0",
 ]
 
 [tool.ruff]
@@ -75,6 +83,10 @@ dev = [
 packages = ["src/fs2"]
 include = [
     "src/fs2/core/templates/**/*.j2",
+    "src/fs2/core/templates/**/*.html.j2",
+    "src/fs2/core/static/**/*.js",
+    "src/fs2/core/static/**/*.css",
+    "src/fs2/core/static/**/*.woff2",
     "src/fs2/docs/**/*.yaml",
     "src/fs2/docs/**/*.md",
     "src/fs2/docs/**/*.example",
@@ -83,6 +95,10 @@ include = [
 [tool.hatch.build.targets.sdist]
 include = [
     "src/fs2/core/templates/**/*.j2",
+    "src/fs2/core/templates/**/*.html.j2",
+    "src/fs2/core/static/**/*.js",
+    "src/fs2/core/static/**/*.css",
+    "src/fs2/core/static/**/*.woff2",
     "src/fs2/docs/**/*.yaml",
     "src/fs2/docs/**/*.md",
     "src/fs2/docs/**/*.example",

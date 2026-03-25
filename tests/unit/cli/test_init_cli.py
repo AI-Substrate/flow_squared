@@ -559,3 +559,25 @@ class TestDefaultConfigTemplate:
         assert parsed["scan"]["respect_gitignore"] is True
         assert parsed["scan"]["max_file_size_kb"] == 500
         assert parsed["scan"]["follow_symlinks"] is False
+
+
+class TestInitCrossFileRelsGuidance:
+    """DEFAULT_CONFIG includes cross-file rels and project config guidance."""
+
+    def test_default_config_mentions_scip(self):
+        """Config template mentions SCIP indexers."""
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert "scip" in DEFAULT_CONFIG.lower()
+
+    def test_default_config_mentions_projects(self):
+        """Config template shows projects section."""
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert "projects:" in DEFAULT_CONFIG
+
+    def test_default_config_mentions_cross_file_rels(self):
+        """Config template shows cross_file_rels section."""
+        from fs2.cli.init import DEFAULT_CONFIG
+
+        assert "cross_file_rels" in DEFAULT_CONFIG

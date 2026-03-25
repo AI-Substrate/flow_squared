@@ -1,0 +1,12 @@
+path	action	status
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/pyproject.toml	modified	 M
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/cli/main.py	modified	 M
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/config/objects.py	modified	 M
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/cli/report.py	created	??
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/services/report_service.py	created	??
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/static/__init__.py	created	??
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/static/reports/__init__.py	created	??
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/templates/reports/__init__.py	created	??
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/src/fs2/core/templates/reports/codebase_graph.html.j2	created	??
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/tests/unit/config/test_reports_config.py	created	??
+/Users/jordanknight/substrate/fs2/031-cross-file-rels-take-2/tests/unit/services/test_report_service.py	created	??

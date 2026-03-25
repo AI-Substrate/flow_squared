@@ -113,6 +113,25 @@ class SmartContentStage:
         # Step 3: Filter nodes that need generation (don't already have smart_content)
         needs_generation = [n for n in context.nodes if n.smart_content is None]
 
+        # Step 3b: Apply category filter if configured
+        smart_content_config = service._config if hasattr(service, "_config") else None
+        if (
+            smart_content_config
+            and getattr(smart_content_config, "enabled_categories", None) is not None
+        ):
+            enabled = set(smart_content_config.enabled_categories)
+            filtered_out = len(needs_generation)
+            needs_generation = [n for n in needs_generation if n.category in enabled]
+            filtered_out -= len(needs_generation)
+            if filtered_out > 0:
+                logger.info(
+                    "SmartContentStage: filtered %d nodes by category "
+                    "(enabled: %s), %d remain",
+                    filtered_out,
+                    sorted(enabled),
+                    len(needs_generation),
+                )
+
         if not needs_generation:
             logger.info(
                 "SmartContentStage: All %d nodes already have smart content (preserved)",
@@ -124,11 +143,26 @@ class SmartContentStage:
             return context
 
         # Step 4: Call async process_batch via asyncio.run() (sync→async bridge)
+        # Create courtesy save wrapper that merges partial results (Plan 036 T04)
+        courtesy_callback = None
+        if context.courtesy_save is not None:
+            pre_batch_nodes = list(context.nodes)
+
+            def _courtesy_save_wrapper(partial_results: dict) -> None:
+                """Merge partial results into context.nodes and courtesy save."""
+                context.nodes = [
+                    partial_results.get(n.node_id, n) for n in pre_batch_nodes
+                ]
+                context.courtesy_save()
+
+            courtesy_callback = _courtesy_save_wrapper
+
         try:
             batch_result = asyncio.run(
                 service.process_batch(
                     needs_generation,
                     progress_callback=context.smart_content_progress_callback,
+                    courtesy_save=courtesy_callback,
                 )
             )
         except RuntimeError as e:
@@ -220,15 +254,34 @@ class SmartContentStage:
                 continue
 
             if prior.smart_content is None:
-                # Prior exists but has no smart_content
-                merged.append(node)
+                # Prior exists but has no smart_content — still carry
+                # forward embedding fields so courtesy saves don't lose them
+                if prior.embedding is not None:
+                    merged_node = replace(
+                        node,
+                        embedding=prior.embedding,
+                        smart_content_embedding=prior.smart_content_embedding,
+                        embedding_hash=prior.embedding_hash,
+                        embedding_chunk_offsets=prior.embedding_chunk_offsets,
+                        leading_context=prior.leading_context,
+                    )
+                    merged.append(merged_node)
+                else:
+                    merged.append(node)
                 continue
 
             # Hash matches and prior has smart_content - copy it!
+            # Also preserve embedding fields and leading_context so
+            # courtesy saves don't erase them before embedding stage runs
             merged_node = replace(
                 node,
                 smart_content=prior.smart_content,
                 smart_content_hash=prior.smart_content_hash,
+                embedding=prior.embedding,
+                smart_content_embedding=prior.smart_content_embedding,
+                embedding_hash=prior.embedding_hash,
+                embedding_chunk_offsets=prior.embedding_chunk_offsets,
+                leading_context=prior.leading_context,
             )
             merged.append(merged_node)
             merged_count += 1

@@ -401,3 +401,128 @@ class TestLLMConfigPath:
 
         assert hasattr(LLMConfig, "__config_path__")
         assert LLMConfig.__config_path__ == "llm"
+
+
+class TestLLMConfigLocalProvider:
+    """Tests for local (Ollama) provider support — plan 034."""
+
+    @pytest.mark.unit
+    def test_llm_config_provider_local_valid(self):
+        """Provider 'local' is valid.
+
+        Purpose: Proves local Ollama provider is accepted
+        Quality Contribution: Validates local LLM path exists
+        Acceptance Criteria: AC03
+        """
+        from fs2.config.objects import LLMConfig
+
+        config = LLMConfig(
+            provider="local",
+            base_url="http://localhost:11434",
+            model="qwen2.5-coder:7b",
+        )
+        assert config.provider == "local"
+
+    @pytest.mark.unit
+    def test_llm_config_local_requires_base_url(self):
+        """Local provider requires base_url.
+
+        Purpose: Proves base_url is required for local provider
+        Quality Contribution: Catches missing Ollama endpoint early
+        Acceptance Criteria: AC03
+        """
+        from pydantic import ValidationError
+
+        from fs2.config.objects import LLMConfig
+
+        with pytest.raises(ValidationError) as exc_info:
+            LLMConfig(provider="local", model="qwen2.5-coder:7b")
+
+        assert "base_url" in str(exc_info.value).lower()
+
+    @pytest.mark.unit
+    def test_llm_config_local_requires_model(self):
+        """Local provider requires model.
+
+        Purpose: Proves model is required for local provider
+        Quality Contribution: Catches missing model name early
+        Acceptance Criteria: AC03
+        """
+        from pydantic import ValidationError
+
+        from fs2.config.objects import LLMConfig
+
+        with pytest.raises(ValidationError) as exc_info:
+            LLMConfig(provider="local", base_url="http://localhost:11434")
+
+        assert "model" in str(exc_info.value).lower()
+
+    @pytest.mark.unit
+    def test_llm_config_local_no_api_key_required(self):
+        """Local provider accepts api_key=None (Ollama needs no key).
+
+        Purpose: Proves local provider works without API key
+        Quality Contribution: Validates key-free local operation
+        Acceptance Criteria: AC09
+        """
+        from fs2.config.objects import LLMConfig
+
+        config = LLMConfig(
+            provider="local",
+            base_url="http://localhost:11434",
+            model="qwen2.5-coder:7b",
+            api_key=None,
+        )
+        assert config.api_key is None
+
+    @pytest.mark.unit
+    def test_llm_config_local_timeout_allows_300s(self):
+        """Local provider allows timeout up to 300s (CPU inference is slow).
+
+        Purpose: Proves extended timeout for local LLM
+        Quality Contribution: Prevents config rejection for valid local timeouts
+        Acceptance Criteria: AC03
+        """
+        from fs2.config.objects import LLMConfig
+
+        config = LLMConfig(
+            provider="local",
+            base_url="http://localhost:11434",
+            model="qwen2.5-coder:7b",
+            timeout=300,
+        )
+        assert config.timeout == 300
+
+    @pytest.mark.unit
+    def test_llm_config_cloud_timeout_rejects_300s(self):
+        """Cloud providers (azure/openai) still reject timeout > 120s.
+
+        Purpose: Proves timeout increase is local-only
+        Quality Contribution: Prevents unreasonable cloud timeouts
+        Acceptance Criteria: AC03
+        """
+        from pydantic import ValidationError
+
+        from fs2.config.objects import LLMConfig
+
+        with pytest.raises(ValidationError):
+            LLMConfig(provider="openai", timeout=300)
+
+    @pytest.mark.unit
+    def test_llm_config_local_timeout_rejects_over_300s(self):
+        """Local provider rejects timeout > 300s.
+
+        Purpose: Proves local timeout has upper bound
+        Quality Contribution: Prevents unreasonable timeouts
+        """
+        from pydantic import ValidationError
+
+        from fs2.config.objects import LLMConfig
+
+        with pytest.raises(ValidationError):
+            LLMConfig(
+                provider="local",
+                base_url="http://localhost:11434",
+                model="qwen2.5-coder:7b",
+                timeout=301,
+            )
