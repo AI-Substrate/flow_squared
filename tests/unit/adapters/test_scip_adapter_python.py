@@ -121,10 +121,11 @@ class TestSCIPPythonAdapterWithFixture:
 
         # handler.py should reference something in service.py
         handler_to_service = any(
-            "handler" in s and "service" in t
-            for s, t in src_tgt_pairs
+            "handler" in s and "service" in t for s, t in src_tgt_pairs
         )
-        assert handler_to_service, f"Expected handler→service edge, got: {src_tgt_pairs}"
+        assert handler_to_service, (
+            f"Expected handler→service edge, got: {src_tgt_pairs}"
+        )
 
     def test_service_references_model(self, adapter, known_node_ids):
         edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
@@ -132,8 +133,7 @@ class TestSCIPPythonAdapterWithFixture:
 
         # service.py should reference something in model.py
         service_to_model = any(
-            "service" in s and "model" in t
-            for s, t in src_tgt_pairs
+            "service" in s and "model" in t for s, t in src_tgt_pairs
         )
         assert service_to_model, f"Expected service→model edge, got: {src_tgt_pairs}"
 

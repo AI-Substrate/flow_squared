@@ -1035,7 +1035,11 @@ class TestNetworkXGraphStoreGetAllEdges:
 
         all_refs = store.get_all_edges(edge_type="references")
         assert len(all_refs) == 1
-        assert all_refs[0] == (func_a.node_id, func_b.node_id, {"edge_type": "references"})
+        assert all_refs[0] == (
+            func_a.node_id,
+            func_b.node_id,
+            {"edge_type": "references"},
+        )
 
     def test_get_all_edges_no_filter_returns_all(self, tmp_path):
         """Without filter returns both containment and reference edges."""
@@ -1091,7 +1095,6 @@ class TestAtomicSave:
 
     def test_save_cleans_up_tmp_on_failure(self, tmp_path):
         """Verify .tmp is cleaned up if save fails (when possible)."""
-        from pathlib import Path
         from unittest.mock import patch
 
         from fs2.config.objects import ScanConfig

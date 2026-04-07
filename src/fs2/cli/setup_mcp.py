@@ -71,9 +71,7 @@ def setup_mcp(
         _install_to_config(CLAUDE_CODE_CONFIG, CLAUDE_CODE_ENTRY, "Claude Code")
 
 
-def _install_to_config(
-    config_path: Path, entry: dict, label: str
-) -> None:
+def _install_to_config(config_path: Path, entry: dict, label: str) -> None:
     """Install fs2 MCP server into a JSON config file."""
     config: dict = {}
     if config_path.exists():

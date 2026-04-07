@@ -419,7 +419,9 @@ def tree(
         store = get_graph_store(graph_name)
         service = TreeService(config=config, graph_store=store)
         tree_nodes = service.build_tree(pattern=pattern, max_depth=max_depth)
-        tree_list = [_tree_node_to_dict(tn, detail, graph_store=store) for tn in tree_nodes]
+        tree_list = [
+            _tree_node_to_dict(tn, detail, graph_store=store) for tn in tree_nodes
+        ]
 
         # Count total nodes
         def count_nodes(nodes: list[dict]) -> int:

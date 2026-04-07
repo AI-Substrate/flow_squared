@@ -155,7 +155,9 @@ def _detect_ollama() -> tuple[bool, str | None]:
     import urllib.request
 
     try:
-        with urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2) as resp:
+        with urllib.request.urlopen(
+            "http://localhost:11434/api/tags", timeout=2
+        ) as resp:
             data = json.loads(resp.read())
             models = [m["name"] for m in data.get("models", [])]
             for preferred in [

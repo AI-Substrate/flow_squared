@@ -877,7 +877,10 @@ class TestGetNodeRelationships:
 
         assert "relationships" in result, "Should include relationships"
         assert "referenced_by" in result["relationships"]
-        assert "callable:src/calculator.py:Calculator.add" in result["relationships"]["referenced_by"]
+        assert (
+            "callable:src/calculator.py:Calculator.add"
+            in result["relationships"]["referenced_by"]
+        )
 
     def test_get_node_omits_relationships_when_no_edges(
         self, tree_test_graph_store: tuple, tmp_path: Path
@@ -913,9 +916,7 @@ class TestGetNodeRelationships:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = get_node(
-            node_id="class:src/calculator.py:Calculator", detail="min"
-        )
+        result = get_node(node_id="class:src/calculator.py:Calculator", detail="min")
 
         assert "relationships" in result
 
@@ -936,9 +937,7 @@ class TestGetNodeRelationships:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = get_node(
-            node_id="class:src/calculator.py:Calculator", detail="max"
-        )
+        result = get_node(node_id="class:src/calculator.py:Calculator", detail="max")
 
         assert "relationships" in result
         assert "referenced_by" in result["relationships"]
@@ -961,10 +960,11 @@ class TestGetNodeRelationships:
         dependencies.set_config(config)
         dependencies.set_graph_store(store)
 
-        result = get_node(
-            node_id="callable:src/calculator.py:Calculator.add"
-        )
+        result = get_node(node_id="callable:src/calculator.py:Calculator.add")
 
         assert "relationships" in result
         assert "references" in result["relationships"]
-        assert "class:src/calculator.py:Calculator" in result["relationships"]["references"]
+        assert (
+            "class:src/calculator.py:Calculator"
+            in result["relationships"]["references"]
+        )

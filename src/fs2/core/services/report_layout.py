@@ -215,8 +215,8 @@ def _layout_local_nodes(
     for idx, node in enumerate(sorted_nodes):
         if idx >= cols * rows:
             # Overflow: stack remaining at last cell with offset
-            col = (cols - 1)
-            row = (rows - 1)
+            col = cols - 1
+            row = rows - 1
             overflow_idx = idx - (cols * rows) + 1
             nx = x + (col + 0.5) * cell_w + overflow_idx * 2
             ny = y + (row + 0.5) * cell_h + overflow_idx * 2

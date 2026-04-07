@@ -4,7 +4,6 @@ Validates marker detection, skip dirs, no child dedup,
 extended markers (C#, Ruby), and one entry per (path, language).
 """
 
-
 from fs2.core.services.project_discovery import (
     PROJECT_MARKERS,
     detect_project_roots,
@@ -143,7 +142,16 @@ class TestProjectMarkers:
     """Verify marker registry completeness."""
 
     def test_has_required_languages(self):
-        required = {"python", "typescript", "javascript", "go", "rust", "java", "dotnet", "ruby"}
+        required = {
+            "python",
+            "typescript",
+            "javascript",
+            "go",
+            "rust",
+            "java",
+            "dotnet",
+            "ruby",
+        }
         assert required.issubset(set(PROJECT_MARKERS.keys()))
 
     def test_dotnet_has_csproj_and_sln(self):

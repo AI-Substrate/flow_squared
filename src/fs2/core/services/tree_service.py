@@ -385,9 +385,7 @@ class TreeService:
         # Filter to containment edges only (edges without edge_type)
         containment_children = []
         for child in all_children:
-            edges = self._graph_store.get_edges(
-                node.node_id, direction="outgoing"
-            )
+            edges = self._graph_store.get_edges(node.node_id, direction="outgoing")
             is_containment = False
             for edge_node_id, edge_data in edges:
                 if edge_node_id == child.node_id and "edge_type" not in edge_data:

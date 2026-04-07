@@ -340,24 +340,32 @@ EXTRACTABLE_LANGUAGES: set[str] = CODE_LANGUAGES | {
 # === Leading Context Extraction (Plan 037) ===
 # Tree-sitter node types that constitute leading context
 
-COMMENT_NODE_TYPES: frozenset[str] = frozenset({
-    "comment",       # Python, Go, JS, TS, TSX, C, C++, Ruby, Bash, GDScript, CUDA
-    "line_comment",  # Rust
-    "block_comment", # Java
-})
+COMMENT_NODE_TYPES: frozenset[str] = frozenset(
+    {
+        "comment",  # Python, Go, JS, TS, TSX, C, C++, Ruby, Bash, GDScript, CUDA
+        "line_comment",  # Rust
+        "block_comment",  # Java
+    }
+)
 
-SIBLING_DECORATOR_TYPES: frozenset[str] = frozenset({
-    "attribute_item",  # Rust #[derive(...)]
-})
+SIBLING_DECORATOR_TYPES: frozenset[str] = frozenset(
+    {
+        "attribute_item",  # Rust #[derive(...)]
+    }
+)
 
-CHILD_DECORATOR_TYPES: frozenset[str] = frozenset({
-    "decorator",  # Python @dataclass (child of decorated_definition)
-})
+CHILD_DECORATOR_TYPES: frozenset[str] = frozenset(
+    {
+        "decorator",  # Python @dataclass (child of decorated_definition)
+    }
+)
 
-WRAPPER_PARENT_TYPES: frozenset[str] = frozenset({
-    "decorated_definition",  # Python: wraps function + decorators
-    "export_statement",      # TypeScript/TSX/JS: wraps with export
-})
+WRAPPER_PARENT_TYPES: frozenset[str] = frozenset(
+    {
+        "decorated_definition",  # Python: wraps function + decorators
+        "export_statement",  # TypeScript/TSX/JS: wraps with export
+    }
+)
 
 LEADING_CONTEXT_TYPES: frozenset[str] = COMMENT_NODE_TYPES | SIBLING_DECORATOR_TYPES
 
@@ -873,7 +881,7 @@ class TreeSitterParser(ASTParser):
         if ts_node.parent and ts_node.parent.type == "decorated_definition":
             for child in ts_node.parent.children:
                 if child.type in CHILD_DECORATOR_TYPES:
-                    text = source_bytes[child.start_byte:child.end_byte].decode(
+                    text = source_bytes[child.start_byte : child.end_byte].decode(
                         "utf-8", errors="replace"
                     )
                     parent_decorators.append(text.strip())
@@ -889,16 +897,14 @@ class TreeSitterParser(ASTParser):
 
         while current is not None and current.type in LEADING_CONTEXT_TYPES:
             # Check for blank-line gap BEFORE adding this comment
-            next_start = (
-                comment_parts[-1][1] if comment_parts else walk_node.start_byte
-            )
-            gap = source_bytes[current.end_byte:next_start].decode(
+            next_start = comment_parts[-1][1] if comment_parts else walk_node.start_byte
+            gap = source_bytes[current.end_byte : next_start].decode(
                 "utf-8", errors="replace"
             )
             if "\n\n" in gap:
                 break  # Gap found — this comment belongs to something else
 
-            text = source_bytes[current.start_byte:current.end_byte].decode(
+            text = source_bytes[current.start_byte : current.end_byte].decode(
                 "utf-8", errors="replace"
             )
             comment_parts.append((text.strip(), current.start_byte))

@@ -932,7 +932,9 @@ class TestEmbeddingConfigLocalMode:
 
         assert config.dimensions == 384
 
-    def test_given_mode_local_explicit_dimensions_when_constructed_then_keeps_explicit(self):
+    def test_given_mode_local_explicit_dimensions_when_constructed_then_keeps_explicit(
+        self,
+    ):
         """
         Purpose: Proves explicit dimensions are preserved even in local mode.
         Quality Contribution: DYK-3 — user's explicit config not silently overridden.
@@ -946,7 +948,9 @@ class TestEmbeddingConfigLocalMode:
 
         assert config.dimensions == 768
 
-    def test_given_mode_local_with_local_section_when_constructed_then_stores_config(self):
+    def test_given_mode_local_with_local_section_when_constructed_then_stores_config(
+        self,
+    ):
         """
         Purpose: Proves nested local config is stored.
         Acceptance Criteria: local section accessible.
@@ -965,7 +969,9 @@ class TestEmbeddingConfigLocalMode:
         assert config.local.model == "sentence-transformers/all-MiniLM-L6-v2"
         assert config.local.device == "cpu"
 
-    def test_given_mode_local_no_local_section_when_constructed_then_local_is_none(self):
+    def test_given_mode_local_no_local_section_when_constructed_then_local_is_none(
+        self,
+    ):
         """
         Purpose: Proves local section is optional.
         Acceptance Criteria: local is None when not provided.

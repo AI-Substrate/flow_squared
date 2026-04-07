@@ -157,7 +157,10 @@ class TestRunScipIndexer:
         project = tmp_path / "myapp"
         project.mkdir()
         # No obj/ directory = not built
-        assert run_scip_indexer("dotnet", str(project), str(tmp_path / "out.scip")) is False
+        assert (
+            run_scip_indexer("dotnet", str(project), str(tmp_path / "out.scip"))
+            is False
+        )
 
     def test_returns_true_on_success(self, tmp_path, monkeypatch):
         from fs2.core.services.stages.cross_file_rels_stage import run_scip_indexer
@@ -172,6 +175,7 @@ class TestRunScipIndexer:
             class FakeResult:
                 returncode = 0
                 stderr = ""
+
             return FakeResult()
 
         monkeypatch.setattr("subprocess.run", fake_run)
@@ -236,7 +240,10 @@ class TestAutoDiscover:
         ctx.nodes = [make_callable_node("src/a.py", "func", "func")]
 
         # Mock the indexer (not installed in test env)
-        with patch("fs2.core.services.stages.cross_file_rels_stage.run_scip_indexer", return_value=False):
+        with patch(
+            "fs2.core.services.stages.cross_file_rels_stage.run_scip_indexer",
+            return_value=False,
+        ):
             stage = CrossFileRelsStage()
             result = stage.process(ctx)
 
@@ -342,11 +349,23 @@ class TestReusePriorEdges:
         from fs2.core.services.stages.cross_file_rels_stage import reuse_prior_edges
 
         prior_edges = [
-            ("callable:src/a.py:A.foo", "callable:src/b.py:B.bar", {"edge_type": "references"}),
-            ("callable:src/c.py:C.baz", "callable:src/a.py:A.foo", {"edge_type": "references"}),
+            (
+                "callable:src/a.py:A.foo",
+                "callable:src/b.py:B.bar",
+                {"edge_type": "references"},
+            ),
+            (
+                "callable:src/c.py:C.baz",
+                "callable:src/a.py:A.foo",
+                {"edge_type": "references"},
+            ),
         ]
         changed_files = {"src/b.py"}
-        current_ids = {"callable:src/a.py:A.foo", "callable:src/b.py:B.bar", "callable:src/c.py:C.baz"}
+        current_ids = {
+            "callable:src/a.py:A.foo",
+            "callable:src/b.py:B.bar",
+            "callable:src/c.py:C.baz",
+        }
 
         result = reuse_prior_edges(prior_edges, changed_files, current_ids)
         assert len(result) == 1

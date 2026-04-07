@@ -382,8 +382,7 @@ class LLMConfig(BaseModel):
                 )
             if not self.model:
                 errors.append(
-                    "model is required when provider=local "
-                    "(e.g., qwen2.5-coder:7b)"
+                    "model is required when provider=local (e.g., qwen2.5-coder:7b)"
                 )
             if self.timeout > 300:
                 errors.append("Timeout must be 1-300 seconds for local provider")
@@ -462,8 +461,15 @@ class SmartContentConfig(BaseModel):
     )
 
     _VALID_CATEGORIES: ClassVar[set[str]] = {
-        "file", "callable", "type", "block", "section",
-        "definition", "statement", "expression", "other",
+        "file",
+        "callable",
+        "type",
+        "block",
+        "section",
+        "definition",
+        "statement",
+        "expression",
+        "other",
     }
 
     @field_validator("enabled_categories")
@@ -1038,7 +1044,13 @@ class SearchConfig(BaseModel):
 # Canonical SCIP language names and their aliases.
 # Kept as a local set — does NOT import from scip_adapter (dependency boundary).
 _KNOWN_LANGUAGE_TYPES: set[str] = {
-    "python", "typescript", "javascript", "go", "dotnet", "rust", "java",
+    "python",
+    "typescript",
+    "javascript",
+    "go",
+    "dotnet",
+    "rust",
+    "java",
 }
 _LANGUAGE_TYPE_ALIASES: dict[str, str] = {
     "ts": "typescript",

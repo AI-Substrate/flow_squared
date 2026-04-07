@@ -32,16 +32,30 @@ PROJECT_MARKERS: dict[str, list[str]] = {
 }
 
 # Directories to skip during project discovery
-_SKIP_DIRS = frozenset({
-    ".venv", "venv", ".env", "env",
-    "node_modules",
-    ".git", ".hg", ".svn",
-    "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache",
-    ".tox", ".nox",
-    "site-packages",
-    "dist", "build", ".eggs",
-    "obj", "bin",  # C# build output
-})
+_SKIP_DIRS = frozenset(
+    {
+        ".venv",
+        "venv",
+        ".env",
+        "env",
+        "node_modules",
+        ".git",
+        ".hg",
+        ".svn",
+        "__pycache__",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".tox",
+        ".nox",
+        "site-packages",
+        "dist",
+        "build",
+        ".eggs",
+        "obj",
+        "bin",  # C# build output
+    }
+)
 
 # SCIP indexer binary names for each language (used by CLI for status display)
 INDEXER_BINARIES: dict[str, str] = {
@@ -130,11 +144,13 @@ def detect_project_roots(scan_root: str) -> list[DiscoveredProject]:
         key = (dirpath, language)
         if key not in seen:
             seen.add(key)
-            results.append(DiscoveredProject(
-                path=dirpath,
-                language=language,
-                marker_file=marker,
-            ))
+            results.append(
+                DiscoveredProject(
+                    path=dirpath,
+                    language=language,
+                    marker_file=marker,
+                )
+            )
 
     results.sort(key=lambda r: (r.path, r.language))
     return results

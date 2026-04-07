@@ -38,22 +38,47 @@ def _make_node(
     """
     if category == "file" or node_id.startswith("file:"):
         return CodeNode.create_file(
-            file_path, "python", "python",
-            0, 100, start_line, end_line,
+            file_path,
+            "python",
+            "python",
+            0,
+            100,
+            start_line,
+            end_line,
             f"# {name}",
         )
     elif category == "type" or node_id.startswith("type:"):
         return CodeNode.create_type(
-            file_path, "python", "class", name, name,
-            start_line, end_line, 0, 0, 0, 100,
-            f"class {name}: pass", f"class {name}",
+            file_path,
+            "python",
+            "class",
+            name,
+            name,
+            start_line,
+            end_line,
+            0,
+            0,
+            0,
+            100,
+            f"class {name}: pass",
+            f"class {name}",
             parent_node_id=f"file:{file_path}",
         )
     else:
         return CodeNode.create_callable(
-            file_path, "python", "function", name, name,
-            start_line, end_line, 0, 0, 0, 100,
-            f"def {name}(): pass", f"def {name}()",
+            file_path,
+            "python",
+            "function",
+            name,
+            name,
+            start_line,
+            end_line,
+            0,
+            0,
+            0,
+            100,
+            f"def {name}(): pass",
+            f"def {name}()",
             parent_node_id=f"file:{file_path}",
         )
 
@@ -135,8 +160,11 @@ class TestComputeTreemapDeepNesting:
         nodes = [
             _make_node(
                 "callable:src/fs2/core/services/deep/module.py:func",
-                "func", "callable",
-                "src/fs2/core/services/deep/module.py", 1, 20,
+                "func",
+                "callable",
+                "src/fs2/core/services/deep/module.py",
+                1,
+                20,
             ),
         ]
         result = compute_treemap(nodes)
@@ -170,7 +198,9 @@ class TestComputeTreemapSize:
 
     def test_small_node_minimum_size(self):
         """1-line function gets minimum size of 4."""
-        node = _make_node("callable:src/a.py:tiny", "tiny", "callable", "src/a.py", 1, 1)
+        node = _make_node(
+            "callable:src/a.py:tiny", "tiny", "callable", "src/a.py", 1, 1
+        )
         result = compute_treemap([node])
         pos = result[node.node_id]
         assert pos.size == pytest.approx(4.0, abs=0.5)
@@ -184,7 +214,9 @@ class TestComputeTreemapSize:
 
     def test_size_capped_at_14(self):
         """Even huge files cap at 14."""
-        node = _make_node("file:src/huge.py", "huge.py", "file", "src/huge.py", 1, 100000)
+        node = _make_node(
+            "file:src/huge.py", "huge.py", "file", "src/huge.py", 1, 100000
+        )
         result = compute_treemap([node])
         pos = result[node.node_id]
         assert pos.size <= 14.0

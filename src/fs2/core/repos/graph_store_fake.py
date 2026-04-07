@@ -67,8 +67,12 @@ class FakeGraphStore(GraphStore):
         # Extract config internally (per Critical Finding 01)
         self._scan_config = config.require(ScanConfig)
         self._nodes: dict[str, CodeNode] = {}
-        self._edges: dict[str, dict[str, dict[str, Any]]] = {}  # parent → {child → edge_data}
-        self._reverse_edges: dict[str, list[tuple[str, dict[str, Any]]]] = {}  # child → [(parent, edge_data)]
+        self._edges: dict[
+            str, dict[str, dict[str, Any]]
+        ] = {}  # parent → {child → edge_data}
+        self._reverse_edges: dict[
+            str, list[tuple[str, dict[str, Any]]]
+        ] = {}  # child → [(parent, edge_data)]
         self._call_history: list[dict[str, Any]] = []
         self.simulate_error_for: set[str] = set()
         self._metadata: dict[str, Any] | None = None

@@ -10,7 +10,6 @@ This is a documented exception to the project's fakes-over-mocks convention
 """
 
 import asyncio
-import platform
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -143,7 +142,6 @@ class TestLocalAdapterDeviceDetection:
         mock_torch.cuda.get_device_name.return_value = "NVIDIA RTX 4090"
 
         with patch.dict("sys.modules", {"torch": mock_torch}):
-            import importlib
             import fs2.core.adapters.embedding_adapter_local as mod
 
             original_detect = mod.SentenceTransformerEmbeddingAdapter._detect_device
@@ -151,9 +149,9 @@ class TestLocalAdapterDeviceDetection:
             # Call _detect_device with torch mocked at import level
             def patched_detect(self_adapter):
                 import sys
+
                 sys.modules["torch"] = mock_torch
                 # Re-execute with mocked torch
-                import torch as t  # noqa: F811 - this gets our mock
                 requested = self_adapter._local_config.device
                 if requested != "auto":
                     return requested
@@ -181,7 +179,9 @@ class TestLocalAdapterDeviceDetection:
         mock_torch.cuda.is_available.return_value = False
         mock_torch.backends.mps.is_available.return_value = True
 
-        adapter._detect_device = lambda: "mps"  # Simplified — real logic tested via integration
+        adapter._detect_device = (
+            lambda: "mps"
+        )  # Simplified — real logic tested via integration
         result = adapter._detect_device()
 
         assert result == "mps"

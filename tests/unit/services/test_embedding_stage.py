@@ -217,8 +217,8 @@ class TestEmbeddingStageProcess:
 
     def test_given_matching_hash_with_leading_context_when_merging_then_copies(self):
         """Nodes with leading_context use combined hash for merge comparison."""
-        from fs2.core.services.stages.embedding_stage import EmbeddingStage
         from fs2.core.models.code_node import compute_content_hash
+        from fs2.core.services.stages.embedding_stage import EmbeddingStage
 
         fresh_node = _make_file_node(
             file_path="commented.py",

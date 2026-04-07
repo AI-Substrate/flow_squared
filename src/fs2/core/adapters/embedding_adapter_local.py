@@ -76,14 +76,10 @@ class SentenceTransformerEmbeddingAdapter(EmbeddingAdapter):
 
         if requested != "auto":
             if requested == "cuda" and not torch.cuda.is_available():
-                logger.warning(
-                    "CUDA requested but not available, falling back to CPU"
-                )
+                logger.warning("CUDA requested but not available, falling back to CPU")
                 return "cpu"
             if requested == "mps" and not torch.backends.mps.is_available():
-                logger.warning(
-                    "MPS requested but not available, falling back to CPU"
-                )
+                logger.warning("MPS requested but not available, falling back to CPU")
                 return "cpu"
             return requested
 

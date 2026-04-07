@@ -123,7 +123,9 @@ app.command(name="list-graphs")(list_graphs)  # Per subtask 001: diagnostic comm
 app.command(name="discover-projects")(discover_projects)  # SCIP project discovery
 app.command(name="add-project")(add_project)  # SCIP project config writer
 app.add_typer(doctor_app, name="doctor")  # Command group with subcommands
-app.add_typer(require_init(report_app), name="report")  # Report generation (requires init)
+app.add_typer(
+    require_init(report_app), name="report"
+)  # Report generation (requires init)
 app.command(name="install")(install)
 app.command(name="upgrade")(upgrade)
 app.command(name="setup-mcp")(setup_mcp)

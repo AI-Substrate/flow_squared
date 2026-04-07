@@ -148,6 +148,5 @@ class LocalOllamaAdapter(LLMAdapter):
                 ) from e
 
             raise LLMAdapterError(
-                f"Ollama error: {e}\n"
-                "  Check that Ollama is running: ollama serve"
+                f"Ollama error: {e}\n  Check that Ollama is running: ollama serve"
             ) from e

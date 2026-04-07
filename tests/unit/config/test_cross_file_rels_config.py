@@ -4,9 +4,7 @@ Validates the pydantic model for cross-file relationship extraction config,
 including defaults, validation, and YAML_CONFIG_TYPES registry membership.
 """
 
-import pytest
-
-from fs2.config.objects import CrossFileRelsConfig, YAML_CONFIG_TYPES
+from fs2.config.objects import YAML_CONFIG_TYPES, CrossFileRelsConfig
 
 
 class TestCrossFileRelsConfigDefaults:

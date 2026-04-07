@@ -83,6 +83,7 @@ class TestNodePositionAndColor:
         service = self._make_service(nodes=[node])
         result = service.generate_codebase_graph()
         import json
+
         data = json.loads(result.html.split("GRAPH_DATA = ")[1].split(";\n")[0])
         nd = data["nodes"][0]
         assert "x" in nd
@@ -94,16 +95,19 @@ class TestNodePositionAndColor:
     def test_callable_nodes_are_cyan(self):
         """Callable nodes get cyan color #22d3ee."""
         from fs2.core.services.report_service import _CATEGORY_COLORS
+
         assert _CATEGORY_COLORS["callable"] == "#22d3ee"
 
     def test_type_nodes_are_violet(self):
         """Type nodes get violet color #a78bfa."""
         from fs2.core.services.report_service import _CATEGORY_COLORS
+
         assert _CATEGORY_COLORS["type"] == "#a78bfa"
 
     def test_file_nodes_are_slate(self):
         """File nodes get blue color #60a5fa."""
         from fs2.core.services.report_service import _CATEGORY_COLORS
+
         assert _CATEGORY_COLORS["file"] == "#60a5fa"
 
     def test_excludes_smart_content_when_flag_false(self):
@@ -138,7 +142,9 @@ class TestEdgeSerialization:
         assert result["id"] == "e-5"
 
     def test_edge_preserves_source_target(self):
-        result = _serialize_edge("src_node", "tgt_node", {"edge_type": "references"}, idx=0)
+        result = _serialize_edge(
+            "src_node", "tgt_node", {"edge_type": "references"}, idx=0
+        )
         assert result["source"] == "src_node"
         assert result["target"] == "tgt_node"
 
@@ -163,7 +169,9 @@ class TestReportService:
 
     def test_generates_valid_html(self):
         """Proves output is valid HTML."""
-        node = CodeNode.create_file("src/a.py", "python", "a.py", 0, 100, 1, 10, "# file")
+        node = CodeNode.create_file(
+            "src/a.py", "python", "a.py", 0, 100, 1, 10, "# file"
+        )
         service = self._make_service(nodes=[node])
         result = service.generate_codebase_graph()
         assert result.html.startswith("<!DOCTYPE html>")
@@ -171,7 +179,9 @@ class TestReportService:
 
     def test_metadata_contains_project_info(self):
         """Proves metadata has project name, version, counts."""
-        node = CodeNode.create_file("src/a.py", "python", "a.py", 0, 100, 1, 10, "# file")
+        node = CodeNode.create_file(
+            "src/a.py", "python", "a.py", 0, 100, 1, 10, "# file"
+        )
         service = self._make_service(nodes=[node])
         result = service.generate_codebase_graph()
         meta = result.metadata
@@ -205,8 +215,14 @@ class TestReportService:
     def test_no_content_in_html(self):
         """Proves source code content is NOT in the HTML (DYK-01)."""
         node = CodeNode.create_file(
-            "src/a.py", "python", "a.py", 0, 100, 1, 10,
-            "def secret_function():\n    password = 'hunter2'\n"
+            "src/a.py",
+            "python",
+            "a.py",
+            0,
+            100,
+            1,
+            10,
+            "def secret_function():\n    password = 'hunter2'\n",
         )
         service = self._make_service(nodes=[node])
         result = service.generate_codebase_graph()
@@ -252,10 +268,19 @@ class TestNodeClustering:
         )
         callable_nodes = [
             CodeNode.create_callable(
-                "src/a.py", "python", "function",
-                f"func_{i}", f"func_{i}",
-                i * 10 + 1, i * 10 + 10, 0, 0, 0, 100,
-                f"def func_{i}(): pass", f"def func_{i}()",
+                "src/a.py",
+                "python",
+                "function",
+                f"func_{i}",
+                f"func_{i}",
+                i * 10 + 1,
+                i * 10 + 10,
+                0,
+                0,
+                0,
+                100,
+                f"def func_{i}(): pass",
+                f"def func_{i}()",
                 parent_node_id="file:src/a.py",
             )
             for i in range(150)
@@ -270,7 +295,16 @@ class TestNodeClustering:
     def test_clustering_preserves_file_nodes(self):
         """File nodes are never clustered."""
         file_nodes = [
-            CodeNode.create_file(f"src/{chr(97+i)}.py", "python", f"{chr(97+i)}.py", 0, 100, 1, 10, f"# {chr(97+i)}")
+            CodeNode.create_file(
+                f"src/{chr(97 + i)}.py",
+                "python",
+                f"{chr(97 + i)}.py",
+                0,
+                100,
+                1,
+                10,
+                f"# {chr(97 + i)}",
+            )
             for i in range(120)
         ]
         service = self._make_service_with_max(file_nodes, max_nodes=100)

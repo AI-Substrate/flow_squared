@@ -279,8 +279,10 @@ class TestEmbeddingAdapterFactoryLocal:
 
         # Mock sentence_transformers as importable via find_spec
         mock_st = MagicMock()
-        with patch.dict("sys.modules", {"sentence_transformers": mock_st}), \
-             patch("importlib.util.find_spec", return_value=MagicMock()):
+        with (
+            patch.dict("sys.modules", {"sentence_transformers": mock_st}),
+            patch("importlib.util.find_spec", return_value=MagicMock()),
+        ):
             adapter = create_embedding_adapter_from_config(mock_config)
 
         assert isinstance(adapter, SentenceTransformerEmbeddingAdapter)
@@ -309,8 +311,10 @@ class TestEmbeddingAdapterFactoryLocal:
         )
 
         mock_st = MagicMock()
-        with patch.dict("sys.modules", {"sentence_transformers": mock_st}), \
-             patch("importlib.util.find_spec", return_value=MagicMock()):
+        with (
+            patch.dict("sys.modules", {"sentence_transformers": mock_st}),
+            patch("importlib.util.find_spec", return_value=MagicMock()),
+        ):
             adapter = create_embedding_adapter_from_config(mock_config)
 
         assert isinstance(adapter, SentenceTransformerEmbeddingAdapter)

@@ -84,9 +84,7 @@ def _courtesy_save_graph(
     if context.cross_file_edges:
         known = {n.node_id for n in context.nodes}
         containment = {
-            (n.parent_node_id, n.node_id)
-            for n in context.nodes
-            if n.parent_node_id
+            (n.parent_node_id, n.node_id) for n in context.nodes if n.parent_node_id
         }
         for src, tgt, data in context.cross_file_edges:
             if src not in known or tgt not in known:
@@ -301,7 +299,10 @@ class ScanPipeline:
             context = stage.process(context)
             # Courtesy save only after slow stages (smart_content, embedding, cross_file_rels)
             # Parsing and storage are fast — no need to save after them
-            if stage.name in ("smart_content", "embedding", "cross_file_rels") and context.courtesy_save is not None:
+            if (
+                stage.name in ("smart_content", "embedding", "cross_file_rels")
+                and context.courtesy_save is not None
+            ):
                 context.courtesy_save()
 
         # Build summary from final context

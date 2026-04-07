@@ -31,9 +31,7 @@ class SCIPFakeAdapter(SCIPAdapterBase):
     def language_name(self) -> str:
         return "fake"
 
-    def set_edges(
-        self, edges: list[tuple[str, str, dict[str, Any]]]
-    ) -> None:
+    def set_edges(self, edges: list[tuple[str, str, dict[str, Any]]]) -> None:
         """Set edges to return from extract_cross_file_edges."""
         self._edges = edges
 
@@ -47,11 +45,13 @@ class SCIPFakeAdapter(SCIPAdapterBase):
         known_node_ids: set[str],
     ) -> list[tuple[str, str, dict[str, Any]]]:
         """Return pre-configured edges, or parse real index if set."""
-        self.call_history.append({
-            "method": "extract_cross_file_edges",
-            "index_path": index_path,
-            "known_node_ids_count": len(known_node_ids),
-        })
+        self.call_history.append(
+            {
+                "method": "extract_cross_file_edges",
+                "index_path": index_path,
+                "known_node_ids_count": len(known_node_ids),
+            }
+        )
 
         if self._edges:
             return self._edges

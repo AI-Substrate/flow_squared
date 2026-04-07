@@ -46,16 +46,16 @@ _NODE_FIELDS = (
 
 # DYK-08: Python is the single source of truth for category→color map
 _CATEGORY_COLORS: dict[str, str] = {
-    "callable": "#22d3ee",   # cyan 400 — bright on dark
-    "type": "#a78bfa",       # violet 400
-    "file": "#60a5fa",       # blue 400
-    "section": "#818cf8",    # indigo 400
-    "folder": "#94a3b8",     # slate 400
-    "block": "#34d399",      # emerald 400
+    "callable": "#22d3ee",  # cyan 400 — bright on dark
+    "type": "#a78bfa",  # violet 400
+    "file": "#60a5fa",  # blue 400
+    "section": "#818cf8",  # indigo 400
+    "folder": "#94a3b8",  # slate 400
+    "block": "#34d399",  # emerald 400
     "statement": "#fb7185",  # rose 400
-    "expression": "#fb923c", # orange 400
-    "definition": "#a3e635", # lime 400
-    "other": "#9ca3af",      # gray 400
+    "expression": "#fb923c",  # orange 400
+    "definition": "#a3e635",  # lime 400
+    "other": "#9ca3af",  # gray 400
 }
 
 
@@ -67,7 +67,9 @@ class ReportResult:
     metadata: dict[str, Any]
 
 
-def _serialize_node(node: CodeNode, include_smart_content: bool = True) -> dict[str, Any]:
+def _serialize_node(
+    node: CodeNode, include_smart_content: bool = True
+) -> dict[str, Any]:
     """Serialize a CodeNode to a report-safe dict.
 
     Whitelists only visualization-relevant fields.
@@ -147,12 +149,14 @@ class ReportService:
         # Apply include/exclude filters before any processing
         if include_patterns:
             nodes = [
-                n for n in nodes
+                n
+                for n in nodes
                 if any(fnmatch.fnmatch(n.node_id, p) for p in include_patterns)
             ]
         if exclude_patterns:
             nodes = [
-                n for n in nodes
+                n
+                for n in nodes
                 if not any(fnmatch.fnmatch(n.node_id, p) for p in exclude_patterns)
             ]
 
@@ -160,12 +164,12 @@ class ReportService:
         if include_patterns or exclude_patterns:
             valid_ids = {n.node_id for n in nodes}
             all_edges = [
-                (s, t, d) for s, t, d in all_edges
-                if s in valid_ids and t in valid_ids
+                (s, t, d) for s, t, d in all_edges if s in valid_ids and t in valid_ids
             ]
             logger.info(
                 "After filtering: %d nodes, %d edges",
-                len(nodes), len(all_edges),
+                len(nodes),
+                len(all_edges),
             )
 
         # Get max_nodes from config
@@ -230,7 +234,8 @@ class ReportService:
 
         logger.info(
             "Embedding matrix: %d nodes with embeddings, %d without",
-            len(embed_ids), len(no_embed_ids),
+            len(embed_ids),
+            len(no_embed_ids),
         )
 
         # If too few embeddings, fall back to TF-IDF on all nodes
@@ -242,11 +247,16 @@ class ReportService:
             corpus = []
             all_node_ids = []
             for n in nodes:
-                text = " ".join(filter(None, [
-                    n.name or "",
-                    n.signature or "",
-                    (n.content or "")[:500],
-                ]))
+                text = " ".join(
+                    filter(
+                        None,
+                        [
+                            n.name or "",
+                            n.signature or "",
+                            (n.content or "")[:500],
+                        ],
+                    )
+                )
                 if not text.strip():
                     text = n.node_id
                 corpus.append(text)
@@ -266,9 +276,12 @@ class ReportService:
         pca_dims = min(50, matrix.shape[1], n_samples)
         pca = PCA(n_components=pca_dims, random_state=42)
         reduced = pca.fit_transform(matrix)
-        logger.info("PCA: %d → %d dims (%.1f%% variance)",
-                     matrix.shape[1], pca_dims,
-                     sum(pca.explained_variance_ratio_) * 100)
+        logger.info(
+            "PCA: %d → %d dims (%.1f%% variance)",
+            matrix.shape[1],
+            pca_dims,
+            sum(pca.explained_variance_ratio_) * 100,
+        )
 
         perplexity = min(30, n_samples - 1)
         tsne = TSNE(
@@ -287,8 +300,8 @@ class ReportService:
             mn, mx = coords_2d[:, dim].min(), coords_2d[:, dim].max()
             rng = mx - mn if mx != mn else 1.0
             coords_2d[:, dim] = (
-                (coords_2d[:, dim] - mn) / rng * canvas_scale * 2 - canvas_scale
-            )
+                coords_2d[:, dim] - mn
+            ) / rng * canvas_scale * 2 - canvas_scale
 
         # --- Step 3: KMeans clustering on 2D positions ---
         # Cluster on the projected 2D coords so clusters are spatially coherent
@@ -303,13 +316,16 @@ class ReportService:
         positions: dict[str, tuple[float, float]] = {}
         node_cluster: dict[str, int] = {}
         for i, nid in enumerate(embed_ids):
-            positions[nid] = (round(float(coords_2d[i, 0]), 2),
-                              round(float(coords_2d[i, 1]), 2))
+            positions[nid] = (
+                round(float(coords_2d[i, 0]), 2),
+                round(float(coords_2d[i, 1]), 2),
+            )
             node_cluster[nid] = int(cluster_labels[i])
 
         # Place non-embedded nodes near their parent's position
         if not use_tfidf_fallback:
             import random as _rng
+
             for nid in no_embed_ids:
                 n = node_map[nid]
                 parent_id = n.parent_node_id
@@ -326,14 +342,59 @@ class ReportService:
 
         # --- Step 4: Auto-generate cluster labels from node names ---
         _CODE_NOISE = {
-            "test", "self", "def", "return", "none", "true", "false",
-            "str", "int", "bool", "list", "dict", "set", "tuple",
-            "class", "init", "given", "when", "then", "assert",
-            "raises", "error", "type", "value", "result", "data",
-            "name", "path", "file", "that", "with", "from", "this",
-            "not", "for", "and", "the", "min", "max", "get", "has",
-            "function", "const", "var", "let", "length", "new",
-            "args", "kwargs", "param", "call", "obj", "src",
+            "test",
+            "self",
+            "def",
+            "return",
+            "none",
+            "true",
+            "false",
+            "str",
+            "int",
+            "bool",
+            "list",
+            "dict",
+            "set",
+            "tuple",
+            "class",
+            "init",
+            "given",
+            "when",
+            "then",
+            "assert",
+            "raises",
+            "error",
+            "type",
+            "value",
+            "result",
+            "data",
+            "name",
+            "path",
+            "file",
+            "that",
+            "with",
+            "from",
+            "this",
+            "not",
+            "for",
+            "and",
+            "the",
+            "min",
+            "max",
+            "get",
+            "has",
+            "function",
+            "const",
+            "var",
+            "let",
+            "length",
+            "new",
+            "args",
+            "kwargs",
+            "param",
+            "call",
+            "obj",
+            "src",
         }
         cluster_id_set = sorted(set(int(l) for l in cluster_labels))
         cluster_texts: dict[int, str] = {}
@@ -374,21 +435,40 @@ class ReportService:
             scores = label_matrix[idx].toarray()[0]
             top_indices = scores.argsort()[-4:][::-1]
             top_terms = [feature_names[i] for i in top_indices if scores[i] > 0]
-            cluster_name_map[cid] = " · ".join(top_terms) if top_terms else f"Cluster {cid}"
+            cluster_name_map[cid] = (
+                " · ".join(top_terms) if top_terms else f"Cluster {cid}"
+            )
 
         # --- Step 5: Compute convex hulls per cluster ---
         # Distinct cluster colors (20 well-separated hues)
         _CLUSTER_COLORS = [
-            "#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16",
-            "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9",
-            "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef",
-            "#ec4899", "#f43f5e", "#78716c", "#64748b", "#a1a1aa",
+            "#ef4444",
+            "#f97316",
+            "#f59e0b",
+            "#eab308",
+            "#84cc16",
+            "#22c55e",
+            "#10b981",
+            "#14b8a6",
+            "#06b6d4",
+            "#0ea5e9",
+            "#3b82f6",
+            "#6366f1",
+            "#8b5cf6",
+            "#a855f7",
+            "#d946ef",
+            "#ec4899",
+            "#f43f5e",
+            "#78716c",
+            "#64748b",
+            "#a1a1aa",
         ]
 
         cluster_hull_data: list[dict[str, Any]] = []
         for cid in cluster_id_set:
-            mask = np.array([int(cluster_labels[i]) == cid
-                             for i in range(len(embed_ids))])
+            mask = np.array(
+                [int(cluster_labels[i]) == cid for i in range(len(embed_ids))]
+            )
             points = coords_2d[mask]
             cx_c, cy_c = float(points[:, 0].mean()), float(points[:, 1].mean())
             color = _CLUSTER_COLORS[cid % len(_CLUSTER_COLORS)]
@@ -404,14 +484,16 @@ class ReportService:
                 except Exception:
                     pass
 
-            cluster_hull_data.append({
-                "id": cid,
-                "label": cluster_name_map.get(cid, f"Cluster {cid}"),
-                "centroid": [round(cx_c, 2), round(cy_c, 2)],
-                "polygon": polygon,
-                "color": color,
-                "count": int(mask.sum()),
-            })
+            cluster_hull_data.append(
+                {
+                    "id": cid,
+                    "label": cluster_name_map.get(cid, f"Cluster {cid}"),
+                    "centroid": [round(cx_c, 2), round(cy_c, 2)],
+                    "polygon": polygon,
+                    "color": color,
+                    "count": int(mask.sum()),
+                }
+            )
 
         # --- Compute graph metrics ---
         in_degree: dict[str, int] = {}
@@ -481,8 +563,7 @@ class ReportService:
 
         # Serialize edges (both types with rendering hints)
         edge_dicts = [
-            _serialize_edge(s, t, d, idx=i)
-            for i, (s, t, d) in enumerate(all_edges)
+            _serialize_edge(s, t, d, idx=i) for i, (s, t, d) in enumerate(all_edges)
         ]
 
         # Build rich metadata (DYK-04)
@@ -630,9 +711,7 @@ class ReportService:
             "clustered": clustered,
         }
 
-    def _render_template(
-        self, graph_json: str, metadata_json: str
-    ) -> str:
+    def _render_template(self, graph_json: str, metadata_json: str) -> str:
         """Render the HTML template with graph data and all assets.
 
         DYK-03: Simple inline Jinja2, not full TemplateService.
@@ -646,12 +725,14 @@ class ReportService:
             "graph_viewer_js": self._load_static_asset("graph-viewer.js"),
             "graph_viewer_css": self._load_static_asset("graph-viewer.css"),
             "inter_font_b64": self._load_font_base64("inter-latin.woff2"),
-            "jetbrains_mono_font_b64": self._load_font_base64("jetbrains-mono-latin.woff2"),
+            "jetbrains_mono_font_b64": self._load_font_base64(
+                "jetbrains-mono-latin.woff2"
+            ),
         }
 
         template_pkg = importlib_resources.files("fs2.core.templates.reports")
-        template_text = (
-            template_pkg.joinpath("codebase_graph.html.j2").read_text(encoding="utf-8")
+        template_text = template_pkg.joinpath("codebase_graph.html.j2").read_text(
+            encoding="utf-8"
         )
 
         template = jinja2.Template(template_text, undefined=jinja2.StrictUndefined)

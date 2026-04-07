@@ -13,7 +13,13 @@ import pytest
 from fs2.core.adapters import scip_pb2
 from fs2.core.adapters.scip_adapter_dotnet import SCIPDotNetAdapter
 
-FIXTURE_DIR = Path(__file__).parent.parent.parent.parent / "scripts" / "scip" / "fixtures" / "dotnet"
+FIXTURE_DIR = (
+    Path(__file__).parent.parent.parent.parent
+    / "scripts"
+    / "scip"
+    / "fixtures"
+    / "dotnet"
+)
 FIXTURE_INDEX = FIXTURE_DIR / "index.scip"
 
 
@@ -145,7 +151,9 @@ class TestSCIPDotNetAdapterWithFixture:
         program_to_service = any(
             "Program" in s and "Service" in t for s, t in src_tgt_pairs
         )
-        assert program_to_service, f"Expected Program→Service edge, got: {src_tgt_pairs}"
+        assert program_to_service, (
+            f"Expected Program→Service edge, got: {src_tgt_pairs}"
+        )
 
     def test_service_references_model(self, adapter, known_node_ids):
         edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)

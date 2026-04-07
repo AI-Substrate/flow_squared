@@ -16,7 +16,6 @@ from fs2.core.repos import NetworkXGraphStore
 from fs2.core.services import ScanPipeline
 from fs2.core.services.stages.cross_file_rels_stage import CrossFileRelsStage
 
-
 # ---------------------------------------------------------------------------
 # Helper pool for integration testing
 # ---------------------------------------------------------------------------
@@ -106,7 +105,9 @@ class TestCrossFileRelsIntegration:
         node_ids = {n.node_id for n in nodes}
 
         # Verify key nodes exist
-        assert any("model.py" in nid for nid in node_ids), f"Missing model.py node. IDs: {node_ids}"
+        assert any("model.py" in nid for nid in node_ids), (
+            f"Missing model.py node. IDs: {node_ids}"
+        )
         assert any("service.py" in nid for nid in node_ids)
         assert any("handler.py" in nid for nid in node_ids)
 
@@ -119,7 +120,9 @@ class TestCrossFileRelsIntegration:
         node_ids = {n.node_id for n in nodes}
 
         # Find actual node IDs for Item and ItemService
-        item_id = next((nid for nid in node_ids if "Item" in nid and "type:" in nid), None)
+        item_id = next(
+            (nid for nid in node_ids if "Item" in nid and "type:" in nid), None
+        )
         service_id = next(
             (nid for nid in node_ids if "ItemService" in nid and "type:" in nid), None
         )
@@ -134,8 +137,12 @@ class TestCrossFileRelsIntegration:
                 [(service_id, item_id, {"edge_type": "references"})],
             )
 
-            edges = store.get_edges(service_id, direction="outgoing", edge_type="references")
-            assert len(edges) >= 1, f"Expected reference edge from {service_id} to {item_id}"
+            edges = store.get_edges(
+                service_id, direction="outgoing", edge_type="references"
+            )
+            assert len(edges) >= 1, (
+                f"Expected reference edge from {service_id} to {item_id}"
+            )
             assert any(nid == item_id for nid, _ in edges)
 
     def test_get_node_shows_relationships_for_injected_edges(self, tmp_path):
@@ -146,10 +153,14 @@ class TestCrossFileRelsIntegration:
         fixture = Path(__file__).parent.parent / "fixtures" / "cross_file_sample"
 
         # Scan to find node IDs
-        store_probe, _, _, nodes = self._scan_with_cross_refs(tmp_path / "probe", fixture, [])
+        store_probe, _, _, nodes = self._scan_with_cross_refs(
+            tmp_path / "probe", fixture, []
+        )
         node_ids = {n.node_id for n in nodes}
 
-        item_id = next((nid for nid in node_ids if "Item" in nid and "type:" in nid), None)
+        item_id = next(
+            (nid for nid in node_ids if "Item" in nid and "type:" in nid), None
+        )
         service_id = next(
             (nid for nid in node_ids if "ItemService" in nid and "type:" in nid), None
         )
@@ -167,7 +178,9 @@ class TestCrossFileRelsIntegration:
 
             result = get_node(node_id=item_id)
             assert result is not None
-            assert "relationships" in result, f"Missing relationships. Keys: {result.keys()}"
+            assert "relationships" in result, (
+                f"Missing relationships. Keys: {result.keys()}"
+            )
             assert "referenced_by" in result["relationships"]
             assert service_id in result["relationships"]["referenced_by"]
 
@@ -180,7 +193,6 @@ class TestCrossFileRelsStageSkipsWithoutConfig:
         """Stage returns early with no_config reason."""
         from fs2.config.objects import ScanConfig
         from fs2.core.services.pipeline_context import PipelineContext
-        from fs2.core.services.stages.cross_file_rels_stage import CrossFileRelsStage
 
         ctx = PipelineContext(scan_config=ScanConfig())
         # Do NOT set cross_file_rels_config (simulates old pipeline)
@@ -195,7 +207,6 @@ class TestCrossFileRelsStageSkipsWithoutConfig:
         """Stage returns early when config.enabled=False."""
         from fs2.config.objects import CrossFileRelsConfig, ScanConfig
         from fs2.core.services.pipeline_context import PipelineContext
-        from fs2.core.services.stages.cross_file_rels_stage import CrossFileRelsStage
 
         ctx = PipelineContext(scan_config=ScanConfig())
         ctx.cross_file_rels_config = CrossFileRelsConfig(enabled=False)

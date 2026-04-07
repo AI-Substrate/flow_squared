@@ -90,7 +90,9 @@ def codebase_graph(
                 stderr_console,
             )
 
-        console.print_info(f"Graph: {graph_store.get_metadata().get('node_count', '?')} nodes")
+        console.print_info(
+            f"Graph: {graph_store.get_metadata().get('node_count', '?')} nodes"
+        )
 
         # Determine graph_path for metadata
         cli_context = ctx.obj
@@ -131,7 +133,9 @@ def codebase_graph(
                 webbrowser.open(output_path.as_uri())
                 console.print_info("Opened in browser")
             except (webbrowser.Error, OSError):
-                console.print_info(f"Could not open browser. Open manually: {output_path}")
+                console.print_info(
+                    f"Could not open browser. Open manually: {output_path}"
+                )
 
     except typer.Exit:
         raise

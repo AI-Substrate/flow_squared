@@ -65,8 +65,7 @@ def normalise_language(language: str) -> str:
     if canonical is None:
         known = sorted(set(LANGUAGE_ALIASES.values()))
         raise ValueError(
-            f"Unknown language: {language!r}. "
-            f"Known languages: {', '.join(known)}"
+            f"Unknown language: {language!r}. Known languages: {', '.join(known)}"
         )
     return canonical
 
@@ -207,9 +206,7 @@ class SCIPAdapterBase(ABC):
             index = scip_pb2.Index()
             index.ParseFromString(path.read_bytes())
         except Exception as e:
-            raise SCIPIndexError(
-                f"Failed to parse SCIP index {path}: {e}"
-            ) from e
+            raise SCIPIndexError(f"Failed to parse SCIP index {path}: {e}") from e
 
         if not index.documents:
             logger.warning("SCIP index %s contains 0 documents", path)
@@ -219,7 +216,9 @@ class SCIPAdapterBase(ABC):
     # ── Edge extraction (universal) ───────────────────────
 
     def _extract_raw_edges(
-        self, index: scip_pb2.Index, path_prefix: str = "",
+        self,
+        index: scip_pb2.Index,
+        path_prefix: str = "",
     ) -> list[tuple[str, str, str]]:
         """Extract (ref_file, def_file, symbol) triples.
 
