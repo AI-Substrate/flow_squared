@@ -185,7 +185,8 @@ def set_embedding_adapter(adapter: EmbeddingAdapter) -> None:
         adapter: EmbeddingAdapter instance (typically FakeEmbeddingAdapter).
     """
     global _embedding_adapter
-    _embedding_adapter = adapter
+    with _lock:
+        _embedding_adapter = adapter
 
 
 def get_docs_service() -> DocsService:

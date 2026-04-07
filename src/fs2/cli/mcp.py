@@ -55,7 +55,49 @@ def mcp() -> None:
 
     MCPLoggingConfig().configure()
 
+    # 046: Pre-create and cache embedding adapter for singleton reuse.
+    # Fires background warmup so model is ready before first search.
+    _preload_embedding_adapter()
+
     # NOW safe to import and run the MCP server
     from fs2.mcp.server import mcp as mcp_server
 
     mcp_server.run()
+
+
+def _preload_embedding_adapter() -> None:
+    """Create embedding adapter at startup and warm model in background.
+
+    Per 046-mcp-embedding-preload:
+    1. Creates the adapter via the standard factory
+    2. Caches it as a singleton via set_embedding_adapter()
+    3. Fires a daemon thread to call adapter.warmup() (non-blocking)
+
+    If embedding is not configured or sentence-transformers is missing,
+    this is a silent no-op — search falls back to text mode as before.
+    """
+    import logging
+    import threading
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        from fs2.core.adapters.embedding_adapter import (
+            create_embedding_adapter_from_config,
+        )
+        from fs2.core.dependencies import get_config, set_embedding_adapter
+
+        config = get_config()
+        adapter = create_embedding_adapter_from_config(config)
+        if adapter is None:
+            return  # No embedding configured or deps missing — graceful degradation
+
+        set_embedding_adapter(adapter)
+
+        # Fire background warmup (non-blocking)
+        thread = threading.Thread(target=adapter.warmup, daemon=True)
+        thread.start()
+        logger.info("Embedding model warmup started in background")
+
+    except Exception as e:
+        logger.warning(f"Embedding preload skipped: {e}")

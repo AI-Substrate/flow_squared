@@ -903,6 +903,12 @@ async def search(
         adapter = get_embedding_adapter()
         if adapter is None:
             adapter = create_embedding_adapter_from_config(config)
+            # 046: Cache the adapter so subsequent requests reuse it.
+            # DYK#2: Only cache non-None to avoid overwriting a valid adapter.
+            if adapter is not None:
+                from fs2.core.dependencies import set_embedding_adapter
+
+                set_embedding_adapter(adapter)
 
         # Create service with optional embedding adapter
         # Per plan-018: Pass config for parent_penalty setting

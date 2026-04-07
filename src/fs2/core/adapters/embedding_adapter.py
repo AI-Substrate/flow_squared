@@ -102,6 +102,20 @@ class EmbeddingAdapter(ABC):
         """
         ...
 
+    def warmup(self) -> None:  # noqa: B027
+        """Pre-load any expensive resources (e.g., ML models).
+
+        Called at MCP server startup to warm the adapter in a background
+        thread. Implementations should load their model here so that
+        subsequent embed calls don't pay the cold-start cost.
+
+        Default is a no-op — only local adapters with heavy model loads
+        need to override this. Safe to call from any thread.
+
+        Per 046-mcp-embedding-preload: Non-abstract to avoid breaking
+        existing implementations.
+        """
+
 
 def create_embedding_adapter_from_config(config) -> EmbeddingAdapter | None:
     """Factory function to create an embedding adapter from configuration.
