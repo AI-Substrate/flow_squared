@@ -1105,13 +1105,13 @@ class TestAtomicSave:
 
         graph_path = tmp_path / "graph.pickle"
 
-        # Patch rename to simulate failure after tmp file is written
-        original_rename = Path.rename
+        # Patch os.replace to simulate failure after tmp file is written
+        import os as _os
 
-        def failing_rename(self_path, target):
-            raise OSError("Simulated rename failure")
+        def failing_replace(src, dst):
+            raise OSError("Simulated replace failure")
 
-        with patch.object(Path, "rename", failing_rename):
+        with patch.object(_os, "replace", failing_replace):
             with pytest.raises(GraphStoreError):
                 store.save(graph_path)
 

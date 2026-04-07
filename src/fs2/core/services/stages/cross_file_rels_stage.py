@@ -171,7 +171,7 @@ def _ensure_cache_gitignore(cache_dir: Path) -> None:
     gitignore = cache_dir / ".gitignore"
     if not gitignore.exists():
         cache_dir.mkdir(parents=True, exist_ok=True)
-        gitignore.write_text("# SCIP index cache\n*\n!.gitignore\n")
+        gitignore.write_text("# SCIP index cache\n*\n!.gitignore\n", encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------

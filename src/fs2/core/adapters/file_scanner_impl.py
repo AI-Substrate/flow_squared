@@ -307,7 +307,7 @@ class FileSystemScanner(FileScanner):
         gitignore_path = directory / ".gitignore"
         if gitignore_path.exists():
             try:
-                patterns = gitignore_path.read_text().splitlines()
+                patterns = gitignore_path.read_text(encoding="utf-8").splitlines()
                 # Filter empty lines and comments
                 patterns = [
                     p.strip()

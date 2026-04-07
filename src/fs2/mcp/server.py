@@ -656,7 +656,7 @@ def get_node(
             absolute_path = _validate_save_path(save_to_file)
 
             # Write JSON to file
-            with open(absolute_path, "w") as f:
+            with open(absolute_path, "w", encoding="utf-8") as f:
                 json.dump(result, f, indent=2)
 
             # Add saved_to field per DYK Session decision

@@ -128,7 +128,7 @@ def codebase_graph(
         # Open in browser (DYK-02: graceful fallback)
         if open_browser:
             try:
-                webbrowser.open(f"file://{output_path}")
+                webbrowser.open(output_path.as_uri())
                 console.print_info("Opened in browser")
             except (webbrowser.Error, OSError):
                 console.print_info(f"Could not open browser. Open manually: {output_path}")

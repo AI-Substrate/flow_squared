@@ -222,7 +222,7 @@ def add_project(
     yaml.preserve_quotes = True  # type: ignore[assignment]
 
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.load(f)
         if not isinstance(data, dict):
             data = {}
@@ -265,7 +265,7 @@ def add_project(
 
     if added > 0:
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(config_path, "w") as f:
+        with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(data, f)
         console.print(f"\n[green]Wrote {added} project(s) to {config_path}[/green]")
     else:
