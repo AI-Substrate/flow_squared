@@ -136,11 +136,12 @@ class GitignoreFilter(DefaultFilter):
         # Get path relative to root for pattern matching
         try:
             rel_path = Path(path).relative_to(self._root_path)
+            rel_str = rel_path.as_posix()
             # Check if any pattern matches
-            if self._spec.match_file(str(rel_path)):
+            if self._spec.match_file(rel_str):
                 return False  # Ignored
             # Also check with trailing slash for directories
-            if Path(path).is_dir() and self._spec.match_file(str(rel_path) + "/"):
+            if Path(path).is_dir() and self._spec.match_file(rel_str + "/"):
                 return False
         except ValueError:
             # Path not relative to root - don't filter
