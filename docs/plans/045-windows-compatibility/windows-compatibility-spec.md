@@ -106,8 +106,8 @@ When `uv` is not found, the install error message shows the Windows-appropriate 
 ### AC9: Report Opens in Browser
 `fs2 report` opens the generated HTML file correctly in the default browser on Windows (proper `file:///C:/...` URI format).
 
-### AC10: Tests Pass on Windows
-`uv run python -m pytest` passes on Windows with no new failures. Platform-incompatible tests (symlinks, chmod) are skipped with `@pytest.mark.skipif(sys.platform == "win32", ...)`.
+### AC10: No New Test Failures on Windows
+`uv run python -m pytest` introduces no new failures on Windows. Pre-existing Windows-incompatible tests (18 failures: sklearn TSNE, asyncio event loop, dotenv, XDG paths, chmod) are documented but out of scope for this feature.
 
 ### AC11: Mac/Linux Unaffected
 All changes are no-ops or equivalent behavior on Mac/Linux. The existing test suite continues to pass on Mac/Linux without modifications.

@@ -79,7 +79,15 @@ class GitignoreFilter(DefaultFilter):
         # Load .gitignore if it exists
         gitignore_path = root_path / ".gitignore"
         if gitignore_path.exists():
-            gitignore_content = gitignore_path.read_text(encoding="utf-8")
+            try:
+                gitignore_content = gitignore_path.read_text(encoding="utf-8")
+            except OSError as e:
+                logger.warning(
+                    "Error reading .gitignore at %s: %s. Continuing without these patterns.",
+                    gitignore_path,
+                    e,
+                )
+                gitignore_content = ""
             for line in gitignore_content.splitlines():
                 line = line.strip()
                 # Skip empty lines and comments

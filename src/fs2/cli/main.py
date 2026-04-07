@@ -17,6 +17,19 @@ Global Options:
 - --version: Show version and exit
 """
 
+import os
+import sys
+
+# --- Windows UTF-8 bootstrap ---
+# Ensure UTF-8 mode on Windows (prevents cp1252 encoding crashes and Rich garbling).
+# Must run before any Rich/Typer imports that touch stdout.
+# PYTHONUTF8 env var covers subprocesses; reconfigure covers current process.
+os.environ.setdefault("PYTHONUTF8", "1")
+if sys.platform == "win32":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+
 from dataclasses import dataclass
 from typing import Annotated
 

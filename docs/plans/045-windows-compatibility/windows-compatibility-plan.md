@@ -44,6 +44,7 @@ Harness: Not applicable (user override — manual scan verification sufficient f
 | `C:\repos\flow_squared\src\fs2\mcp\server.py` | mcp | internal | UTF-8 encoding on one `open("w")` |
 | `C:\repos\flow_squared\src\fs2\__main__.py` | cli | internal | Set `PYTHONUTF8=1` for Windows console output |
 | `C:\repos\flow_squared\tests\unit\adapters\test_file_scanner_impl.py` | (tests) | internal | Add Windows skip to symlink tests |
+| `C:\repos\flow_squared\tests\unit\repos\test_graph_store_impl.py` | (tests) | internal | Update atomic-save failure test for `os.replace()` |
 
 ## Key Findings
 

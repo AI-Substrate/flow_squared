@@ -551,7 +551,7 @@ class TreeSitterParser(ASTParser):
         # Add file node
         lines = content_str.split("\n")
         file_node = CodeNode.create_file(
-            file_path=str(rel_path).replace("\\", "/"),
+            file_path=rel_path.as_posix(),
             language=language,
             content_type=content_type,
             ts_kind=tree.root_node.type,
@@ -569,7 +569,7 @@ class TreeSitterParser(ASTParser):
         if language in EXTRACTABLE_LANGUAGES:
             self._extract_nodes(
                 node=tree.root_node,
-                file_path=str(rel_path).replace("\\", "/"),
+                file_path=rel_path.as_posix(),
                 language=language,
                 content_type=content_type,
                 content=content_str,
@@ -607,7 +607,7 @@ class TreeSitterParser(ASTParser):
         lines = content.split("\n")
         return [
             CodeNode.create_file(
-                file_path=str(rel_path).replace("\\", "/"),
+                file_path=rel_path.as_posix(),
                 language=language,
                 content_type=content_type,
                 ts_kind="source_file",
