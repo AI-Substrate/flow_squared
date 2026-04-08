@@ -64,7 +64,9 @@ class SentenceTransformerEmbeddingAdapter(EmbeddingAdapter):
         self._local_config = self._embedding_config.local
         self._model = None  # Lazy loaded
         self._model_lock = threading.Lock()  # 046: Thread-safe model loading
-        self._model_error: EmbeddingAdapterError | None = None  # 046: Stored load failure
+        self._model_error: EmbeddingAdapterError | None = (
+            None  # 046: Stored load failure
+        )
         self._device: str | None = None
 
     @property

@@ -146,7 +146,9 @@ class TestThreadSafeModelLoading:
             f"Model should be loaded exactly once, but was loaded {call_count['value']} times"
         )
         # All threads should get the same model instance
-        assert all(r is results[0] for r in results), "All threads should share the same model"
+        assert all(r is results[0] for r in results), (
+            "All threads should share the same model"
+        )
 
     def test_get_model_returns_cached_model_on_second_call(self):
         """Proves model is cached after first load."""
@@ -239,9 +241,8 @@ class TestWarmupMethod:
         # But _get_model() should re-raise the stored error
         from fs2.core.adapters.exceptions import EmbeddingAdapterError
 
-        with patches:
-            with pytest.raises(EmbeddingAdapterError):
-                adapter._get_model()
+        with patches, pytest.raises(EmbeddingAdapterError):
+            adapter._get_model()
 
     def test_warmup_called_from_background_thread(self):
         """Proves warmup() is safe to call from a background thread."""
@@ -307,19 +308,18 @@ class TestWarmupLogging:
         """Proves a waiting message is logged when model is loading."""
         adapter, _, _, patches = _make_adapter_with_fakes(delay=0.2)
 
-        with patches:
-            with caplog.at_level(logging.DEBUG):
-                # Start warmup in background to hold lock
-                warmup_thread = threading.Thread(target=adapter.warmup, daemon=True)
-                warmup_thread.start()
-                time.sleep(0.05)
+        with patches, caplog.at_level(logging.DEBUG):
+            # Start warmup in background to hold lock
+            warmup_thread = threading.Thread(target=adapter.warmup, daemon=True)
+            warmup_thread.start()
+            time.sleep(0.05)
 
-                # Second call should log waiting message
-                search_thread = threading.Thread(target=adapter._get_model)
-                search_thread.start()
+            # Second call should log waiting message
+            search_thread = threading.Thread(target=adapter._get_model)
+            search_thread.start()
 
-                warmup_thread.join(timeout=5)
-                search_thread.join(timeout=5)
+            warmup_thread.join(timeout=5)
+            search_thread.join(timeout=5)
 
         # Check that some form of "waiting" or "loading" was logged
         log_text = caplog.text.lower()

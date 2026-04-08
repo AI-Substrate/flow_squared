@@ -82,9 +82,7 @@ class TestPreloadLifecycle:
             except Exception as e:
                 errors.append(e)
 
-        threads = [
-            threading.Thread(target=set_adapter, args=(a,)) for a in adapters
-        ]
+        threads = [threading.Thread(target=set_adapter, args=(a,)) for a in adapters]
         for t in threads:
             t.start()
         for t in threads:

@@ -105,7 +105,11 @@ class EmbeddingService:
     def get_metadata(self) -> dict[str, Any]:
         """Return embedding metadata for graph persistence."""
         model_name = self._config.mode
-        if self._config.mode == "azure" and self._config.azure is not None:
+        if self._config.mode == "onnx" and self._config.onnx is not None:
+            model_name = self._config.onnx.model
+        elif self._config.mode == "local" and self._config.local is not None:
+            model_name = self._config.local.model
+        elif self._config.mode == "azure" and self._config.azure is not None:
             model_name = self._config.azure.deployment_name
 
         return {
@@ -188,12 +192,16 @@ class EmbeddingService:
                     embedding_config.local = LocalEmbeddingConfig()
                 embedding_adapter = SentenceTransformerEmbeddingAdapter(config)
         elif embedding_config.mode == "onnx":
-            from fs2.config.objects import OnnxEmbeddingConfig
-            from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
+            from fs2.core.adapters.embedding_adapter import (
+                create_embedding_adapter_from_config,
+            )
 
-            if embedding_config.onnx is None:
-                embedding_config.onnx = OnnxEmbeddingConfig()
-            embedding_adapter = OnnxEmbeddingAdapter(config)
+            embedding_adapter = create_embedding_adapter_from_config(config)
+            if embedding_adapter is None:
+                raise ValueError(
+                    "ONNX embeddings require onnxruntime. "
+                    "Install with: pip install onnxruntime"
+                )
         elif embedding_config.mode == "fake":
             embedding_adapter = FakeEmbeddingAdapter(
                 dimensions=embedding_config.dimensions

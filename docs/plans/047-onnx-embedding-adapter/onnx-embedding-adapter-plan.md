@@ -112,3 +112,9 @@ T008 (config tests) ──→ depends on T001
 | Metadata mismatch on local→onnx switch | High | Low | Expected behavior — user must re-embed or use `--force`. V1 accepts this. |
 | `tokenizers` edge cases vs `transformers` | Low | Medium | Test with diverse code snippets in T003 |
 | ONNX session slower than expected on some CPUs | Very Low | Low | Benchmark validated 0.03s for 5 texts — well within acceptable range |
+
+## Fixes
+
+| ID | Created | Summary | Domain(s) | Status | Source |
+|----|---------|---------|-----------|--------|--------|
+| FX001 | 2026-04-08 | Remove torch/sentence-transformers from core deps, make onnxruntime core | project, embedding-adapters, docs | Complete | Workshop 002 |

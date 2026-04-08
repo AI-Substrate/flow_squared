@@ -160,9 +160,7 @@ class OnnxEmbeddingAdapter(EmbeddingAdapter):
                     onnx_path = hf_hub_download(
                         model_name, "onnx/model.onnx", local_files_only=True
                     )
-                    logger.info(
-                        f"Loaded ONNX model: {model_name} (from cache)"
-                    )
+                    logger.info(f"Loaded ONNX model: {model_name} (from cache)")
                 except Exception:
                     try:
                         logger.info(
@@ -217,11 +215,8 @@ class OnnxEmbeddingAdapter(EmbeddingAdapter):
                             f"Using model dimension ({actual_dim})."
                         )
 
-            except EmbeddingAdapterError:
-                self._session_error = EmbeddingAdapterError(
-                    "ONNX session failed to load. "
-                    "Restart `fs2 mcp` after resolving the issue."
-                )
+            except EmbeddingAdapterError as e:
+                self._session_error = e
                 raise
             except Exception as e:
                 self._session_error = EmbeddingAdapterError(

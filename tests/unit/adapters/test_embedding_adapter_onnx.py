@@ -10,8 +10,6 @@ This is a documented exception to the project's fakes-over-mocks convention
 """
 
 import threading
-import time
-import types
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -269,9 +267,11 @@ class TestOnnxAdapterErrors:
         config = _make_mock_config_service()
         adapter = OnnxEmbeddingAdapter(config)
 
-        with patch.dict("sys.modules", {"onnxruntime": None}):
-            with pytest.raises(EmbeddingAdapterError, match="onnxruntime"):
-                adapter._get_session()
+        with (
+            patch.dict("sys.modules", {"onnxruntime": None}),
+            pytest.raises(EmbeddingAdapterError, match="onnxruntime"),
+        ):
+            adapter._get_session()
 
     def test_session_error_stored_and_reraised(self):
         """Proves load failure stored and re-raised without retrying."""
@@ -303,15 +303,15 @@ class TestOnnxAdapterThreadSafety:
         mock_session = _make_mock_onnx_session()
         mock_tokenizer = _make_mock_tokenizer()
 
-        original_get = adapter._get_session
+        barrier = threading.Barrier(5, timeout=10)
 
         def slow_load():
             """Simulate slow load that we control."""
+            barrier.wait()
             with adapter._session_lock:
                 if adapter._session is not None:
                     return adapter._session, adapter._tokenizer
                 load_count["value"] += 1
-                time.sleep(0.2)
                 adapter._session = mock_session
                 adapter._tokenizer = mock_tokenizer
                 adapter._use_cls_pooling = True
@@ -368,18 +368,12 @@ class TestOnnxAdapterWarmup:
     def test_warmup_does_not_raise_on_failure(self):
         """Proves warmup catches errors (stored for re-raise on search)."""
         from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
+        from fs2.core.adapters.exceptions import EmbeddingAdapterError
 
         config = _make_mock_config_service()
         adapter = OnnxEmbeddingAdapter(config)
 
-        # Force a load error via session_error
-        adapter._session_error = EmbeddingAdapterError(
-            "test error"
-        ) if False else None
-
         # Mock _get_session to raise
-        from fs2.core.adapters.exceptions import EmbeddingAdapterError
-
         def fail_load():
             adapter._session_error = EmbeddingAdapterError("load failed")
             raise adapter._session_error
@@ -445,3 +439,127 @@ class TestOnnxFactoryIntegration:
             adapter = create_embedding_adapter_from_config(config)
 
         assert adapter is None
+
+
+@pytest.mark.unit
+class TestOnnxMetadataRegression:
+    """FT-001: Ensure ONNX model ID is persisted in metadata, not just mode name."""
+
+    def test_given_onnx_mode_when_get_metadata_then_model_name_is_actual_model_id(
+        self,
+    ):
+        """Purpose: Prevents silent stale embeddings when switching same-dimension ONNX models.
+        Quality Contribution: Metadata mismatch detection triggers re-embed on model change.
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        config = EmbeddingConfig(
+            mode="onnx",
+            dimensions=384,
+            onnx=OnnxEmbeddingConfig(model="BAAI/bge-small-en-v1.5"),
+        )
+        service = EmbeddingService(
+            config=config, embedding_adapter=None, token_counter=None
+        )
+        metadata = service.get_metadata()
+
+        assert metadata["embedding_model"] == "BAAI/bge-small-en-v1.5"
+        assert metadata["embedding_model"] != "onnx"
+
+    def test_given_different_onnx_models_when_get_metadata_then_metadata_differs(self):
+        """Purpose: Proves changing the ONNX model changes metadata, triggering re-embed.
+        Quality Contribution: Guards against silently mixing embedding spaces.
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        config_a = EmbeddingConfig(
+            mode="onnx",
+            dimensions=384,
+            onnx=OnnxEmbeddingConfig(model="BAAI/bge-small-en-v1.5"),
+        )
+        config_b = EmbeddingConfig(
+            mode="onnx",
+            dimensions=384,
+            onnx=OnnxEmbeddingConfig(model="all-MiniLM-L6-v2"),
+        )
+        meta_a = EmbeddingService(
+            config=config_a, embedding_adapter=None, token_counter=None
+        ).get_metadata()
+        meta_b = EmbeddingService(
+            config=config_b, embedding_adapter=None, token_counter=None
+        ).get_metadata()
+
+        assert meta_a["embedding_model"] != meta_b["embedding_model"]
+
+    def test_given_onnx_mode_no_config_when_get_metadata_then_falls_back_to_mode(self):
+        """Purpose: Graceful fallback when onnx config is None.
+        Quality Contribution: No crash on edge case config.
+        """
+        from fs2.core.services.embedding.embedding_service import EmbeddingService
+
+        config = EmbeddingConfig(mode="onnx", dimensions=384, onnx=None)
+        service = EmbeddingService(
+            config=config, embedding_adapter=None, token_counter=None
+        )
+        metadata = service.get_metadata()
+
+        assert metadata["embedding_model"] == "onnx"
+
+
+@pytest.mark.unit
+class TestOnnxPoolingDetection:
+    """FT-003: Config-driven pooling detection tests."""
+
+    def test_given_cls_pooling_config_when_detected_then_use_cls(self):
+        """Purpose: Verifies CLS pooling is selected from 1_Pooling/config.json.
+        Quality Contribution: Wrong pooling produces L2 ~0.36 vs correct embeddings.
+        """
+        import json
+        import tempfile
+        from pathlib import Path
+
+        from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
+
+        config = _make_mock_config_service()
+        adapter = OnnxEmbeddingAdapter(config)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(
+                {"pooling_mode_cls_token": True, "pooling_mode_mean_tokens": False}, f
+            )
+            f.flush()
+            pooling_path = f.name
+
+        mock_download = MagicMock(return_value=pooling_path)
+        with patch("huggingface_hub.hf_hub_download", mock_download):
+            use_cls = adapter._detect_pooling("BAAI/bge-small-en-v1.5")
+
+        Path(pooling_path).unlink(missing_ok=True)
+        assert use_cls is True
+
+    def test_given_mean_pooling_config_when_detected_then_use_mean(self):
+        """Purpose: Verifies mean pooling is selected when config says so.
+        Quality Contribution: Ensures non-BGE models use correct pooling.
+        """
+        import json
+        import tempfile
+        from pathlib import Path
+
+        from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
+
+        config = _make_mock_config_service()
+        adapter = OnnxEmbeddingAdapter(config)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(
+                {"pooling_mode_cls_token": False, "pooling_mode_mean_tokens": True}, f
+            )
+            f.flush()
+            pooling_path = f.name
+
+        mock_download = MagicMock(return_value=pooling_path)
+        with patch("huggingface_hub.hf_hub_download", mock_download):
+            use_cls = adapter._detect_pooling("some/mean-model")
+
+        Path(pooling_path).unlink(missing_ok=True)
+        assert use_cls is False
