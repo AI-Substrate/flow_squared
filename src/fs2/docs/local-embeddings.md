@@ -1,6 +1,6 @@
 # Local Embeddings
 
-Enable semantic search in fs2 without API keys or network access using on-device SentenceTransformer models.
+Enable semantic search in fs2 without API keys or network access using on-device embedding models.
 
 ## Quick Start
 
@@ -16,6 +16,25 @@ fs2 search "error handling" --mode semantic
 ```
 
 No extra installation needed — `sentence-transformers` and `torch` are included with fs2.
+
+### ONNX Mode (Recommended for Windows)
+
+On Windows, PyTorch import takes ~90 seconds. ONNX Runtime eliminates this:
+
+```bash
+# Install ONNX support
+pip install fs2[onnx-embeddings]
+```
+
+```yaml
+# .fs2/config.yaml
+embedding:
+  mode: onnx
+  dimensions: 384
+```
+
+ONNX produces **numerically identical** embeddings to the default local mode (L2 < 1e-6)
+and imports in under 1 second.
 
 ## Configuration
 

@@ -567,6 +567,45 @@ class OpenAIEmbeddingConfig(BaseModel):
         return v
 
 
+class OnnxEmbeddingConfig(BaseModel):
+    """ONNX Runtime embedding configuration.
+
+    Nested configuration for ONNX-based on-device embedding settings.
+    No API keys required — runs entirely on-device using ONNX Runtime.
+    Eliminates PyTorch dependency, reducing import time from ~93s to ~1s on Windows.
+
+    Per 047: Uses HuggingFace Hub ONNX exports and tokenizers lib directly.
+
+    Attributes:
+        model: HuggingFace model name with ONNX export (default: BAAI/bge-small-en-v1.5).
+        max_seq_length: Maximum token sequence length (default: 512).
+        provider: ONNX Runtime execution provider (default: CPUExecutionProvider).
+
+    YAML example:
+        ```yaml
+        embedding:
+          mode: onnx
+          dimensions: 384
+          onnx:
+            model: BAAI/bge-small-en-v1.5
+            max_seq_length: 512
+            provider: CPUExecutionProvider
+        ```
+    """
+
+    model: str = "BAAI/bge-small-en-v1.5"
+    max_seq_length: int = 512
+    provider: str = "CPUExecutionProvider"
+
+    @field_validator("max_seq_length")
+    @classmethod
+    def validate_max_seq_length(cls, v: int) -> int:
+        """Validate max_seq_length is positive."""
+        if v <= 0:
+            raise ValueError("max_seq_length must be > 0")
+        return v
+
+
 class LocalEmbeddingConfig(BaseModel):
     """Local SentenceTransformer embedding configuration.
 
@@ -714,7 +753,7 @@ class EmbeddingConfig(BaseModel):
 
     __config_path__: ClassVar[str] = "embedding"
 
-    mode: Literal["azure", "openai_compatible", "local", "fake"] = "local"
+    mode: Literal["azure", "openai_compatible", "local", "onnx", "fake"] = "local"
     dimensions: int = 1024
     batch_size: int = 16  # Texts per API call (FlowSpace pattern)
     max_concurrent_batches: int = 1  # Concurrent batch processing
@@ -727,6 +766,9 @@ class EmbeddingConfig(BaseModel):
 
     # Local SentenceTransformer configuration
     local: LocalEmbeddingConfig | None = None
+
+    # ONNX Runtime configuration (per 047)
+    onnx: OnnxEmbeddingConfig | None = None
 
     # Per-content-type chunking configuration (Finding 04)
     code: ChunkConfig = Field(
@@ -797,13 +839,14 @@ class EmbeddingConfig(BaseModel):
 
     @model_validator(mode="after")
     def auto_default_dimensions_for_local(self) -> "EmbeddingConfig":
-        """Auto-default dimensions to 384 for local mode when not explicitly set.
+        """Auto-default dimensions to 384 for local/onnx mode when not explicitly set.
 
         Per DYK-3: Uses model_fields_set to distinguish between user-provided
         dimensions and Pydantic default. Only overrides if user didn't explicitly
         set dimensions.
+        Per 047: ONNX uses the same default model (bge-small-en-v1.5, 384 dims).
         """
-        if self.mode == "local" and "dimensions" not in self.model_fields_set:
+        if self.mode in ("local", "onnx") and "dimensions" not in self.model_fields_set:
             self.dimensions = 384
         return self
 

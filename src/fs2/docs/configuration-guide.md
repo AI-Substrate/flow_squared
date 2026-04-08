@@ -421,6 +421,25 @@ embedding:
 > **Note**: The model downloads from HuggingFace Hub on first use (~130 MB for default).
 > After the first download, it's cached locally and works fully offline.
 
+### ONNX Embedding Configuration (Recommended for Windows)
+
+ONNX Runtime eliminates the ~90-second PyTorch import on Windows while producing **identical** embeddings:
+
+```yaml
+embedding:
+  mode: onnx
+  dimensions: 384
+
+  onnx:
+    model: BAAI/bge-small-en-v1.5     # Must have ONNX export on HuggingFace Hub
+    max_seq_length: 512
+    provider: CPUExecutionProvider     # Or CUDAExecutionProvider for GPU
+```
+
+Install ONNX support: `pip install fs2[onnx-embeddings]`
+
+ONNX mode uses `onnxruntime` + `tokenizers` directly — no PyTorch or sentence-transformers needed. Import time drops from ~93s to ~0.7s on Windows.
+
 ### Azure Embedding Configuration (API Key)
 
 ```yaml

@@ -41,6 +41,9 @@ local-embeddings = [
     "sentence-transformers>=3.0",
     "torch>=2.0",
 ]
+onnx-embeddings = [
+    "onnxruntime>=1.17",
+]
 
 [tool.ruff]
 line-length = 88

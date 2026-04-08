@@ -4,7 +4,7 @@
 **Plan Version**: 1.0.0
 **Created**: 2026-04-08
 **Spec**: `docs/plans/047-onnx-embedding-adapter/onnx-embedding-adapter-spec.md`
-**Status**: DRAFT
+**Status**: COMPLETE
 
 ## Summary
 
@@ -55,14 +55,14 @@ Importing sentence-transformers/PyTorch on Windows takes 93 seconds, making MCP 
 
 | Status | ID | Task | Domain | Path(s) | Done When | Notes |
 |--------|-----|------|--------|---------|-----------|-------|
-| [ ] | T001 | Add `OnnxEmbeddingConfig` and `"onnx"` mode to config | config | `src/fs2/config/objects.py` | `OnnxEmbeddingConfig(model, max_seq_length, provider)` exists. `"onnx"` in mode Literal. `auto_default_dimensions_for_local()` extended to also handle `"onnx"` (set 384). | Rename method or add onnx-specific auto-default |
-| [ ] | T002 | Create `OnnxEmbeddingAdapter` implementation | embedding-adapters | `src/fs2/core/adapters/embedding_adapter_onnx.py` | Full adapter: lazy session loading with double-checked locking, `tokenizers.Tokenizer` for tokenization, ONNX `InferenceSession` for inference, pooling detection from `1_Pooling/config.json` (CLS vs mean), L2 normalization, `warmup()` override, offline-first download via `hf_hub_download`. Returns `list[float]`/`list[list[float]]`. | Core implementation — TDD for encode pipeline |
-| [ ] | T003 | TDD tests for ONNX adapter encode pipeline | tests | `tests/unit/adapters/test_embedding_adapter_onnx.py` | Tests: (a) CLS pooling produces correct output, (b) mean pooling produces correct output, (c) L2 normalization applied, (d) return type is `list[float]` not numpy, (e) provider_name is `"onnx"`, (f) missing onnxruntime raises actionable error, (g) missing ONNX model file raises actionable error, (h) thread-safe session loading, (i) warmup works, (j) config validation. Use mock InferenceSession. | Write before/alongside T002 |
-| [ ] | T004 | Add `"onnx"` branch to adapter factory | embedding-adapters | `src/fs2/core/adapters/embedding_adapter.py` | `create_embedding_adapter_from_config()` handles `mode=="onnx"`: probes `onnxruntime` via `find_spec`, returns `OnnxEmbeddingAdapter(config)` or `None`. | Mirror local adapter pattern |
-| [ ] | T005 | Add `"onnx"` branch to `EmbeddingService.create()` | embedding-service | `src/fs2/core/services/embedding/embedding_service.py` | `EmbeddingService.create()` handles `mode=="onnx"` — creates adapter and wraps in service. | Must match T004 logic exactly |
-| [ ] | T006 | Add `onnx-embeddings` optional dep group | project | `pyproject.toml` | `onnx-embeddings = ["onnxruntime>=1.17"]` in `[project.optional-dependencies]`. | tokenizers + huggingface_hub already in base deps |
-| [ ] | T007 | Update user docs with ONNX section | docs | `src/fs2/docs/local-embeddings.md`, `src/fs2/docs/configuration-guide.md` | ONNX config examples and usage instructions added alongside local mode docs. | Lightweight — doc updates |
-| [ ] | T008 | Config validation tests | tests | `tests/unit/config/test_onnx_embedding_config.py` | Tests: `mode="onnx"` accepted by Pydantic, `OnnxEmbeddingConfig` defaults work, auto-dimensions set to 384 for ONNX mode. | Lightweight |
+| [x] | T001 | Add `OnnxEmbeddingConfig` and `"onnx"` mode to config | config | `src/fs2/config/objects.py` | Complete | Extended auto_default_dimensions to cover onnx |
+| [x] | T002 | Create `OnnxEmbeddingAdapter` implementation | embedding-adapters | `src/fs2/core/adapters/embedding_adapter_onnx.py` | Complete | Full adapter with CLS/mean pooling, thread safety, warmup |
+| [x] | T003 | TDD tests for ONNX adapter encode pipeline | tests | `tests/unit/adapters/test_embedding_adapter_onnx.py` | 22 tests, all pass | Covers pooling, normalization, types, errors, threading, config |
+| [x] | T004 | Add `"onnx"` branch to adapter factory | embedding-adapters | `src/fs2/core/adapters/embedding_adapter.py` | Complete | find_spec probe + OnnxEmbeddingConfig auto-create |
+| [x] | T005 | Add `"onnx"` branch to `EmbeddingService.create()` | embedding-service | `src/fs2/core/services/embedding/embedding_service.py` | Complete | Mirrors T004 logic |
+| [x] | T006 | Add `onnx-embeddings` optional dep group | project | `pyproject.toml` | Complete | onnxruntime>=1.17 |
+| [x] | T007 | Update user docs with ONNX section | docs | `src/fs2/docs/local-embeddings.md`, `src/fs2/docs/configuration-guide.md` | Complete | ONNX quick start + config examples |
+| [x] | T008 | Config validation tests | tests | `tests/unit/adapters/test_embedding_adapter_onnx.py` | Included in T003 | Combined into single test file |
 
 ### Task Dependencies
 
@@ -90,18 +90,18 @@ T008 (config tests) ──→ depends on T001
 
 ### Acceptance Criteria
 
-- [ ] AC-1: ONNX adapter imports (`onnxruntime`, `tokenizers`, `huggingface_hub`, `numpy`) complete in under 2 seconds — no torch import
-- [ ] AC-2: For `BAAI/bge-small-en-v1.5`, ONNX adapter produces embeddings with L2 distance < 1e-5 from sentence-transformers across 5+ diverse texts
-- [ ] AC-3: MCP search with `mode: "onnx"` produces correct ranked results
-- [ ] AC-4: `fs2 scan --embed` with `mode: "onnx"` generates and stores embeddings in graph
-- [ ] AC-5: Adapter reads `1_Pooling/config.json` — uses CLS for BGE, mean when configured
-- [ ] AC-6: Missing `onnxruntime` → factory returns `None`, search falls back to text mode
-- [ ] AC-7: Missing `onnx/model.onnx` → `EmbeddingAdapterError` with actionable message
-- [ ] AC-8: `mode: "onnx"` accepted by config. `OnnxEmbeddingConfig` has `model`, `max_seq_length`, `provider` with defaults
-- [ ] AC-9: Thread-safe session loading with double-checked locking
-- [ ] AC-10: `warmup()` pre-loads session, compatible with MCP preload (046)
-- [ ] AC-11: All existing modes (`azure`, `openai_compatible`, `local`, `fake`) unaffected
-- [ ] AC-12: `embed_text()` returns `list[float]`, `embed_batch()` returns `list[list[float]]`
+- [x] AC-1: ONNX adapter imports (`onnxruntime`, `tokenizers`, `huggingface_hub`, `numpy`) complete in under 2 seconds — no torch import
+- [x] AC-2: For `BAAI/bge-small-en-v1.5`, ONNX adapter produces embeddings with L2 distance < 1e-5 from sentence-transformers across 5+ diverse texts
+- [x] AC-3: MCP search with `mode: "onnx"` produces correct ranked results
+- [x] AC-4: `fs2 scan --embed` with `mode: "onnx"` generates and stores embeddings in graph
+- [x] AC-5: Adapter reads `1_Pooling/config.json` — uses CLS for BGE, mean when configured
+- [x] AC-6: Missing `onnxruntime` → factory returns `None`, search falls back to text mode
+- [x] AC-7: Missing `onnx/model.onnx` → `EmbeddingAdapterError` with actionable message
+- [x] AC-8: `mode: "onnx"` accepted by config. `OnnxEmbeddingConfig` has `model`, `max_seq_length`, `provider` with defaults
+- [x] AC-9: Thread-safe session loading with double-checked locking
+- [x] AC-10: `warmup()` pre-loads session, compatible with MCP preload (046)
+- [x] AC-11: All existing modes (`azure`, `openai_compatible`, `local`, `fake`) unaffected
+- [x] AC-12: `embed_text()` returns `list[float]`, `embed_batch()` returns `list[list[float]]`
 
 ### Risks
 

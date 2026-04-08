@@ -167,6 +167,13 @@ class EmbeddingService:
             if embedding_config.local is None:
                 embedding_config.local = LocalEmbeddingConfig()
             embedding_adapter = SentenceTransformerEmbeddingAdapter(config)
+        elif embedding_config.mode == "onnx":
+            from fs2.config.objects import OnnxEmbeddingConfig
+            from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
+
+            if embedding_config.onnx is None:
+                embedding_config.onnx = OnnxEmbeddingConfig()
+            embedding_adapter = OnnxEmbeddingAdapter(config)
         elif embedding_config.mode == "fake":
             embedding_adapter = FakeEmbeddingAdapter(
                 dimensions=embedding_config.dimensions

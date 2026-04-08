@@ -184,6 +184,19 @@ def create_embedding_adapter_from_config(config) -> EmbeddingAdapter | None:
         if embedding_config.local is None:
             embedding_config.local = LocalEmbeddingConfig()
         return SentenceTransformerEmbeddingAdapter(config)
+    elif embedding_config.mode == "onnx":
+        # Per 047: Probe onnxruntime availability without importing it.
+        import importlib.util
+
+        if importlib.util.find_spec("onnxruntime") is None:
+            return None
+
+        from fs2.config.objects import OnnxEmbeddingConfig
+        from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
+
+        if embedding_config.onnx is None:
+            embedding_config.onnx = OnnxEmbeddingConfig()
+        return OnnxEmbeddingAdapter(config)
     elif embedding_config.mode == "fake":
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
 
