@@ -555,8 +555,7 @@ class TestSmartContentStageCategoryFilter:
                 "skipped": 0,
                 "errors": [],
                 "results": {
-                    n.node_id: replace(n, smart_content="summary")
-                    for n in nodes
+                    n.node_id: replace(n, smart_content="summary") for n in nodes
                 },
                 "total": len(nodes),
             }

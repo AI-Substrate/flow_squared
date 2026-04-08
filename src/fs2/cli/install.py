@@ -18,6 +18,7 @@ Commands:
 import json
 import shutil
 import subprocess
+import sys
 from importlib.metadata import PackageNotFoundError, distribution, version
 
 import typer
@@ -73,7 +74,7 @@ def _get_version_info() -> tuple[str, str | None, str | None]:
         dist = distribution("fs2")
         for file in dist.files or []:
             if file.name == "direct_url.json":
-                content = file.read_text()
+                content = file.read_text(encoding="utf-8")
                 data = json.loads(content)
                 url = data.get("url")
                 vcs_info = data.get("vcs_info", {})
@@ -208,9 +209,13 @@ def install() -> None:
     """
     # Check if uv is available
     if not _uv_available():
+        if sys.platform == "win32":
+            install_hint = 'powershell -c "irm https://astral.sh/uv/install.ps1 | iex"'
+        else:
+            install_hint = "curl -LsSf https://astral.sh/uv/install.sh | sh"
         console.print(
             "[red]x[/red] uv not found.\n"
-            "  Install uv first: [bold]curl -LsSf https://astral.sh/uv/install.sh | sh[/bold]"
+            f"  Install uv first: [bold]{install_hint}[/bold]"
         )
         raise typer.Exit(code=1)
 

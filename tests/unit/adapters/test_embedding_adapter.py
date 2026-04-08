@@ -277,10 +277,18 @@ class TestEmbeddingAdapterFactoryLocal:
             local=LocalEmbeddingConfig(),
         )
 
-        # Mock sentence_transformers as importable via find_spec
+        # Mock onnxruntime as unavailable so factory falls through to sentence-transformers
         mock_st = MagicMock()
-        with patch.dict("sys.modules", {"sentence_transformers": mock_st}), \
-             patch("importlib.util.find_spec", return_value=MagicMock()):
+
+        def _find_spec(name):
+            if name == "onnxruntime":
+                return None
+            return MagicMock()
+
+        with (
+            patch.dict("sys.modules", {"sentence_transformers": mock_st}),
+            patch("importlib.util.find_spec", side_effect=_find_spec),
+        ):
             adapter = create_embedding_adapter_from_config(mock_config)
 
         assert isinstance(adapter, SentenceTransformerEmbeddingAdapter)
@@ -309,8 +317,16 @@ class TestEmbeddingAdapterFactoryLocal:
         )
 
         mock_st = MagicMock()
-        with patch.dict("sys.modules", {"sentence_transformers": mock_st}), \
-             patch("importlib.util.find_spec", return_value=MagicMock()):
+
+        def _find_spec(name):
+            if name == "onnxruntime":
+                return None
+            return MagicMock()
+
+        with (
+            patch.dict("sys.modules", {"sentence_transformers": mock_st}),
+            patch("importlib.util.find_spec", side_effect=_find_spec),
+        ):
             adapter = create_embedding_adapter_from_config(mock_config)
 
         assert isinstance(adapter, SentenceTransformerEmbeddingAdapter)

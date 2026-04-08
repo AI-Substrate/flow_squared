@@ -422,13 +422,26 @@ class TestFakeGraphStoreEdgeData:
     def _make_nodes(self):
         from fs2.core.models.code_node import CodeNode
 
-        file_a = CodeNode.create_file("src/a.py", "python", "module", 0, 100, 1, 10, "# a")
-        file_b = CodeNode.create_file("src/b.py", "python", "module", 0, 100, 1, 10, "# b")
+        file_a = CodeNode.create_file(
+            "src/a.py", "python", "module", 0, 100, 1, 10, "# a"
+        )
+        file_b = CodeNode.create_file(
+            "src/b.py", "python", "module", 0, 100, 1, 10, "# b"
+        )
         func = CodeNode.create_callable(
-            file_path="src/a.py", language="python", ts_kind="function_definition",
-            name="foo", qualified_name="foo",
-            start_line=1, end_line=5, start_column=0, end_column=20,
-            start_byte=0, end_byte=50, content="def foo(): pass", signature="def foo():",
+            file_path="src/a.py",
+            language="python",
+            ts_kind="function_definition",
+            name="foo",
+            qualified_name="foo",
+            start_line=1,
+            end_line=5,
+            start_column=0,
+            end_column=20,
+            start_byte=0,
+            end_byte=50,
+            content="def foo(): pass",
+            signature="def foo():",
         )
         return file_a, file_b, func
 
@@ -465,14 +478,18 @@ class TestFakeGraphStoreEdgeData:
         store.add_node(file_b)
 
         store.add_edge(file_a.node_id, func.node_id)  # containment
-        store.add_edge(file_b.node_id, func.node_id, edge_type="references")  # reference
+        store.add_edge(
+            file_b.node_id, func.node_id, edge_type="references"
+        )  # reference
 
         # Get all incoming edges
         edges = store.get_edges(func.node_id, direction="incoming")
         assert len(edges) == 2
 
         # Filter to references only
-        ref_edges = store.get_edges(func.node_id, direction="incoming", edge_type="references")
+        ref_edges = store.get_edges(
+            func.node_id, direction="incoming", edge_type="references"
+        )
         assert len(ref_edges) == 1
         assert ref_edges[0][0] == file_b.node_id
         assert ref_edges[0][1]["edge_type"] == "references"
@@ -544,20 +561,42 @@ class TestFakeGraphStoreGetAllEdges:
         from fs2.core.models.code_node import CodeNode
 
         store = self._make_store()
-        file_a = CodeNode.create_file("src/a.py", "python", "module", 0, 100, 1, 10, "#")
+        file_a = CodeNode.create_file(
+            "src/a.py", "python", "module", 0, 100, 1, 10, "#"
+        )
         func_a = CodeNode.create_callable(
-            file_path="src/a.py", language="python", ts_kind="function_definition",
-            name="foo", qualified_name="A.foo", start_line=1, end_line=5,
-            start_column=0, end_column=20, start_byte=0, end_byte=50,
-            content="def foo(): pass", signature="def foo():",
+            file_path="src/a.py",
+            language="python",
+            ts_kind="function_definition",
+            name="foo",
+            qualified_name="A.foo",
+            start_line=1,
+            end_line=5,
+            start_column=0,
+            end_column=20,
+            start_byte=0,
+            end_byte=50,
+            content="def foo(): pass",
+            signature="def foo():",
         )
         func_b = CodeNode.create_callable(
-            file_path="src/b.py", language="python", ts_kind="function_definition",
-            name="bar", qualified_name="B.bar", start_line=1, end_line=5,
-            start_column=0, end_column=20, start_byte=0, end_byte=50,
-            content="def bar(): pass", signature="def bar():",
+            file_path="src/b.py",
+            language="python",
+            ts_kind="function_definition",
+            name="bar",
+            qualified_name="B.bar",
+            start_line=1,
+            end_line=5,
+            start_column=0,
+            end_column=20,
+            start_byte=0,
+            end_byte=50,
+            content="def bar(): pass",
+            signature="def bar():",
         )
-        file_b = CodeNode.create_file("src/b.py", "python", "module", 0, 100, 1, 10, "#")
+        file_b = CodeNode.create_file(
+            "src/b.py", "python", "module", 0, 100, 1, 10, "#"
+        )
 
         store.add_node(file_a)
         store.add_node(file_b)

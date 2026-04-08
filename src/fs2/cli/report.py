@@ -47,12 +47,12 @@ def codebase_graph(
         "--no-smart-content",
         help="Exclude AI summaries from report (smaller file)",
     ),
-    exclude: list[str] = typer.Option(
+    exclude: list[str] = typer.Option(  # noqa: B008
         [],
         "--exclude",
         help="Glob patterns to exclude nodes by node_id (e.g. 'test_*', '*.test.*'). Repeatable.",
     ),
-    include: list[str] = typer.Option(
+    include: list[str] = typer.Option(  # noqa: B008
         [],
         "--include",
         help="Glob patterns to include — only matching nodes kept. Repeatable.",
@@ -90,7 +90,9 @@ def codebase_graph(
                 stderr_console,
             )
 
-        console.print_info(f"Graph: {graph_store.get_metadata().get('node_count', '?')} nodes")
+        console.print_info(
+            f"Graph: {graph_store.get_metadata().get('node_count', '?')} nodes"
+        )
 
         # Determine graph_path for metadata
         cli_context = ctx.obj
@@ -128,10 +130,12 @@ def codebase_graph(
         # Open in browser (DYK-02: graceful fallback)
         if open_browser:
             try:
-                webbrowser.open(f"file://{output_path}")
+                webbrowser.open(output_path.as_uri())
                 console.print_info("Opened in browser")
             except (webbrowser.Error, OSError):
-                console.print_info(f"Could not open browser. Open manually: {output_path}")
+                console.print_info(
+                    f"Could not open browser. Open manually: {output_path}"
+                )
 
     except typer.Exit:
         raise

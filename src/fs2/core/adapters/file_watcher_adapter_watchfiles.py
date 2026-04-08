@@ -79,7 +79,15 @@ class GitignoreFilter(DefaultFilter):
         # Load .gitignore if it exists
         gitignore_path = root_path / ".gitignore"
         if gitignore_path.exists():
-            gitignore_content = gitignore_path.read_text()
+            try:
+                gitignore_content = gitignore_path.read_text(encoding="utf-8")
+            except OSError as e:
+                logger.warning(
+                    "Error reading .gitignore at %s: %s. Continuing without these patterns.",
+                    gitignore_path,
+                    e,
+                )
+                gitignore_content = ""
             for line in gitignore_content.splitlines():
                 line = line.strip()
                 # Skip empty lines and comments
@@ -128,11 +136,12 @@ class GitignoreFilter(DefaultFilter):
         # Get path relative to root for pattern matching
         try:
             rel_path = Path(path).relative_to(self._root_path)
+            rel_str = rel_path.as_posix()
             # Check if any pattern matches
-            if self._spec.match_file(str(rel_path)):
+            if self._spec.match_file(rel_str):
                 return False  # Ignored
             # Also check with trailing slash for directories
-            if Path(path).is_dir() and self._spec.match_file(str(rel_path) + "/"):
+            if Path(path).is_dir() and self._spec.match_file(rel_str + "/"):
                 return False
         except ValueError:
             # Path not relative to root - don't filter

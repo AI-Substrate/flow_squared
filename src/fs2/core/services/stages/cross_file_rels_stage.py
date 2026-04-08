@@ -34,7 +34,13 @@ logger = logging.getLogger(__name__)
 
 def _python_cmd(project_path: str, output_path: str) -> list[str]:
     slug = Path(project_path).name or "project"
-    return ["scip-python", "index", ".", f"--project-name={slug}", f"--output={output_path}"]
+    return [
+        "scip-python",
+        "index",
+        ".",
+        f"--project-name={slug}",
+        f"--output={output_path}",
+    ]
 
 
 def _typescript_cmd(project_path: str, output_path: str) -> list[str]:
@@ -96,7 +102,9 @@ def run_scip_indexer(
         hint = INDEXER_INSTALL.get(language, f"install {binary_name}")
         logger.info(
             "SCIP indexer '%s' not found for %s. Install with: %s",
-            binary_name, language, hint,
+            binary_name,
+            language,
+            hint,
         )
         return False
 
@@ -106,7 +114,8 @@ def run_scip_indexer(
         if language == "dotnet" and not (Path(project_path) / "obj").exists():
             logger.warning(
                 "C# project at %s needs building first. Run '%s' in the project directory.",
-                project_path, build_cmd,
+                project_path,
+                build_cmd,
             )
             return False
 
@@ -126,12 +135,16 @@ def run_scip_indexer(
         if result.returncode != 0:
             logger.warning(
                 "SCIP indexer failed for %s (exit %d): %s",
-                language, result.returncode, result.stderr[:500],
+                language,
+                result.returncode,
+                result.stderr[:500],
             )
             return False
 
         if not Path(output_path).exists():
-            logger.warning("SCIP indexer ran but no index.scip produced at %s", output_path)
+            logger.warning(
+                "SCIP indexer ran but no index.scip produced at %s", output_path
+            )
             return False
 
         size = Path(output_path).stat().st_size
@@ -171,7 +184,7 @@ def _ensure_cache_gitignore(cache_dir: Path) -> None:
     gitignore = cache_dir / ".gitignore"
     if not gitignore.exists():
         cache_dir.mkdir(parents=True, exist_ok=True)
-        gitignore.write_text("# SCIP index cache\n*\n!.gitignore\n")
+        gitignore.write_text("# SCIP index cache\n*\n!.gitignore\n", encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -289,25 +302,34 @@ class CrossFileRelsStage:
         if not nodes_to_resolve:
             context.cross_file_edges = reused_edges
             elapsed = time.time() - start_time
-            context.metrics.update({
-                "cross_file_rels_time_s": round(elapsed, 2),
-                "cross_file_rels_edges": len(reused_edges),
-                "cross_file_rels_preserved": len(reused_edges),
-                "cross_file_rels_resolved": 0,
-                "cross_file_rels_skipped": False,
-            })
+            context.metrics.update(
+                {
+                    "cross_file_rels_time_s": round(elapsed, 2),
+                    "cross_file_rels_edges": len(reused_edges),
+                    "cross_file_rels_preserved": len(reused_edges),
+                    "cross_file_rels_resolved": 0,
+                    "cross_file_rels_skipped": False,
+                }
+            )
             if progress_cb:
-                progress_cb("reused", f"all files unchanged, reused {len(reused_edges)} edges")
+                progress_cb(
+                    "reused", f"all files unchanged, reused {len(reused_edges)} edges"
+                )
             return context
 
         if progress_cb:
-            progress_cb("starting", f"{len(projects)} project(s), {len(nodes_to_resolve)} resolvable nodes")
+            progress_cb(
+                "starting",
+                f"{len(projects)} project(s), {len(nodes_to_resolve)} resolvable nodes",
+            )
 
         # --- Run SCIP indexers and extract edges ---
         known_ids = {n.node_id for n in context.nodes}
         fresh_edges: list[tuple[str, str, dict[str, Any]]] = []
         repo_root = str(getattr(context, "scan_root", Path.cwd().resolve()))
-        cache_dir = Path(projects_config.scip_cache_dir if projects_config else ".fs2/scip")
+        cache_dir = Path(
+            projects_config.scip_cache_dir if projects_config else ".fs2/scip"
+        )
 
         if not cache_dir.is_absolute():
             cache_dir = Path(repo_root) / cache_dir
@@ -318,7 +340,10 @@ class CrossFileRelsStage:
 
         for i, (language, project_path) in enumerate(projects):
             if progress_cb:
-                progress_cb("progress", f"[{i + 1}/{len(projects)}] indexing {language} @ {project_path}")
+                progress_cb(
+                    "progress",
+                    f"[{i + 1}/{len(projects)}] indexing {language} @ {project_path}",
+                )
 
             slug = _project_slug(project_path, language, repo_root)
             index_path = str(cache_dir / slug / "index.scip")
@@ -341,12 +366,21 @@ class CrossFileRelsStage:
                     path_prefix = ""
 
                 project_edges = adapter.extract_cross_file_edges(
-                    index_path, known_ids, path_prefix=path_prefix,
+                    index_path,
+                    known_ids,
+                    path_prefix=path_prefix,
                 )
                 fresh_edges.extend(project_edges)
-                logger.info("SCIP %s: %d edges from %s", language, len(project_edges), project_path)
+                logger.info(
+                    "SCIP %s: %d edges from %s",
+                    language,
+                    len(project_edges),
+                    project_path,
+                )
             except Exception as e:
-                logger.warning("SCIP adapter error for %s at %s: %s", language, project_path, e)
+                logger.warning(
+                    "SCIP adapter error for %s at %s: %s", language, project_path, e
+                )
                 continue
 
         # --- Merge, dedup, and report ---
@@ -361,13 +395,15 @@ class CrossFileRelsStage:
         context.cross_file_edges = deduped
 
         elapsed = time.time() - start_time
-        context.metrics.update({
-            "cross_file_rels_time_s": round(elapsed, 2),
-            "cross_file_rels_edges": len(context.cross_file_edges),
-            "cross_file_rels_preserved": len(reused_edges),
-            "cross_file_rels_resolved": len(fresh_edges),
-            "cross_file_rels_skipped": False,
-        })
+        context.metrics.update(
+            {
+                "cross_file_rels_time_s": round(elapsed, 2),
+                "cross_file_rels_edges": len(context.cross_file_edges),
+                "cross_file_rels_preserved": len(reused_edges),
+                "cross_file_rels_resolved": len(fresh_edges),
+                "cross_file_rels_skipped": False,
+            }
+        )
 
         if progress_cb:
             progress_cb(

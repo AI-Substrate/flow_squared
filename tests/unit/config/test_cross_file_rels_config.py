@@ -4,9 +4,7 @@ Validates the pydantic model for cross-file relationship extraction config,
 including defaults, validation, and YAML_CONFIG_TYPES registry membership.
 """
 
-import pytest
-
-from fs2.config.objects import CrossFileRelsConfig, YAML_CONFIG_TYPES
+from fs2.config.objects import YAML_CONFIG_TYPES, CrossFileRelsConfig
 
 
 class TestCrossFileRelsConfigDefaults:
@@ -18,7 +16,7 @@ class TestCrossFileRelsConfigDefaults:
 
     def test_only_enabled_field(self):
         """CrossFileRelsConfig should only have the 'enabled' field (Serena fields removed)."""
-        config = CrossFileRelsConfig()
+        CrossFileRelsConfig()  # validate it constructs
         field_names = set(CrossFileRelsConfig.model_fields.keys())
         assert field_names == {"enabled"}
 

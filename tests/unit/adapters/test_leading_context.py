@@ -28,9 +28,7 @@ class TestPythonLeadingContext:
         """AC02: # comments above a class are captured."""
         nodes = parser.parse(FIXTURES / "python" / "auth_handler.py")
         # Find AuthenticationError — has # comments above it
-        auth_error = next(
-            (n for n in nodes if n.name == "AuthenticationError"), None
-        )
+        auth_error = next((n for n in nodes if n.name == "AuthenticationError"), None)
         assert auth_error is not None
         assert auth_error.leading_context is not None
         assert "authentication failures" in auth_error.leading_context.lower()
@@ -76,8 +74,9 @@ class TestGoLeadingContext:
         nodes = parser.parse(FIXTURES / "go" / "server.go")
         # Go types might be classified differently — check any node with // comment
         commented = [
-            n for n in nodes if n.leading_context and "//" in n.leading_context
-            and n.category != "file"
+            n
+            for n in nodes
+            if n.leading_context and "//" in n.leading_context and n.category != "file"
         ]
         assert len(commented) > 0
 
@@ -88,7 +87,9 @@ class TestRustLeadingContext:
     def test_rust_doc_comment(self, parser):
         """AC06 variant: /// doc comment captured."""
         nodes = parser.parse(FIXTURES / "rust" / "lib.rs")
-        commented = [n for n in nodes if n.leading_context and "///" in n.leading_context]
+        commented = [
+            n for n in nodes if n.leading_context and "///" in n.leading_context
+        ]
         assert len(commented) > 0
 
     def test_rust_attribute(self, parser):
@@ -122,7 +123,9 @@ class TestTypeScriptLeadingContext:
         exported_with_doc = [
             n
             for n in nodes
-            if n.leading_context and n.category == "callable" and "/**" in n.leading_context
+            if n.leading_context
+            and n.category == "callable"
+            and "/**" in n.leading_context
         ]
         assert len(exported_with_doc) > 0
 
@@ -157,9 +160,7 @@ class TestTSXLeadingContext:
     def test_tsx_comment_capture(self, parser):
         """AC13: TSX JSDoc comments captured."""
         nodes = parser.parse(FIXTURES / "javascript" / "component.tsx")
-        with_comment = [
-            n for n in nodes if n.leading_context and n.category != "file"
-        ]
+        with_comment = [n for n in nodes if n.leading_context and n.category != "file"]
         assert len(with_comment) > 0
 
 
@@ -205,7 +206,9 @@ class TestGDScriptLeadingContext:
     def test_gdscript_doc_comment(self, parser):
         """AC13: GDScript ## comments captured."""
         nodes = parser.parse(FIXTURES / "gdscript" / "player.gd")
-        with_comment = [n for n in nodes if n.leading_context and "##" in n.leading_context]
+        with_comment = [
+            n for n in nodes if n.leading_context and "##" in n.leading_context
+        ]
         assert len(with_comment) > 0
 
 

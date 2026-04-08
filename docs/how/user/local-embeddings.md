@@ -1,6 +1,6 @@
 # Local Embeddings
 
-Enable semantic search in fs2 without API keys or network access using on-device SentenceTransformer models.
+Enable semantic search in fs2 without API keys or network access using on-device embedding models.
 
 ## Quick Start
 
@@ -15,7 +15,19 @@ fs2 scan
 fs2 search "error handling" --mode semantic
 ```
 
-No extra installation needed — `sentence-transformers` and `torch` are included with fs2.
+No extra installation needed — `onnxruntime` is included with fs2 and handles local embeddings by default.
+
+### Sentence-Transformers / PyTorch Mode (Optional)
+
+For GPU inference via CUDA, install the optional PyTorch backend:
+
+```bash
+pip install fs2[local-embeddings]
+```
+
+When both `onnxruntime` and `sentence-transformers` are installed, fs2 prefers ONNX Runtime
+(137× faster import on Windows). To force PyTorch, explicitly set `mode: local` with only
+`sentence-transformers` installed (no `onnxruntime`).
 
 ## Configuration
 
@@ -86,7 +98,7 @@ The `--force` flag is required because stored embeddings have different dimensio
 The model downloads from HuggingFace Hub on first use (~130MB). To pre-download:
 
 ```bash
-uv run python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')"
+uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('BAAI/bge-small-en-v1.5')"
 ```
 
 After the first download, the model is cached locally and no network access is needed.

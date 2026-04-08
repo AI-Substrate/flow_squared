@@ -80,7 +80,8 @@ smart_content:
 
 # ─── Embedding (for semantic search) ──────────────────────────────
 # Local embeddings (default — no API key needed):
-# Included by default — no extra install needed
+# Uses ONNX Runtime automatically when available for fast startup.
+# Falls back to PyTorch/sentence-transformers if onnxruntime not installed.
 embedding:
   mode: local
   dimensions: 384
@@ -155,7 +156,9 @@ def _detect_ollama() -> tuple[bool, str | None]:
     import urllib.request
 
     try:
-        with urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2) as resp:
+        with urllib.request.urlopen(
+            "http://localhost:11434/api/tags", timeout=2
+        ) as resp:
             data = json.loads(resp.read())
             models = [m["name"] for m in data.get("models", [])]
             for preferred in [
@@ -215,12 +218,12 @@ def init(
     actions = []
 
     # === Handle global config ===
-    if global_config_file.exists():
+    if global_config_file.exists() and global_config_file.stat().st_size > 0:
         actions.append(f"Skipped global config (already exists at {global_config_dir})")
     else:
         # Create global config directory and file
         global_config_dir.mkdir(parents=True, exist_ok=True)
-        global_config_file.write_text(DEFAULT_CONFIG)
+        global_config_file.write_text(DEFAULT_CONFIG, encoding="utf-8")
         actions.append(f"Created global config at {global_config_dir}")
 
     # === Handle local config ===
@@ -257,11 +260,11 @@ def init(
         )
 
     # Write local config
-    local_config_file.write_text(config_text)
+    local_config_file.write_text(config_text, encoding="utf-8")
     actions.append("Created local config at .fs2/config.yaml")
 
     # Create .gitignore in .fs2/
-    local_gitignore.write_text(FS2_GITIGNORE)
+    local_gitignore.write_text(FS2_GITIGNORE, encoding="utf-8")
     actions.append("Created .fs2/.gitignore")
 
     # Report all actions

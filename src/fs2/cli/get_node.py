@@ -146,7 +146,7 @@ def get_node(
 
         # Output to file or stdout
         if file:
-            file.write_text(json_str)
+            file.write_text(json_str, encoding="utf-8")
             console.print(f"[green]✓[/green] Wrote {node_id} to {file}")
         else:
             # Use raw print() for clean stdout (per research finding #01)

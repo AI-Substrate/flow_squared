@@ -121,10 +121,12 @@ class TestProjectsConfigWithEntries:
     """Test ProjectsConfig with nested entries."""
 
     def test_entries_with_multiple_projects(self):
-        config = ProjectsConfig(entries=[
-            ProjectConfig(type="python", path="."),
-            ProjectConfig(type="ts", path="frontend"),
-        ])
+        config = ProjectsConfig(
+            entries=[
+                ProjectConfig(type="python", path="."),
+                ProjectConfig(type="ts", path="frontend"),
+            ]
+        )
         assert len(config.entries) == 2
         assert config.entries[0].type == "python"
         assert config.entries[1].type == "typescript"  # normalised

@@ -1035,7 +1035,11 @@ class TestNetworkXGraphStoreGetAllEdges:
 
         all_refs = store.get_all_edges(edge_type="references")
         assert len(all_refs) == 1
-        assert all_refs[0] == (func_a.node_id, func_b.node_id, {"edge_type": "references"})
+        assert all_refs[0] == (
+            func_a.node_id,
+            func_b.node_id,
+            {"edge_type": "references"},
+        )
 
     def test_get_all_edges_no_filter_returns_all(self, tmp_path):
         """Without filter returns both containment and reference edges."""
@@ -1091,7 +1095,6 @@ class TestAtomicSave:
 
     def test_save_cleans_up_tmp_on_failure(self, tmp_path):
         """Verify .tmp is cleaned up if save fails (when possible)."""
-        from pathlib import Path
         from unittest.mock import patch
 
         from fs2.config.objects import ScanConfig
@@ -1105,15 +1108,17 @@ class TestAtomicSave:
 
         graph_path = tmp_path / "graph.pickle"
 
-        # Patch rename to simulate failure after tmp file is written
-        original_rename = Path.rename
+        # Patch os.replace to simulate failure after tmp file is written
+        import os as _os
 
-        def failing_rename(self_path, target):
-            raise OSError("Simulated rename failure")
+        def failing_replace(src, dst):
+            raise OSError("Simulated replace failure")
 
-        with patch.object(Path, "rename", failing_rename):
-            with pytest.raises(GraphStoreError):
-                store.save(graph_path)
+        with (
+            patch.object(_os, "replace", failing_replace),
+            pytest.raises(GraphStoreError),
+        ):
+            store.save(graph_path)
 
         # Temp file should be cleaned up (it was writable, only rename failed)
         assert not (tmp_path / "graph.pickle.tmp").exists()

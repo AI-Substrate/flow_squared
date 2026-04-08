@@ -39,14 +39,12 @@ def _mock_client(side_effect=None, return_value=None):
         kwargs["side_effect"] = side_effect
     if return_value is not None:
         kwargs["return_value"] = return_value
-    return MagicMock(
-        chat=MagicMock(
-            completions=MagicMock(create=AsyncMock(**kwargs))
-        )
-    )
+    return MagicMock(chat=MagicMock(completions=MagicMock(create=AsyncMock(**kwargs))))
 
 
-def _mock_response(content="Summary", tokens=25, model="qwen2.5-coder:7b", usage_none=False):
+def _mock_response(
+    content="Summary", tokens=25, model="qwen2.5-coder:7b", usage_none=False
+):
     """Create a mock chat completion response."""
     resp = MagicMock()
     resp.choices = [MagicMock(message=MagicMock(content=content))]
@@ -110,9 +108,13 @@ async def test_local_adapter_generate_returns_llm_response():
 
     adapter = LocalOllamaAdapter(_make_local_config())
 
-    with patch.object(adapter, "_get_client", return_value=_mock_client(
-        return_value=_mock_response("This is a summary.", 25)
-    )):
+    with patch.object(
+        adapter,
+        "_get_client",
+        return_value=_mock_client(
+            return_value=_mock_response("This is a summary.", 25)
+        ),
+    ):
         response = await adapter.generate("Summarize this code")
 
     assert response.content == "This is a summary."
@@ -134,9 +136,11 @@ async def test_local_adapter_generate_handles_null_usage():
 
     adapter = LocalOllamaAdapter(_make_local_config())
 
-    with patch.object(adapter, "_get_client", return_value=_mock_client(
-        return_value=_mock_response(usage_none=True)
-    )):
+    with patch.object(
+        adapter,
+        "_get_client",
+        return_value=_mock_client(return_value=_mock_response(usage_none=True)),
+    ):
         response = await adapter.generate("Summarize")
 
     assert response.tokens_used == 0
@@ -156,7 +160,9 @@ async def test_local_adapter_connection_refused_raises_adapter_error():
     sdk_error = APIConnectionError(request=MagicMock())
 
     with (
-        patch.object(adapter, "_get_client", return_value=_mock_client(side_effect=sdk_error)),
+        patch.object(
+            adapter, "_get_client", return_value=_mock_client(side_effect=sdk_error)
+        ),
         pytest.raises(LLMAdapterError) as exc_info,
     ):
         await adapter.generate("test")
@@ -181,7 +187,9 @@ async def test_local_adapter_model_not_found_suggests_pull():
     mock_error.status_code = 404
 
     with (
-        patch.object(adapter, "_get_client", return_value=_mock_client(side_effect=mock_error)),
+        patch.object(
+            adapter, "_get_client", return_value=_mock_client(side_effect=mock_error)
+        ),
         pytest.raises(LLMAdapterError) as exc_info,
     ):
         await adapter.generate("test")
@@ -203,7 +211,9 @@ async def test_local_adapter_timeout_raises_clear_error():
     sdk_error = APITimeoutError(request=MagicMock())
 
     with (
-        patch.object(adapter, "_get_client", return_value=_mock_client(side_effect=sdk_error)),
+        patch.object(
+            adapter, "_get_client", return_value=_mock_client(side_effect=sdk_error)
+        ),
         pytest.raises(LLMAdapterError) as exc_info,
     ):
         await adapter.generate("test")
@@ -227,7 +237,9 @@ async def test_local_adapter_http_error_translates_to_adapter_error():
     mock_error.status_code = 500
 
     with (
-        patch.object(adapter, "_get_client", return_value=_mock_client(side_effect=mock_error)),
+        patch.object(
+            adapter, "_get_client", return_value=_mock_client(side_effect=mock_error)
+        ),
         pytest.raises(LLMAdapterError),
     ):
         await adapter.generate("test")

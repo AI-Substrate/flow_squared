@@ -169,9 +169,7 @@ def scan(
                             f"Smart content: enabled (categories: {cats})"
                         )
                     else:
-                        console.print_success(
-                            "Smart content: enabled (all categories)"
-                        )
+                        console.print_success("Smart content: enabled (all categories)")
                 except Exception:
                     console.print_success("Smart content: enabled")
             else:
@@ -199,7 +197,9 @@ def scan(
         if not no_cross_refs:
             from fs2.config.objects import CrossFileRelsConfig, ProjectsConfig
 
-            cross_file_rels_config = config.get(CrossFileRelsConfig) or CrossFileRelsConfig()
+            cross_file_rels_config = (
+                config.get(CrossFileRelsConfig) or CrossFileRelsConfig()
+            )
             projects_config = config.get(ProjectsConfig) or ProjectsConfig()
             console.print_info(
                 f"Cross-file refs: {'enabled' if cross_file_rels_config.enabled else 'disabled'}"

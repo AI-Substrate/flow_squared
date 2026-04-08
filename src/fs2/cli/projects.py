@@ -99,22 +99,26 @@ def discover_projects(
         for i, p in enumerate(projects, 1):
             status, hint = _check_indexer(p.language)
             binary = INDEXER_BINARIES.get(p.language, "")
-            items.append({
-                "number": i,
-                "type": p.language,
-                "path": _relative_path(p.path, root),
-                "marker_file": p.marker_file,
-                "indexer": binary,
-                "indexer_installed": status == "✅",
-                "install_hint": hint,
-            })
+            items.append(
+                {
+                    "number": i,
+                    "type": p.language,
+                    "path": _relative_path(p.path, root),
+                    "marker_file": p.marker_file,
+                    "indexer": binary,
+                    "indexer_installed": status == "✅",
+                    "install_hint": hint,
+                }
+            )
         output = {"projects": items, "count": len(items)}
         print(json.dumps(output, indent=2))  # noqa: T201
         raise typer.Exit(code=0)
 
     if not projects:
         console.print("[yellow]No language projects detected.[/yellow]")
-        console.print("Looking for: pyproject.toml, tsconfig.json, go.mod, .csproj, Gemfile, etc.")
+        console.print(
+            "Looking for: pyproject.toml, tsconfig.json, go.mod, .csproj, Gemfile, etc."
+        )
         raise typer.Exit(code=0)
 
     table = Table(title="Discovered Projects")
@@ -195,7 +199,9 @@ def add_project(
     projects = _last_discovered
 
     if not projects:
-        stderr_console.print("[yellow]No projects discovered. Run fs2 discover-projects first.[/yellow]")
+        stderr_console.print(
+            "[yellow]No projects discovered. Run fs2 discover-projects first.[/yellow]"
+        )
         raise typer.Exit(code=1)
 
     # Determine which projects to add
@@ -205,12 +211,16 @@ def add_project(
         selected = []
         for n in numbers:
             if n < 1 or n > len(projects):
-                stderr_console.print(f"[red]Invalid project number: {n} (valid: 1-{len(projects)})[/red]")
+                stderr_console.print(
+                    f"[red]Invalid project number: {n} (valid: 1-{len(projects)})[/red]"
+                )
                 raise typer.Exit(code=1)
             selected.append(projects[n - 1])
     else:
         stderr_console.print("[red]Specify project numbers or --all[/red]")
-        stderr_console.print("Run [bold]fs2 discover-projects[/bold] to see available projects.")
+        stderr_console.print(
+            "Run [bold]fs2 discover-projects[/bold] to see available projects."
+        )
         raise typer.Exit(code=1)
 
     # Build entries
@@ -222,7 +232,7 @@ def add_project(
     yaml.preserve_quotes = True  # type: ignore[assignment]
 
     if config_path.exists():
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             data = yaml.load(f)
         if not isinstance(data, dict):
             data = {}
@@ -251,7 +261,9 @@ def add_project(
             rel_path = "."
         key = (p.language, rel_path)
         if key in existing_keys:
-            console.print(f"  [dim]Skipped (already in config):[/dim] {p.language} @ {rel_path}")
+            console.print(
+                f"  [dim]Skipped (already in config):[/dim] {p.language} @ {rel_path}"
+            )
             skipped += 1
             continue
 
@@ -265,11 +277,13 @@ def add_project(
 
     if added > 0:
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(config_path, "w") as f:
+        with open(config_path, "w", encoding="utf-8") as f:
             yaml.dump(data, f)
         console.print(f"\n[green]Wrote {added} project(s) to {config_path}[/green]")
     else:
-        console.print(f"\n[dim]No new projects to add ({skipped} already in config)[/dim]")
+        console.print(
+            f"\n[dim]No new projects to add ({skipped} already in config)[/dim]"
+        )
 
 
 def _default_marker_for(language: str) -> set[str]:

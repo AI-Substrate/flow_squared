@@ -12,7 +12,9 @@ import pytest
 
 from fs2.core.adapters.scip_adapter_go import SCIPGoAdapter
 
-FIXTURE_DIR = Path(__file__).parent.parent.parent.parent / "scripts" / "scip" / "fixtures" / "go"
+FIXTURE_DIR = (
+    Path(__file__).parent.parent.parent.parent / "scripts" / "scip" / "fixtures" / "go"
+)
 FIXTURE_INDEX = FIXTURE_DIR / "index.scip"
 
 
@@ -137,9 +139,7 @@ class TestSCIPGoAdapterWithFixture:
     def test_main_references_service(self, adapter, known_node_ids):
         edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)
         src_tgt_pairs = {(s, t) for s, t, _ in edges}
-        main_to_service = any(
-            "main" in s and "service" in t for s, t in src_tgt_pairs
-        )
+        main_to_service = any("main" in s and "service" in t for s, t in src_tgt_pairs)
         assert main_to_service, f"Expected main→service edge, got: {src_tgt_pairs}"
 
     def test_service_references_model(self, adapter, known_node_ids):

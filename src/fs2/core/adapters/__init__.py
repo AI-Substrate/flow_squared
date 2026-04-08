@@ -38,6 +38,7 @@ Public API:
 - EmbeddingAdapter: ABC for embedding providers
 - AzureEmbeddingAdapter: Azure OpenAI embedding adapter
 - OpenAICompatibleEmbeddingAdapter: OpenAI-compatible embedding adapter
+- OnnxEmbeddingAdapter: ONNX Runtime embedding adapter (default for local mode)
 - FakeEmbeddingAdapter: Test double for embeddings
 
 See tests/docs/test_sample_adapter_pattern.py for complete usage documentation.
@@ -52,9 +53,7 @@ from fs2.core.adapters.console_adapter_rich import RichConsoleAdapter
 from fs2.core.adapters.embedding_adapter import EmbeddingAdapter
 from fs2.core.adapters.embedding_adapter_azure import AzureEmbeddingAdapter
 from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
-from fs2.core.adapters.embedding_adapter_local import (
-    SentenceTransformerEmbeddingAdapter,
-)
+from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
 from fs2.core.adapters.embedding_adapter_openai import OpenAICompatibleEmbeddingAdapter
 from fs2.core.adapters.exceptions import (
     AdapterConnectionError,
@@ -112,7 +111,7 @@ __all__ = [
     "EmbeddingAdapter",
     "AzureEmbeddingAdapter",
     "OpenAICompatibleEmbeddingAdapter",
-    "SentenceTransformerEmbeddingAdapter",
+    "OnnxEmbeddingAdapter",
     "FakeEmbeddingAdapter",
     "AdapterError",
     "AuthenticationError",

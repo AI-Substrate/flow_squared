@@ -509,12 +509,9 @@ class SmartContentService:
 
                     # Courtesy save every 100 nodes (Plan 036 T04)
                     should_save = (
-                        courtesy_save is not None
-                        and stats["processed"] % 100 == 0
+                        courtesy_save is not None and stats["processed"] % 100 == 0
                     )
-                    partial_results = (
-                        dict(stats["results"]) if should_save else None
-                    )
+                    partial_results = dict(stats["results"]) if should_save else None
 
                 if should_save and partial_results is not None:
                     courtesy_save(partial_results)

@@ -196,8 +196,15 @@ class TestSmartContentConfigEnabledCategories:
         from fs2.config.objects import SmartContentConfig
 
         all_cats = [
-            "file", "callable", "type", "block", "section",
-            "definition", "statement", "expression", "other",
+            "file",
+            "callable",
+            "type",
+            "block",
+            "section",
+            "definition",
+            "statement",
+            "expression",
+            "other",
         ]
         config = SmartContentConfig(enabled_categories=all_cats)
         assert len(config.enabled_categories) == 9

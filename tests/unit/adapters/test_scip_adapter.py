@@ -27,6 +27,7 @@ from fs2.core.adapters.scip_adapter_fake import SCIPFakeAdapter
 class TestSCIPExceptions:
     def test_scip_adapter_error_inherits_adapter_error(self):
         from fs2.core.adapters.exceptions import AdapterError
+
         assert issubclass(SCIPAdapterError, AdapterError)
 
     def test_scip_index_error_inherits_scip_adapter_error(self):
@@ -201,9 +202,7 @@ class TestSymbolParsing:
         assert parts == ["MyClass", "my_method"]
 
     def test_extract_class_only(self):
-        parts = SCIPAdapterBase.extract_name_from_descriptor(
-            "`pkg.module`/MyClass#"
-        )
+        parts = SCIPAdapterBase.extract_name_from_descriptor("`pkg.module`/MyClass#")
         assert parts == ["MyClass"]
 
     def test_extract_function(self):

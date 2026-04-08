@@ -434,6 +434,7 @@ class TestFileSystemScannerGitignore:
 
 
 @pytest.mark.unit
+@pytest.mark.skipif(sys.platform == "win32", reason="symlinks unreliable on Windows")
 class TestFileSystemScannerSymlinks:
     """Tests for symlink handling (T015, T015b, T016, T017)."""
 

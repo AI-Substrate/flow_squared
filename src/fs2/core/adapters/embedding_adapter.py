@@ -102,6 +102,20 @@ class EmbeddingAdapter(ABC):
         """
         ...
 
+    def warmup(self) -> None:  # noqa: B027
+        """Pre-load any expensive resources (e.g., ML models).
+
+        Called at MCP server startup to warm the adapter in a background
+        thread. Implementations should load their model here so that
+        subsequent embed calls don't pay the cold-start cost.
+
+        Default is a no-op — only local adapters with heavy model loads
+        need to override this. Safe to call from any thread.
+
+        Per 046-mcp-embedding-preload: Non-abstract to avoid breaking
+        existing implementations.
+        """
+
 
 def create_embedding_adapter_from_config(config) -> EmbeddingAdapter | None:
     """Factory function to create an embedding adapter from configuration.
@@ -153,12 +167,28 @@ def create_embedding_adapter_from_config(config) -> EmbeddingAdapter | None:
             model=embedding_config.openai.model,
         )
     elif embedding_config.mode == "local":
-        # DYK-1: Probe sentence-transformers availability without importing it.
-        # find_spec is instant (~0ms) vs import which loads PyTorch (~3.5s).
-        # If not installed, return None for graceful degradation (search falls back
-        # to text mode instead of crashing at runtime).
         import importlib.util
 
+        # Per 047: Prefer ONNX Runtime when available — 137x faster import on Windows.
+        # Falls back to sentence-transformers/PyTorch if onnxruntime not installed.
+        if importlib.util.find_spec("onnxruntime") is not None:
+            from fs2.config.objects import OnnxEmbeddingConfig
+            from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
+
+            if embedding_config.onnx is None:
+                # Mirror local config model name if set, otherwise use defaults
+                model = "BAAI/bge-small-en-v1.5"
+                max_seq_length = 512
+                if embedding_config.local is not None:
+                    model = embedding_config.local.model
+                    max_seq_length = embedding_config.local.max_seq_length
+                embedding_config.onnx = OnnxEmbeddingConfig(
+                    model=model, max_seq_length=max_seq_length
+                )
+            return OnnxEmbeddingAdapter(config)
+
+        # DYK-1: Probe sentence-transformers availability without importing it.
+        # find_spec is instant (~0ms) vs import which loads PyTorch (~3.5s).
         if importlib.util.find_spec("sentence_transformers") is None:
             return None
 
@@ -170,6 +200,19 @@ def create_embedding_adapter_from_config(config) -> EmbeddingAdapter | None:
         if embedding_config.local is None:
             embedding_config.local = LocalEmbeddingConfig()
         return SentenceTransformerEmbeddingAdapter(config)
+    elif embedding_config.mode == "onnx":
+        # Per 047: Probe onnxruntime availability without importing it.
+        import importlib.util
+
+        if importlib.util.find_spec("onnxruntime") is None:
+            return None
+
+        from fs2.config.objects import OnnxEmbeddingConfig
+        from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
+
+        if embedding_config.onnx is None:
+            embedding_config.onnx = OnnxEmbeddingConfig()
+        return OnnxEmbeddingAdapter(config)
     elif embedding_config.mode == "fake":
         from fs2.core.adapters.embedding_adapter_fake import FakeEmbeddingAdapter
 

@@ -501,21 +501,43 @@ class TestStorageStageCrossFileEdges:
         store = FakeGraphStore(config_service)
 
         # Two files with one function each
-        file_a = CodeNode.create_file("src/a.py", "python", "module", 0, 100, 1, 10, "# a")
-        func_a = CodeNode.create_callable(
-            file_path="src/a.py", language="python", ts_kind="function_definition",
-            name="caller", qualified_name="caller",
-            start_line=1, end_line=5, start_column=0, end_column=20,
-            start_byte=0, end_byte=50, content="def caller(): pass",
-            signature="def caller():", parent_node_id=file_a.node_id,
+        file_a = CodeNode.create_file(
+            "src/a.py", "python", "module", 0, 100, 1, 10, "# a"
         )
-        file_b = CodeNode.create_file("src/b.py", "python", "module", 0, 100, 1, 10, "# b")
+        func_a = CodeNode.create_callable(
+            file_path="src/a.py",
+            language="python",
+            ts_kind="function_definition",
+            name="caller",
+            qualified_name="caller",
+            start_line=1,
+            end_line=5,
+            start_column=0,
+            end_column=20,
+            start_byte=0,
+            end_byte=50,
+            content="def caller(): pass",
+            signature="def caller():",
+            parent_node_id=file_a.node_id,
+        )
+        file_b = CodeNode.create_file(
+            "src/b.py", "python", "module", 0, 100, 1, 10, "# b"
+        )
         func_b = CodeNode.create_callable(
-            file_path="src/b.py", language="python", ts_kind="function_definition",
-            name="target", qualified_name="target",
-            start_line=1, end_line=5, start_column=0, end_column=20,
-            start_byte=0, end_byte=50, content="def target(): pass",
-            signature="def target():", parent_node_id=file_b.node_id,
+            file_path="src/b.py",
+            language="python",
+            ts_kind="function_definition",
+            name="target",
+            qualified_name="target",
+            start_line=1,
+            end_line=5,
+            start_column=0,
+            end_column=20,
+            start_byte=0,
+            end_byte=50,
+            content="def target(): pass",
+            signature="def target():",
+            parent_node_id=file_b.node_id,
         )
 
         ctx = PipelineContext(scan_config=ScanConfig())
@@ -541,7 +563,9 @@ class TestStorageStageCrossFileEdges:
         stage.process(ctx)
 
         # Verify cross-file edge was written
-        edges = store.get_edges(func_b.node_id, direction="incoming", edge_type="references")
+        edges = store.get_edges(
+            func_b.node_id, direction="incoming", edge_type="references"
+        )
         assert len(edges) == 1
         assert edges[0][0] == func_a.node_id
 
@@ -556,7 +580,11 @@ class TestStorageStageCrossFileEdges:
 
         ctx, store, func_a, _, _ = self._make_context_with_edges()
         ctx.cross_file_edges = [
-            (func_a.node_id, "callable:src/nonexistent.py:ghost", {"edge_type": "references"}),
+            (
+                func_a.node_id,
+                "callable:src/nonexistent.py:ghost",
+                {"edge_type": "references"},
+            ),
         ]
 
         stage = StorageStage()

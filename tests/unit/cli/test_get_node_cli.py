@@ -400,8 +400,13 @@ class TestGetNodeNoEmbeddingLeak:
         data = json.loads(result.stdout)
 
         required = [
-            "node_id", "name", "category", "content",
-            "signature", "start_line", "end_line",
+            "node_id",
+            "name",
+            "category",
+            "content",
+            "signature",
+            "start_line",
+            "end_line",
         ]
         for field in required:
             assert field in data, f"Missing required field '{field}'"

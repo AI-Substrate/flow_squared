@@ -105,7 +105,11 @@ class EmbeddingService:
     def get_metadata(self) -> dict[str, Any]:
         """Return embedding metadata for graph persistence."""
         model_name = self._config.mode
-        if self._config.mode == "azure" and self._config.azure is not None:
+        if self._config.mode == "onnx" and self._config.onnx is not None:
+            model_name = self._config.onnx.model
+        elif self._config.mode == "local" and self._config.local is not None:
+            model_name = self._config.local.model
+        elif self._config.mode == "azure" and self._config.azure is not None:
             model_name = self._config.azure.deployment_name
 
         return {
@@ -159,14 +163,45 @@ class EmbeddingService:
                 model=embedding_config.openai.model,
             )
         elif embedding_config.mode == "local":
-            from fs2.config.objects import LocalEmbeddingConfig
-            from fs2.core.adapters.embedding_adapter_local import (
-                SentenceTransformerEmbeddingAdapter,
+            import importlib.util
+
+            # Per 047: Prefer ONNX Runtime when available for local mode
+            if importlib.util.find_spec("onnxruntime") is not None:
+                from fs2.config.objects import OnnxEmbeddingConfig
+                from fs2.core.adapters.embedding_adapter_onnx import (
+                    OnnxEmbeddingAdapter,
+                )
+
+                if embedding_config.onnx is None:
+                    model = "BAAI/bge-small-en-v1.5"
+                    max_seq_length = 512
+                    if embedding_config.local is not None:
+                        model = embedding_config.local.model
+                        max_seq_length = embedding_config.local.max_seq_length
+                    embedding_config.onnx = OnnxEmbeddingConfig(
+                        model=model, max_seq_length=max_seq_length
+                    )
+                embedding_adapter = OnnxEmbeddingAdapter(config)
+            else:
+                from fs2.config.objects import LocalEmbeddingConfig
+                from fs2.core.adapters.embedding_adapter_local import (
+                    SentenceTransformerEmbeddingAdapter,
+                )
+
+                if embedding_config.local is None:
+                    embedding_config.local = LocalEmbeddingConfig()
+                embedding_adapter = SentenceTransformerEmbeddingAdapter(config)
+        elif embedding_config.mode == "onnx":
+            from fs2.core.adapters.embedding_adapter import (
+                create_embedding_adapter_from_config,
             )
 
-            if embedding_config.local is None:
-                embedding_config.local = LocalEmbeddingConfig()
-            embedding_adapter = SentenceTransformerEmbeddingAdapter(config)
+            embedding_adapter = create_embedding_adapter_from_config(config)
+            if embedding_adapter is None:
+                raise ValueError(
+                    "ONNX embeddings require onnxruntime. "
+                    "Install with: pip install onnxruntime"
+                )
         elif embedding_config.mode == "fake":
             embedding_adapter = FakeEmbeddingAdapter(
                 dimensions=embedding_config.dimensions
@@ -695,9 +730,10 @@ class EmbeddingService:
         # Run batches with as_completed for incremental progress
         # This reports progress as each batch finishes, not after all complete
         batch_futures = [process_single_batch(batch) for batch in batches]
-        batches_completed = 0
 
-        for coro in asyncio.as_completed(batch_futures):
+        for batches_completed, coro in enumerate(
+            asyncio.as_completed(batch_futures), 1
+        ):
             result_list = await coro
             # Merge results into chunk_embeddings dict
             for key, embedding in result_list:
@@ -705,7 +741,6 @@ class EmbeddingService:
 
             # Update progress after each batch
             chunks_processed += len(result_list)
-            batches_completed += 1
             if progress_callback and total_chunks > 0:
                 # Approximate node progress from chunk progress
                 approx_nodes = int(
@@ -718,10 +753,7 @@ class EmbeddingService:
                 )
 
             # Courtesy save every 100 batches during processing (Plan 036 T05)
-            if (
-                courtesy_save is not None
-                and batches_completed % 100 == 0
-            ):
+            if courtesy_save is not None and batches_completed % 100 == 0:
                 # Build partial results from completed chunks so far
                 partial = self._reassemble_partial(
                     chunk_embeddings, nodes_to_process, chunk_offsets

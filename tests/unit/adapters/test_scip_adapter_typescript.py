@@ -12,7 +12,13 @@ import pytest
 
 from fs2.core.adapters.scip_adapter_typescript import SCIPTypeScriptAdapter
 
-FIXTURE_DIR = Path(__file__).parent.parent.parent.parent / "scripts" / "scip" / "fixtures" / "typescript"
+FIXTURE_DIR = (
+    Path(__file__).parent.parent.parent.parent
+    / "scripts"
+    / "scip"
+    / "fixtures"
+    / "typescript"
+)
 FIXTURE_INDEX = FIXTURE_DIR / "index.scip"
 
 
@@ -131,7 +137,9 @@ class TestSCIPTypeScriptAdapterWithFixture:
         handler_to_service = any(
             "handler" in s and "service" in t for s, t in src_tgt_pairs
         )
-        assert handler_to_service, f"Expected handler→service edge, got: {src_tgt_pairs}"
+        assert handler_to_service, (
+            f"Expected handler→service edge, got: {src_tgt_pairs}"
+        )
 
     def test_service_references_model(self, adapter, known_node_ids):
         edges = adapter.extract_cross_file_edges(str(FIXTURE_INDEX), known_node_ids)

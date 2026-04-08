@@ -15,6 +15,7 @@ Per Critical Finding 14: Includes format_version metadata.
 """
 
 import logging
+import os
 import pickle
 from datetime import UTC, datetime
 from pathlib import Path
@@ -334,8 +335,8 @@ class NetworkXGraphStore(GraphStore):
                     (metadata, self._graph), f, protocol=pickle.HIGHEST_PROTOCOL
                 )
 
-            # Atomic rename (same filesystem guarantees atomicity)
-            tmp_path.rename(path)
+            # Atomic rename — os.replace works cross-platform (unlike Path.rename on Windows)
+            os.replace(tmp_path, path)
 
             logger.info(
                 "Graph saved to %s (%d nodes, %d edges)",

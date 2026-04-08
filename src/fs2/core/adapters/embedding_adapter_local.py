@@ -15,6 +15,7 @@ Per DYK-5: Logs download message before first model load.
 import asyncio
 import logging
 import platform
+import threading
 from typing import TYPE_CHECKING
 
 from fs2.config.objects import EmbeddingConfig
@@ -35,6 +36,7 @@ class SentenceTransformerEmbeddingAdapter(EmbeddingAdapter):
     - Auto-detection of best device: CUDA > MPS > CPU
     - Lazy model loading (first call loads model)
     - Thread-pool execution for async compatibility
+    - Thread-safe model loading with double-checked locking (046)
 
     Key differences from API adapters:
     - No retry logic needed (no network)
@@ -61,6 +63,10 @@ class SentenceTransformerEmbeddingAdapter(EmbeddingAdapter):
 
         self._local_config = self._embedding_config.local
         self._model = None  # Lazy loaded
+        self._model_lock = threading.Lock()  # 046: Thread-safe model loading
+        self._model_error: EmbeddingAdapterError | None = (
+            None  # 046: Stored load failure
+        )
         self._device: str | None = None
 
     @property
@@ -76,14 +82,10 @@ class SentenceTransformerEmbeddingAdapter(EmbeddingAdapter):
 
         if requested != "auto":
             if requested == "cuda" and not torch.cuda.is_available():
-                logger.warning(
-                    "CUDA requested but not available, falling back to CPU"
-                )
+                logger.warning("CUDA requested but not available, falling back to CPU")
                 return "cpu"
             if requested == "mps" and not torch.backends.mps.is_available():
-                logger.warning(
-                    "MPS requested but not available, falling back to CPU"
-                )
+                logger.warning("MPS requested but not available, falling back to CPU")
                 return "cpu"
             return requested
 
@@ -97,59 +99,110 @@ class SentenceTransformerEmbeddingAdapter(EmbeddingAdapter):
         return "cpu"
 
     def _get_model(self):
-        """Lazy-load the SentenceTransformer model."""
-        if self._model is None:
+        """Lazy-load the SentenceTransformer model (thread-safe).
+
+        Uses double-checked locking (DYK#1) to avoid lock overhead
+        on the hot path after the model is loaded.
+        """
+        # DYK#1: Fast path — no lock needed if model already loaded
+        if self._model is not None:
+            return self._model
+
+        # DYK#5: Check for stored error from previous failed load
+        if self._model_error is not None:
+            raise self._model_error
+
+        # DYK#3: Log waiting message for visibility during first-time download
+        if self._model_lock.locked():
+            logger.info(
+                "Waiting for embedding model to load... "
+                "(another thread is loading the model)"
+            )
+
+        with self._model_lock:
+            # Double-check after acquiring lock
+            if self._model is not None:
+                return self._model
+            if self._model_error is not None:
+                raise self._model_error
+
             try:
-                from sentence_transformers import SentenceTransformer
-            except ImportError:
-                raise EmbeddingAdapterError(
-                    "sentence-transformers package is required for local embeddings. "
-                    "Install it with: pip install fs2[local-embeddings]"
-                ) from None
-
-            import warnings
-
-            self._device = self._detect_device()
-
-            # Suppress noisy "position_ids UNEXPECTED" and load report from HuggingFace
-            _transformers_logger = logging.getLogger("transformers.modeling_utils")
-            prev_level = _transformers_logger.level
-            _transformers_logger.setLevel(logging.ERROR)
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message=".*position_ids.*")
-                # Try offline first to avoid HF Hub connection when model is cached
                 try:
-                    self._model = SentenceTransformer(
-                        self._local_config.model,
-                        device=self._device,
-                        local_files_only=True,
-                    )
-                    logger.info(
-                        f"Loaded embedding model: {self._local_config.model} "
-                        f"on device: {self._device} (from cache)"
-                    )
-                except OSError:
-                    # Model not cached yet — download it
-                    logger.info(
-                        f"Downloading embedding model: {self._local_config.model} "
-                        f"on device: {self._device} (first load may download ~130MB)"
-                    )
-                    self._model = SentenceTransformer(
-                        self._local_config.model,
-                        device=self._device,
-                    )
-            _transformers_logger.setLevel(prev_level)
-            self._model.max_seq_length = self._local_config.max_seq_length
+                    from sentence_transformers import SentenceTransformer
+                except ImportError:
+                    raise EmbeddingAdapterError(
+                        "sentence-transformers package is required for local embeddings. "
+                        "Install it with: pip install fs2[local-embeddings]"
+                    ) from None
 
-            actual_dim = self._model.get_sentence_embedding_dimension()
-            if actual_dim != self._embedding_config.dimensions:
-                logger.warning(
-                    f"Model dimension ({actual_dim}) differs from configured "
-                    f"dimensions ({self._embedding_config.dimensions}). "
-                    f"Using model dimension ({actual_dim})."
+                import warnings
+
+                self._device = self._detect_device()
+
+                # Suppress noisy warnings from HuggingFace
+                _transformers_logger = logging.getLogger("transformers.modeling_utils")
+                prev_level = _transformers_logger.level
+                _transformers_logger.setLevel(logging.ERROR)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message=".*position_ids.*")
+                    try:
+                        self._model = SentenceTransformer(
+                            self._local_config.model,
+                            device=self._device,
+                            local_files_only=True,
+                        )
+                        logger.info(
+                            f"Loaded embedding model: {self._local_config.model} "
+                            f"on device: {self._device} (from cache)"
+                        )
+                    except OSError:
+                        logger.info(
+                            f"Downloading embedding model: {self._local_config.model} "
+                            f"on device: {self._device} (first load may download ~130MB)"
+                        )
+                        self._model = SentenceTransformer(
+                            self._local_config.model,
+                            device=self._device,
+                        )
+                _transformers_logger.setLevel(prev_level)
+                self._model.max_seq_length = self._local_config.max_seq_length
+
+                actual_dim = self._model.get_sentence_embedding_dimension()
+                if actual_dim != self._embedding_config.dimensions:
+                    logger.warning(
+                        f"Model dimension ({actual_dim}) differs from configured "
+                        f"dimensions ({self._embedding_config.dimensions}). "
+                        f"Using model dimension ({actual_dim})."
+                    )
+
+            except EmbeddingAdapterError:
+                # Store adapter errors directly (e.g., missing package)
+                self._model_error = EmbeddingAdapterError(
+                    f"Embedding model failed to load. "
+                    f"Restart `fs2 mcp` after resolving the issue. "
+                    f"Original error: {self._model_error or 'see above'}"
                 )
+                raise
+            except Exception as e:
+                # DYK#5: Store error with actionable restart instruction
+                self._model_error = EmbeddingAdapterError(
+                    f"Embedding model failed to load: {e}. "
+                    f"Restart `fs2 mcp` after resolving the issue."
+                )
+                raise self._model_error from e
 
         return self._model
+
+    def warmup(self) -> None:
+        """Pre-load the model in current thread. Safe for background use.
+
+        Called at MCP startup via a daemon thread. Catches errors and
+        stores them in _model_error for re-raise on first search call.
+        """
+        try:
+            self._get_model()
+        except EmbeddingAdapterError as e:
+            logger.warning(f"Embedding model warmup failed: {e}")
 
     def _encode_sync(self, texts: list[str]) -> list[list[float]]:
         """Synchronous encoding — called via run_in_executor."""

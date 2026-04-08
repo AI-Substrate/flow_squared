@@ -217,7 +217,9 @@ def tree(
         if json_output or file:
             # Convert to JSON-serializable format
             detail_literal: Literal["min", "max"] = "max" if detail == "max" else "min"
-            tree_dicts = [_tree_node_to_dict(tn, detail_literal, graph_store) for tn in tree_nodes]
+            tree_dicts = [
+                _tree_node_to_dict(tn, detail_literal, graph_store) for tn in tree_nodes
+            ]
             envelope = {"tree": tree_dicts}
             json_str = json.dumps(envelope, indent=2, default=str)
 
@@ -297,7 +299,12 @@ def _display_tree(
         main_tree = Tree("[bold]Code Structure[/bold]")
         for tree_node in sorted(tree_nodes, key=lambda tn: tn.node.node_id):
             _add_tree_node_to_rich_tree(
-                main_tree, tree_node, detail, max_depth, 1, display_stats,
+                main_tree,
+                tree_node,
+                detail,
+                max_depth,
+                1,
+                display_stats,
                 graph_store,
             )
     else:
@@ -314,7 +321,12 @@ def _display_tree(
                 path_groups[prefix], key=lambda tn: tn.node.node_id
             ):
                 _add_tree_node_to_rich_tree(
-                    folder_branch, tree_node, detail, max_depth, 1, display_stats,
+                    folder_branch,
+                    tree_node,
+                    detail,
+                    max_depth,
+                    1,
+                    display_stats,
                     graph_store,
                 )
 
@@ -383,6 +395,11 @@ def _add_tree_node_to_rich_tree(
     # Add children
     for child_tree_node in tree_node.children:
         _add_tree_node_to_rich_tree(
-            branch, child_tree_node, detail, max_depth, current_depth + 1,
-            stats, graph_store,
+            branch,
+            child_tree_node,
+            detail,
+            max_depth,
+            current_depth + 1,
+            stats,
+            graph_store,
         )

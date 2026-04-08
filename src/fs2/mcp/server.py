@@ -43,7 +43,7 @@ import logging
 logging.getLogger(__name__).info("MCP logging configured: all output routed to stderr")
 
 # NOW safe to import FastMCP and other fs2 modules
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +58,9 @@ from fs2.core.adapters.exceptions import (
 )
 from fs2.core.models.code_node import CodeNode
 from fs2.core.models.tree_node import TreeNode
+
+if TYPE_CHECKING:
+    from fs2.core.repos.protocols import GraphStore
 from fs2.core.services.get_node_service import GetNodeService
 from fs2.core.services.graph_service import (
     GraphFileNotFoundError,
@@ -419,7 +422,9 @@ def tree(
         store = get_graph_store(graph_name)
         service = TreeService(config=config, graph_store=store)
         tree_nodes = service.build_tree(pattern=pattern, max_depth=max_depth)
-        tree_list = [_tree_node_to_dict(tn, detail, graph_store=store) for tn in tree_nodes]
+        tree_list = [
+            _tree_node_to_dict(tn, detail, graph_store=store) for tn in tree_nodes
+        ]
 
         # Count total nodes
         def count_nodes(nodes: list[dict]) -> int:
@@ -656,7 +661,7 @@ def get_node(
             absolute_path = _validate_save_path(save_to_file)
 
             # Write JSON to file
-            with open(absolute_path, "w") as f:
+            with open(absolute_path, "w", encoding="utf-8") as f:
                 json.dump(result, f, indent=2)
 
             # Add saved_to field per DYK Session decision
@@ -901,6 +906,12 @@ async def search(
         adapter = get_embedding_adapter()
         if adapter is None:
             adapter = create_embedding_adapter_from_config(config)
+            # 046: Cache the adapter so subsequent requests reuse it.
+            # DYK#2: Only cache non-None to avoid overwriting a valid adapter.
+            if adapter is not None:
+                from fs2.core.dependencies import set_embedding_adapter
+
+                set_embedding_adapter(adapter)
 
         # Create service with optional embedding adapter
         # Per plan-018: Pass config for parent_penalty setting

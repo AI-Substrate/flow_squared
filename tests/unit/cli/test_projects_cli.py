@@ -3,7 +3,6 @@
 Uses typer test runner for CLI output assertions.
 """
 
-
 import pytest
 from typer.testing import CliRunner
 
@@ -25,6 +24,7 @@ def project_dir(tmp_path):
 def _strip_ansi(text: str) -> str:
     """Remove ANSI escape codes from text."""
     import re
+
     return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
@@ -65,7 +65,9 @@ class TestDiscoverProjects:
         assert "No language projects detected" in result.stdout
 
     def test_scan_path_option(self, project_dir):
-        result = runner.invoke(app, ["discover-projects", "--scan-path", str(project_dir)])
+        result = runner.invoke(
+            app, ["discover-projects", "--scan-path", str(project_dir)]
+        )
         assert result.exit_code == 0
         assert "python" in result.stdout
 
