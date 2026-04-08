@@ -730,9 +730,10 @@ class EmbeddingService:
         # Run batches with as_completed for incremental progress
         # This reports progress as each batch finishes, not after all complete
         batch_futures = [process_single_batch(batch) for batch in batches]
-        batches_completed = 0
 
-        for coro in asyncio.as_completed(batch_futures):
+        for batches_completed, coro in enumerate(
+            asyncio.as_completed(batch_futures), 1
+        ):
             result_list = await coro
             # Merge results into chunk_embeddings dict
             for key, embedding in result_list:
@@ -740,7 +741,6 @@ class EmbeddingService:
 
             # Update progress after each batch
             chunks_processed += len(result_list)
-            batches_completed += 1
             if progress_callback and total_chunks > 0:
                 # Approximate node progress from chunk progress
                 approx_nodes = int(

@@ -208,9 +208,8 @@ class TestModelErrorStorage:
 
         adapter, _, _, patches = _make_adapter_with_fakes(fail=True)
 
-        with patches:
-            with pytest.raises(EmbeddingAdapterError, match="Restart.*fs2 mcp"):
-                adapter._get_model()
+        with patches, pytest.raises(EmbeddingAdapterError, match="Restart.*fs2 mcp"):
+            adapter._get_model()
 
 
 @pytest.mark.unit

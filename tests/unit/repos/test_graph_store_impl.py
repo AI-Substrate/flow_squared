@@ -1114,9 +1114,11 @@ class TestAtomicSave:
         def failing_replace(src, dst):
             raise OSError("Simulated replace failure")
 
-        with patch.object(_os, "replace", failing_replace):
-            with pytest.raises(GraphStoreError):
-                store.save(graph_path)
+        with (
+            patch.object(_os, "replace", failing_replace),
+            pytest.raises(GraphStoreError),
+        ):
+            store.save(graph_path)
 
         # Temp file should be cleaned up (it was writable, only rename failed)
         assert not (tmp_path / "graph.pickle.tmp").exists()

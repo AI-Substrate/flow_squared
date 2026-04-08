@@ -117,11 +117,13 @@ class TestLocalAdapterImportGuard:
         config = _make_mock_config_service(local=LocalEmbeddingConfig())
         adapter = SentenceTransformerEmbeddingAdapter(config)
 
-        with patch.dict("sys.modules", {"sentence_transformers": None}):
-            with pytest.raises(
+        with (
+            patch.dict("sys.modules", {"sentence_transformers": None}),
+            pytest.raises(
                 EmbeddingAdapterError, match="pip install fs2\\[local-embeddings\\]"
-            ):
-                adapter._get_model()
+            ),
+        ):
+            adapter._get_model()
 
 
 @pytest.mark.unit
@@ -142,10 +144,6 @@ class TestLocalAdapterDeviceDetection:
         mock_torch.cuda.get_device_name.return_value = "NVIDIA RTX 4090"
 
         with patch.dict("sys.modules", {"torch": mock_torch}):
-            import fs2.core.adapters.embedding_adapter_local as mod
-
-            original_detect = mod.SentenceTransformerEmbeddingAdapter._detect_device
-
             # Call _detect_device with torch mocked at import level
             def patched_detect(self_adapter):
                 import sys

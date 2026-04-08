@@ -396,7 +396,7 @@ class ReportService:
             "obj",
             "src",
         }
-        cluster_id_set = sorted(set(int(l) for l in cluster_labels))
+        cluster_id_set = sorted(set(int(label) for label in cluster_labels))
         cluster_texts: dict[int, str] = {}
         for cid in cluster_id_set:
             texts = []

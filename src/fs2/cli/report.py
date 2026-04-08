@@ -47,12 +47,12 @@ def codebase_graph(
         "--no-smart-content",
         help="Exclude AI summaries from report (smaller file)",
     ),
-    exclude: list[str] = typer.Option(
+    exclude: list[str] = typer.Option(  # noqa: B008
         [],
         "--exclude",
         help="Glob patterns to exclude nodes by node_id (e.g. 'test_*', '*.test.*'). Repeatable.",
     ),
-    include: list[str] = typer.Option(
+    include: list[str] = typer.Option(  # noqa: B008
         [],
         "--include",
         help="Glob patterns to include — only matching nodes kept. Repeatable.",

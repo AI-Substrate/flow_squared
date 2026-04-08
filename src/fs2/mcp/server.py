@@ -43,7 +43,7 @@ import logging
 logging.getLogger(__name__).info("MCP logging configured: all output routed to stderr")
 
 # NOW safe to import FastMCP and other fs2 modules
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +58,9 @@ from fs2.core.adapters.exceptions import (
 )
 from fs2.core.models.code_node import CodeNode
 from fs2.core.models.tree_node import TreeNode
+
+if TYPE_CHECKING:
+    from fs2.core.repos.protocols import GraphStore
 from fs2.core.services.get_node_service import GetNodeService
 from fs2.core.services.graph_service import (
     GraphFileNotFoundError,

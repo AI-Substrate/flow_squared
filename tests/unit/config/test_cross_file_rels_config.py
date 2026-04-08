@@ -16,7 +16,7 @@ class TestCrossFileRelsConfigDefaults:
 
     def test_only_enabled_field(self):
         """CrossFileRelsConfig should only have the 'enabled' field (Serena fields removed)."""
-        config = CrossFileRelsConfig()
+        CrossFileRelsConfig()  # validate it constructs
         field_names = set(CrossFileRelsConfig.model_fields.keys())
         assert field_names == {"enabled"}
 
