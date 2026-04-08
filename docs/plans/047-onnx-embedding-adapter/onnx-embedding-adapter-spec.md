@@ -1,5 +1,7 @@
 # ONNX Embedding Adapter
 
+**Mode**: Simple
+
 📚 This specification incorporates findings from `research-dossier.md`
 📐 Workshop `001-onnx-runtime-embedding-inference.md` provides validated experimental results
 
@@ -82,6 +84,23 @@ This feature adds a new `OnnxEmbeddingAdapter` that uses ONNX Runtime instead of
 
 - **Phases**: Single phase — the adapter is self-contained
 
+## Testing Strategy
+
+- **Approach**: Hybrid — TDD for pooling/encoding logic (CLS vs mean detection, L2 normalization, tokenizer output), lightweight for config/factory wiring
+- **Mock Policy**: Follow project convention of fakes (`FakeEmbeddingAdapter`). Targeted mocks for ONNX `InferenceSession` in unit tests — same documented exception as local adapter (loading 127MB model in tests is impractical).
+- **Focus Areas**:
+  - Pooling strategy detection: CLS vs mean from config.json (TDD)
+  - Encode pipeline: tokenize → inference → pool → normalize → list[float] (TDD)
+  - Numeric equivalence: compare against known ST output vectors (TDD)
+  - Config/factory wiring: mode selection, graceful degradation (lightweight)
+  - Thread-safe session loading: double-checked locking (lightweight — follows 046 pattern)
+- **Excluded**: No real model downloads in CI; no GPU provider tests
+
+## Documentation Strategy
+
+- **Location**: Hybrid — update existing `src/fs2/docs/local-embeddings.md` and `src/fs2/docs/configuration-guide.md` with ONNX sections
+- **Rationale**: Users looking for embedding docs already know these files. Adding ONNX alongside local mode is natural — no new file needed.
+
 ## Acceptance Criteria
 
 1. **Import time under 2 seconds**: On Windows, the ONNX adapter imports all its dependencies (`onnxruntime`, `tokenizers`, `huggingface_hub`, `numpy`) in under 2 seconds total — no torch import.
@@ -138,3 +157,17 @@ This feature adds a new `OnnxEmbeddingAdapter` that uses ONNX Runtime instead of
 | ~~ONNX Runtime embedding inference~~ | ~~Integration Pattern~~ | ~~COMPLETED~~ | See `workshops/001-onnx-runtime-embedding-inference.md` |
 
 All workshop opportunities have been addressed. The specification is ready for architecture.
+
+## Clarifications
+
+### Session 2026-04-08
+
+**Q1: Workflow Mode** → **Simple**. Single-phase plan, inline tasks. Workshop eliminated ambiguity; adapter is self-contained.
+
+**Q2: Testing Strategy** → **Hybrid**. TDD for pooling/encoding/equivalence logic, lightweight for config/factory wiring.
+
+**Q3: Mock Usage** → **Follow project convention**: fakes via `FakeEmbeddingAdapter` where possible, targeted mocks for ONNX `InferenceSession` in unit tests (same documented exception as local adapter — loading 127MB model in tests is impractical).
+
+**Q4: Domain Review** → **Confirmed**. 3 modify (embedding-adapters, config, embedding-service), 2 consume (mcp-server, cli). No adjustments.
+
+**Q5: Documentation Strategy** → **Hybrid**. Update existing `local-embeddings.md` and `configuration-guide.md` with ONNX sections alongside local mode docs.
