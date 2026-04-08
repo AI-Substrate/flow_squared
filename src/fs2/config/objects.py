@@ -753,7 +753,7 @@ class EmbeddingConfig(BaseModel):
 
     __config_path__: ClassVar[str] = "embedding"
 
-    mode: Literal["azure", "openai_compatible", "local", "onnx", "fake"] = "onnx"
+    mode: Literal["azure", "openai_compatible", "local", "onnx", "fake"] = "local"
     dimensions: int = 1024
     batch_size: int = 16  # Texts per API call (FlowSpace pattern)
     max_concurrent_batches: int = 1  # Concurrent batch processing

@@ -79,20 +79,16 @@ smart_content:
   # To process all categories, remove enabled_categories or set to null
 
 # ─── Embedding (for semantic search) ──────────────────────────────
-# ONNX Runtime embeddings (default — no API key needed, fast startup):
-# Uses ONNX Runtime instead of PyTorch for ~137x faster import on Windows
+# Local embeddings (default — no API key needed):
+# Uses ONNX Runtime automatically when available for fast startup.
+# Falls back to PyTorch/sentence-transformers if onnxruntime not installed.
 embedding:
-  mode: onnx
+  mode: local
   dimensions: 384
-  # onnx:
+  # local:
   #   model: BAAI/bge-small-en-v1.5
+  #   device: auto
   #   max_seq_length: 512
-  #   provider: CPUExecutionProvider
-#
-# Local SentenceTransformer (PyTorch — slower startup on Windows):
-# embedding:
-#   mode: local
-#   dimensions: 384
 #
 # Azure AI Foundry (API key):
 # embedding:

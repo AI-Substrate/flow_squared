@@ -159,14 +159,34 @@ class EmbeddingService:
                 model=embedding_config.openai.model,
             )
         elif embedding_config.mode == "local":
-            from fs2.config.objects import LocalEmbeddingConfig
-            from fs2.core.adapters.embedding_adapter_local import (
-                SentenceTransformerEmbeddingAdapter,
-            )
+            import importlib.util
 
-            if embedding_config.local is None:
-                embedding_config.local = LocalEmbeddingConfig()
-            embedding_adapter = SentenceTransformerEmbeddingAdapter(config)
+            # Per 047: Prefer ONNX Runtime when available for local mode
+            if importlib.util.find_spec("onnxruntime") is not None:
+                from fs2.config.objects import OnnxEmbeddingConfig
+                from fs2.core.adapters.embedding_adapter_onnx import (
+                    OnnxEmbeddingAdapter,
+                )
+
+                if embedding_config.onnx is None:
+                    model = "BAAI/bge-small-en-v1.5"
+                    max_seq_length = 512
+                    if embedding_config.local is not None:
+                        model = embedding_config.local.model
+                        max_seq_length = embedding_config.local.max_seq_length
+                    embedding_config.onnx = OnnxEmbeddingConfig(
+                        model=model, max_seq_length=max_seq_length
+                    )
+                embedding_adapter = OnnxEmbeddingAdapter(config)
+            else:
+                from fs2.config.objects import LocalEmbeddingConfig
+                from fs2.core.adapters.embedding_adapter_local import (
+                    SentenceTransformerEmbeddingAdapter,
+                )
+
+                if embedding_config.local is None:
+                    embedding_config.local = LocalEmbeddingConfig()
+                embedding_adapter = SentenceTransformerEmbeddingAdapter(config)
         elif embedding_config.mode == "onnx":
             from fs2.config.objects import OnnxEmbeddingConfig
             from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter

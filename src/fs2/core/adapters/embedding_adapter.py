@@ -167,12 +167,28 @@ def create_embedding_adapter_from_config(config) -> EmbeddingAdapter | None:
             model=embedding_config.openai.model,
         )
     elif embedding_config.mode == "local":
-        # DYK-1: Probe sentence-transformers availability without importing it.
-        # find_spec is instant (~0ms) vs import which loads PyTorch (~3.5s).
-        # If not installed, return None for graceful degradation (search falls back
-        # to text mode instead of crashing at runtime).
         import importlib.util
 
+        # Per 047: Prefer ONNX Runtime when available — 137x faster import on Windows.
+        # Falls back to sentence-transformers/PyTorch if onnxruntime not installed.
+        if importlib.util.find_spec("onnxruntime") is not None:
+            from fs2.config.objects import OnnxEmbeddingConfig
+            from fs2.core.adapters.embedding_adapter_onnx import OnnxEmbeddingAdapter
+
+            if embedding_config.onnx is None:
+                # Mirror local config model name if set, otherwise use defaults
+                model = "BAAI/bge-small-en-v1.5"
+                max_seq_length = 512
+                if embedding_config.local is not None:
+                    model = embedding_config.local.model
+                    max_seq_length = embedding_config.local.max_seq_length
+                embedding_config.onnx = OnnxEmbeddingConfig(
+                    model=model, max_seq_length=max_seq_length
+                )
+            return OnnxEmbeddingAdapter(config)
+
+        # DYK-1: Probe sentence-transformers availability without importing it.
+        # find_spec is instant (~0ms) vs import which loads PyTorch (~3.5s).
         if importlib.util.find_spec("sentence_transformers") is None:
             return None
 
