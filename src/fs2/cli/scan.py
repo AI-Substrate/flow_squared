@@ -107,7 +107,29 @@ def scan(
         console.stage_banner("CONFIGURATION")
 
         config = FS2ConfigurationService()
-        console.print_success("Loaded .fs2/config.yaml")
+
+        # Silent doctor pre-flight: validate config files, show warning or checkmark
+        try:
+            from fs2.cli.doctor import validate_configs
+
+            config_errors = validate_configs()
+            if config_errors:
+                for err in config_errors:
+                    label = "YAML" if err["type"] == "yaml_syntax" else "Schema"
+                    loc = err.get("file", "config")
+                    line = err.get("line")
+                    loc_str = f"{loc} line {line}" if line else loc
+                    console.print_warning(
+                        f"{label} error in {loc_str}: {err['message']}"
+                    )
+                console.print_warning(
+                    "Config issues detected (run `fs2 doctor` for details)"
+                )
+            else:
+                console.print_success("Loaded .fs2/config.yaml")
+        except Exception:
+            # Doctor pre-flight is best-effort — never abort scan
+            console.print_success("Loaded .fs2/config.yaml")
 
         # Per Subtask 001: Get graph_file from global option via context
         # Always resolve to a Path - use CLI flag or GraphConfig default
@@ -518,6 +540,8 @@ def _display_final_summary(
 
     if summary.errors:
         lines.append(f"Errors: {len(summary.errors)}")
+        for err in summary.errors:
+            lines.append(f"  • {err}")
 
     console.panel(
         "\n".join(lines),

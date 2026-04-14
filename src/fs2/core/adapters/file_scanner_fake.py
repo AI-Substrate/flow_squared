@@ -67,6 +67,20 @@ class FakeFileScanner(FileScanner):
         self._results_to_return: list[ScanResult] = []
         self._ignored_paths: set[Path] = set()
         self._call_history: list[dict[str, Any]] = []
+        self._missing_paths_to_return: list[str] = []
+
+    @property
+    def missing_paths(self) -> list[str]:
+        """Scan paths that were skipped. Configurable via set_missing_paths()."""
+        return list(self._missing_paths_to_return)
+
+    def set_missing_paths(self, paths: list[str]) -> None:
+        """Configure missing paths to return from the missing_paths property.
+
+        Args:
+            paths: List of error strings for missing/invalid scan paths.
+        """
+        self._missing_paths_to_return = paths
 
     @property
     def call_history(self) -> list[dict[str, Any]]:

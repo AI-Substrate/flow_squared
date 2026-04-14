@@ -43,8 +43,7 @@ scan:
 # ─── Embedding (for semantic search) ──────────────────────────────
 # Uncomment ONE block below. Required for: fs2 scan --embed
 #
-embedding:
-  mode: local
+
 #
 # Azure AI Foundry (API key):
 # embedding:

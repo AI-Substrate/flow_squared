@@ -165,6 +165,10 @@ class TestDiscoveryStageErrorHandling:
             def should_ignore(self, path):
                 return False
 
+            @property
+            def missing_paths(self):
+                return []
+
         ctx = PipelineContext(scan_config=ScanConfig())
         ctx.file_scanner = FailingScanner()
 

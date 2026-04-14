@@ -761,3 +761,90 @@ class TestNoCrossRefsFlag:
         assert result.exit_code == 0
         graph_file = simple_project / ".fs2" / "graph.pickle"
         assert graph_file.exists(), "Graph file should be created"
+
+
+class TestDoctorPreFlight:
+    """Tests for silent doctor pre-flight check in scan command."""
+
+    def test_given_valid_config_when_scan_then_shows_loaded_checkmark(
+        self, simple_project, monkeypatch
+    ):
+        """
+        Purpose: Verifies clean config shows standard success message.
+        Acceptance Criteria: AC1 — "✓ Loaded" appears with valid config.
+        """
+        from fs2.cli.main import app
+
+        monkeypatch.chdir(simple_project)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["scan"])
+
+        assert result.exit_code == 0
+        assert "Loaded .fs2/config.yaml" in result.stdout
+
+    def test_given_broken_yaml_when_scan_then_shows_warning(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Verifies broken YAML triggers warning, not checkmark.
+        Acceptance Criteria: AC2 — warning with error location shown.
+        """
+        from fs2.cli.main import app
+
+        config_dir = tmp_path / ".fs2"
+        config_dir.mkdir()
+
+        # Write broken YAML (uncommented box-drawing separator)
+        config_file = config_dir / "config.yaml"
+        config_file.write_text(
+            'scan:\n  scan_paths:\n    - "."\n'
+            "─────────────────────────────\n"
+            "# this line breaks YAML\n"
+        )
+
+        # Create a file to scan
+        (tmp_path / "hello.py").write_text("x = 1")
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["scan"])
+
+        # Should still complete (best-effort)
+        assert result.exit_code == 0
+        # Should show YAML warning
+        assert "YAML" in result.stdout or "yaml" in result.stdout.lower()
+        assert "doctor" in result.stdout.lower()
+
+
+class TestErrorMessageDisplay:
+    """Tests for error message display in scan summary."""
+
+    def test_given_missing_scan_path_when_scan_then_error_shown_in_summary(
+        self, tmp_path, monkeypatch
+    ):
+        """
+        Purpose: Verifies missing path errors appear in summary panel.
+        Acceptance Criteria: AC5 — error messages displayed, not just count.
+        """
+        from fs2.cli.main import app
+
+        config_dir = tmp_path / ".fs2"
+        config_dir.mkdir()
+
+        config_file = config_dir / "config.yaml"
+        config_file.write_text(f"""scan:
+  scan_paths:
+    - "{tmp_path / "nonexistent"}"
+  respect_gitignore: false
+""")
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("NO_COLOR", "1")
+
+        result = runner.invoke(app, ["scan"])
+
+        # Should show the actual error message, not just "Errors: 1"
+        assert "nonexistent" in result.stdout
+        assert "does not exist" in result.stdout
