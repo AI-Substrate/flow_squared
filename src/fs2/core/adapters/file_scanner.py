@@ -56,12 +56,28 @@ class FileScanner(ABC):
         Recursively traverses directories specified in ScanConfig.scan_paths,
         respecting gitignore patterns at each level.
 
+        Missing or invalid scan paths are skipped with a warning rather than
+        aborting. Check missing_paths after scan() for skipped paths.
+
         Returns:
             List of ScanResult containing path and size_bytes for each file.
             Does not include directories, only files.
 
         Raises:
-            FileScannerError: If scan_path does not exist or is inaccessible.
+            FileScannerError: If scan is inaccessible due to permissions.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def missing_paths(self) -> list[str]:
+        """Scan paths that were skipped because they don't exist or aren't directories.
+
+        Populated during scan(). Returns empty list before scan() is called
+        or when all scan paths are valid.
+
+        Returns:
+            List of human-readable error strings for each skipped path.
         """
         ...
 

@@ -1,0 +1,377 @@
+diff --git a/src/fs2/cli/scan.py b/src/fs2/cli/scan.py
+index afc5222..fcf8b53 100644
+--- a/src/fs2/cli/scan.py
++++ b/src/fs2/cli/scan.py
+@@ -107,7 +107,29 @@ def scan(
+         console.stage_banner("CONFIGURATION")
+ 
+         config = FS2ConfigurationService()
+-        console.print_success("Loaded .fs2/config.yaml")
++
++        # Silent doctor pre-flight: validate config files, show warning or checkmark
++        try:
++            from fs2.cli.doctor import validate_configs
++
++            config_errors = validate_configs()
++            if config_errors:
++                for err in config_errors:
++                    label = "YAML" if err["type"] == "yaml_syntax" else "Schema"
++                    loc = err.get("file", "config")
++                    line = err.get("line")
++                    loc_str = f"{loc} line {line}" if line else loc
++                    console.print_warning(
++                        f"{label} error in {loc_str}: {err['message']}"
++                    )
++                console.print_warning(
++                    "Config issues detected (run `fs2 doctor` for details)"
++                )
++            else:
++                console.print_success("Loaded .fs2/config.yaml")
++        except Exception:
++            # Doctor pre-flight is best-effort — never abort scan
++            console.print_success("Loaded .fs2/config.yaml")
+ 
+         # Per Subtask 001: Get graph_file from global option via context
+         # Always resolve to a Path - use CLI flag or GraphConfig default
+@@ -518,6 +540,8 @@ def _display_final_summary(
+ 
+     if summary.errors:
+         lines.append(f"Errors: {len(summary.errors)}")
++        for err in summary.errors:
++            lines.append(f"  • {err}")
+ 
+     console.panel(
+         "\n".join(lines),
+diff --git a/src/fs2/core/adapters/file_scanner.py b/src/fs2/core/adapters/file_scanner.py
+index 399cd55..88068ef 100644
+--- a/src/fs2/core/adapters/file_scanner.py
++++ b/src/fs2/core/adapters/file_scanner.py
+@@ -56,12 +56,28 @@ class FileScanner(ABC):
+         Recursively traverses directories specified in ScanConfig.scan_paths,
+         respecting gitignore patterns at each level.
+ 
++        Missing or invalid scan paths are skipped with a warning rather than
++        aborting. Check missing_paths after scan() for skipped paths.
++
+         Returns:
+             List of ScanResult containing path and size_bytes for each file.
+             Does not include directories, only files.
+ 
+         Raises:
+-            FileScannerError: If scan_path does not exist or is inaccessible.
++            FileScannerError: If scan is inaccessible due to permissions.
++        """
++        ...
++
++    @property
++    @abstractmethod
++    def missing_paths(self) -> list[str]:
++        """Scan paths that were skipped because they don't exist or aren't directories.
++
++        Populated during scan(). Returns empty list before scan() is called
++        or when all scan paths are valid.
++
++        Returns:
++            List of human-readable error strings for each skipped path.
+         """
+         ...
+ 
+diff --git a/src/fs2/core/adapters/file_scanner_fake.py b/src/fs2/core/adapters/file_scanner_fake.py
+index 9bb16fd..782693c 100644
+--- a/src/fs2/core/adapters/file_scanner_fake.py
++++ b/src/fs2/core/adapters/file_scanner_fake.py
+@@ -67,6 +67,20 @@ class FakeFileScanner(FileScanner):
+         self._results_to_return: list[ScanResult] = []
+         self._ignored_paths: set[Path] = set()
+         self._call_history: list[dict[str, Any]] = []
++        self._missing_paths_to_return: list[str] = []
++
++    @property
++    def missing_paths(self) -> list[str]:
++        """Scan paths that were skipped. Configurable via set_missing_paths()."""
++        return list(self._missing_paths_to_return)
++
++    def set_missing_paths(self, paths: list[str]) -> None:
++        """Configure missing paths to return from the missing_paths property.
++
++        Args:
++            paths: List of error strings for missing/invalid scan paths.
++        """
++        self._missing_paths_to_return = paths
+ 
+     @property
+     def call_history(self) -> list[dict[str, Any]]:
+diff --git a/src/fs2/core/adapters/file_scanner_impl.py b/src/fs2/core/adapters/file_scanner_impl.py
+index 91e4d76..5ac6b27 100644
+--- a/src/fs2/core/adapters/file_scanner_impl.py
++++ b/src/fs2/core/adapters/file_scanner_impl.py
+@@ -91,6 +91,13 @@ class FileSystemScanner(FileScanner):
+         self._scan_roots: list[Path] = []
+         # Flag to track if scan() has been called
+         self._scanned = False
++        # Paths that were skipped (missing or not a directory)
++        self._missing_paths: list[str] = []
++
++    @property
++    def missing_paths(self) -> list[str]:
++        """Scan paths that were skipped because they don't exist or aren't directories."""
++        return list(self._missing_paths)
+ 
+     def scan(self) -> list[ScanResult]:
+         """Discover source files in configured scan paths.
+@@ -98,25 +105,38 @@ class FileSystemScanner(FileScanner):
+         Recursively traverses directories, respecting gitignore patterns
+         at each level. Symlinks are handled per follow_symlinks config.
+ 
++        Missing or invalid scan paths are skipped with a warning.
++        Check missing_paths after scan() for skipped paths.
++
+         Returns:
+             List of ScanResult containing path and size_bytes for each file.
+-
+-        Raises:
+-            FileScannerError: If a scan_path does not exist.
+         """
+         results: list[ScanResult] = []
+         self._scan_roots = []
+         self._gitignore_specs = {}
++        self._missing_paths = []
+ 
+         for scan_path_str in self._scan_config.scan_paths:
+             scan_path = Path(scan_path_str).resolve()
+             self._scan_roots.append(scan_path)
+ 
+             if not scan_path.exists():
+-                raise FileScannerError(
++                msg = (
+                     f"Scan path does not exist: {scan_path}. "
+                     "Check scan_paths configuration in .fs2/config.yaml."
+                 )
++                logger.warning(msg)
++                self._missing_paths.append(msg)
++                continue
++
++            if not scan_path.is_dir():
++                msg = (
++                    f"Scan path is not a directory: {scan_path}. "
++                    "Check scan_paths configuration in .fs2/config.yaml."
++                )
++                logger.warning(msg)
++                self._missing_paths.append(msg)
++                continue
+ 
+             # Load ancestor gitignore files up to repo root (or filesystem root)
+             # This ensures patterns from the repo-root .gitignore apply even
+diff --git a/src/fs2/core/services/stages/discovery_stage.py b/src/fs2/core/services/stages/discovery_stage.py
+index 5eae89b..4c57c03 100644
+--- a/src/fs2/core/services/stages/discovery_stage.py
++++ b/src/fs2/core/services/stages/discovery_stage.py
+@@ -60,6 +60,10 @@ class DiscoveryStage:
+             # Record metrics
+             context.metrics["discovery_files"] = len(results)
+ 
++            # Collect warnings about missing/invalid scan paths
++            for msg in context.file_scanner.missing_paths:
++                context.errors.append(msg)
++
+         except FileScannerError as e:
+             # Collect error, don't raise
+             context.errors.append(str(e))
+diff --git a/tests/unit/adapters/test_file_scanner_impl.py b/tests/unit/adapters/test_file_scanner_impl.py
+index 72965cf..02cdb95 100644
+--- a/tests/unit/adapters/test_file_scanner_impl.py
++++ b/tests/unit/adapters/test_file_scanner_impl.py
+@@ -824,17 +824,16 @@ class TestFileSystemScannerConfigIgnorePatterns:
+         assert "app.py" in file_names
+         assert "debug.log" in file_names
+ 
+-    def test_file_system_scanner_raises_error_for_nonexistent_path(self, tmp_path):
++    def test_file_system_scanner_warns_and_skips_nonexistent_path(self, tmp_path):
+         """
+-        Purpose: Verifies FileScannerError raised for non-existent path.
+-        Quality Contribution: Clear error for configuration mistakes.
+-        Acceptance Criteria: FileScannerError with path in message.
++        Purpose: Verifies scanner warns and continues for non-existent path.
++        Quality Contribution: Missing paths don't abort entire scan.
++        Acceptance Criteria: No exception, missing_paths contains error string.
+ 
+-        Task: T019
++        Task: T019 (updated for warn-and-skip)
+         """
+         from fs2.config.objects import ScanConfig
+         from fs2.config.service import FakeConfigurationService
+-        from fs2.core.adapters.exceptions import FileScannerError
+         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+ 
+         config = FakeConfigurationService(
+@@ -842,8 +841,58 @@ class TestFileSystemScannerConfigIgnorePatterns:
+         )
+         scanner = FileSystemScanner(config)
+ 
+-        with pytest.raises(FileScannerError, match="nonexistent"):
+-            scanner.scan()
++        results = scanner.scan()
++        assert results == []
++        assert len(scanner.missing_paths) == 1
++        assert "nonexistent" in scanner.missing_paths[0]
++
++    def test_file_system_scanner_skips_missing_path_scans_valid(self, tmp_path):
++        """
++        Purpose: Verifies scanner processes valid paths even when some are missing.
++        Quality Contribution: Partial results returned from valid paths.
++        Acceptance Criteria: Files from valid path returned, missing path recorded.
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
++
++        valid_dir = tmp_path / "valid"
++        valid_dir.mkdir()
++        (valid_dir / "hello.py").write_text("print('hi')")
++
++        config = FakeConfigurationService(
++            ScanConfig(scan_paths=[str(tmp_path / "missing"), str(valid_dir)])
++        )
++        scanner = FileSystemScanner(config)
++
++        results = scanner.scan()
++        assert len(results) == 1
++        assert results[0].path.name == "hello.py"
++        assert len(scanner.missing_paths) == 1
++        assert "missing" in scanner.missing_paths[0]
++
++    def test_file_system_scanner_warns_for_file_not_directory(self, tmp_path):
++        """
++        Purpose: Verifies scanner warns when scan_path is a file, not directory.
++        Quality Contribution: Clear error for misconfigured scan_paths.
++        Acceptance Criteria: No exception, missing_paths contains error string.
++        """
++        from fs2.config.objects import ScanConfig
++        from fs2.config.service import FakeConfigurationService
++        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
++
++        a_file = tmp_path / "not_a_dir.txt"
++        a_file.write_text("hello")
++
++        config = FakeConfigurationService(
++            ScanConfig(scan_paths=[str(a_file)])
++        )
++        scanner = FileSystemScanner(config)
++
++        results = scanner.scan()
++        assert results == []
++        assert len(scanner.missing_paths) == 1
++        assert "not a directory" in scanner.missing_paths[0]
+ 
+     @pytest.mark.skipif(sys.platform == "win32", reason="chmod not reliable on Windows")
+     def test_file_system_scanner_includes_file_with_no_read_permission(self, tmp_path):
+diff --git a/tests/unit/cli/test_scan_cli.py b/tests/unit/cli/test_scan_cli.py
+index 5303849..0f87940 100644
+--- a/tests/unit/cli/test_scan_cli.py
++++ b/tests/unit/cli/test_scan_cli.py
+@@ -761,3 +761,90 @@ class TestNoCrossRefsFlag:
+         assert result.exit_code == 0
+         graph_file = simple_project / ".fs2" / "graph.pickle"
+         assert graph_file.exists(), "Graph file should be created"
++
++
++class TestDoctorPreFlight:
++    """Tests for silent doctor pre-flight check in scan command."""
++
++    def test_given_valid_config_when_scan_then_shows_loaded_checkmark(
++        self, simple_project, monkeypatch
++    ):
++        """
++        Purpose: Verifies clean config shows standard success message.
++        Acceptance Criteria: AC1 — "✓ Loaded" appears with valid config.
++        """
++        from fs2.cli.main import app
++
++        monkeypatch.chdir(simple_project)
++        monkeypatch.setenv("NO_COLOR", "1")
++
++        result = runner.invoke(app, ["scan"])
++
++        assert result.exit_code == 0
++        assert "Loaded .fs2/config.yaml" in result.stdout
++
++    def test_given_broken_yaml_when_scan_then_shows_warning(
++        self, tmp_path, monkeypatch
++    ):
++        """
++        Purpose: Verifies broken YAML triggers warning, not checkmark.
++        Acceptance Criteria: AC2 — warning with error location shown.
++        """
++        from fs2.cli.main import app
++
++        config_dir = tmp_path / ".fs2"
++        config_dir.mkdir()
++
++        # Write broken YAML (uncommented box-drawing separator)
++        config_file = config_dir / "config.yaml"
++        config_file.write_text(
++            "scan:\n  scan_paths:\n    - \".\"\n"
++            "─────────────────────────────\n"
++            "# this line breaks YAML\n"
++        )
++
++        # Create a file to scan
++        (tmp_path / "hello.py").write_text("x = 1")
++
++        monkeypatch.chdir(tmp_path)
++        monkeypatch.setenv("NO_COLOR", "1")
++
++        result = runner.invoke(app, ["scan"])
++
++        # Should still complete (best-effort)
++        assert result.exit_code == 0
++        # Should show YAML warning
++        assert "YAML" in result.stdout or "yaml" in result.stdout.lower()
++        assert "doctor" in result.stdout.lower()
++
++
++class TestErrorMessageDisplay:
++    """Tests for error message display in scan summary."""
++
++    def test_given_missing_scan_path_when_scan_then_error_shown_in_summary(
++        self, tmp_path, monkeypatch
++    ):
++        """
++        Purpose: Verifies missing path errors appear in summary panel.
++        Acceptance Criteria: AC5 — error messages displayed, not just count.
++        """
++        from fs2.cli.main import app
++
++        config_dir = tmp_path / ".fs2"
++        config_dir.mkdir()
++
++        config_file = config_dir / "config.yaml"
++        config_file.write_text(f"""scan:
++  scan_paths:
++    - "{tmp_path / 'nonexistent'}"
++  respect_gitignore: false
++""")
++
++        monkeypatch.chdir(tmp_path)
++        monkeypatch.setenv("NO_COLOR", "1")
++
++        result = runner.invoke(app, ["scan"])
++
++        # Should show the actual error message, not just "Errors: 1"
++        assert "nonexistent" in result.stdout
++        assert "does not exist" in result.stdout
+diff --git a/tests/unit/services/test_discovery_stage.py b/tests/unit/services/test_discovery_stage.py
+index a982580..d966828 100644
+--- a/tests/unit/services/test_discovery_stage.py
++++ b/tests/unit/services/test_discovery_stage.py
+@@ -165,6 +165,10 @@ class TestDiscoveryStageErrorHandling:
+             def should_ignore(self, path):
+                 return False
+ 
++            @property
++            def missing_paths(self):
++                return []
++
+         ctx = PipelineContext(scan_config=ScanConfig())
+         ctx.file_scanner = FailingScanner()
+ 

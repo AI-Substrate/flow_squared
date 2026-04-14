@@ -60,6 +60,10 @@ class DiscoveryStage:
             # Record metrics
             context.metrics["discovery_files"] = len(results)
 
+            # Collect warnings about missing/invalid scan paths
+            for msg in context.file_scanner.missing_paths:
+                context.errors.append(msg)
+
         except FileScannerError as e:
             # Collect error, don't raise
             context.errors.append(str(e))

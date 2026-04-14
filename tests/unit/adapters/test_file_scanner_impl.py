@@ -824,17 +824,16 @@ class TestFileSystemScannerConfigIgnorePatterns:
         assert "app.py" in file_names
         assert "debug.log" in file_names
 
-    def test_file_system_scanner_raises_error_for_nonexistent_path(self, tmp_path):
+    def test_file_system_scanner_warns_and_skips_nonexistent_path(self, tmp_path):
         """
-        Purpose: Verifies FileScannerError raised for non-existent path.
-        Quality Contribution: Clear error for configuration mistakes.
-        Acceptance Criteria: FileScannerError with path in message.
+        Purpose: Verifies scanner warns and continues for non-existent path.
+        Quality Contribution: Missing paths don't abort entire scan.
+        Acceptance Criteria: No exception, missing_paths contains error string.
 
-        Task: T019
+        Task: T019 (updated for warn-and-skip)
         """
         from fs2.config.objects import ScanConfig
         from fs2.config.service import FakeConfigurationService
-        from fs2.core.adapters.exceptions import FileScannerError
         from fs2.core.adapters.file_scanner_impl import FileSystemScanner
 
         config = FakeConfigurationService(
@@ -842,8 +841,56 @@ class TestFileSystemScannerConfigIgnorePatterns:
         )
         scanner = FileSystemScanner(config)
 
-        with pytest.raises(FileScannerError, match="nonexistent"):
-            scanner.scan()
+        results = scanner.scan()
+        assert results == []
+        assert len(scanner.missing_paths) == 1
+        assert "nonexistent" in scanner.missing_paths[0]
+
+    def test_file_system_scanner_skips_missing_path_scans_valid(self, tmp_path):
+        """
+        Purpose: Verifies scanner processes valid paths even when some are missing.
+        Quality Contribution: Partial results returned from valid paths.
+        Acceptance Criteria: Files from valid path returned, missing path recorded.
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        valid_dir = tmp_path / "valid"
+        valid_dir.mkdir()
+        (valid_dir / "hello.py").write_text("print('hi')")
+
+        config = FakeConfigurationService(
+            ScanConfig(scan_paths=[str(tmp_path / "missing"), str(valid_dir)])
+        )
+        scanner = FileSystemScanner(config)
+
+        results = scanner.scan()
+        assert len(results) == 1
+        assert results[0].path.name == "hello.py"
+        assert len(scanner.missing_paths) == 1
+        assert "missing" in scanner.missing_paths[0]
+
+    def test_file_system_scanner_warns_for_file_not_directory(self, tmp_path):
+        """
+        Purpose: Verifies scanner warns when scan_path is a file, not directory.
+        Quality Contribution: Clear error for misconfigured scan_paths.
+        Acceptance Criteria: No exception, missing_paths contains error string.
+        """
+        from fs2.config.objects import ScanConfig
+        from fs2.config.service import FakeConfigurationService
+        from fs2.core.adapters.file_scanner_impl import FileSystemScanner
+
+        a_file = tmp_path / "not_a_dir.txt"
+        a_file.write_text("hello")
+
+        config = FakeConfigurationService(ScanConfig(scan_paths=[str(a_file)]))
+        scanner = FileSystemScanner(config)
+
+        results = scanner.scan()
+        assert results == []
+        assert len(scanner.missing_paths) == 1
+        assert "not a directory" in scanner.missing_paths[0]
 
     @pytest.mark.skipif(sys.platform == "win32", reason="chmod not reliable on Windows")
     def test_file_system_scanner_includes_file_with_no_read_permission(self, tmp_path):

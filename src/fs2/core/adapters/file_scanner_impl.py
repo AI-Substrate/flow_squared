@@ -91,6 +91,13 @@ class FileSystemScanner(FileScanner):
         self._scan_roots: list[Path] = []
         # Flag to track if scan() has been called
         self._scanned = False
+        # Paths that were skipped (missing or not a directory)
+        self._missing_paths: list[str] = []
+
+    @property
+    def missing_paths(self) -> list[str]:
+        """Scan paths that were skipped because they don't exist or aren't directories."""
+        return list(self._missing_paths)
 
     def scan(self) -> list[ScanResult]:
         """Discover source files in configured scan paths.
@@ -98,25 +105,38 @@ class FileSystemScanner(FileScanner):
         Recursively traverses directories, respecting gitignore patterns
         at each level. Symlinks are handled per follow_symlinks config.
 
+        Missing or invalid scan paths are skipped with a warning.
+        Check missing_paths after scan() for skipped paths.
+
         Returns:
             List of ScanResult containing path and size_bytes for each file.
-
-        Raises:
-            FileScannerError: If a scan_path does not exist.
         """
         results: list[ScanResult] = []
         self._scan_roots = []
         self._gitignore_specs = {}
+        self._missing_paths = []
 
         for scan_path_str in self._scan_config.scan_paths:
             scan_path = Path(scan_path_str).resolve()
             self._scan_roots.append(scan_path)
 
             if not scan_path.exists():
-                raise FileScannerError(
+                msg = (
                     f"Scan path does not exist: {scan_path}. "
                     "Check scan_paths configuration in .fs2/config.yaml."
                 )
+                logger.warning(msg)
+                self._missing_paths.append(msg)
+                continue
+
+            if not scan_path.is_dir():
+                msg = (
+                    f"Scan path is not a directory: {scan_path}. "
+                    "Check scan_paths configuration in .fs2/config.yaml."
+                )
+                logger.warning(msg)
+                self._missing_paths.append(msg)
+                continue
 
             # Load ancestor gitignore files up to repo root (or filesystem root)
             # This ensures patterns from the repo-root .gitignore apply even
