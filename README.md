@@ -61,7 +61,7 @@ callable:src/middleware/auth.py:require_auth              (score: 0.72)
 
 Neither function contains the phrase "authentication tokens" — fs2 found them through their AI-generated summaries.
 
-## Installation
+## Quick Start
 
 ### Prerequisites
 
@@ -133,6 +133,9 @@ See [Developer Setup](#developer-setup) below for contributing.
 | [MCP Server](docs/how/user/mcp-server-guide.md) | Connect Claude, Copilot, and other AI agents |
 | [Configuration Guide](docs/how/user/configuration-guide.md) | LLM, embeddings, secrets, and all config options |
 | [Multi-Graph](docs/how/user/multi-graphs.md) | Query multiple codebases from one installation |
+| [Cross-File Relationships](docs/how/user/cross-file-relationships.md) | SCIP-based import and call resolution setup |
+| [Local Embeddings](docs/how/user/local-embeddings.md) | Run embeddings locally without API keys |
+| [Local LLM](docs/how/user/local-llm.md) | Use Ollama or other local models for summaries |
 | [Agent Integration](docs/how/user/AGENTS.md) | How AI agents should use fs2 tools effectively |
 
 ## Quick Diagnostics
@@ -271,52 +274,11 @@ Or with uvx:
 | `search` | Find code by text, regex, or semantic meaning |
 | `docs_list` | Browse available documentation with optional filtering |
 | `docs_get` | Retrieve full document content by ID |
+| `list_graphs` | List available graphs for multi-repo queries |
 
-### Documentation Tools
-
-The MCP server includes self-service documentation tools for AI agents:
-
-**Browse documentation**:
-```python
-# List all documents
-docs_list()
-# Returns: {"docs": [...], "count": 2}
-
-# Filter by category
-docs_list(category="how-to")
-
-# Filter by tags (OR logic - matches ANY tag)
-docs_list(tags=["config", "setup"])
-```
-
-**Get full document**:
-```python
-docs_get(id="agents")
-# Returns: {"id": "agents", "title": "...", "content": "...", "metadata": {...}}
-```
-
-Available documents:
-- `agents` - Best practices for AI agents using fs2 tools
-- `configuration-guide` - Comprehensive configuration reference
-
-See [Writing New Curated Documentation](docs/how/dev/write-new-content-guide.md) for adding new documents.
-
-See [MCP Server Guide](docs/how/user/mcp-server-guide.md) for detailed documentation.
+See [MCP Server Guide](docs/how/user/mcp-server-guide.md) for tool parameters, examples, and troubleshooting.
 
 ## Scanning
-
-Scan your codebase to build a queryable code graph.
-
-> **⚠️ Configure LLM & Embeddings First**: For full functionality (smart content summaries and semantic search), set up your API credentials before scanning. See the [Configuration Guide](docs/how/user/configuration-guide.md) for complete setup instructions.
->
-> **Quick setup**:
-> ```bash
-> cp .fs2/config.yaml.example .fs2/config.yaml
-> # Edit .fs2/config.yaml with your Azure/OpenAI credentials
-> # Or set: FS2_AZURE__EMBEDDING__API_KEY, FS2_AZURE__EMBEDDING__ENDPOINT
-> ```
->
-> Without configuration, use `fs2 scan --no-embeddings` for basic scanning (no semantic search).
 
 ```bash
 # Initialize config (first time)
@@ -329,110 +291,21 @@ fs2 scan
 fs2 scan --verbose
 ```
 
-**Configuration** (`.fs2/config.yaml`):
+> **Configure LLM & Embeddings** for full functionality (AI summaries and semantic search). See the [Configuration Guide](docs/how/user/configuration-guide.md). Without configuration, use `fs2 scan --no-embeddings --no-smart-content` for structural scanning only.
 
-```yaml
-scan:
-  scan_paths:
-    - "."
-  respect_gitignore: true
-  max_file_size_kb: 500
-```
-
-**Output**: Graph saved to `.fs2/graph.pickle`
-
-See [Scanning Guide](docs/how/user/scanning.md) for details on node types, troubleshooting, and advanced configuration.
-
-## Embeddings
-
-Enable semantic search by generating embeddings for your code:
-
-```yaml
-# .fs2/config.yaml
-embedding:
-  mode: azure  # azure | openai_compatible | fake
-  dimensions: 1024
-  azure:
-    endpoint: "${FS2_AZURE__EMBEDDING__ENDPOINT}"
-    api_key: "${FS2_AZURE__EMBEDDING__API_KEY}"
-    deployment_name: "text-embedding-3-small"
-```
-
-```bash
-# Scan with embeddings (default when config exists)
-fs2 scan
-
-# Scan without embeddings (faster, no API calls)
-fs2 scan --no-embeddings
-```
-
-**Content-Type Aware Chunking**: Code uses 400-token chunks for precision, documentation uses 800-token chunks for context.
-
-See the [Configuration Guide](docs/how/user/configuration-guide.md) for detailed embeddings configuration, provider setup, and architecture.
+See [Scanning Guide](docs/how/user/scanning.md) for node types, configuration, and troubleshooting.
 
 ## Cross-File Relationships
 
-fs2 resolves cross-file references (imports, calls, type usage) using [SCIP](https://github.com/sourcegraph/scip) indexers. When enabled, `get_node` output includes a `relationships` field showing which nodes reference and are referenced by the queried node.
+fs2 resolves cross-file references (imports, calls, type usage) using [SCIP](https://github.com/sourcegraph/scip) indexers for Python, TypeScript, JavaScript, Go, and C#. Run `fs2 discover-projects` to detect language projects, then `fs2 scan` to build relationship edges.
 
-### Quick Start
-
-```bash
-# Discover language projects in your repo
-fs2 discover-projects
-
-# Add detected projects to config
-fs2 add-project --all
-
-# Scan with cross-file references
-fs2 scan
-
-# View relationships for a node
-fs2 get-node "callable:src/service.py:Service.process"
-# → includes: relationships: { referenced_by: [...], references: [...] }
-```
-
-### Supported Languages
-
-| Language | Indexer | Install |
-|----------|---------|---------|
-| Python | scip-python | `npm install -g @sourcegraph/scip-python` |
-| TypeScript | scip-typescript | `npm install -g @sourcegraph/scip-typescript` |
-| JavaScript | scip-typescript | `npm install -g @sourcegraph/scip-typescript` |
-| Go | scip-go | `go install github.com/sourcegraph/scip-go/cmd/scip-go@latest` |
-| C#/.NET | scip-dotnet | `dotnet tool install --global scip-dotnet` |
-
-### Configuration
-
-```yaml
-# .fs2/config.yaml
-cross_file_rels:
-  enabled: true
-
-projects:
-  entries:
-    - type: python
-      path: .
-    - type: typescript
-      path: frontend
-  auto_discover: true
-  scip_cache_dir: .fs2/scip
-```
-
-### CLI Flags
-
-```bash
-fs2 scan --no-cross-refs              # Skip cross-file resolution
-fs2 discover-projects                 # Detect language projects
-fs2 add-project 1 2 3                # Add by number from discover output
-```
-
-See the [Cross-File Relationships Guide](src/fs2/docs/cross-file-relationships.md) for detailed setup and troubleshooting.
+See the [Cross-File Relationships Guide](docs/how/user/cross-file-relationships.md) for setup, configuration, and troubleshooting.
 
 ## Language Support
 
 fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages are categorized as:
 
-**Code Languages (40)** - Parsed into functions, classes, methods:
+**Code Languages (55+)** - Parsed into functions, classes, methods:
 - Systems: C, C++, Rust, Go, Zig, D, Nim
 - JVM: Java, Kotlin, Scala, Groovy
 - .NET: C#, F#
@@ -440,7 +313,7 @@ fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages ar
 - Scripting: Python, Ruby, Perl, Lua
 - Functional: Haskell, OCaml, Elixir, Erlang, Clojure, Scheme, Racket, Common Lisp
 - Mobile: Swift, Dart
-- Scientific: R, Julia, MATLAB, Fortran
+- Scientific: R, Julia, Fortran
 - GPU/Shaders: CUDA, GLSL, HLSL, WGSL
 
 **File-only Languages** - Summarized as whole documents:
@@ -452,10 +325,6 @@ fs2 uses [tree-sitter](https://tree-sitter.github.io/) for parsing. Languages ar
 
 Unknown languages default to file-only (safe).
 
-## Canonical Example
-
-See `tests/docs/test_sample_adapter_pattern.py` for 19 tests demonstrating the full composition pattern.
-
 ## Developer Setup
 
 For contributing to fs2:
@@ -465,6 +334,8 @@ git clone https://github.com/AI-Substrate/flow_squared
 cd flow_squared
 uv sync --extra dev
 ```
+
+See `tests/docs/test_sample_adapter_pattern.py` for 19 tests demonstrating the full composition pattern.
 
 ### Development Commands
 
