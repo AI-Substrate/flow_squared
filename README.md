@@ -1,6 +1,65 @@
 # Flowspace2 (fs2)
 
-Code intelligence for your codebase. Scan, search, and explore code with AI agents via MCP.
+fs2 parses your codebase into individual code elements — functions, classes, methods, types — using tree-sitter grammars for 55+ languages. Each element can be enriched with an AI-generated summary and vector embeddings, producing a searchable code graph with cross-file relationship tracking. Query by text, regex, or meaning through the CLI, or expose the graph to AI coding agents as an MCP server.
+
+## Key Capabilities
+
+**Structural parsing** — fs2 uses tree-sitter to parse source files into individual code elements: functions, classes, methods, types, and blocks. Each element becomes a node in a directed graph with its source code, signature, qualified name, and line position. This works across 55+ languages with no per-language configuration.
+
+**AI-generated summaries** — Each node can be summarized by an LLM in a concise description of what it does. These summaries power semantic search — you can search for "JWT token validation" and find the right function even if the code never uses those words.
+
+**Semantic search** — Search by meaning, not just text. fs2 embeds both raw code and AI summaries, then searches both to find the best match. Text and regex modes are also available for exact pattern matching.
+
+**Cross-file relationships** — SCIP-based import and call resolution maps references across files. See what calls a function, what it depends on, and how modules connect. Supports Python, TypeScript, JavaScript, Go, and C#.
+
+**Multi-repository** — Configure multiple codebases as named graphs and query across all of them from one installation. Useful for monorepos, shared libraries, or legacy systems spanning many repositories.
+
+## How It Works
+
+fs2 processes your code through a six-stage pipeline:
+
+1. **Scan** — Discovers source files, respecting `.gitignore` and configurable scan paths
+2. **Parse** — tree-sitter breaks each file into individual code elements (nodes)
+3. **Relate** — SCIP resolves cross-file imports, calls, and type references into graph edges
+4. **Summarize** — An LLM generates a concise summary for each node
+5. **Embed** — Vector embeddings are created for both raw code and summaries
+6. **Store** — The graph is persisted to `.fs2/graph.pickle`
+
+The graph is then queryable via CLI commands (`fs2 search`, `fs2 tree`, `fs2 get-node`) or through MCP tools for AI coding agents. Steps 3–5 are optional and can be disabled individually.
+
+## When to Use fs2
+
+fs2 is not a replacement for grep or ripgrep — those are fast text search tools and they're great at what they do. fs2 is for when you need to understand code structure, not just find text.
+
+| Need | Tool |
+|------|------|
+| Find a string in files | `grep` / `ripgrep` |
+| Find a function by name or meaning | `fs2 search` |
+| Understand what a class does | `fs2 get-node` (includes AI summary) |
+| Explore codebase structure | `fs2 tree` |
+| Navigate cross-file dependencies | `fs2 get-node` (includes relationships) |
+| Search across multiple repositories | `fs2 search --graph-name` |
+| Give an AI agent structured code context | `fs2 mcp` ([MCP](https://modelcontextprotocol.io/) is the protocol AI agents use to access external tools) |
+
+### Example: Semantic Search
+
+```bash
+# Find code by meaning, not just text
+$ fs2 search "validates user authentication tokens" --mode semantic
+```
+
+Illustrative output:
+```
+callable:src/auth/jwt.py:JWTValidator.validate_token    (score: 0.87)
+  → "Validates a JWT by checking its signature, expiration, and claims
+     against the issuer configuration."
+
+callable:src/middleware/auth.py:require_auth              (score: 0.72)
+  → "Decorator that extracts the Bearer token from the request header
+     and validates it before allowing access."
+```
+
+Neither function contains the phrase "authentication tokens" — fs2 found them through their AI-generated summaries.
 
 ## Installation
 
