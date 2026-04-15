@@ -42,7 +42,46 @@ fs2 get-node "class:src/auth.py:AuthService"  # Full source code
 
 ## MCP Server Setup
 
-The MCP server gives Claude direct access to fs2 tools (tree, search, get-node).
+The MCP server gives Claude and Copilot direct access to fs2 tools (tree, search, get-node).
+
+### GitHub Copilot CLI
+
+```bash
+# Install Copilot CLI (requires GitHub Copilot subscription + Node.js 22+)
+npm install -g @github/copilot
+
+# Or via GitHub CLI
+gh copilot    # Auto-installs on first use
+
+# Start Copilot CLI
+copilot
+
+# Add fs2 MCP server (interactive)
+/mcp add
+# Server Name: fs2
+# Type: stdio
+# Command: fs2 mcp
+# Tools: *
+# Ctrl+S to save
+```
+
+Or add directly to `~/.copilot/mcp-config.json`:
+
+```json
+{
+  "mcpServers": {
+    "fs2": {
+      "type": "stdio",
+      "command": "fs2",
+      "args": ["mcp"],
+      "env": {},
+      "tools": ["*"]
+    }
+  }
+}
+```
+
+Manage MCP servers with `/mcp show`, `/mcp edit <name>`, `/mcp delete <name>`.
 
 ### Claude Code (CLI)
 
