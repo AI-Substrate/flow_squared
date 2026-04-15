@@ -1010,3 +1010,87 @@ class TestTreeServiceCrossFileFiltering:
         assert class_tree.node.name == "ClassA"
         assert len(class_tree.children) == 1
         assert class_tree.children[0].node.name == "method_a"
+
+
+class TestMarkdownSectionTreeDisplay:
+    """FX001-1: Verify tree output shows markdown section nodes as children of file node.
+
+    AC-09: fs2 tree displays section nodes as children of their file node.
+    """
+
+    def test_markdown_sections_appear_as_file_children(self, tmp_path):
+        """Section nodes created by MarkdownSectionSplitter appear as
+        children of the file node in tree output."""
+        from fs2.core.models.content_type import ContentType
+
+        graph_path = tmp_path / "graph.pickle"
+        graph_path.touch()
+        config = FakeConfigurationService(
+            ScanConfig(),
+            GraphConfig(graph_path=str(graph_path)),
+        )
+        graph = FakeGraphStore(config)
+
+        file_node = CodeNode.create_file(
+            file_path="docs/plan.md",
+            language="markdown",
+            ts_kind="document",
+            content_type=ContentType.CONTENT,
+            start_byte=0,
+            end_byte=200,
+            start_line=1,
+            end_line=20,
+            content="# Plan\n\n## Summary\n\nText\n\n## Details\n\nMore text\n",
+        )
+        section1 = CodeNode.create_section(
+            file_path="docs/plan.md",
+            language="markdown",
+            ts_kind="section",
+            name="Summary",
+            qualified_name="Summary",
+            start_line=3,
+            end_line=5,
+            start_column=0,
+            end_column=0,
+            start_byte=8,
+            end_byte=30,
+            content="## Summary\n\nText\n",
+            signature="## Summary",
+            parent_node_id=file_node.node_id,
+        )
+        section2 = CodeNode.create_section(
+            file_path="docs/plan.md",
+            language="markdown",
+            ts_kind="section",
+            name="Details",
+            qualified_name="Details",
+            start_line=7,
+            end_line=9,
+            start_column=0,
+            end_column=0,
+            start_byte=31,
+            end_byte=55,
+            content="## Details\n\nMore text\n",
+            signature="## Details",
+            parent_node_id=file_node.node_id,
+        )
+
+        graph.add_node(file_node)
+        graph.add_node(section1)
+        graph.add_node(section2)
+        graph.add_edge(file_node.node_id, section1.node_id)
+        graph.add_edge(file_node.node_id, section2.node_id)
+
+        service = TreeService(config=config, graph_store=graph)
+
+        result = service.build_tree(pattern=".")
+        assert len(result) >= 1
+
+        # Find the markdown file node
+        md_tree = next(t for t in result if t.node.name == "plan.md" or "plan.md" in t.node.node_id)
+
+        # Sections should be children
+        child_names = [c.node.name for c in md_tree.children]
+        assert "Summary" in child_names
+        assert "Details" in child_names
+        assert len(md_tree.children) == 2

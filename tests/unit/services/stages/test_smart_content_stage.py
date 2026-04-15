@@ -583,3 +583,122 @@ class TestSmartContentStageCategoryFilter:
         nodes_sent = call_args[0][0]
         assert len(nodes_sent) == 1
         assert nodes_sent[0].category == "file"
+
+
+class TestMarkdownSectionSmartContentSkip:
+    """FX002: Verify markdown section nodes skip smart content generation.
+
+    Markdown sections are human-written prose that don't benefit from
+    LLM summarization. They should be filtered out before batch processing.
+    """
+
+    def test_markdown_section_not_sent_for_smart_content(self):
+        """FX002-1: Markdown section nodes should NOT be queued for LLM summarization."""
+        from fs2.core.models.content_type import ContentType
+        from fs2.core.services.stages.smart_content_stage import (
+            SmartContentStage,
+            _is_self_documenting,
+        )
+
+        section_node = CodeNode.create_section(
+            file_path="docs/plan.md",
+            language="markdown",
+            ts_kind="section",
+            name="Testing Philosophy",
+            qualified_name="Testing Philosophy",
+            start_line=10,
+            end_line=15,
+            start_column=0,
+            end_column=0,
+            start_byte=100,
+            end_byte=200,
+            content="## Testing Philosophy\n\nUse fakes over mocks.\n",
+            signature="## Testing Philosophy",
+        )
+
+        assert section_node.content_type == ContentType.CONTENT
+        assert _is_self_documenting(section_node) is True
+
+    def test_rst_section_also_skipped(self):
+        """FX002-1b: RST section nodes should also be skipped."""
+        from fs2.core.services.stages.smart_content_stage import _is_self_documenting
+
+        rst_section = CodeNode.create_section(
+            file_path="docs/guide.rst",
+            language="rst",
+            ts_kind="section",
+            name="Installation",
+            qualified_name="Installation",
+            start_line=1,
+            end_line=10,
+            start_column=0,
+            end_column=0,
+            start_byte=0,
+            end_byte=100,
+            content="Installation\n============\n\nInstall with pip.\n",
+            signature="Installation",
+        )
+
+        assert _is_self_documenting(rst_section) is True
+
+    def test_code_callable_not_skipped(self):
+        """FX002-1c: Code callables should NOT be skipped — they need LLM summarization."""
+        from fs2.core.services.stages.smart_content_stage import _is_self_documenting
+
+        callable_node = CodeNode.create_callable(
+            file_path="src/main.py",
+            language="python",
+            ts_kind="function_definition",
+            name="process",
+            qualified_name="process",
+            start_line=1,
+            end_line=10,
+            start_column=0,
+            end_column=0,
+            start_byte=0,
+            end_byte=100,
+            content="def process(): pass",
+            signature="def process():",
+        )
+
+        assert _is_self_documenting(callable_node) is False
+
+    def test_markdown_file_node_not_skipped(self):
+        """FX002-1d: File-level markdown nodes should still get smart content."""
+        from fs2.core.services.stages.smart_content_stage import _is_self_documenting
+
+        file_node = CodeNode.create_file(
+            file_path="docs/plan.md",
+            language="markdown",
+            ts_kind="document",
+            start_byte=0,
+            end_byte=500,
+            start_line=1,
+            end_line=50,
+            content="# Plan\n\n## Section\n\nContent\n",
+        )
+
+        assert _is_self_documenting(file_node) is False
+
+    def test_section_smart_content_stays_none(self):
+        """FX002-3: After filtering, section node's smart_content remains None."""
+        from fs2.core.services.stages.smart_content_stage import _is_self_documenting
+
+        section_node = CodeNode.create_section(
+            file_path="docs/plan.md",
+            language="markdown",
+            ts_kind="section",
+            name="Summary",
+            qualified_name="Summary",
+            start_line=1,
+            end_line=5,
+            start_column=0,
+            end_column=0,
+            start_byte=0,
+            end_byte=50,
+            content="## Summary\n\nThis is the summary.\n",
+            signature="## Summary",
+        )
+
+        assert _is_self_documenting(section_node) is True
+        assert section_node.smart_content is None

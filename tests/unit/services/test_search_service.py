@@ -1245,3 +1245,51 @@ class TestAllModesPenalization:
             )
 
             assert method_idx < class_idx, "Method should rank higher than class"
+
+
+class TestMarkdownSectionSearch:
+    """FX001-2: Verify search returns section nodes for heading/content queries.
+
+    AC-10: fs2 search finds section nodes by heading text or section content.
+    """
+
+    @pytest.mark.asyncio
+    async def test_search_finds_markdown_section_by_heading(self):
+        """Text search for heading text returns the section node."""
+        from fs2.core.services.search.search_service import SearchService
+
+        file_node = create_node(
+            "file:docs/plan.md",
+            content="# Plan Title\n\n## Testing Philosophy\n\nUse fakes over mocks.\n\n## Implementation\n\nCode here.\n",
+        )
+        section_node = create_node(
+            "section:docs/plan.md:Testing Philosophy",
+            content="## Testing Philosophy\n\nUse fakes over mocks.\n",
+        )
+
+        graph_store = SimpleFakeGraphStore([file_node, section_node])
+        graph_store.add_edge("file:docs/plan.md", "section:docs/plan.md:Testing Philosophy")
+        service = SearchService(graph_store=graph_store)
+
+        results = await service.search(QuerySpec(pattern="Testing Philosophy", mode=SearchMode.TEXT))
+
+        result_ids = [r.node_id for r in results]
+        assert "section:docs/plan.md:Testing Philosophy" in result_ids
+
+    @pytest.mark.asyncio
+    async def test_search_finds_markdown_section_by_content(self):
+        """Text search for section body content returns the section node."""
+        from fs2.core.services.search.search_service import SearchService
+
+        section_node = create_node(
+            "section:docs/plan.md:Testing Philosophy",
+            content="## Testing Philosophy\n\nUse fakes over mocks. Always write tests first.\n",
+        )
+
+        graph_store = SimpleFakeGraphStore([section_node])
+        service = SearchService(graph_store=graph_store)
+
+        results = await service.search(QuerySpec(pattern="fakes over mocks", mode=SearchMode.TEXT))
+
+        assert len(results) >= 1
+        assert results[0].node_id == "section:docs/plan.md:Testing Philosophy"

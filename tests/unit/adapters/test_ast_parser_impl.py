@@ -641,15 +641,14 @@ class TestTreeSitterParserMultiLanguage:
         # Should find User, Repository interfaces
         assert len(type_nodes) >= 2
 
-    @pytest.mark.skip(reason="tree-sitter grammar issue")
     def test_parse_markdown_headings(self, ast_samples_path):
         """
-        Purpose: Verifies Markdown heading extraction.
-        Quality Contribution: Ensures documentation structure captured.
-        Acceptance Criteria: Headings parsed as section nodes.
+        Purpose: Verifies markdown H2 section splitting via hand-rolled splitter.
+        Quality Contribution: Ensures documentation structure captured as section nodes.
+        Acceptance Criteria: H2 headings parsed as section nodes with correct attributes.
 
-        Task: T026
-        AC: AC4
+        Task: T004 (051-markdown-splitting)
+        AC: AC-01, AC-02, AC-03, AC-04, AC-06
         """
         from fs2.config.objects import ScanConfig
         from fs2.config.service import FakeConfigurationService
@@ -661,9 +660,30 @@ class TestTreeSitterParserMultiLanguage:
         md_file = ast_samples_path / "markdown" / "headings_nested.md"
         nodes = parser.parse(md_file)
 
+        # AC-01: file + section nodes created
+        file_nodes = [n for n in nodes if n.category == "file"]
         section_nodes = [n for n in nodes if n.category == "section"]
-        # Should find headings: Main Title, Section One, Subsection 1.1, Section Two
-        assert len(section_nodes) >= 3
+        assert len(file_nodes) == 1
+        # Preamble (H1: Main Title) + 2 H2 sections = 3
+        assert len(section_nodes) == 3
+
+        # AC-04: Preamble uses H1 title
+        preamble = section_nodes[0]
+        assert preamble.name == "Main Title"
+
+        # AC-02: Node IDs correct
+        assert "section:" in section_nodes[1].node_id
+        assert "Section One" in section_nodes[1].node_id
+
+        # AC-03: Content includes H3 subsections
+        sec_one = section_nodes[1]
+        assert "### Subsection 1.1" in sec_one.content
+
+        # AC-06: Correct attributes
+        for node in section_nodes:
+            assert node.language == "markdown"
+            assert node.category == "section"
+            assert node.parent_node_id == file_nodes[0].node_id
 
     @pytest.mark.skip(reason="tree-sitter grammar issue")
     def test_parse_terraform_blocks(self, ast_samples_path):

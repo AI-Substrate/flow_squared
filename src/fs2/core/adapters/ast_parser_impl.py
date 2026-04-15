@@ -336,6 +336,20 @@ EXTRACTABLE_LANGUAGES: set[str] = CODE_LANGUAGES | {
     "rst",
 }
 
+# Markdown languages handled by the hand-rolled MarkdownSectionSplitter
+# (bypasses tree-sitter to avoid 14K+ noise nodes per file)
+_MARKDOWN_LANGUAGES: set[str] = {"markdown"}
+
+# Minified file suffixes — these produce non-idempotent parse results
+# because single-letter identifiers create ambiguous node boundaries
+_MINIFIED_SUFFIXES: tuple[str, ...] = (".min.js", ".min.css", ".min.mjs")
+
+
+def _is_minified(file_path: Path) -> bool:
+    """Check if a file is minified based on its name."""
+    name = file_path.name.lower()
+    return any(name.endswith(suffix) for suffix in _MINIFIED_SUFFIXES)
+
 
 # === Leading Context Extraction (Plan 037) ===
 # Tree-sitter node types that constitute leading context
@@ -482,6 +496,13 @@ class TreeSitterParser(ASTParser):
             self._record_skip(file_path)
             return []
 
+        # Skip minified files — single-letter identifiers produce unstable
+        # node boundaries across scans (non-idempotent content/byte offsets)
+        if _is_minified(file_path):
+            logger.debug(f"Minified file detected: {file_path}, skipping")
+            self._record_skip(file_path)
+            return []
+
         # Read file content
         try:
             content = file_path.read_bytes()
@@ -511,6 +532,10 @@ class TreeSitterParser(ASTParser):
                     f"Cannot decode {file_path}. "
                     f"File encoding not supported. Error: {e}"
                 ) from e
+
+        # Markdown: use hand-rolled section splitter (bypasses tree-sitter)
+        if language in _MARKDOWN_LANGUAGES:
+            return self._parse_markdown(file_path, language, content_str)
 
         # Get parser for language
         try:
@@ -618,6 +643,54 @@ class TreeSitterParser(ASTParser):
                 content=content,
             )
         ]
+
+    def _parse_markdown(
+        self, file_path: Path, language: str, content: str
+    ) -> list[CodeNode]:
+        """Parse markdown using hand-rolled section splitter.
+
+        Bypasses tree-sitter entirely. Creates a file node plus section
+        nodes for each H2 heading.
+
+        Args:
+            file_path: Path to the markdown file.
+            language: Language name ("markdown").
+            content: File content string.
+
+        Returns:
+            List of CodeNodes: one file node + section nodes for H2 headings.
+        """
+        from fs2.core.adapters.markdown_splitter import MarkdownSectionSplitter
+
+        try:
+            rel_path = file_path.relative_to(Path.cwd())
+        except ValueError:
+            rel_path = file_path
+
+        lines = content.split("\n")
+        file_node = CodeNode.create_file(
+            file_path=rel_path.as_posix(),
+            language=language,
+            content_type=ContentType.CONTENT,
+            ts_kind="document",
+            start_byte=0,
+            end_byte=len(content.encode("utf-8")),
+            start_line=1,
+            end_line=len(lines),
+            content=content,
+        )
+
+        nodes = [file_node]
+
+        splitter = MarkdownSectionSplitter()
+        section_nodes = splitter.split(
+            file_path=rel_path.as_posix(),
+            content=content,
+            parent_node_id=file_node.node_id,
+        )
+        nodes.extend(section_nodes)
+
+        return nodes
 
     def _extract_nodes(
         self,
