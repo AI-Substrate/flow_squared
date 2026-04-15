@@ -232,3 +232,7 @@ scripts/semantic_search_results.json
 .fs2/graph.pickle.backup.*
 node_modules/
 agents/code-review/runs/
+
+# Session artifacts
+session-state/
+session-store.db
