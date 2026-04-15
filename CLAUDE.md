@@ -325,8 +325,48 @@ Before using fs2 MCP, ensure the graph is indexed:
 ```bash
 # From project root
 fs2 scan
-
-
 ```
+
+See <a>MCP Server Guide</a> for full tool documentation.
+
+## Agent Workflow Notes
+
+- **Code reviews run in a separate agent context.** Always provide **full absolute file paths** (e.g., `/Users/jordanknight/substrate/fs2/048-better-documentation/src/fs2/cli/projects.py`) when referencing files for review, since the review agent has no shared state with the implementation agent.
+
+## minih Agent Harness
+
+This project uses [minih](https://github.com/AI-Substrate/minih) for declarative agent-driven code reviews and quality checks.
+
+### Setup
+
+```bash
+# minih is installed globally (or via npx)
+export GH_TOKEN=$(gh auth token)
+
+# Run the code-review agent
+minih run code-review --param context="Review description here"
+
+# Check agent health
+minih doctor
+
+# Validate last run output
+minih validate code-review
+```
+
+### Agent Definitions
+
+Agents live in `agents/` following minih conventions:
+- `agents/_shared/preamble.md` — shared context injected into every agent
+- `agents/code-review/` — structured code review with domain compliance and difficulty reporting
+
+### Difficulty Ledger
+
+The difficulty ledger at `harness/difficulty-ledger.md` tracks friction reported by minih agents. Every agent run produces a `retrospective.difficulties` array with structured friction reports (MH-001, MH-002, etc.). These feed into the ledger for tracking and resolution.
+
+**Workflow:**
+1. minih agents report difficulties in their output JSON
+2. Review agent output: `minih last-run code-review | jq '.data.reportPath'`
+3. Update `harness/difficulty-ledger.md` with new MH entries
+4. Update `agents/_shared/preamble.md` Known Difficulties table so future agents see mitigations
 
 See [MCP Server Guide](docs/how/user/mcp-server-guide.md) for full tool documentation.

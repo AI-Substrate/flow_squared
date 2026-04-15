@@ -1408,3 +1408,59 @@ class TestChunkOffsetPopulation:
         # embedding_chunk_offsets corresponds to raw content chunks only
         assert updated_node.embedding_chunk_offsets is not None
         assert len(updated_node.embedding_chunk_offsets) == len(updated_node.embedding)
+
+
+class TestMarkdownSectionEmbedding:
+    """FX001-3: Verify markdown section nodes receive embeddings.
+
+    AC-12: Embedding generation works for section nodes using ContentType.CONTENT
+    (800 token) chunking strategy.
+    """
+
+    @pytest.fixture
+    def config(self) -> EmbeddingConfig:
+        return EmbeddingConfig(
+            mode="fake",
+            batch_size=5,
+            code=ChunkConfig(max_tokens=400, overlap_tokens=50),
+            documentation=ChunkConfig(max_tokens=800, overlap_tokens=120),
+            smart_content=ChunkConfig(max_tokens=8000, overlap_tokens=0),
+        )
+
+    @pytest.fixture
+    def fake_adapter(self) -> FakeEmbeddingAdapter:
+        adapter = FakeEmbeddingAdapter(dimensions=1024)
+        adapter.set_response([0.1] * 1024)
+        return adapter
+
+    @pytest.mark.asyncio
+    async def test_markdown_section_node_receives_embedding(
+        self, config: EmbeddingConfig, fake_adapter: FakeEmbeddingAdapter
+    ):
+        """Section nodes with content_type=CONTENT are embedded by EmbeddingService."""
+        section_node = CodeNode.create_section(
+            file_path="docs/plan.md",
+            language="markdown",
+            ts_kind="section",
+            name="Testing Philosophy",
+            qualified_name="Testing Philosophy",
+            start_line=10,
+            end_line=15,
+            start_column=0,
+            end_column=0,
+            start_byte=100,
+            end_byte=200,
+            content="## Testing Philosophy\n\nUse fakes over mocks. Always write tests first.\nThis is a fundamental principle of the project.\n",
+            signature="## Testing Philosophy",
+        )
+
+        assert section_node.content_type == ContentType.CONTENT
+        assert section_node.embedding is None
+
+        service = EmbeddingService(config=config, embedding_adapter=fake_adapter, token_counter=None)
+        result = await service.process_batch([section_node])
+
+        updated = result["results"]["section:docs/plan.md:Testing Philosophy"]
+        assert updated.embedding is not None
+        assert len(updated.embedding) > 0
+        assert updated.embedding_chunk_offsets is not None

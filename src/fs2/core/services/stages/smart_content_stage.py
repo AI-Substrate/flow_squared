@@ -28,6 +28,7 @@ from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from fs2.core.adapters.exceptions import LLMAuthenticationError
+from fs2.core.models.content_type import ContentType
 
 if TYPE_CHECKING:
     from fs2.core.models.code_node import CodeNode
@@ -35,6 +36,22 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+_SELF_DOCUMENTING_LANGUAGES = frozenset({"markdown", "rst"})
+
+
+def _is_self_documenting(node: "CodeNode") -> bool:
+    """Content section nodes in human-readable languages don't need LLM summarization.
+
+    Markdown and RST sections are already human-written prose — summarizing them
+    with an LLM wastes tokens and produces inferior results compared to the
+    original text.
+    """
+    return (
+        node.content_type == ContentType.CONTENT
+        and node.category == "section"
+        and node.language in _SELF_DOCUMENTING_LANGUAGES
+    )
 
 
 class SmartContentStage:
@@ -112,6 +129,19 @@ class SmartContentStage:
 
         # Step 3: Filter nodes that need generation (don't already have smart_content)
         needs_generation = [n for n in context.nodes if n.smart_content is None]
+
+        # Step 3a: Skip self-documenting content (no LLM summary needed)
+        pre_filter = len(needs_generation)
+        needs_generation = [
+            n for n in needs_generation if not _is_self_documenting(n)
+        ]
+        skipped_self_doc = pre_filter - len(needs_generation)
+        if skipped_self_doc > 0:
+            logger.info(
+                "SmartContentStage: skipped %d self-documenting nodes "
+                "(markdown/rst sections — already human-readable)",
+                skipped_self_doc,
+            )
 
         # Step 3b: Apply category filter if configured
         smart_content_config = service._config if hasattr(service, "_config") else None
