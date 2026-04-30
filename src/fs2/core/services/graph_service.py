@@ -175,9 +175,10 @@ class GraphService:
                     Service will call config.require() internally.
 
         """
-        # GraphConfig has sensible defaults (.fs2/graph.pickle), so don't
-        # require it — fall back to defaults if not explicitly configured.
-        self._graph_config = config.get(GraphConfig) or GraphConfig()
+        # Per plan 052: GraphConfig is auto-registered with defaults by
+        # FS2ConfigurationService when YAML omits the `graph:` block, so
+        # require() is safe here per R3.2 / Constitution P3.
+        self._graph_config = config.require(GraphConfig)
         self._other_graphs_config = config.get(OtherGraphsConfig)
         self._cache: dict[str, _CacheEntry] = {}
         self._lock = RLock()

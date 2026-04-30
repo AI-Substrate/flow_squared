@@ -108,6 +108,62 @@ def clean_config_env(monkeypatch):
     yield
 
 
+# ─── Hermetic FS2ConfigurationService fixtures (per plan 052 workshop 001) ───
+
+
+@pytest.fixture
+def isolated_config_env(monkeypatch, tmp_path):
+    """Redirect HOME/XDG/cwd to tmp_path so FS2ConfigurationService config
+    discovery is hermetic.
+
+    Any test using this fixture will:
+      - read from `tmp_path/.config/fs2/config.yaml` for user config
+        (won't exist unless the test creates it)
+      - read from `tmp_path/.fs2/config.yaml` for project config
+        (won't exist unless the test creates it)
+      - have no FS2_* env vars unless the test sets them via monkeypatch.setenv
+
+    See workshop:
+      docs/plans/052-graph-config-optional/workshops/001-test-isolation-for-config-service.md
+
+    Returns:
+        Path: tmp_path, ready to be populated with `.fs2/config.yaml` etc.
+    """
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
+@pytest.fixture
+def make_project_config(isolated_config_env):
+    """Factory: write a project-level .fs2/config.yaml from a YAML string.
+
+    Composes with isolated_config_env so the test gets HOME/XDG/cwd isolation
+    automatically.
+
+    Usage:
+        def test_x(make_project_config):
+            make_project_config('''
+                scan:
+                  scan_paths:
+                    - "."
+                # NOTE: no graph: section — exercises auto-registration
+            ''')
+            from fs2.config.service import FS2ConfigurationService
+            config = FS2ConfigurationService()
+            assert config.require(GraphConfig).graph_path == ".fs2/graph.pickle"
+    """
+    tmp_path = isolated_config_env
+
+    def _write(yaml_text: str) -> None:
+        config_dir = tmp_path / ".fs2"
+        config_dir.mkdir(exist_ok=True)
+        (config_dir / "config.yaml").write_text(yaml_text)
+
+    return _write
+
+
 # Phase 3: Pre-wired test dependencies
 
 

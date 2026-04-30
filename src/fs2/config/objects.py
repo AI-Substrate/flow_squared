@@ -710,14 +710,21 @@ class EmbeddingConfig(BaseModel):
         The embedding API supports batch input - multiple texts in ONE API call.
         This is much more efficient than parallel individual calls.
 
-        - batch_size: Number of texts per API call (default: 16, max: 2048 for Azure)
+        - batch_size: Number of texts per API call (default: 16). Azure caps the
+          item count at 2048 BUT enforces a 300,000-tokens-per-request limit
+          that is hit much sooner — with code chunks averaging ~400 tokens, a
+          batch_size of 50 already reaches ~20k tokens. Recommend keeping
+          batch_size in the 16-50 range for code embeddings (issue #15).
         - Service collects items, splits into fixed batches, processes sequentially
         - Optional: max_concurrent_batches for parallel batch processing
 
     Attributes:
         mode: Embedding provider - "local", "azure", "openai_compatible", or "fake".
         dimensions: Embedding vector dimensions (default: 1024).
-        batch_size: Number of texts per API call (default: 16). Azure max is 2048.
+        batch_size: Number of texts per API call (default: 16). Azure caps item
+            count at 2048 but enforces a 300,000-tokens-per-request limit that
+            is reached much sooner; recommended range is 16-50 for code
+            embeddings.
         max_concurrent_batches: Number of batches to process concurrently (default: 1).
             Set higher for faster processing if rate limits allow.
         code: ChunkConfig for code content (default: 400/50).
@@ -732,7 +739,10 @@ class EmbeddingConfig(BaseModel):
         # .fs2/config.yaml
         embedding:
           mode: azure
-          batch_size: 16           # Texts per API call (max 2048 for Azure)
+          batch_size: 16             # Texts per API call. Azure caps item count
+                                     # at 2048 but enforces a 300k tokens-per-
+                                     # request limit; keep this in 16-50 for
+                                     # code embeddings (~400 tokens each).
           max_concurrent_batches: 1  # Concurrent batch processing (optional)
           # Retry configuration (per Flowspace pattern)
           max_retries: 3
@@ -797,11 +807,23 @@ class EmbeddingConfig(BaseModel):
     @field_validator("batch_size")
     @classmethod
     def validate_batch_size(cls, v: int) -> int:
-        """Validate batch_size is between 1 and 2048 (Azure API limit)."""
+        """Validate batch_size is between 1 and 2048.
+
+        Note: Azure caps batch item count at 2048 but ALSO enforces a
+        300,000-tokens-per-request limit that is reached much sooner. With
+        code chunks averaging ~400 tokens, batch_size=50 already approaches
+        ~20k tokens. Recommended range for code embeddings: 16-50.
+        See issue #15.
+        """
         if v < 1:
             raise ValueError("batch_size must be >= 1")
         if v > 2048:
-            raise ValueError("batch_size must be <= 2048 (Azure API limit)")
+            raise ValueError(
+                "batch_size must be <= 2048 (Azure item-count cap). "
+                "Note: Azure also enforces a 300,000-tokens-per-request limit "
+                "that is reached much sooner — recommended range for code "
+                "embeddings is 16-50."
+            )
         return v
 
     @field_validator("max_concurrent_batches")
