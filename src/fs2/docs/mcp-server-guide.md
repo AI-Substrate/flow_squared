@@ -390,8 +390,6 @@ search(pattern="error handling", save_to_file="errors.json")
 
 ## Troubleshooting
 
-<!-- T011 content goes here -->
-
 ### Common Errors
 
 | Error | Cause | Solution |
@@ -400,6 +398,7 @@ search(pattern="error handling", save_to_file="errors.json")
 | "Embeddings not found" | Semantic search without embeddings | Run `fs2 scan --embed` |
 | "Invalid regex pattern" | Malformed regex | Check pattern syntax |
 | "Path escapes working directory" | `save_to_file` path security | Use relative path under current directory |
+| "Missing configuration: GraphConfig" | (Older fs2 versions only) `graph:` section absent from `.fs2/config.yaml` and the auto-registration mechanism wasn't yet in place. Note: `list_graphs` succeeds while `tree`/`get_node`/`search` fail | Upgrade fs2, or add `graph: { graph_path: ".fs2/graph.pickle" }` to your `.fs2/config.yaml`. Modern fs2 auto-registers `GraphConfig` defaults so this error should not occur. |
 
 ### Verifying Setup
 
