@@ -13,9 +13,10 @@ This document is a comprehensive reference for all fs2 configuration options. Re
 7. [Scan Configuration](#scan-configuration)
 8. [Smart Content Configuration](#smart-content-configuration)
 9. [Search Configuration](#search-configuration)
-10. [Multi-Graph Configuration](#multi-graph-configuration)
-11. [Complete Examples](#complete-examples)
-12. [Troubleshooting](#troubleshooting)
+10. [Graph Configuration](#graph-configuration)
+11. [Multi-Graph Configuration](#multi-graph-configuration)
+12. [Complete Examples](#complete-examples)
+13. [Troubleshooting](#troubleshooting)
 
 **Deep Dives**: LLM Service Usage, Embeddings Architecture, Content-Type Chunking, Error Handling
 
@@ -427,7 +428,10 @@ embedding:
 embedding:
   mode: azure
   dimensions: 1024                # Vector dimensions (model-dependent)
-  batch_size: 16                  # Texts per API call (max 2048)
+  batch_size: 16                  # Texts per API call. Azure caps item count at 2048
+                                  # but enforces a 300,000-tokens-per-request limit
+                                  # that is reached much sooner — keep this in 16-50
+                                  # for code embeddings (~400 tokens each).
   max_concurrent_batches: 1       # Parallel batch processing
 
   # Azure connection settings
@@ -686,6 +690,42 @@ search:
 
 ---
 
+## Graph Configuration
+
+The optional `graph` section controls where the code graph pickle file is read and written. **All fields have safe defaults** — you don't need this section at all unless you want to customize the path.
+
+```yaml
+graph:
+  graph_path: ".fs2/graph.pickle"   # Default — relative to project root
+```
+
+### Fields
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `graph_path` | string | `.fs2/graph.pickle` | Path to the code graph pickle file. May be relative (resolved against project root) or absolute. |
+
+### Environment Variable Form
+
+```bash
+export FS2_GRAPH__GRAPH_PATH="/custom/path/graph.pickle"
+```
+
+### Relationship to the `--graph-file` CLI Flag
+
+The `fs2 scan` command accepts a global `--graph-file PATH` option that overrides `graph.graph_path` for that one invocation. Use the YAML form for persistent project-level configuration; use the CLI flag for one-off scans (e.g., scanning the same project to a different output location).
+
+### When to Customize
+
+- **Default path is fine**: `.fs2/graph.pickle` works for almost all projects. Most users never set this.
+- **Customize when**: you want to share a graph between multiple checkouts, store the graph outside the project tree, or scan into a CI artifact directory.
+
+### Behavior When Section Is Absent
+
+When `.fs2/config.yaml` has **no `graph:` block** (e.g., older configs, freshly-created configs that omit it), fs2 auto-registers `GraphConfig()` defaults at config-load time. All MCP tools (`tree`, `search`, `get_node`) and CLI commands work correctly without requiring you to add the section by hand.
+
+---
+
 ## Multi-Graph Configuration
 
 The `other_graphs` section lets you query external codebases alongside your local project.
@@ -832,11 +872,13 @@ scan:
 |-------|-------|-----|
 | "API key appears to be a literal secret" | Hardcoded key in config.yaml | Use `${VAR}` placeholder syntax |
 | "Missing configuration: LLMConfig" | No llm section in config | Add llm configuration to config.yaml |
+| "Missing configuration: GraphConfig" | (Older fs2 versions only) `graph:` section absent and the auto-registration mechanism wasn't yet in place | Upgrade fs2, or add `graph: { graph_path: ".fs2/graph.pickle" }` to your config.yaml. Modern fs2 auto-registers `GraphConfig` defaults so this error should not occur. |
 | "base_url is required when provider=azure" | Azure config incomplete | Add all required Azure fields |
 | "Timeout must be 1-120 seconds" | Invalid timeout value | Use value between 1 and 120 |
 | "azure-identity package is required..." | Missing Azure AD dependency | Run `pip install fs2[azure-ad]` |
 | `DefaultAzureCredential` / token errors | Azure AD session expired or wrong identity | Run `az login` to refresh, check RBAC role |
 | 401 Unauthorized (with Azure AD) | Missing RBAC role | Assign **Cognitive Services OpenAI User** role to your identity on the Azure OpenAI resource |
+| `400 - "maximum request size is 300000 tokens per request"` (Azure embedding) | `batch_size` too high — Azure caps tokens per request at 300k, hit much sooner than the 2048-item cap | Lower `embedding.batch_size` to 16-50 for code embeddings (~400 tokens/chunk × 50 = ~20k tokens/request) |
 
 ### Validation Behavior
 

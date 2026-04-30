@@ -328,3 +328,110 @@ class TestFakeConfigurationService:
         # Act & Assert
         with pytest.raises(MissingConfigurationError):
             config.require(SearchQueryConfig)
+
+
+@pytest.mark.unit
+class TestGraphConfigAutoRegistration:
+    """Tests that FS2ConfigurationService auto-registers GraphConfig() defaults
+    when the YAML config has no `graph:` section.
+
+    Closes issue #14: previously, services using `config.require(GraphConfig)`
+    would raise `MissingConfigurationError` when the optional `graph:` block
+    was absent from `.fs2/config.yaml`, even though every field on GraphConfig
+    has a default. The auto-registration mechanism (`_AUTO_DEFAULT_CONFIGS`)
+    fixes this at the loader layer so all services keep using the rule-compliant
+    `config.require(GraphConfig)` pattern (R3.2 / Constitution P3).
+    """
+
+    def test_given_yaml_without_graph_section_when_loading_then_graph_config_uses_defaults(
+        self, make_project_config
+    ):
+        """
+        Purpose: Auto-registration provides a default-constructed GraphConfig
+            when the YAML has no `graph:` block.
+        Quality Contribution: Closes the footgun reported in issue #14 — MCP
+            tools (tree, search, get_node) now work out of the box without
+            requiring users to add a graph: section by hand.
+        Contract: After loading a config that omits `graph:`,
+            `config.require(GraphConfig)` MUST return a `GraphConfig` instance
+            with `graph_path == ".fs2/graph.pickle"`.
+        Worked Example: A user runs `fs2 init` (which produces a config
+            without `graph:` in pre-fix versions), then wires fs2 into an MCP
+            host. `tree(pattern=".")` should succeed, not raise.
+        """
+        # Arrange — YAML deliberately omits the `graph:` section
+        make_project_config(
+            """\
+scan:
+  scan_paths:
+    - "."
+"""
+        )
+
+        # Act
+        from fs2.config.objects import GraphConfig
+        from fs2.config.service import FS2ConfigurationService
+
+        config = FS2ConfigurationService()
+        graph_config = config.require(GraphConfig)
+
+        # Assert
+        assert isinstance(graph_config, GraphConfig)
+        assert graph_config.graph_path == ".fs2/graph.pickle"
+
+    def test_given_explicit_graph_section_when_loading_then_explicit_value_wins(
+        self, make_project_config
+    ):
+        """
+        Purpose: Explicit YAML graph_path overrides the auto-registered default.
+        Quality Contribution: Verifies the auto-registration doesn't mask
+            user-provided values — backward compatibility preserved.
+        Contract: When YAML provides `graph: { graph_path: X }`, the loader
+            MUST register that value, NOT the default. Auto-registration MUST
+            be skipped if the type was already registered from YAML.
+        Worked Example: An existing project with `graph: { graph_path: "custom/path" }`
+            in `.fs2/config.yaml` continues to honor that custom path after
+            this fix; the auto-default does not silently overwrite it.
+        """
+        # Arrange — YAML provides an explicit non-default path
+        make_project_config(
+            """\
+graph:
+  graph_path: "custom/path/to/graph.pickle"
+"""
+        )
+
+        # Act
+        from fs2.config.objects import GraphConfig
+        from fs2.config.service import FS2ConfigurationService
+
+        config = FS2ConfigurationService()
+        graph_config = config.require(GraphConfig)
+
+        # Assert
+        assert graph_config.graph_path == "custom/path/to/graph.pickle"
+
+    def test_given_no_yaml_files_at_all_when_loading_then_graph_config_still_available(
+        self, isolated_config_env
+    ):
+        """
+        Purpose: Auto-registration works even when there are NO config files —
+            no project YAML, no user YAML, no env vars.
+        Quality Contribution: Edge case — proves the fall-through works on a
+            truly empty load, not just on configs that have other sections.
+        Contract: A bare `FS2ConfigurationService()` constructed in a directory
+            with no `.fs2/`, no `~/.config/fs2/`, and no `FS2_*` env vars MUST
+            still satisfy `require(GraphConfig)`.
+        """
+        # Arrange — isolated_config_env redirects HOME/XDG/cwd; we write nothing.
+
+        # Act
+        from fs2.config.objects import GraphConfig
+        from fs2.config.service import FS2ConfigurationService
+
+        config = FS2ConfigurationService()
+        graph_config = config.require(GraphConfig)
+
+        # Assert
+        assert isinstance(graph_config, GraphConfig)
+        assert graph_config.graph_path == ".fs2/graph.pickle"

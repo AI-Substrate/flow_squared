@@ -28,7 +28,7 @@ from fs2.config.loaders import (
     load_yaml_config,
     parse_env_vars,
 )
-from fs2.config.objects import YAML_CONFIG_TYPES
+from fs2.config.objects import YAML_CONFIG_TYPES, GraphConfig
 from fs2.config.paths import get_project_config_dir, get_user_config_dir
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,25 @@ T = TypeVar("T", bound=BaseModel)
 # Per Critical Finding 01: deep_merge() treats lists as scalars (overlay wins).
 # These paths get special handling: extract before merge, concatenate, re-inject.
 CONCATENATE_LIST_PATHS: list[str] = ["other_graphs.graphs"]
+
+# Config types that should be auto-registered with default values when their
+# YAML key is absent from the loaded config. Use this for configs whose every
+# field has a sensible default (so default-construction is safe) and whose
+# absence should NOT raise MissingConfigurationError when consumers call
+# `config.require(...)`.
+#
+# Closes issue #14: GraphConfig has a default `graph_path` and is consumed by
+# tree/get_node/graph_utilities services. Without this, omitting the `graph:`
+# YAML block makes MCP tools fail with `Missing configuration: GraphConfig`,
+# even though the default would have worked.
+#
+# Contract:
+#   - Auto-registration runs AFTER YAML loading, so any explicit YAML value
+#     wins (the type is already registered before this fall-through runs and
+#     `set()` is idempotent — explicit registration takes precedence).
+#   - Iterate in declaration order; duplicates are not expected.
+#   - Add a config here only when ALL fields have safe defaults.
+_AUTO_DEFAULT_CONFIGS: list[type[BaseModel]] = [GraphConfig]
 
 
 def _get_nested_value(data: dict, path: str) -> Any:
@@ -382,6 +401,14 @@ class FS2ConfigurationService(ConfigurationService):
                             config_path,
                             e,
                         )
+
+        # Phase 7b: Auto-register defaults for configs marked as optional.
+        # If a config in _AUTO_DEFAULT_CONFIGS was NOT registered above (because
+        # its YAML key was absent), register a default-constructed instance.
+        # Closes issue #14: see _AUTO_DEFAULT_CONFIGS module docstring.
+        for config_type in _AUTO_DEFAULT_CONFIGS:
+            if self.get(config_type) is None:
+                self.set(config_type())
 
     def _create_other_graphs_config(self, data: dict) -> "OtherGraphsConfig":
         """Create OtherGraphsConfig with _source_dir preserved on each OtherGraph.

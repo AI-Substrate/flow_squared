@@ -149,6 +149,59 @@ class TestTreeServiceInit:
 
 
 @pytest.mark.unit
+class TestTreeServiceWithMissingGraphConfigYaml:
+    """Plan 052 / Issue #14: Tests that TreeService works when YAML omits the
+    optional `graph:` block, via FS2ConfigurationService auto-registration of
+    `GraphConfig()` defaults.
+
+    These tests use the REAL `FS2ConfigurationService` loader (not
+    `FakeConfigurationService`) to prove the auto-registration mechanism in
+    `_create_config_objects` flows through to service initialization
+    end-to-end. The hermetic setup uses HOME/XDG/cwd redirection — see workshop
+    `docs/plans/052-graph-config-optional/workshops/001-test-isolation-for-config-service.md`.
+    """
+
+    def test_given_yaml_without_graph_section_when_constructing_tree_service_then_initializes_with_defaults(
+        self, make_project_config
+    ):
+        """
+        Purpose: TreeService initializes successfully via
+            `config.require(GraphConfig)` when the loaded YAML has no `graph:`
+            section, using auto-registered defaults.
+        Quality Contribution: Closes the issue #14 footgun for the `tree` MCP
+            tool specifically. Proves the auto-registration mechanism in
+            `FS2ConfigurationService` integrates correctly with the service
+            that consumes GraphConfig — not just at the config layer in
+            isolation.
+        Contract: TreeService.__init__ MUST NOT raise MissingConfigurationError
+            when `graph:` is absent from YAML. The service MUST receive a
+            GraphConfig with graph_path equal to ".fs2/graph.pickle".
+        Worked Example: A user runs `fs2 init` then connects fs2 to Copilot
+            CLI. The MCP host calls `tree(pattern=".")`; the call succeeds and
+            lists nodes from the default graph path.
+        """
+        # Arrange — YAML deliberately omits `graph:`
+        make_project_config(
+            """\
+scan:
+  scan_paths:
+    - "."
+"""
+        )
+
+        # Act
+        from fs2.config.service import FS2ConfigurationService
+
+        config = FS2ConfigurationService()
+        store = FakeGraphStore(config)
+        service = TreeService(config=config, graph_store=store)
+
+        # Assert — service constructed without raising; default graph_path used
+        assert service is not None
+        assert service._config.graph_path == ".fs2/graph.pickle"
+
+
+@pytest.mark.unit
 class TestTreeServiceLazyLoading:
     """T008: Tests for lazy loading behavior."""
 

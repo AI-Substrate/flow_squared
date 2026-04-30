@@ -158,6 +158,17 @@ scan:
   max_file_size_kb: 500
   follow_symlinks: false
 
+# ─── Graph (optional — defaults shown) ─────────────────────────────
+# Path to the code graph pickle file. Defaults to .fs2/graph.pickle relative
+# to the project root. Override with the --graph-file CLI flag for one-off
+# scans, or set FS2_GRAPH__GRAPH_PATH env var.
+#
+# Commented out so a global `graph:` setting (in ~/.config/fs2/config.yaml)
+# is not silently overridden by this project file. Uncomment to override
+# per-project.
+# graph:
+#   graph_path: ".fs2/graph.pickle"
+
 # ─── LLM (for smart content) ───────────────────────────────────────
 # Smart content generates AI summaries for every code node.
 # Configure your LLM provider in ~/.config/fs2/config.yaml (global),

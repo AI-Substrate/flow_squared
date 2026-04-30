@@ -105,8 +105,17 @@ class TestGetNodeServiceInit:
 
     def test_given_missing_graph_config_when_created_then_raises(self):
         """
-        Purpose: Verifies service requires GraphConfig.
-        Quality Contribution: Catches missing config early.
+        Purpose: Verifies service requires GraphConfig (rule R3.2 contract).
+
+            NOTE: This test uses `FakeConfigurationService`, which has no
+            auto-registration mechanism. It validates that
+            `GetNodeService.__init__` correctly calls `config.require(GraphConfig)`
+            (R3.2 / Constitution P3) — a different layer than the auto-registration
+            tested in `TestGetNodeServiceWithMissingGraphConfigYaml` below.
+
+        Quality Contribution: Catches missing config early when consumers
+            forget to register one (e.g., in tests using FakeConfigurationService
+            without GraphConfig).
 
         Task: T002
         """
@@ -119,6 +128,58 @@ class TestGetNodeServiceInit:
         # Act & Assert
         with pytest.raises(MissingConfigurationError):
             GetNodeService(config=config, graph_store=store)
+
+
+@pytest.mark.unit
+class TestGetNodeServiceWithMissingGraphConfigYaml:
+    """Plan 052 / Issue #14: Tests that GetNodeService works when YAML omits the
+    optional `graph:` block, via FS2ConfigurationService auto-registration of
+    `GraphConfig()` defaults.
+
+    Uses the REAL `FS2ConfigurationService` loader (not the Fake) — this is what
+    proves the auto-registration in `_create_config_objects` flows through to
+    service initialization end-to-end. See workshop
+    `docs/plans/052-graph-config-optional/workshops/001-test-isolation-for-config-service.md`
+    for the hermetic test pattern.
+    """
+
+    def test_given_yaml_without_graph_section_when_constructing_get_node_service_then_initializes_with_defaults(
+        self, make_project_config
+    ):
+        """
+        Purpose: GetNodeService initializes successfully via
+            `config.require(GraphConfig)` when the loaded YAML has no `graph:`
+            section, using auto-registered defaults.
+        Quality Contribution: Closes the issue #14 footgun for the `get_node`
+            MCP tool. Proves the auto-registration mechanism integrates with
+            the consumer service end-to-end.
+        Contract: GetNodeService.__init__ MUST NOT raise
+            MissingConfigurationError when `graph:` is absent from a YAML
+            config loaded by FS2ConfigurationService. The service MUST
+            receive a GraphConfig with graph_path equal to ".fs2/graph.pickle".
+        Worked Example: A user runs `fs2 init` then connects fs2 to Claude
+            Code; calls to `get_node(node_id=...)` succeed against the
+            auto-default graph path.
+        """
+        # Arrange — YAML deliberately omits `graph:`
+        make_project_config(
+            """\
+scan:
+  scan_paths:
+    - "."
+"""
+        )
+
+        # Act
+        from fs2.config.service import FS2ConfigurationService
+
+        config = FS2ConfigurationService()
+        store = FakeGraphStore(config)
+        service = GetNodeService(config=config, graph_store=store)
+
+        # Assert — service constructed without raising; default graph_path used
+        assert service is not None
+        assert service._config.graph_path == ".fs2/graph.pickle"
 
 
 @pytest.mark.unit

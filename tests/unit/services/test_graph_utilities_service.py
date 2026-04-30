@@ -265,3 +265,56 @@ class TestGraphUtilitiesServiceExtensionSummary:
         # Assert - now load was called
         load_calls = [c for c in graph_store.call_history if c["method"] == "load"]
         assert len(load_calls) == 1
+
+
+@pytest.mark.unit
+class TestGraphUtilitiesServiceWithMissingGraphConfigYaml:
+    """Plan 052 / Issue #14: Tests that GraphUtilitiesService works when YAML
+    omits the optional `graph:` block, via FS2ConfigurationService
+    auto-registration of `GraphConfig()` defaults.
+
+    Uses the REAL `FS2ConfigurationService` loader to prove the
+    auto-registration in `_create_config_objects` flows through to service
+    initialization end-to-end. See workshop
+    `docs/plans/052-graph-config-optional/workshops/001-test-isolation-for-config-service.md`
+    for the hermetic test pattern.
+    """
+
+    def test_given_yaml_without_graph_section_when_constructing_graph_utilities_service_then_initializes_with_defaults(
+        self, make_project_config
+    ):
+        """
+        Purpose: GraphUtilitiesService initializes successfully via
+            `config.require(GraphConfig)` when the loaded YAML has no `graph:`
+            section, using auto-registered defaults.
+        Quality Contribution: Closes the issue #14 footgun for any consumer
+            of GraphUtilitiesService (extension summary, graph queries).
+            Proves the auto-registration mechanism integrates with this
+            service end-to-end.
+        Contract: GraphUtilitiesService.__init__ MUST NOT raise
+            MissingConfigurationError when `graph:` is absent from a YAML
+            config loaded by FS2ConfigurationService. The service MUST
+            receive a GraphConfig with graph_path equal to ".fs2/graph.pickle".
+        Worked Example: A user runs `fs2 init` then invokes any code path
+            that constructs GraphUtilitiesService via DI (e.g., extension
+            summary in a report); construction succeeds.
+        """
+        # Arrange — YAML deliberately omits `graph:`
+        make_project_config(
+            """\
+scan:
+  scan_paths:
+    - "."
+"""
+        )
+
+        # Act
+        from fs2.config.service import FS2ConfigurationService
+
+        config = FS2ConfigurationService()
+        store = FakeGraphStore(config)
+        service = GraphUtilitiesService(config=config, graph_store=store)
+
+        # Assert — service constructed without raising; default graph_path used
+        assert service is not None
+        assert service._config.graph_path == ".fs2/graph.pickle"

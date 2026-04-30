@@ -142,11 +142,12 @@ def scan(
             console.print_info(f"Graph file: {graph_path}")
         else:
             # Use default from GraphConfig
-            graph_config = config.get(GraphConfig) or GraphConfig()
+            # Per plan 052: GraphConfig is auto-registered with defaults by
+            # FS2ConfigurationService when YAML omits the `graph:` block, so
+            # require() is safe here per R3.2 / Constitution P3.
+            graph_config = config.require(GraphConfig)
             graph_path = Path(graph_config.graph_path)
             graph_path.parent.mkdir(parents=True, exist_ok=True)
-            # Ensure GraphConfig is in registry for GraphUtilitiesService
-            config.set(graph_config)
 
         # Per Subtask 001 (ST002): Override scan_paths if --scan-path provided
         # Path validation happens in FileSystemScanner (per DYK-05 Clean Architecture)
