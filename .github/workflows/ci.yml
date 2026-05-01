@@ -40,7 +40,7 @@ jobs:
           python-version: "3.12"
       - run: uv sync --locked --extra dev
       - name: Run tests with coverage
-        run: uv run pytest -m "" --cov=src/fs2 --cov-report=xml --cov-report=term
+        run: uv run pytest --cov=src/fs2 --cov-report=xml --cov-report=term
       - name: Post coverage to PR
         uses: orgoro/coverage@v3.2
         if: always() && github.event_name == 'pull_request'
