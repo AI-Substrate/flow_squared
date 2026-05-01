@@ -132,9 +132,7 @@ class SmartContentStage:
 
         # Step 3a: Skip self-documenting content (no LLM summary needed)
         pre_filter = len(needs_generation)
-        needs_generation = [
-            n for n in needs_generation if not _is_self_documenting(n)
-        ]
+        needs_generation = [n for n in needs_generation if not _is_self_documenting(n)]
         skipped_self_doc = pre_filter - len(needs_generation)
         if skipped_self_doc > 0:
             logger.info(

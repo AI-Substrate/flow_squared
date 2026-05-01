@@ -1268,10 +1268,14 @@ class TestMarkdownSectionSearch:
         )
 
         graph_store = SimpleFakeGraphStore([file_node, section_node])
-        graph_store.add_edge("file:docs/plan.md", "section:docs/plan.md:Testing Philosophy")
+        graph_store.add_edge(
+            "file:docs/plan.md", "section:docs/plan.md:Testing Philosophy"
+        )
         service = SearchService(graph_store=graph_store)
 
-        results = await service.search(QuerySpec(pattern="Testing Philosophy", mode=SearchMode.TEXT))
+        results = await service.search(
+            QuerySpec(pattern="Testing Philosophy", mode=SearchMode.TEXT)
+        )
 
         result_ids = [r.node_id for r in results]
         assert "section:docs/plan.md:Testing Philosophy" in result_ids
@@ -1289,7 +1293,9 @@ class TestMarkdownSectionSearch:
         graph_store = SimpleFakeGraphStore([section_node])
         service = SearchService(graph_store=graph_store)
 
-        results = await service.search(QuerySpec(pattern="fakes over mocks", mode=SearchMode.TEXT))
+        results = await service.search(
+            QuerySpec(pattern="fakes over mocks", mode=SearchMode.TEXT)
+        )
 
         assert len(results) >= 1
         assert results[0].node_id == "section:docs/plan.md:Testing Philosophy"

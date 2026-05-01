@@ -23,12 +23,12 @@ for node_id in graph.nodes:
     data = graph.nodes[node_id].get("data")
     if data is None:
         continue
-    
+
     cat = data.category
     categories[cat] += 1
     parts = node_id.split(":")
     colon_counts[len(parts)] += 1
-    
+
     # Keep first 2 examples per category
     if len(examples[cat]) < 2:
         examples[cat].append(node_id)
@@ -37,11 +37,11 @@ print("=== Categories ===")
 for cat, count in categories.most_common():
     print(f"  {cat}: {count}")
 
-print(f"\n=== Colon counts (parts after split(':')) ===")
+print("\n=== Colon counts (parts after split(':')) ===")
 for n, count in sorted(colon_counts.items()):
     print(f"  {n} parts: {count}")
 
-print(f"\n=== Examples per category ===")
+print("\n=== Examples per category ===")
 for cat, ids in sorted(examples.items()):
     for nid in ids:
         parts = nid.split(":", 2)
@@ -53,7 +53,7 @@ for cat, ids in sorted(examples.items()):
             print(f"    → split(2): category='{parts[0]}', file='{parts[1]}', name='{parts[2]}'")
 
 # Check: does file path from node_id match parent's file path for containment?
-print(f"\n=== Containment edge file-path consistency ===")
+print("\n=== Containment edge file-path consistency ===")
 mismatches = 0
 checked = 0
 for parent_id in list(graph.nodes)[:500]:

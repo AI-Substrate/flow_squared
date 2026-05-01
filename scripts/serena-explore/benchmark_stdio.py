@@ -100,7 +100,7 @@ async def benchmark_stdio(nodes: list[dict]) -> dict:
         }
     }
 
-    print(f"\n  STDIO: Connecting...")
+    print("\n  STDIO: Connecting...")
     overall_start = time.monotonic()
 
     async with Client(config, timeout=30) as client:
@@ -168,7 +168,8 @@ async def benchmark_http(nodes: list[dict], port: int = 8390) -> dict:
 
     print(f"\n  HTTP: Starting server on port {port}...")
     # Wait for ready
-    import urllib.request, urllib.error
+    import urllib.error
+    import urllib.request
     start = time.monotonic()
     while time.monotonic() - start < 30:
         try:
@@ -250,7 +251,7 @@ async def benchmark_http(nodes: list[dict], port: int = 8390) -> dict:
 async def main():
     sample_size = int(sys.argv[1]) if len(sys.argv) > 1 else 200
 
-    print(f"═══ Serena Transport Benchmark: stdio vs HTTP ═══")
+    print("═══ Serena Transport Benchmark: stdio vs HTTP ═══")
     print(f"Sample: {sample_size} nodes\n")
 
     print("Loading graph...")

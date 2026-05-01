@@ -50,8 +50,6 @@ class MarkdownSectionSplitter:
         if not lines or (len(lines) == 1 and not lines[0].strip()):
             return []
 
-        content_bytes = content.encode("utf-8")
-
         sections: list[_SectionData] = []
         h1_title: str | None = None
         in_code_block = False
@@ -185,7 +183,9 @@ class MarkdownSectionSplitter:
                     start_line=section.start_line + 1,  # 1-indexed
                     end_line=section.end_line + 1,  # 1-indexed
                     start_column=0,
-                    end_column=len(lines[section.end_line]) if section.end_line < len(lines) else 0,
+                    end_column=len(lines[section.end_line])
+                    if section.end_line < len(lines)
+                    else 0,
                     start_byte=start_byte,
                     end_byte=end_byte,
                     content=section_content,

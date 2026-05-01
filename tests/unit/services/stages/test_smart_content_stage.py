@@ -596,7 +596,6 @@ class TestMarkdownSectionSmartContentSkip:
         """FX002-1: Markdown section nodes should NOT be queued for LLM summarization."""
         from fs2.core.models.content_type import ContentType
         from fs2.core.services.stages.smart_content_stage import (
-            SmartContentStage,
             _is_self_documenting,
         )
 

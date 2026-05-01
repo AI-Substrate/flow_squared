@@ -1,5 +1,7 @@
 # Flowspace2 (fs2)
 
+[![CI](https://github.com/AI-Substrate/flow_squared/actions/workflows/ci.yml/badge.svg)](https://github.com/AI-Substrate/flow_squared/actions/workflows/ci.yml)
+
 fs2 parses your codebase into individual code elements — functions, classes, methods, types — using tree-sitter grammars for 55+ languages. Each element can be enriched with an AI-generated summary and vector embeddings, producing a searchable code graph with cross-file relationship tracking. Query by text, regex, or meaning through the CLI, or expose the graph to AI coding agents as an MCP server.
 
 ## Key Capabilities

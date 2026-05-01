@@ -16,7 +16,6 @@ from __future__ import annotations
 import asyncio
 import json
 import pickle
-import sys
 import time
 from pathlib import Path
 
@@ -174,7 +173,7 @@ async def main():
         times = [r["elapsed_ms"] for r in processed if not r.get("error")]
 
         print(f"\n{'='*60}")
-        print(f"  BENCHMARK RESULTS")
+        print("  BENCHMARK RESULTS")
         print(f"{'='*60}")
         print(f"  Total nodes:     {len(nodes)}")
         print(f"  Processed:       {len(processed)}")
@@ -192,14 +191,14 @@ async def main():
 
         # Top 10 slowest
         if times:
-            print(f"\n  Top 10 slowest:")
+            print("\n  Top 10 slowest:")
             slowest = sorted(processed, key=lambda r: r.get("elapsed_ms", 0), reverse=True)[:10]
             for r in slowest:
                 print(f"    {r['elapsed_ms']:7.0f}ms  refs={r.get('ref_count',0):3d}  {r['name_path']}")
 
         # Top 10 most referenced
         if processed:
-            print(f"\n  Top 10 most referenced:")
+            print("\n  Top 10 most referenced:")
             most_refs = sorted(processed, key=lambda r: r.get("ref_count", 0), reverse=True)[:10]
             for r in most_refs:
                 print(f"    refs={r.get('ref_count',0):3d}  {r['elapsed_ms']:7.0f}ms  {r['name_path']}")

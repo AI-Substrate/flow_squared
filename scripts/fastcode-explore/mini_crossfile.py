@@ -14,9 +14,9 @@ Default: runs against scripts/fastcode-explore/sample_project/
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
@@ -749,7 +749,7 @@ def main():
         print(f"Not found: {root_dir}")
         sys.exit(1)
 
-    log.info(f"═══ Multi-Language Cross-File Rels ═══")
+    log.info("═══ Multi-Language Cross-File Rels ═══")
     log.info(f"Root: {root_dir}")
     log.info(f"Languages: {', '.join(sorted(HANDLERS.keys()))}\n")
 

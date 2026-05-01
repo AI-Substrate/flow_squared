@@ -112,7 +112,7 @@ def create_serena_project(project_path: str, languages: list[str], name: str) ->
     if result.returncode != 0:
         print(f"    ⚠ Project creation failed: {result.stderr[:200]}")
         return False
-    print(f"    ✓ Project created")
+    print("    ✓ Project created")
     return True
 
 
@@ -136,8 +136,8 @@ def start_serena(project_path: str, port: int) -> subprocess.Popen:
 
 def wait_for_ready(port: int, timeout: float = 30) -> bool:
     """Wait for Serena to respond."""
-    import urllib.request
     import urllib.error
+    import urllib.request
     start = time.monotonic()
     url = f"http://127.0.0.1:{port}/mcp/"
     while time.monotonic() - start < timeout:
@@ -252,7 +252,7 @@ async def main():
     samples_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else SAMPLES_DIR
     samples_dir = samples_dir.resolve()
 
-    print(f"═══ Multi-Language Serena Resolution Test ═══")
+    print("═══ Multi-Language Serena Resolution Test ═══")
     print(f"Samples: {samples_dir}\n")
 
     # Phase 1: Detect
@@ -312,7 +312,7 @@ async def main():
         print(f"    Starting Serena on port {port}...")
 
         if wait_for_ready(port):
-            print(f"    ✓ Ready")
+            print("    ✓ Ready")
 
             # Query each file
             for fpath in project["files"]:
@@ -339,7 +339,7 @@ async def main():
                     "elapsed_ms": elapsed * 1000,
                 })
         else:
-            print(f"    ✗ Failed to start")
+            print("    ✗ Failed to start")
             all_results.append({
                 "language": project["language"],
                 "file": "*",
@@ -359,7 +359,7 @@ async def main():
 
     # Summary
     print(f"\n{'='*60}")
-    print(f"  RESULTS SUMMARY")
+    print("  RESULTS SUMMARY")
     print(f"{'='*60}")
     print(f"  {'Language':<12} {'File':<20} {'Symbols':>8} {'Refs':>6} {'Time':>8} {'Status'}")
     print(f"  {'-'*12} {'-'*20} {'-'*8} {'-'*6} {'-'*8} {'-'*6}")
@@ -368,7 +368,7 @@ async def main():
         print(f"  {r['language']:<12} {r['file']:<20} {r['symbols']:>8} {r['refs']:>6} {r['elapsed_ms']:>7.0f}ms {status}")
 
     # Cleanup
-    print(f"\nCleaning up...")
+    print("\nCleaning up...")
     kill_serena_processes()
     print("Done.")
 
