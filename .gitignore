@@ -236,3 +236,6 @@ agents/code-review/runs/
 # Session artifacts
 session-state/
 session-store.db
+
+# Tmuxxx
+.devcontainer/.tmux-shared
