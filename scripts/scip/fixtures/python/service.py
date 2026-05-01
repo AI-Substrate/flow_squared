@@ -1,6 +1,6 @@
 """Task management service."""
 
-from model import Task, Priority
+from model import Priority, Task
 
 
 class TaskService:

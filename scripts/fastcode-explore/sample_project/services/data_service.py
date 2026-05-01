@@ -1,7 +1,7 @@
 """Data processing service."""
 
+from ..utils.helpers import format_output, validate
 from .base import BaseService
-from ..utils.helpers import validate, format_output
 
 
 class DataService(BaseService):

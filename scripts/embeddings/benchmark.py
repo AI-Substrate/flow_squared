@@ -22,9 +22,7 @@ import statistics
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import Optional
 
-import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer
 
@@ -140,10 +138,10 @@ def detect_device(requested: str = "auto") -> str:
     """Pick best available device: CUDA > MPS > CPU."""
     if requested != "auto":
         if requested == "cuda" and not torch.cuda.is_available():
-            print(f"⚠  CUDA requested but not available, falling back to CPU")
+            print("⚠  CUDA requested but not available, falling back to CPU")
             return "cpu"
         if requested == "mps" and not torch.backends.mps.is_available():
-            print(f"⚠  MPS requested but not available, falling back to CPU")
+            print("⚠  MPS requested but not available, falling back to CPU")
             return "cpu"
         return requested
 
@@ -152,9 +150,9 @@ def detect_device(requested: str = "auto") -> str:
         print(f"🟢 CUDA detected: {name}")
         return "cuda"
     if torch.backends.mps.is_available():
-        print(f"🟢 MPS detected (Apple Silicon)")
+        print("🟢 MPS detected (Apple Silicon)")
         return "mps"
-    print(f"⚪ Using CPU")
+    print("⚪ Using CPU")
     return "cpu"
 
 
@@ -374,7 +372,7 @@ def main():
         models = {k: v for k, v in MODELS.items() if k in keys}
 
     print(f"\n{'#'*70}")
-    print(f"  fs2 Embedding Benchmark")
+    print("  fs2 Embedding Benchmark")
     print(f"  Device: {device} | Corpus: {len(corpus)} snippets | Runs: {args.runs}")
     print(f"  Models: {', '.join(models.keys())}")
     print(f"  Batch sizes: {batch_sizes}")
@@ -407,7 +405,7 @@ def main():
 
     # --- Summary ---
     print(f"\n\n{'#'*70}")
-    print(f"  SUMMARY")
+    print("  SUMMARY")
     print(f"{'#'*70}")
     for r in all_results:
         print(r.summary_line())

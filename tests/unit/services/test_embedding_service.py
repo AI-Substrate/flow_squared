@@ -1457,7 +1457,9 @@ class TestMarkdownSectionEmbedding:
         assert section_node.content_type == ContentType.CONTENT
         assert section_node.embedding is None
 
-        service = EmbeddingService(config=config, embedding_adapter=fake_adapter, token_counter=None)
+        service = EmbeddingService(
+            config=config, embedding_adapter=fake_adapter, token_counter=None
+        )
         result = await service.process_batch([section_node])
 
         updated = result["results"]["section:docs/plan.md:Testing Philosophy"]

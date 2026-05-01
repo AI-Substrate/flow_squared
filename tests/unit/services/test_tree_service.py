@@ -1140,7 +1140,9 @@ class TestMarkdownSectionTreeDisplay:
         assert len(result) >= 1
 
         # Find the markdown file node
-        md_tree = next(t for t in result if t.node.name == "plan.md" or "plan.md" in t.node.node_id)
+        md_tree = next(
+            t for t in result if t.node.name == "plan.md" or "plan.md" in t.node.node_id
+        )
 
         # Sections should be children
         child_names = [c.node.name for c in md_tree.children]

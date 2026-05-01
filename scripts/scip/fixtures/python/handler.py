@@ -1,7 +1,7 @@
 """Request handler using TaskService."""
 
-from service import TaskService
 from model import Priority
+from service import TaskService
 
 
 def handle_create(title: str, priority_str: str) -> dict:

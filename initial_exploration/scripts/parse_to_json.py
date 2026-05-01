@@ -28,114 +28,108 @@ OUTPUTS_DIR = EXPLORATION_DIR / "outputs"
 # Extension to grammar mapping (P1-T18)
 EXTENSION_TO_GRAMMAR: dict[str, str] = {
     # Programming languages
-    '.py': 'python',
-    '.pyw': 'python',
-    '.js': 'javascript',
-    '.mjs': 'javascript',
-    '.cjs': 'javascript',
-    '.ts': 'typescript',
-    '.tsx': 'tsx',
-    '.go': 'go',
-    '.rs': 'rust',
-    '.cpp': 'cpp',
-    '.cc': 'cpp',
-    '.cxx': 'cpp',
-    '.c++': 'cpp',
-    '.hpp': 'cpp',
-    '.hxx': 'cpp',
-    '.h': 'cpp',  # Ambiguous, defaulting to cpp
-    '.c': 'c',
-    '.cs': 'csharp',
-    '.dart': 'dart',
-    '.java': 'java',
-    '.kt': 'kotlin',
-    '.kts': 'kotlin',
-    '.rb': 'ruby',
-    '.php': 'php',
-    '.swift': 'swift',
-    '.scala': 'scala',
-    '.lua': 'lua',
-    '.r': 'r',
-    '.R': 'r',
-    '.jl': 'julia',
-    '.ex': 'elixir',
-    '.exs': 'elixir',
-    '.erl': 'erlang',
-    '.hrl': 'erlang',
-    '.hs': 'haskell',
-    '.ml': 'ocaml',
-    '.mli': 'ocaml_interface',
-    '.fs': 'fsharp',
-    '.fsi': 'fsharp_signature',
-    '.nim': 'nim',
-    '.zig': 'zig',
-    '.v': 'v',
-    '.odin': 'odin',
-
+    ".py": "python",
+    ".pyw": "python",
+    ".js": "javascript",
+    ".mjs": "javascript",
+    ".cjs": "javascript",
+    ".ts": "typescript",
+    ".tsx": "tsx",
+    ".go": "go",
+    ".rs": "rust",
+    ".cpp": "cpp",
+    ".cc": "cpp",
+    ".cxx": "cpp",
+    ".c++": "cpp",
+    ".hpp": "cpp",
+    ".hxx": "cpp",
+    ".h": "cpp",  # Ambiguous, defaulting to cpp
+    ".c": "c",
+    ".cs": "csharp",
+    ".dart": "dart",
+    ".java": "java",
+    ".kt": "kotlin",
+    ".kts": "kotlin",
+    ".rb": "ruby",
+    ".php": "php",
+    ".swift": "swift",
+    ".scala": "scala",
+    ".lua": "lua",
+    ".r": "r",
+    ".R": "r",
+    ".jl": "julia",
+    ".ex": "elixir",
+    ".exs": "elixir",
+    ".erl": "erlang",
+    ".hrl": "erlang",
+    ".hs": "haskell",
+    ".ml": "ocaml",
+    ".mli": "ocaml_interface",
+    ".fs": "fsharp",
+    ".fsi": "fsharp_signature",
+    ".nim": "nim",
+    ".zig": "zig",
+    ".v": "v",
+    ".odin": "odin",
     # Markup and documentation
-    '.md': 'markdown',
-    '.markdown': 'markdown',
-    '.rst': 'rst',
-    '.tex': 'latex',
-    '.html': 'html',
-    '.htm': 'html',
-    '.xml': 'xml',
-    '.svg': 'xml',
-    '.css': 'css',
-    '.scss': 'scss',
-
+    ".md": "markdown",
+    ".markdown": "markdown",
+    ".rst": "rst",
+    ".tex": "latex",
+    ".html": "html",
+    ".htm": "html",
+    ".xml": "xml",
+    ".svg": "xml",
+    ".css": "css",
+    ".scss": "scss",
     # Configuration
-    '.yaml': 'yaml',
-    '.yml': 'yaml',
-    '.json': 'json',
-    '.jsonc': 'json',
-    '.toml': 'toml',
-    '.ini': 'ini',
-    '.cfg': 'ini',
-    '.conf': 'ini',
-    '.tf': 'hcl',
-    '.tfvars': 'hcl',
-    '.hcl': 'hcl',
-    '.nix': 'nix',
-
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".json": "json",
+    ".jsonc": "json",
+    ".toml": "toml",
+    ".ini": "ini",
+    ".cfg": "ini",
+    ".conf": "ini",
+    ".tf": "hcl",
+    ".tfvars": "hcl",
+    ".hcl": "hcl",
+    ".nix": "nix",
     # Shell and scripting
-    '.sh': 'bash',
-    '.bash': 'bash',
-    '.zsh': 'bash',
-    '.fish': 'fish',
-    '.ps1': 'powershell',
-    '.psm1': 'powershell',
-
+    ".sh": "bash",
+    ".bash": "bash",
+    ".zsh": "bash",
+    ".fish": "fish",
+    ".ps1": "powershell",
+    ".psm1": "powershell",
     # Database
-    '.sql': 'sql',
-
+    ".sql": "sql",
     # Build and make
-    '.make': 'make',
-    '.cmake': 'cmake',
-
+    ".make": "make",
+    ".cmake": "cmake",
     # Other
-    '.proto': 'proto',
-    '.graphql': 'graphql',
-    '.gql': 'graphql',
-    '.vim': 'vim',
-    '.el': 'elisp',
+    ".proto": "proto",
+    ".graphql": "graphql",
+    ".gql": "graphql",
+    ".vim": "vim",
+    ".el": "elisp",
 }
 
 # Special filename mappings (no extension)
 FILENAME_TO_GRAMMAR: dict[str, str] = {
-    'Dockerfile': 'dockerfile',
-    'dockerfile': 'dockerfile',
-    'Makefile': 'make',
-    'makefile': 'make',
-    'GNUmakefile': 'make',
-    'CMakeLists.txt': 'cmake',
-    '.gitignore': 'gitignore',
-    '.gitattributes': 'gitattributes',
-    'requirements.txt': 'requirements',
-    'Cargo.toml': 'toml',
-    'pyproject.toml': 'toml',
-    'package.json': 'json',
-    'tsconfig.json': 'json',
+    "Dockerfile": "dockerfile",
+    "dockerfile": "dockerfile",
+    "Makefile": "make",
+    "makefile": "make",
+    "GNUmakefile": "make",
+    "CMakeLists.txt": "cmake",
+    ".gitignore": "gitignore",
+    ".gitattributes": "gitattributes",
+    "requirements.txt": "requirements",
+    "Cargo.toml": "toml",
+    "pyproject.toml": "toml",
+    "package.json": "json",
+    "tsconfig.json": "json",
 }
 
 
@@ -160,27 +154,27 @@ def node_to_dict(node, source: bytes, include_text: bool = True) -> dict[str, An
     Includes all node metadata for exploration purposes.
     """
     result: dict[str, Any] = {
-        'type': node.type,
-        'is_named': node.is_named,
-        'start_byte': node.start_byte,
-        'end_byte': node.end_byte,
-        'start_point': {
-            'row': node.start_point[0],
-            'column': node.start_point[1],
+        "type": node.type,
+        "is_named": node.is_named,
+        "start_byte": node.start_byte,
+        "end_byte": node.end_byte,
+        "start_point": {
+            "row": node.start_point[0],
+            "column": node.start_point[1],
         },
-        'end_point': {
-            'row': node.end_point[0],
-            'column': node.end_point[1],
+        "end_point": {
+            "row": node.end_point[0],
+            "column": node.end_point[1],
         },
     }
 
     # Include error flags for debugging
     if node.has_error:
-        result['has_error'] = True
+        result["has_error"] = True
     if node.is_error:
-        result['is_error'] = True
+        result["is_error"] = True
     if node.is_missing:
-        result['is_missing'] = True
+        result["is_missing"] = True
 
     # Include field name if this node is a field child
     # (This is set by the parent during traversal)
@@ -190,8 +184,11 @@ def node_to_dict(node, source: bytes, include_text: bool = True) -> dict[str, An
         text_length = node.end_byte - node.start_byte
         if text_length <= 200:  # Only include text for reasonably short nodes
             import contextlib
+
             with contextlib.suppress(Exception):
-                result['text'] = source[node.start_byte:node.end_byte].decode('utf-8', errors='replace')
+                result["text"] = source[node.start_byte : node.end_byte].decode(
+                    "utf-8", errors="replace"
+                )
 
     # Include children with field names
     children = []
@@ -201,14 +198,14 @@ def node_to_dict(node, source: bytes, include_text: bool = True) -> dict[str, An
         # Try to get field name for this child
         field_name = node.field_name_for_child(i)
         if field_name:
-            child_dict['field_name'] = field_name
+            child_dict["field_name"] = field_name
 
         children.append(child_dict)
 
     if children:
-        result['children'] = children
-        result['child_count'] = len(children)
-        result['named_child_count'] = node.named_child_count
+        result["children"] = children
+        result["child_count"] = len(children)
+        result["named_child_count"] = node.named_child_count
 
     return result
 
@@ -228,7 +225,9 @@ def parse_file(file_path: Path, language: str | None = None) -> dict[str, Any]:
     if language is None:
         language = detect_language(file_path)
         if language is None:
-            raise ValueError(f"Could not detect language for {file_path}. Use --language to specify.")
+            raise ValueError(
+                f"Could not detect language for {file_path}. Use --language to specify."
+            )
 
     # Read source
     source = file_path.read_bytes()
@@ -247,11 +246,11 @@ def parse_file(file_path: Path, language: str | None = None) -> dict[str, Any]:
 
     # Add metadata with relative path
     return {
-        'file': make_relative_path(file_path),
-        'language': language,
-        'source_bytes': len(source),
-        'source_lines': source.count(b'\n') + 1,
-        'root': ast_dict,
+        "file": make_relative_path(file_path),
+        "language": language,
+        "source_bytes": len(source),
+        "source_lines": source.count(b"\n") + 1,
+        "root": ast_dict,
     }
 
 
@@ -298,7 +297,7 @@ def process_all_samples(compact: bool = False):
             output_path = OUTPUTS_DIR / output_name
 
             json_output = json.dumps(result, indent=indent, ensure_ascii=False)
-            output_path.write_text(json_output, encoding='utf-8')
+            output_path.write_text(json_output, encoding="utf-8")
 
             print(f"  {file_path.name} -> {output_name}", file=sys.stderr)
         except Exception as e:
@@ -309,7 +308,7 @@ def process_all_samples(compact: bool = False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Parse a file using tree-sitter and output AST as JSON.',
+        description="Parse a file using tree-sitter and output AST as JSON.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -320,15 +319,18 @@ Examples:
     %(prog)s --list-languages
         """,
     )
-    parser.add_argument('file', nargs='?', help='File to parse')
-    parser.add_argument('-o', '--output', help='Output file (default: stdout)')
-    parser.add_argument('-l', '--language', help='Override language detection')
-    parser.add_argument('--all', action='store_true',
-                       help='Process all sample files in sample_repo/')
-    parser.add_argument('--list-languages', action='store_true',
-                       help='List supported file extensions')
-    parser.add_argument('--compact', action='store_true',
-                       help='Output compact JSON (no indentation)')
+    parser.add_argument("file", nargs="?", help="File to parse")
+    parser.add_argument("-o", "--output", help="Output file (default: stdout)")
+    parser.add_argument("-l", "--language", help="Override language detection")
+    parser.add_argument(
+        "--all", action="store_true", help="Process all sample files in sample_repo/"
+    )
+    parser.add_argument(
+        "--list-languages", action="store_true", help="List supported file extensions"
+    )
+    parser.add_argument(
+        "--compact", action="store_true", help="Output compact JSON (no indentation)"
+    )
 
     args = parser.parse_args()
 
@@ -367,11 +369,11 @@ Examples:
     if args.output:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(json_output, encoding='utf-8')
+        output_path.write_text(json_output, encoding="utf-8")
         print(f"Output written to {output_path}", file=sys.stderr)
     else:
         print(json_output)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

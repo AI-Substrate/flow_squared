@@ -87,7 +87,7 @@ async def query_node(client: Client, node: dict) -> dict:
 async def main():
     batch_size = int(sys.argv[1]) if len(sys.argv) > 1 else 10
 
-    print(f"Loading graph...")
+    print("Loading graph...")
     nodes = load_graph_nodes()
     print(f"{len(nodes)} callable/type nodes\n")
 

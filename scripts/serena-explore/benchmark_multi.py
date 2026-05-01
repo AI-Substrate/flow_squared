@@ -273,7 +273,7 @@ async def run_benchmark(num_instances: int, nodes: list[dict]):
 def main():
     num_instances = int(sys.argv[1]) if len(sys.argv) > 1 else 10
 
-    print(f"Loading graph...")
+    print("Loading graph...")
     nodes = load_graph_nodes()
     print(f"{len(nodes)} callable/type nodes\n")
 
@@ -281,7 +281,7 @@ def main():
     pids = start_serena_instances(num_instances)
 
     try:
-        print(f"Waiting for instances to be ready...")
+        print("Waiting for instances to be ready...")
         wait_for_instances(num_instances)
 
         asyncio.run(run_benchmark(num_instances, nodes))

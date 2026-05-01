@@ -50,6 +50,7 @@ line-length = 88
 target-version = "py312"
 exclude = [
     "tests/fixtures/ast_samples/python/syntax_error.py",  # Intentional syntax errors for parser testing
+    "scripts/",  # Exploratory/benchmark scripts — lint separately
 ]
 
 [tool.ruff.lint]

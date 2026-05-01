@@ -22,7 +22,6 @@ import sys
 
 from fastmcp import Client
 
-
 SERVER_URL = "http://127.0.0.1:8321/mcp/"
 
 
@@ -59,7 +58,7 @@ async def main():
             print(f"    {t.name:40s} {(t.description or '')[:60]}")
 
         print(f"\n{'='*60}")
-        print(f"  CROSS-FILE RELATIONSHIP EXPLORATION")
+        print("  CROSS-FILE RELATIONSHIP EXPLORATION")
         print(f"{'='*60}")
 
         # Find GraphStore and its structure
